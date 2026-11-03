@@ -34,10 +34,10 @@ Version 1 builds mono-color decks in all three sizes. Candidate cards are those 
 
 ### Pool flow
 
-1. **Import** decklist text. The app reports how many cards resolved and lists unresolved lines for the user to fix or skip.
+1. **Import** decklist text or a collection CSV (ManaBox, Moxfield, Deckbox, or any CSV with name and quantity columns), pasted or from a file. The app reports how many cards resolved and lists unresolved lines with suggestions.
 2. **Pool** is the single active set of available cards, keyed by oracle id with quantities. It persists on the device between sessions and can be exported as a backup file and restored.
 3. **Build** a deck from the pool. The result is a full decklist with an explanation.
-4. **Accept** saves the deck and removes its cards from the pool. Discard throws it away. Rebuild tries another style.
+4. **Accept** saves the deck and removes its cards from the pool. Discard throws it away and keeps the chosen size, color, and style. Try another style discards and returns to the style list.
 5. **Build again** from what is left, until the pool runs out of a color.
 6. **Clear pool** and **delete deck** are one action each with a confirmation. Deleting a deck offers to return its cards to the pool.
 
@@ -75,11 +75,11 @@ A local tag overlay in `config/tag-overlay.json` fixes and gap-fills tags at pip
 
 Everything is keyed on `oracle_id`. Printings, sets, collector numbers, finishes, and languages are ignored for card facts and building. A set code and collector number from an import line are kept only as an art hint on the pool entry.
 
-Name resolution handles full multi-face names ("A // B"), front-face-only names, case, accents, and punctuation. Where one name maps to several oracle ids (36 cases), the paper-legal non-Un-set card wins.
+Name resolution handles full multi-face names ("A // B"), front-face-only names, case, accents, and punctuation. Where one name maps to several oracle ids, the non-Un-set card wins.
 
 ### Data pack
 
-The shipped database is one compact JSON file, gzip-compressed by the host. Shape: `DataPack` in `packages/core/src/types.ts`. Per card: oracle id, name, layout, mana cost, mana value, type line, oracle text, colors, color identity, keywords, power, toughness, loyalty, produced mana, normalized types, derived `entersTapped` and `unset` flags, tags, faces, and the default printing's image id. Measured size with today's data: about 33,400 cards, 18 MB raw, 4.5 MB compressed.
+The shipped database is one compact JSON file, gzip-compressed by the host. Shape: `DataPack` in `packages/core/src/types.ts`. Per card: oracle id, name, layout, mana cost, mana value, type line, oracle text, colors, color identity, keywords, power, toughness, loyalty, produced mana, normalized types, derived `entersTapped` and `unset` flags, tags, faces, and the default printing's image id. The 2026-11-02 pack holds 34,168 cards: 23 MB raw, 5.4 MB compressed.
 
 JSON was chosen over SQLite because the data is small, loads with one fetch, needs no WebAssembly on the web, and decodes natively in Swift if the iOS app ever goes native.
 
@@ -97,7 +97,7 @@ JSON was chosen over SQLite because the data is small, loads with one fetch, nee
 1. Read the raw bulk files.
 2. Filter, trim, normalize, derive fields.
 3. Join Tagger tags and the local overlay.
-4. Write `data/packs/cards.v1.json` and `data/manifest.json` (version, URL, checksum, size, card count).
+4. Write `data/packs/cards.v1.json`, its gzip, and `data/packs/manifest.json` (version, URL, checksum, size, card count), and copy the pack into each app's `public/data/` for local development.
 
 Tests cover the edge cases above with fixture cards.
 
@@ -111,8 +111,8 @@ Tests cover the edge cases above with fixture cards.
 ## Images
 
 - One default image per card, the printing Scryfall's oracle file chose. The pack stores the printing id; `imageUrl()` builds the URL.
-- Images load on demand from Scryfall's image host, directly from the user's device, and are cached there. Only cards in the pool and in decks are ever loaded.
-- When an import line carried a set code (and collector number), the pool entry keeps it and the art toggle shows that printing, falling back to the default. Set codes affect nothing else.
+- Images load on demand from Scryfall's image host, directly from the user's device, and are cached there. Only cards in the pool and in decks are ever loaded, and nothing is requested while the art setting is off.
+- When an import line carried a set code (and collector number), the pool entry keeps it and the card detail shows that printing, falling back to the default image and then to text. List thumbnails use the default image. Set codes affect nothing else.
 - Card art is off by default. Everything works as text without images.
 - Images are never cropped, distorted, recolored, or watermarked.
 - A "download images for my pool" action for full offline use is a later version.
@@ -135,19 +135,20 @@ Pool, deck size, color, optional style preference, settings, config version, dat
 
 ### Steps
 
-1. **Candidates**: pool cards whose color identity fits, honoring the Un-set setting and copy limits.
-2. **Archetype**: the preferred style if viable, else the strongest viable one from the scan.
+1. **Candidates**: pool cards whose color identity fits, honoring the Un-set setting and copy limits, and excluding cards with a {C} pip.
+2. **Archetype**: the preferred style if viable; else the viable synergy archetype with the largest margin over its minimums; else the composition archetype (aggro, midrange, control) with the best margin, midrange on ties.
 3. **Reserve lands**: start from the template's base land count so the spell count is known.
-4. **Fill spells** in passes with per-type caps so no category floods the deck: role quotas, then curve and type mix, then synergy density, then filler by tiebreaks.
-5. **Size the mana base** from the spells actually chosen: a base count per size, raised by average mana value, lowered per cheap mana source, clamped to a range. A rock or dork costing two or less earns full credit, a three-cost one half credit, and dorks slightly less than rocks because they die to removal. Dorks still count as one-drop creatures in the curve. If the land count moved, adjust the spell count and re-fill the difference.
-6. **Improve** with local search: swap moves that raise the objective.
+4. **Fill spells** in passes with per-type caps so no category floods the deck: role minimums, theme enablers and payoffs to their minimums, role targets, type mix minimums, curve fill toward the profile, then filler. The last filler pass ignores type caps so a creature-only pool still fills the deck.
+5. **Size the mana base** from the spells actually chosen: a base count per size, raised by average mana value, lowered per cheap mana source, clamped to a range. Credits per source kind and cost are in the template; dorks earn slightly less than rocks because they die to removal, and dorks still count as creatures in the curve. If the land count moved, trim the least important picks or re-fill, until the count is stable.
+6. **Improve** with bounded local search: swap a chosen card for an unchosen candidate when the objective improves, then re-fit the land count again.
 7. **Nonbasics and basics** per land rules.
+8. **Validate**: exact size, copy limits, color identity, land count inside the clamp.
 
 Constants live in `config/deck-templates.json` and are explained in `docs/guides/deck-shapes.md`.
 
 ### Objective
 
-Template fit (curve deviation, type mix, role quotas) plus synergy density. No card quality score in version 1. Tiebreaks: theme tag hits, then creature stats per mana.
+Template fit (curve deviation, type mix, role quotas, with minimums weighing more than targets) plus synergy density, scaled by the chosen archetype's synergy weight. No card quality score in version 1. Candidate ordering first prefers cards that fill a curve bucket still below target, then follows the tiebreak list in `builder-weights.json` (theme tag hits, stats per mana, lower mana value, name), then card id.
 
 ### Output
 
@@ -166,23 +167,24 @@ A 20-card packet includes its lands (about 8) and is built so that any two packe
 
 - Fixed test pools in `eval/pools/`, each exercising something specific.
 - A written rubric in `eval/rubric.md`: curve, type mix, role coverage, synergy, mana base, playability.
-- `npm run eval` builds every pool at every size and color the scan allows, scores the decks with automatic metrics (size and copy invariants, land count against the formula clamp, curve deviation, type mix, role coverage, synergy density, filler, castability, build time), writes `eval/results/<date>-<sha>.json`, prints a summary per pool and per size, and shows deltas against the previous run. `npm run eval:pools` regenerates the synthetic pools from a fixed seed.
+- `npm run eval` builds every pool at every size and color the scan allows, scores the decks with automatic metrics (size and copy invariants, land count against the formula clamp, curve deviation, type mix, role coverage, synergy density, filler, castability, build time), writes `eval/results/<date>-<sha>.json`, prints a summary per pool and per size, and shows per-size deltas against the previous full run. It exits 1 on any build failure or broken invariant. `npm run eval:pools` regenerates the synthetic pools from a fixed seed. An on-demand GitHub Actions workflow runs the same suite.
+- Committed baselines in `eval/results/` are full best-fit runs; the first is `2026-11-03-fe5b028.json`.
 - Claude reviews decks against the rubric as a development aid, not as ground truth. The user calibrates on a sample.
 
 ## Architecture
 
 npm workspaces monorepo, TypeScript throughout.
 
-| Package               | Role                                                                                                          |
-| --------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `@bulk-brew/core`     | Types, decklist parser, name resolution, pool, scan, builder, export. Pure, unit-tested, no DOM or Node APIs. |
-| `@bulk-brew/ui`       | Shared React pieces: mana symbols, card rows, deck lists.                                                     |
-| `@bulk-brew/pipeline` | Developer-side data pipeline.                                                                                 |
-| `@bulk-brew/web`      | Desktop-first React app. Static build deployed to GitHub Pages.                                               |
-| `@bulk-brew/mobile`   | Phone and tablet React app. Wrapped by Capacitor for iOS.                                                     |
+| Package               | Role                                                                                                                        |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `@bulk-brew/core`     | Types, decklist parser, name resolution, pool, scan, builder, export. Pure, unit-tested, no DOM or Node APIs.               |
+| `@bulk-brew/ui`       | Shared React pieces and hooks: storage, pack and config loading, pool, decks, settings, build flow, card detail, deck view. |
+| `@bulk-brew/pipeline` | Developer-side data pipeline.                                                                                               |
+| `@bulk-brew/web`      | Desktop-first React app. Static build deployed to GitHub Pages.                                                             |
+| `@bulk-brew/mobile`   | Phone and tablet React app. Wrapped by Capacitor for iOS.                                                                   |
 
-- **Storage**: pool, decks, and settings in IndexedDB on the web and in app storage on iOS, behind one storage interface. Backup is a JSON file export and import.
-- **Offline**: the web app is a progressive web app with the data pack cached; the iOS app bundles everything.
+- **Storage**: pool, decks, and settings in IndexedDB behind one key-value interface (`packages/ui/src/storage/kv.ts`). On iOS the same store runs in the WebView unless phase 8 moves it to native storage. Backup is a JSON file export and import; restore writes all keys in one transaction.
+- **Offline**: the web app is an installable progressive web app. Its service worker precaches the app shell and built assets per deploy and keeps the data pack in a separate cache that survives deploys. The iOS app bundles everything.
 - **iOS**: Capacitor wraps the mobile app's static build. Builds run on the user's Mac mini with Xcode and ship through TestFlight and the App Store.
 
 ## Compliance
@@ -198,11 +200,12 @@ npm workspaces monorepo, TypeScript throughout.
 | ----- | ----------------------------------------------------------------------------------------- | ------ |
 | 1     | Repo bootstrap: monorepo, license, docs, download scripts, CI, Pages deploy, design brief | done   |
 | 2     | Data pipeline: pack, manifest, edge-case tests, weekly refresh workflow                   | done   |
-| 3     | Core: pack loader, name resolution, pool model with import report and backup              | mostly |
+| 3     | Core: pack loader, name resolution, pool model with import report and backup              | done   |
 | 4     | Guides and config v1: templates, roles, archetypes, synergy and land rules                | done   |
 | 5     | Archetype scan and builder v1: mono-color, all sizes, explanations, packet pairing        | done   |
 | 6     | Evaluation harness: test pools, rubric, results tracking                                  | done   |
 | 7     | Web app: full flow, card detail and art, backup, CSV import, offline, mobile layouts      | done   |
+| 7b    | Design pass: Claude Design restyles both apps from `docs/DESIGN_BRIEF.md`                 | open   |
 | 8     | iOS app: Capacitor project, bundled data, over-the-air data updates, TestFlight           | next   |
 | 9     | Later: two-color builds, batch balanced mode, quality score, offline image download       |        |
 

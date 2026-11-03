@@ -24,6 +24,9 @@ desktop.ini
 .vscode/*
 !.vscode/extensions.json
 
+# Browser smoke test output
+.smoke/
+
 # Claude Code local settings
 .claude/settings.local.json
 

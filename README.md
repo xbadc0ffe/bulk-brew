@@ -6,11 +6,13 @@ Paste in your bulk, pick a deck size and a color, and Bulk Brew builds the best 
 
 Everything runs on your device. There is no account, no server, and nothing you import ever leaves your browser or phone.
 
+**Try it:** https://xbadc0ffe.github.io/bulk-brew/
+
 **Status:** working v1. Import decklists or ManaBox, Moxfield, and Deckbox CSV exports, keep a pool, build 60, 40, or 20-card mono-color decks with an explanation, accept them to remove their cards from the pool, export or copy decklists, pair two packets, back everything up to a file, and browse card details with optional art. The web app works offline once loaded. Styling is a plain placeholder until the design pass; the iOS app is next. See [SPEC.md](SPEC.md) for the plan and the decisions behind it.
 
 ## How it works
 
-1. **Import** a decklist or collection export in the usual text formats, such as `4 Lightning Bolt (M10) 146`.
+1. **Import** a decklist such as `4 Lightning Bolt (M10) 146`, or a ManaBox, Moxfield, or Deckbox CSV export.
 2. **Pool**: every card you imported, matched against a local card database built from Scryfall data.
 3. **Build**: choose 60, 40, or 20 cards and a color. The builder picks an archetype your pool supports, fills role quotas and a mana curve, and sizes the mana base from the curve and the cheap mana sources it chose.
 4. **Accept** the deck to save it and remove its cards from the pool, or discard it and try another style.
@@ -29,12 +31,22 @@ npm run dev:mobile   # phone and tablet app at http://localhost:5174
 npm run check        # typecheck, lint, format check, tests, build
 ```
 
-Card data is not committed. To build it locally:
+Card data is not committed. The apps need it before `npm run dev` shows anything:
 
 ```sh
-npm run data:fetch   # downloads Scryfall bulk files into data/raw/ (about 40 MB)
-npm run data:build   # builds the card data pack into data/packs/
+npm run data:pull    # quickest: download the pinned, published card data pack
+npm run data:fetch   # or: download Scryfall bulk files into data/raw/ (about 40 MB)
+npm run data:build   #     and build the card data pack yourself
 npm run rules:fetch  # optional: Comprehensive Rules text for development reference
+```
+
+Developer tools:
+
+```sh
+npm run config:check                                   # validate config/ against the card data
+npm run demo:build -- eval/pools/white-bulk.txt W 60   # build one deck from a pool file and print it
+npm run eval                                           # build and score decks from every fixture pool
+npm run smoke                                          # browser test of the full flow (see CLAUDE.md)
 ```
 
 ## Repository layout
@@ -49,8 +61,8 @@ npm run rules:fetch  # optional: Comprehensive Rules text for development refere
 | `config/`           | Deck templates, archetypes, roles, land rules: all tunable without code changes   |
 | `data/`             | Pinned manifest of the published data pack; raw downloads are gitignored          |
 | `docs/`             | Design brief, deckbuilding guides, reference notes                                |
-| `eval/`             | Fixed test pools and the rubric used to judge deck quality                        |
-| `scripts/`          | Download scripts for Scryfall bulk data and the Comprehensive Rules               |
+| `eval/`             | Fixture pools, the deck quality rubric, and committed evaluation baselines        |
+| `scripts/`          | Data download and pull scripts, rules download, browser smoke test                |
 
 ## License and attribution
 

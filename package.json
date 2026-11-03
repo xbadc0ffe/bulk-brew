@@ -30,7 +30,8 @@
     "demo:build": "node packages/pipeline/src/demo-build.ts",
     "eval": "node packages/pipeline/src/eval.ts",
     "eval:pools": "node packages/pipeline/src/make-eval-pools.ts",
-    "rules:fetch": "node scripts/fetch-comp-rules.mjs"
+    "rules:fetch": "node scripts/fetch-comp-rules.mjs",
+    "smoke": "node scripts/smoke-web.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

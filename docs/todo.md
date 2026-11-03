@@ -5,7 +5,7 @@ Ranked. The current phase is at the top. Finished phases are removed, not struck
 ## Phase 8: iOS app
 
 - Capacitor project around `apps/mobile`, bundled data pack and config, over-the-air data update.
-- Pick a short app id for the bundle identifier.
+- Pick the bundle identifier with the user (for example com.<name>.bulkbrew).
 - Storage: confirm IndexedDB persistence in the WebView or move the key-value store to the Filesystem plugin.
 
 ## Builder follow-ups
@@ -19,7 +19,13 @@ Ranked. The current phase is at the top. Finished phases are removed, not struck
 - Prefer spreading copies across more distinct cards when the pool allows (variety).
 - Config tuning after the first builds: lifegain payoffs are thin outside white and black; spells payoffs are thin outside blue and red.
 
+## Design pass
+
+- Claude Design restyles both apps from docs/DESIGN_BRIEF.md, working on the existing screens in apps/web/src and apps/mobile/src.
+
 ## App follow-ups
+
+- Import: add-or-replace choice. Pool: type and mana value filters, grid view with art. Build: per-build max copies override. These are in the design brief but not built.
 
 - Hook tests with a DOM test environment (needs a jsdom dev dependency; ask first).
 - Mobile pool list is not windowed; fine up to a few thousand rows, revisit if it lags.
@@ -36,4 +42,3 @@ Ranked. The current phase is at the top. Finished phases are removed, not struck
 ## Open questions
 
 - Modal double-faced cards with a land back face are marked entersTapped from the land face; decide how the builder treats them.
-- Commit policy: commit after each verified step (current default) or only when asked.

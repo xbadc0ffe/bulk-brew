@@ -21,6 +21,8 @@ TypeScript 6, npm workspaces, Node 24 (scripts run `.ts` directly, so core and p
 - Do not claim something works without running it.
 - Be succinct. A question is not a go-ahead.
 - Commit when a step passes `npm run check`. Push at the end of a phase or when asked.
+- Every push to main deploys the web app, and the user tries the live site between steps. Push only green, usable states; label any unfinished screen with what is coming.
+- For multi-step phases the user likes a loop: one agent implements, a fresh agent reviews the diff, then verify in the browser before committing.
 
 ## Decision authority
 
@@ -50,12 +52,35 @@ Card facts, rules text, and tag meanings come from the data files and `docs/rule
 
 ```sh
 npm run check            # the single gate: typecheck, lint, format, test, build
-npm run dev              # web app
-npm run dev:mobile       # mobile app
-npm run data:fetch       # Scryfall bulk files into data/raw/
-npm run data:build       # card data pack
+npm run data:pull        # pinned card data pack into data/packs and each app's public/data
+npm run dev              # web app on 5173
+npm run dev:mobile       # mobile app on 5174
+npm run data:fetch       # Scryfall bulk files into data/raw/ (at most daily)
+npm run data:build       # rebuild the card data pack from data/raw/
+npm run config:check     # validate config/ and print role and archetype match counts
+npm run demo:build -- <pool.txt> <W|U|B|R|G> [60|40|20] [style]
+npm run eval             # score decks from every pool in eval/pools; exits 1 on failures
 ```
+
+After any builder or config change, run `npm run eval` and compare the per-size deltas with the committed baseline in `eval/results/`.
+
+Browser check of the real app (headless Edge or Chrome):
+
+```sh
+npm run build -w @bulk-brew/web
+npx -w @bulk-brew/web vite preview --port 4173 --strictPort   # in the background
+npm run smoke                                                  # or: npm run smoke -- https://xbadc0ffe.github.io/bulk-brew/
+```
+
+The smoke test imports `eval/pools/white-bulk.txt`, builds, accepts, and checks the pool and Decks screens. Screenshots land in `.smoke/` (gitignored).
+
+## Environment notes
+
+- Development is on Windows with Git Bash and PowerShell. iOS builds run on the user's Mac mini with Xcode.
+- Git Bash rewrites arguments that look like paths: run the Pages build locally with `MSYS_NO_PATHCONV=1 BASE_PATH=/bulk-brew/ npm run build -w @bulk-brew/web`.
+- Shell heredocs that contain backticks fail to parse in Claude Code's Bash tool here. Write such files with the file tools instead.
+- Publishing a data release (`gh release create`) may need the user to run it; the weekly workflow normally does it.
 
 ## Session start
 
-Read `SPEC.md` "Milestones" and `docs/todo.md` to find the current phase, then continue from there.
+Read `SPEC.md` "Milestones" and `docs/todo.md` to find the current phase, then continue from there. If `data/packs/` is empty, run `npm run data:pull` first.

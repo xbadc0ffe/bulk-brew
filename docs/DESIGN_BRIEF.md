@@ -17,7 +17,7 @@ Casual and kitchen-table players, people who draft a lot and have piles of commo
 | Web    | Desktop browser, GitHub Pages; also usable on a phone browser | Multi-pane. Pool list beside card detail; build settings beside the result; keyboard friendly.                     |
 | Mobile | iPhone and iPad through Capacitor                             | Phone: single column with a bottom tab bar and sheets. iPad: split view, pool list plus detail, build plus result. |
 
-Both are React 19 with Tailwind 4. Shared presentational pieces live in `packages/ui`; app-specific layouts live in `apps/web/src` and `apps/mobile/src`. The five screen ids in each app's `screens.tsx` are the information architecture; keep them. Do not change `packages/core`.
+Both are React 19 with Tailwind 4. Shared presentational pieces live in `packages/ui`; app-specific layouts live in `apps/web/src` and `apps/mobile/src`. The five screen ids in each app's `App.tsx` (import, pool, build, decks, settings) are the information architecture; keep them. Do not change `packages/core`.
 
 Both apps support light and dark mode. No external fonts, CDNs, or trackers; everything is bundled. Mana symbols can use a bundled open-source mana font or small inline SVGs.
 
@@ -56,7 +56,7 @@ The same view serves a fresh build and a saved deck.
 - Mana curve as a small bar chart. Land count with its reasoning in one line ("24 lands: average cost 2.9, 3 cheap mana sources").
 - Explanation panel: archetype and what it does, role coverage against targets (removal 6 of 6, card draw 3 of 4), key synergies in plain words, notes.
 - Each card can reveal "why this card": the role or synergy slot it filled, or that it is filler.
-- Actions on a fresh build: Accept (saves and removes cards from the pool), Rebuild (choose another style), Discard.
+- Actions on a fresh build: Accept (saves and removes cards from the pool), Try another style, Discard, Export, Copy.
 - Actions on a saved deck: rename, export as text, copy to clipboard, delete (with a "return cards to the pool" checkbox).
 - A badge shows whether the deck's cards were removed from the pool.
 
@@ -127,3 +127,5 @@ A plain, functional interface already implements every screen above, so the desi
 - Web app: installable, works offline after the first load through a service worker.
 
 Shared pieces live in `packages/ui` (card detail, card image, deck view, curve bars, hooks). Screens live in `apps/web/src` and `apps/mobile/src`.
+
+Not built yet, though described above: the add-or-replace choice on Import, type and mana value filters on Pool, a grid view with art, the per-build max copies override on Build, and the mobile "check for card updates" action (phase 8). Design them; the logic will follow.
