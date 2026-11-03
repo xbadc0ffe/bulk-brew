@@ -1,0 +1,211 @@
+/* Bulk Brew theme tokens, generated from Bulk Brew UI.dc.html.
+   Usage: <html data-mode="light|dark" data-theme="grey|W|U|B|R|G">. Default: grey, light.
+   Paste below @import 'tailwindcss' in apps/web/src/index.css and apps/mobile/src/index.css. */
+
+/* Light */
+:root {
+  color-scheme: light;
+  --bg: oklch(0.955 0.000 0);
+  --surface: oklch(0.985 0.000 0);
+  --surface2: oklch(0.925 0.000 0);
+  --border: oklch(0.87 0.000 0);
+  --border2: oklch(0.78 0.000 0);
+  --ink: oklch(0.4 0.000 0);
+  --on-ink: oklch(0.985 0.000 0);
+  --text1: oklch(0.4 0.000 0);
+  --text2: oklch(0.5 0.000 0);
+  --text3: oklch(0.62 0.000 0);
+  --bar: oklch(0.6 0.000 0);
+  --pip-w: oklch(.97 .03 90);
+  --pip-w-fg: oklch(.38 .03 90);
+  --pip-u: oklch(.86 .07 240);
+  --pip-u-fg: oklch(.30 .08 240);
+  --pip-b: oklch(.40 .04 300);
+  --pip-b-fg: oklch(.96 .01 300);
+  --pip-r: oklch(.80 .10 30);
+  --pip-r-fg: oklch(.32 .10 30);
+  --pip-g: oklch(.78 .09 150);
+  --pip-g-fg: oklch(.28 .07 150);
+}
+[data-theme="W"] {
+  --bg: oklch(0.955 0.035 88);
+  --surface: oklch(0.985 0.018 88);
+  --surface2: oklch(0.925 0.042 88);
+  --border: oklch(0.87 0.039 88);
+  --border2: oklch(0.78 0.035 88);
+  --ink: oklch(0.42 0.080 88);
+  --on-ink: oklch(0.985 0.018 88);
+  --text1: oklch(0.4 0.035 88);
+  --text2: oklch(0.5 0.032 88);
+  --text3: oklch(0.62 0.028 88);
+  --bar: oklch(0.6 0.056 88);
+}
+[data-theme="U"] {
+  --bg: oklch(0.955 0.045 240);
+  --surface: oklch(0.985 0.022 240);
+  --surface2: oklch(0.925 0.054 240);
+  --border: oklch(0.87 0.050 240);
+  --border2: oklch(0.78 0.045 240);
+  --ink: oklch(0.4 0.140 240);
+  --on-ink: oklch(0.985 0.022 240);
+  --text1: oklch(0.4 0.045 240);
+  --text2: oklch(0.5 0.041 240);
+  --text3: oklch(0.62 0.036 240);
+  --bar: oklch(0.6 0.098 240);
+}
+[data-theme="B"] {
+  --bg: oklch(0.955 0.030 300);
+  --surface: oklch(0.985 0.015 300);
+  --surface2: oklch(0.925 0.036 300);
+  --border: oklch(0.87 0.033 300);
+  --border2: oklch(0.78 0.030 300);
+  --ink: oklch(0.4 0.090 300);
+  --on-ink: oklch(0.985 0.015 300);
+  --text1: oklch(0.4 0.030 300);
+  --text2: oklch(0.5 0.027 300);
+  --text3: oklch(0.62 0.024 300);
+  --bar: oklch(0.6 0.063 300);
+}
+[data-theme="R"] {
+  --bg: oklch(0.955 0.050 30);
+  --surface: oklch(0.985 0.025 30);
+  --surface2: oklch(0.925 0.060 30);
+  --border: oklch(0.87 0.055 30);
+  --border2: oklch(0.78 0.050 30);
+  --ink: oklch(0.4 0.160 30);
+  --on-ink: oklch(0.985 0.025 30);
+  --text1: oklch(0.4 0.050 30);
+  --text2: oklch(0.5 0.045 30);
+  --text3: oklch(0.62 0.040 30);
+  --bar: oklch(0.6 0.112 30);
+}
+[data-theme="G"] {
+  --bg: oklch(0.955 0.045 150);
+  --surface: oklch(0.985 0.022 150);
+  --surface2: oklch(0.925 0.054 150);
+  --border: oklch(0.87 0.050 150);
+  --border2: oklch(0.78 0.045 150);
+  --ink: oklch(0.4 0.130 150);
+  --on-ink: oklch(0.985 0.022 150);
+  --text1: oklch(0.4 0.045 150);
+  --text2: oklch(0.5 0.041 150);
+  --text3: oklch(0.62 0.036 150);
+  --bar: oklch(0.6 0.091 150);
+}
+
+/* Dark */
+[data-mode="dark"] {
+  color-scheme: dark;
+  --bg: oklch(0.24 0.000 0);
+  --surface: oklch(0.285 0.000 0);
+  --surface2: oklch(0.33 0.000 0);
+  --border: oklch(0.39 0.000 0);
+  --border2: oklch(0.48 0.000 0);
+  --ink: oklch(0.82 0.000 0);
+  --on-ink: oklch(0.22 0.000 0);
+  --text1: oklch(0.84 0.000 0);
+  --text2: oklch(0.74 0.000 0);
+  --text3: oklch(0.62 0.000 0);
+  --bar: oklch(0.66 0.000 0);
+  --pip-w: oklch(.93 .035 90);
+  --pip-w-fg: oklch(.30 .02 90);
+  --pip-u: oklch(.72 .11 240);
+  --pip-u-fg: oklch(.18 .04 240);
+  --pip-b: oklch(.42 .05 300);
+  --pip-b-fg: oklch(.94 .02 300);
+  --pip-r: oklch(.66 .15 30);
+  --pip-r-fg: oklch(.16 .04 30);
+  --pip-g: oklch(.62 .12 150);
+  --pip-g-fg: oklch(.16 .04 150);
+}
+[data-mode="dark"][data-theme="W"] {
+  --bg: oklch(0.24 0.045 88);
+  --surface: oklch(0.285 0.045 88);
+  --surface2: oklch(0.33 0.050 88);
+  --border: oklch(0.39 0.045 88);
+  --border2: oklch(0.48 0.045 88);
+  --ink: oklch(0.82 0.080 88);
+  --on-ink: oklch(0.22 0.045 88);
+  --text1: oklch(0.84 0.018 88);
+  --text2: oklch(0.74 0.022 88);
+  --text3: oklch(0.62 0.027 88);
+  --bar: oklch(0.66 0.056 88);
+}
+[data-mode="dark"][data-theme="U"] {
+  --bg: oklch(0.24 0.070 240);
+  --surface: oklch(0.285 0.070 240);
+  --surface2: oklch(0.33 0.077 240);
+  --border: oklch(0.39 0.070 240);
+  --border2: oklch(0.48 0.070 240);
+  --ink: oklch(0.82 0.140 240);
+  --on-ink: oklch(0.22 0.070 240);
+  --text1: oklch(0.84 0.028 240);
+  --text2: oklch(0.74 0.035 240);
+  --text3: oklch(0.62 0.042 240);
+  --bar: oklch(0.66 0.098 240);
+}
+[data-mode="dark"][data-theme="B"] {
+  --bg: oklch(0.24 0.050 300);
+  --surface: oklch(0.285 0.050 300);
+  --surface2: oklch(0.33 0.055 300);
+  --border: oklch(0.39 0.050 300);
+  --border2: oklch(0.48 0.050 300);
+  --ink: oklch(0.8 0.090 300);
+  --on-ink: oklch(0.22 0.050 300);
+  --text1: oklch(0.84 0.020 300);
+  --text2: oklch(0.74 0.025 300);
+  --text3: oklch(0.62 0.030 300);
+  --bar: oklch(0.66 0.063 300);
+}
+[data-mode="dark"][data-theme="R"] {
+  --bg: oklch(0.24 0.080 30);
+  --surface: oklch(0.285 0.080 30);
+  --surface2: oklch(0.33 0.088 30);
+  --border: oklch(0.39 0.080 30);
+  --border2: oklch(0.48 0.080 30);
+  --ink: oklch(0.82 0.160 30);
+  --on-ink: oklch(0.22 0.080 30);
+  --text1: oklch(0.84 0.032 30);
+  --text2: oklch(0.74 0.040 30);
+  --text3: oklch(0.62 0.048 30);
+  --bar: oklch(0.66 0.112 30);
+}
+[data-mode="dark"][data-theme="G"] {
+  --bg: oklch(0.24 0.070 150);
+  --surface: oklch(0.285 0.070 150);
+  --surface2: oklch(0.33 0.077 150);
+  --border: oklch(0.39 0.070 150);
+  --border2: oklch(0.48 0.070 150);
+  --ink: oklch(0.82 0.130 150);
+  --on-ink: oklch(0.22 0.070 150);
+  --text1: oklch(0.84 0.028 150);
+  --text2: oklch(0.74 0.035 150);
+  --text3: oklch(0.62 0.042 150);
+  --bar: oklch(0.66 0.091 150);
+}
+
+@theme inline {
+  --color-canvas: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface2);
+  --color-line: var(--border);
+  --color-line-strong: var(--border2);
+  --color-ink: var(--ink);
+  --color-on-ink: var(--on-ink);
+  --color-fg-1: var(--text1);
+  --color-fg-2: var(--text2);
+  --color-fg-3: var(--text3);
+  --color-bar: var(--bar);
+  --color-pip-w: var(--pip-w);
+  --color-pip-w-fg: var(--pip-w-fg);
+  --color-pip-u: var(--pip-u);
+  --color-pip-u-fg: var(--pip-u-fg);
+  --color-pip-b: var(--pip-b);
+  --color-pip-b-fg: var(--pip-b-fg);
+  --color-pip-r: var(--pip-r);
+  --color-pip-r-fg: var(--pip-r-fg);
+  --color-pip-g: var(--pip-g);
+  --color-pip-g-fg: var(--pip-g-fg);
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: ui-monospace, Menlo, monospace;
+}

@@ -2,7 +2,7 @@
 
 For the interface design pass. Everything under the interface is shared and already specified in `SPEC.md`; this brief covers what people see and do.
 
-The design pass is done (milestone 7b). Where the shipped design differs from this brief, `SPEC.md` wins; most notably, Save deck and Remove from pool replace Accept and Discard.
+The design pass is done (milestone 7b), followed by an owner review. Where the shipped app differs from this brief, `SPEC.md` wins. Most notably: the pool is shown as the Bulk List, with Import as its subpage; a fresh build offers Accept (with a confirmation), Reject, and Export instead of Try another style and Discard; and two packets pair from a packet's view, with a Merge that replaces them. The design handoff that guided the pass, with the unbuilt alternates, is in `docs/design_handoff_bulk_brew_ui/`.
 
 ## The product in one paragraph
 

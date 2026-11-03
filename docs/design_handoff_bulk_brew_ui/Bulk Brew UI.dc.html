@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<style>
+body{margin:0;background:#e3e3e6;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased}
+a{color:var(--ink)}a:hover{color:var(--text1)}
+*{box-sizing:border-box}
+</style>
+</helmet>
+
+<section style="{{ rootStyle }}">
+<div id="2a" style="display:flex;flex-direction:column;gap:14px">
+  <div style="display:flex;gap:8px;align-items:center"><span style="font-size:11px;font-weight:600;background:var(--ink);color:var(--on-ink);padding:2px 7px;border-radius:4px">2a</span><span style="font-size:13px;color:var(--text1)">Themes · grey plus the five colors, each in light and dark. Pick one in Settings › Appearance. Use the Tweaks panel to apply any theme to every screen below.</span></div>
+  <div style="display:flex;gap:16px;flex-wrap:wrap">
+    <sc-for list="{{ themeSamples }}" as="t" hint-placeholder-count="12">
+    <div style="{{ t.style }}">
+      <div style="width:236px;background:var(--bg);border:1px solid var(--border2);border-radius:8px;overflow:hidden;color:var(--ink);font-size:11px">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--surface2);border-bottom:1px solid var(--border)"><span style="font-weight:600;font-size:12px">{{ t.label }}</span><span style="padding:2px 7px;border-radius:4px;background:var(--ink);color:var(--on-ink);font-size:10px">Build</span></div>
+        <div style="padding:8px 10px;display:flex;gap:4px"><span style="width:14px;height:14px;border-radius:7px;border:1px solid var(--text3);font-size:8px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;background:var(--pip-w);color:var(--pip-w-fg)">W</span><span style="width:14px;height:14px;border-radius:7px;border:1px solid var(--text3);font-size:8px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;background:var(--pip-u);color:var(--pip-u-fg)">U</span><span style="width:14px;height:14px;border-radius:7px;border:1px solid var(--text3);font-size:8px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;background:var(--pip-b);color:var(--pip-b-fg)">B</span><span style="width:14px;height:14px;border-radius:7px;border:1px solid var(--text3);font-size:8px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;background:var(--pip-r);color:var(--pip-r-fg)">R</span><span style="width:14px;height:14px;border-radius:7px;border:1px solid var(--text3);font-size:8px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;background:var(--pip-g);color:var(--pip-g-fg)">G</span></div>
+        <div style="background:var(--surface);border-top:1px solid var(--border)">
+          <div style="display:grid;grid-template-columns:18px 1fr auto;gap:6px;padding:5px 10px;border-bottom:1px solid var(--border)"><span style="color:var(--text1);font-family:ui-monospace,Menlo,monospace">4</span><span style="font-weight:500">Thraben Inspector</span><span style="color:var(--text2)">Creature</span></div>
+          <div style="display:grid;grid-template-columns:18px 1fr auto;gap:6px;padding:5px 10px;border-bottom:1px solid var(--border);background:var(--surface2)"><span style="color:var(--text1);font-family:ui-monospace,Menlo,monospace">2</span><span style="font-weight:500">Raise the Alarm</span><span style="color:var(--text2)">Instant</span></div>
+          <div style="display:grid;grid-template-columns:18px 1fr auto;gap:6px;padding:5px 10px"><span style="color:var(--text1);font-family:ui-monospace,Menlo,monospace">1</span><span style="font-weight:500">Mind Stone</span><span style="color:var(--text2)">Artifact</span></div>
+        </div>
+        <div style="padding:6px 10px;display:flex;align-items:center;gap:6px;color:var(--text2)"><span style="height:4px;flex:1;background:var(--border);border-radius:2px;overflow:hidden;display:block"><span style="display:block;height:100%;width:66%;background:var(--bar)"></span></span>Removal 4/6</div>
+      </div>
+    </div>
+    </sc-for>
+  </div>
+</div>
+<div style="display:flex;flex-direction:column;gap:6px;max-width:720px">
+  <div style="font-size:13px;color:var(--text2);letter-spacing:.04em;text-transform:uppercase">Turn 1</div>
+  <div style="font-size:26px;font-weight:600">Bulk Brew UI</div>
+  <div style="font-size:14px;color:var(--text1);line-height:1.5">Desktop (left sidebar) and iPhone (bottom tabs) for every screen. Mana pips use the five Magic colors and are always lettered. Alternates: 1c Pool, 1e Analysis, 1h Result, 1k Navigation.</div>
+</div>
+
+<!-- 1 IMPORT -->
+<div id="1a" style="display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap">
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;gap:8px;align-items:center"><span style="font-size:11px;font-weight:600;background:var(--ink);color:var(--on-ink);padding:2px 7px;border-radius:4px">1a</span><span style="font-size:13px;color:var(--text1)">Import · desktop</span></div>
+<div style="width:1180px;height:740px;background:var(--bg);border:1px solid var(--border2);border-radius:10px;overflow:hidden;display:flex">
+  <nav style="width:200px;border-right:1px solid var(--border);background:var(--surface2);padding:18px 12px;display:flex;flex-direction:column;gap:2px;flex-shrink:0">
+    <div style="font-size:15px;font-weight:600;padding:4px 10px 16px">Bulk Brew</div>
+    <div style="font-size:13px;padding:7px 10px;border-radius:6px;color:var(--ink);font-weight:500">Pool</div>
+    <div style="font-size:13px;padding:6px 10px 6px 22px;border-radius:6px;background:var(--ink);color:var(--on-ink)">Import</div>
+    <div style="font-size:13px;padding:6px 10px 6px 22px;border-radius:6px;color:var(--text1)">Analysis</div>
+    <div style="font-size:13px;padding:7px 10px;border-radius:6px;color:var(--text1)">Build</div>
+    <div style="font-size:13px;padding:7px 10px;border-radius:6px;color:var(--text1)">Decks</div>
+    <div style="font-size:13px;padding:7px 10px;border-radius:6px;color:var(--text1)">Settings</div>
+    <div style="margin-top:auto;font-size:11px;color:var(--text3);padding:0 10px;line-height:1.5">Card data 2026-10-28<br>2,184 cards in pool</div>
+  </nav>
+  <main style="flex:1;display:grid;grid-template-columns:1fr 1fr;min-width:0">
+    <div style="padding:28px 32px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:14px">
+      <div style="font-size:20px;font-weight:600">Import</div>
+      <div style="font-size:13px;color:var(--text1);line-height:1.5">Paste a decklist or collection export, or drop a text file. Accepted lines: <span style="font-family:ui-monospace,Menlo,monospace;font-size:12px;background:var(--surface2);padding:1px 5px;border-radius:3px">4 Lightning Bolt</span> <span style="font-family:ui-monospace,Menlo,monospace;font-size:12px;background:var(--surface2);padding:1px 5px;border-radius:3px">4x Lightning Bolt</span> <span style="font-family:ui-monospace,Menlo,monospace;font-size:12px;background:var(--surface2);padding:1px 5px;border-radius:3px">4 Lightning Bolt (M10) 146</span></div>
+      <div style="flex:1;border:1px solid var(--border2);border-radius:8px;background:var(--surface);padding:12px 14px;font-family:ui-monospace,Menlo,monospace;font-size:12.5px;line-height:1.7;color:var(--ink);white-space:pre;overflow:hidden">4 Lightning Bolt (M10) 146
+2 Llanowar Elves
+3 Raise the Alarm
+1 Thraben Inspector
+4 Shock
+2 Blossoming Defense
+1 Doom Blade
+4 Opt
+3 Mogg Fanatic
+1 Grizzly Bearz
+2 Searing Spear
+1 Thrill of Posibility
+10 Forest
+8 Mountain</div>
+      <div style="border:1px dashed var(--border2);border-radius:8px;padding:14px;text-align:center;font-size:13px;color:var(--text2);background:var(--surface)">Drop a .txt file here, or <span style="text-decoration:underline;color:var(--ink)">choose a file</span></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+        <div style="font-size:12.5px;color:var(--text1)">14 lines · 46 cards · 0 unreadable</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div style="display:inline-flex;border:1px solid var(--border2);border-radius:6px;overflow:hidden;font-size:12.5px"><span style="padding:6px 12px;background:var(--ink);color:var(--on-ink)">Add to pool</span><span style="padding:6px 12px;color:var(--text1);background:var(--surface)">Replace pool</span></div>
+          <div style="font-size:13px;font-weight:500;padding:7px 16px;border-radius:6px;background:var(--ink);color:var(--on-ink)">Import</div>
+        </div>
+      </div>
+    </div>
+    <div style="padding:28px 32px;display:flex;flex-direction:column;gap:14px;overflow:hidden">
+      <div style="font-size:20px;font-weight:600">Resolution report</div>
+      <div style="display:flex;gap:24px">
+        <div><div style="font-size:28px;font-weight:600;letter-spacing:-.02em">43</div><div style="font-size:12px;color:var(--text2)">cards resolved</div></div>
+        <div><div style="font-size:28px;font-weight:600;letter-spacing:-.02em;color:var(--text1)">3</div><div style="font-size:12px;color:var(--text2)">unresolved lines</div></div>
+        <div><div style="font-size:28px;font-weight:600;letter-spacing:-.02em;color:var(--text1)">18</div><div style="font-size:12px;color:var(--text2)">basics, not stored</div></div>
+      </div>
+      <div style="font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;margin-top:8px">Unresolved</div>
+      <div style="display:flex;flex-direction:column;border:1px solid var(--border);border-radius:8px;background:var(--surface);overflow:hidden">
+        <sc-for list="{{ unresolved }}" as="u" hint-placeholder-count="3">
+        <div style="display:grid;grid-template-columns:34px 1fr auto;gap:12px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--surface2)">
+          <div style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--text2)">{{ u.qty }}</div>
+          <div style="display:flex;flex-direction:column;gap:5px;min-width:0">
+            <div style="border:1px solid var(--border2);border-radius:5px;padding:5px 9px;font-size:13px;background:var(--surface)">{{ u.raw }}</div>
+            <div style="font-size:12px;color:var(--text1)">Did you mean <span style="text-decoration:underline;color:var(--ink)">{{ u.suggest }}</span>?</div>
+          </div>
+          <div style="display:flex;gap:6px"><span style="font-size:12px;padding:5px 10px;border:1px solid var(--border2);border-radius:5px;background:var(--surface)">Use suggestion</span><span style="font-size:12px;padding:5px 10px;border-radius:5px;color:var(--text2)">Skip</span></div>
+        </div>
+        </sc-for>
+      </div>
+      <div style="margin-top:auto;display:flex;justify-content:flex-end;gap:8px"><span style="font-size:13px;padding:7px 14px;border:1px solid var(--border2);border-radius:6px;background:var(--surface);color:var(--text1)">Skip all unresolved</span><span style="font-size:13px;font-weight:500;padding:7px 16px;border-radius:6px;background:var(--ink);color:var(--on-ink)">Add 43 cards to pool</span></div>
+    </div>
+  </main>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font-size:13px;color:var(--text1);height:20px;display:flex;align-items:center">Import · iPhone</div>
+<div style="width:390px;height:780px;background:var(--bg);border:1px solid var(--border2);border-radius:36px;overflow:hidden;display:flex;flex-direction:column">
+  <div style="height:50px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 6px;font-size:13px;font-weight:600"><span>9:41</span><span style="color:var(--text2);font-weight:500">●●● ▲ ▮</span></div>
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px 10px"><span style="font-size:15px;color:var(--text1)">‹ Pool</span><span style="font-size:16px;font-weight:600">Import</span><span style="font-size:15px;color:var(--text3)">Paste</span></div>
+  <div style="flex:1;padding:0 16px;display:flex;flex-direction:column;gap:12px;overflow:hidden">
+    <div style="height:170px;border:1px solid var(--border2);border-radius:10px;background:var(--surface);padding:12px;font-family:ui-monospace,Menlo,monospace;font-size:12.5px;line-height:1.7;white-space:pre;overflow:hidden">4 Lightning Bolt (M10) 146
+2 Llanowar Elves
+3 Raise the Alarm
+1 Thraben Inspector
+4 Shock
+1 Grizzly Bearz</div>
+    <div style="font-size:12.5px;color:var(--text1)">14 lines · 46 cards · 0 unreadable</div>
+    <div style="display:flex;border:1px solid var(--border2);border-radius:8px;overflow:hidden;font-size:13px"><span style="flex:1;text-align:center;padding:9px;background:var(--ink);color:var(--on-ink)">Add to pool</span><span style="flex:1;text-align:center;padding:9px;color:var(--text1);background:var(--surface)">Replace pool</span></div>
+    <div style="display:flex;gap:16px;padding:6px 0 2px">
+      <div><div style="font-size:22px;font-weight:600">43</div><div style="font-size:11.5px;color:var(--text2)">resolved</div></div>
+      <div><div style="font-size:22px;font-weight:600;color:var(--text1)">3</div><div style="font-size:11.5px;color:var(--text2)">unresolved</div></div>
+      <div><div style="font-size:22px;font-weight:600;color:var(--text1)">18</div><div style="font-size:11.5px;color:var(--text2)">basics</div></div>
+    </div>
+    <div style="display:flex;flex-direction:column;border:1px solid var(--border);border-radius:10px;background:var(--surface);overflow:hidden">
+      <sc-for list="{{ unresolved }}" as="u" hint-placeholder-count="3">
+      <div style="padding:10px 14px;border-bottom:1px solid var(--surface2);display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;gap:8px;align-items:center"><span style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--text2)">{{ u.qty }}</span><span style="flex:1;border:1px solid var(--border2);border-radius:6px;padding:7px 10px;font-size:14px">{{ u.raw }}</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:12.5px"><span style="color:var(--text1)">Did you mean <u style="color:var(--ink)">{{ u.suggest }}</u>?</span><span style="display:flex;gap:10px"><span style="font-weight:500">Use</span><span style="color:var(--text2)">Skip</span></span></div>
+      </div>
+      </sc-for>
+    </div>
+  </div>
+  <div style="padding:12px 16px 34px"><div style="height:48px;border-radius:12px;background:var(--ink);color:var(--on-ink);font-size:15px;font-weight:500;display:flex;align-items:center;justify-content:center">Add 43 cards to pool</div></div>
+</div>
+</div>
+</div>
+
+<!-- 2 POOL -->
+<div id="1b" style="display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap">
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;gap:8px;align-items:center"><span style="font-size:11px;font-weight:600;background:var(--ink);color:var(--on-ink);padding:2px 7px;border-radius:4px">1b</span><span style="font-size:13px;color:var(--text1)">Pool · desktop, list + detail</span></div>
+<div style="width:1180px;height:740px;background:var(--bg);border:1px solid var(--border2);border-radius:10px;overflow:hidden;display:flex">
+  <nav style="width:200px;border-right:1px solid var(--border);background:var(--surface2);padding:18px 12px;display:flex;flex-direction:column;gap:2px;flex-shrink:0">
+    <div style="font-size:15px;font-weight:600;padding:4px 10px 16px">Bulk Brew</div>
+    <div style="font-size:13px;padding:7px 10px;border-radius:6px;background:var(--ink);color:var(--on-ink)">Pool</div>
+    <div style="font-size:13px;padding:6px 10px 6px 22px;border-radius:6px;color:var(--text1)">Import</div>
+    <div style="font-size:13px;padding:6px 10px 6px 22px;border-radius:6px;color:var(--text1)">Analysis</div>
+    <div style="font-size:13px;padding:7px 10px;border-radius:6px;color:var(--text1)">Build</div>
+    <div style="font-size:13px;padding:7px 10px;border-radius:6px;color:var(--text1)">Decks</div>
+    <div style="font-size:13px;padding:7px 10px;border-radius:6px;color:var(--text1)">Settings</div>
+    <div style="margin-top:auto;font-size:11px;color:var(--text3);padding:0 10px;line-height:1.5">Card data 2026-10-28<br>2,184 cards in pool</div>
+  </nav>
+  <main style="flex:1;display:flex;min-width:0">
+    <div style="flex:1;display:flex;flex-direction:column;min-width:0;border-right:1px solid var(--border)">
+      <div style="padding:22px 24px 0;display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;align-items:baseline;justify-content:space-between">
+          <div style="display:flex;align-items:baseline;gap:14px"><span style="font-size:20px;font-weight:600">Pool</span><span style="font-size:13px;color:var(--text1)">2,184 cards · 1,312 unique</span></div>
+          <div style="display:flex;gap:14px;align-items:center;font-size:12.5px;color:var(--text1)"><span>Unlimited basic lands</span><span style="width:32px;height:18px;border-radius:9px;background:var(--ink);position:relative;display:inline-block"><span style="position:absolute;right:2px;top:2px;width:14px;height:14px;border-radius:7px;background:var(--surface)"></span></span></div>
+        </div>
+        <div style="display:flex;gap:18px;font-size:12.5px;color:var(--text1);align-items:center">
+          <sc-for list="{{ colorCounts }}" as="c" hint-placeholder-count="6"><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:16px;height:16px;border-radius:8px;border:1px solid var(--text3);font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;background:{{ c.bg }};color:{{ c.fg }}">{{ c.s }}</span>{{ c.n }}</span></sc-for>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div style="flex:1;border:1px solid var(--border2);border-radius:6px;background:var(--surface);padding:7px 10px;font-size:13px;color:var(--text3)">Search name or text</div>
+          <div style="display:flex;gap:6px">
+            <span style="font-size:12.5px;padding:6px 10px;border:1px solid var(--border2);border-radius:6px;background:var(--surface);color:var(--text1)">Color ▾</span>
+            <span style="font-size:12.5px;padding:6px 10px;border:1px solid var(--ink);border-radius:6px;background:var(--ink);color:var(--on-ink)">Type: Creature ✕</span>
+            <span style="font-size:12.5px;padding:6px 10px;border:1px solid var(--border2);border-radius:6px;background:var(--surface);color:var(--text1)">Mana value ▾</span>
+            <span style="font-size:12.5px;padding:6px 10px;border:1px solid var(--border2);border-radius:6px;background:var(--surface);color:var(--text1)">Tags ▾</span>
+          </div>
+          <span style="font-size:12.5px;color:var(--text1);padding:6px 4px">Sort: Name ▾</span>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:40px 1fr 110px 190px 1fr;gap:12px;padding:10px 24px 6px;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);margin-top:12px"><span>Qty</span><span>Name</span><span>Cost</span><span>Type</span><span>Tags</span></div>
+      <div style="flex:1;overflow:hidden">
+        <sc-for list="{{ poolRows }}" as="r" hint-placeholder-count="14">
+        <div style="display:grid;grid-template-columns:40px 1fr 110px 190px 1fr;gap:12px;padding:0 24px;align-items:center;border-bottom:1px solid var(--surface2);font-size:13px;height:{{ rowH }}px;background:{{ r.bg }}">
+          <span style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--text1)">{{ r.qty }}</span>
+          <span style="display:flex;align-items:center;gap:8px;min-width:0"><sc-if value="{{ showArt }}" hint-placeholder-val="{{ false }}"><span style="width:22px;height:30px;border-radius:2px;background:var(--border2);flex-shrink:0"></span></sc-if><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500">{{ r.name }}</span></span>
+          <span style="display:inline-flex;gap:2px"><sc-for list="{{ r.cost }}" as="p" hint-placeholder-count="2"><span style="width:16px;height:16px;border-radius:8px;border:1px solid var(--text3);font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;background:{{ p.bg }};color:{{ p.fg }}">{{ p.s }}</span></sc-for></span>
+          <span style="color:var(--text1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.type }}</span>
+          <span style="color:var(--text2);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.tags }}</span>
+        </div>
+        </sc-for>
+      </div>
+      <div style="padding:8px 24px;border-top:1px solid var(--border);font-size:12px;color:var(--text2);display:flex;justify-content:space-between"><span>Showing 612 creatures of 1,312 unique</span><span>Export pool · Backup · Clear pool</span></div>
+    </div>
+    <aside style="width:300px;padding:22px 22px;display:flex;flex-direction:column;gap:14px;flex-shrink:0;background:var(--surface)">
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <sc-if value="{{ showArt }}" hint-placeholder-val="{{ false }}"><span style="width:62px;height:86px;border-radius:4px;background:var(--border2);flex-shrink:0"></span></sc-if>
+        <div style="display:flex;flex-direction:column;gap:4px"><div style="font-size:16px;font-weight:600;line-height:1.25">Thraben Inspector</div><div style="font-size:12.5px;color:var(--text1)">Creature — Human Soldier · 1/2</div><span style="display:inline-flex;gap:2px"><span style="width:16px;height:16px;border-radius:8px;border:1px solid var(--text3);font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;background:var(--surface);color:var(--ink)">W</span></span></div>
+      </div>
+      <div style="font-size:13px;line-height:1.55;color:var(--ink);border-top:1px solid var(--border);padding-top:12px">When Thraben Inspector enters, investigate.</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px"><span style="font-size:11.5px;padding:3px 8px;border-radius:4px;background:var(--surface2);color:var(--text1)">makes tokens</span><span style="font-size:11.5px;padding:3px 8px;border-radius:4px;background:var(--surface2);color:var(--text1)">card draw</span><span style="font-size:11.5px;padding:3px 8px;border-radius:4px;background:var(--surface2);color:var(--text1)">artifact synergy</span></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--border);padding-top:14px"><span style="font-size:13px;color:var(--text1)">Quantity</span><span style="display:inline-flex;border:1px solid var(--border2);border-radius:6px;overflow:hidden;font-size:14px"><span style="padding:4px 12px;color:var(--text1)">−</span><span style="padding:4px 14px;border-left:1px solid var(--border2);border-right:1px solid var(--border2);font-family:ui-monospace,Menlo,monospace;font-size:13px">3</span><span style="padding:4px 12px;color:var(--text1)">+</span></span></div>
+      <div style="font-size:12.5px;color:var(--text2)">In saved decks: 1 (Tokens, 40)</div>
+      <div style="margin-top:auto;font-size:13px;color:var(--text1);padding:8px 0;text-align:center;border:1px solid var(--border2);border-radius:6px">Remove from pool</div>
+    </aside>
+  </main>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font-size:13px;color:var(--text1);height:20px;display:flex;align-items:center">Pool · iPhone</div>
+<div style="width:390px;height:780px;background:var(--bg);border:1px solid var(--border2);border-radius:36px;overflow:hidden;display:flex;flex-direction:column">
+  <div style="height:50px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 6px;font-size:13px;font-weight:600"><span>9:41</span><span style="color:var(--text2);font-weight:500">●●● ▲ ▮</span></div>
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px 6px"><span style="font-size:22px;font-weight:700">Pool</span><span style="font-size:15px;color:var(--ink)">Import</span></div>
+  <div style="padding:0 16px 10px;display:flex;gap:8px">
+    <div style="flex:1;display:flex;border:1px solid var(--border2);border-radius:8px;overflow:hidden;font-size:13px"><span style="flex:1;text-align:center;padding:7px;background:var(--ink);color:var(--on-ink)">Cards</span><span style="flex:1;text-align:center;padding:7px;color:var(--text1);background:var(--surface)">Analysis</span></div>
+  </div>
+  <div style="padding:0 16px 8px;display:flex;justify-content:space-between;font-size:12px;color:var(--text1)"><span style="display:flex;gap:10px"><sc-for list="{{ colorCounts }}" as="c" hint-placeholder-count="6"><span style="display:inline-flex;align-items:center;gap:4px"><span style="width:14px;height:14px;border-radius:7px;border:1px solid var(--text3);font-size:8px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;background:{{ c.bg }};color:{{ c.fg }}">{{ c.s }}</span>{{ c.n }}</span></sc-for></span></div>
+  <div style="padding:0 16px 8px;display:flex;gap:8px"><div style="flex:1;border:1px solid var(--border2);border-radius:8px;background:var(--surface);padding:9px 12px;font-size:14px;color:var(--text3)">Search</div><div style="border:1px solid var(--border2);border-radius:8px;background:var(--surface);padding:9px 12px;font-size:13px;color:var(--ink)">Filters · 1</div></div>
+  <div style="display:flex;justify-content:space-between;padding:4px 16px 6px;font-size:11.5px;color:var(--text2)"><span>2,184 cards · 1,312 unique</span><span>Name ▾</span></div>
+  <div style="flex:1;overflow:hidden;background:var(--surface);border-top:1px solid var(--border)">
+    <sc-for list="{{ poolRowsM }}" as="r" hint-placeholder-count="10">
+    <div style="display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:center;padding:0 16px;min-height:48px;border-bottom:1px solid var(--surface2)">
+      <span style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--text1)">{{ r.qty }}</span>
+      <span style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</span><span style="font-size:11.5px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.type }}</span></span>
+      <span style="display:inline-flex;gap:2px"><sc-for list="{{ r.cost }}" as="p" hint-placeholder-count="2"><span style="width:16px;height:16px;border-radius:8px;border:1px solid var(--text3);font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;background:{{ p.bg }};color:{{ p.fg }}">{{ p.s }}</span></sc-for></span>
+    </div>
+    </sc-for>
+  </div>
+  <div style="height:84px;border-top:1px solid var(--border);background:var(--surface2);display:grid;grid-template-columns:repeat(4,1fr);padding:8px 8px 24px;font-size:10.5px">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--ink);font-weight:600"><span style="width:22px;height:22px;border-radius:5px;background:var(--ink)"></span>Pool</div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text2)"><span style="width:22px;height:22px;border-radius:5px;border:1.5px solid var(--text2)"></span>Build</div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text2)"><span style="width:22px;height:22px;border-radius:5px;border:1.5px solid var(--text2)"></span>Decks</div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text2)"><span style="width:22px;height:22px;border-radius:11px;border:1.5px solid var(--text2)"></span>Settings</div>
+  </div>
+</div>
+</div>
+<div id="1c" style="display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;gap:8px;align-items:center"><span style="font-size:11px;font-weight:600;background:var(--ink);color:var(--on-ink);padding:2px 7px;border-radius:4px">1c</span><span style="font-size:13px;color:var(--text1)">Pool alt · grouped by mana value, art on, no detail pane</span></div>
+<div style="width:760px;height:740px;background:var(--bg);border:1px solid var(--border2);border-radius:10px;overflow:hidden;display:flex;flex-direction:column">
+  <div style="padding:22px 24px 12px;display:flex;flex-direction:column;gap:12px;border-bottom:1px solid var(--border)">
+    <div style="display:flex;align-items:baseline;gap:14px"><span style="font-size:20px;font-weight:600">Pool</span><span style="font-size:13px;color:var(--text1)">2,184 cards · green · 466</span></div>
+    <div style="display:flex;gap:8px"><div style="flex:1;border:1px solid var(--border2);border-radius:6px;background:var(--surface);padding:7px 10px;font-size:13px;color:var(--text3)">Search</div><span style="font-size:12.5px;padding:6px 10px;border:1px solid var(--ink);border-radius:6px;background:var(--ink);color:var(--on-ink)">Green ✕</span><span style="font-size:12.5px;padding:6px 10px;border:1px solid var(--border2);border-radius:6px;background:var(--surface);color:var(--text1)">Group: Mana value ▾</span></div>
+  </div>
+  <div style="flex:1;overflow:hidden">
+    <sc-for list="{{ poolGroups }}" as="g" hint-placeholder-count="3">
+    <div style="padding:10px 24px 4px;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;background:var(--surface2);border-bottom:1px solid var(--border);border-top:1px solid var(--border);display:flex;justify-content:space-between"><span>Mana value {{ g.mv }}</span><span>{{ g.count }} cards</span></div>
+    <sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="3">
+    <div style="display:grid;grid-template-columns:30px 40px 1fr 90px 1fr;gap:12px;padding:5px 24px;align-items:center;border-bottom:1px solid var(--surface2);font-size:13px">
+      <span style="width:30px;height:42px;border-radius:3px;background:var(--border2)"></span>
+      <span style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--text1)">{{ r.qty }}</span>
+      <span style="display:flex;flex-direction:column;gap:1px;min-width:0"><span style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</span><span style="font-size:11.5px;color:var(--text2)">{{ r.type }}</span></span>
+      <span style="display:inline-flex;gap:2px"><sc-for list="{{ r.cost }}" as="p" hint-placeholder-count="2"><span style="width:16px;height:16px;border-radius:8px;border:1px solid var(--text3);font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;background:{{ p.bg }};color:{{ p.fg }}">{{ p.s }}</span></sc-for></span>
+      <span style="color:var(--text2);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.tags }}</span>
+    </div>
+    </sc-for>
+    </sc-for>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- 3 ANALYSIS -->
+<div id="1d" style="display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap">
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;gap:8px;align-items:center"><span style="font-size:11px;font-weight:600;background:var(--ink);color:var(--on-ink);padding:2px 7px;border-radius:4px">1d</span><span style="font-size:13px;color:var(--text1)">Pool analysis · desktop, one color at a time</span></div>
+<div style="width:1180px;height:740px;background:var(--bg);border:1px solid var(--border2);border-radius:10px;overflow:hidden;display:flex">
+  <nav style="width:200px;border-right:1px solid var(--border);background:var(--surface2);padding:18px 12px;display:flex;flex-direction:column;gap:2px;flex-shrink:0">
+    <div style="font-size:15px;font-weight:600;padding:4px 10px 16px">Bulk Brew</div>
+    <div style="font-size:13px;padding:7px 10px;border-radius:6px;font-weight:500">Pool</div>
+    <div style="font-size:13px;padding:6px 10px 6px 22px;border-radius:6px;color:var(--text1)">Import</div>
+    <div style="font-size:13px;padding:6px 10px 6px 22px;border-radius:6px;background:var(--ink);color:var(--on-ink)">Analysis</div>
+    <div style="font-size:13px;padding:7px 10px;border-radius:6px;color:var(--text1)">Build</div>
+    <div style="font-size:13px;padding:7px 10px;border-radius:6px;color:var(--text1)">Decks</div>
+    <div style="font-size:13px;padding:7px 10px;border-radius:6px;color:var(--text1)">Settings</div>
+    <div style="margin-top:auto;font-size:11px;color:var(--text3);padding:0 10px;line-height:1.5">Card data 2026-10-28<br>2,184 cards in pool</div>
+  </nav>
+  <main style="flex:1;padding:22px 32px;display:flex;flex-direction:column;gap:16px;min-width:0">
+    <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font-size:20px;font-weight:600">Pool analysis</span><span style="font-size:12.5px;color:var(--text2)">Scanned 2,184 cards · just now</span></div>
+    <div style="display:flex;gap:4px;border-bottom:1px solid var(--border)">
+      <sc-for list="{{ colorTabs }}" as="t" hint-placeholder-count="5">
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 14px 10px;font-size:13px;border-bottom:2px solid {{ t.line }};color:{{ t.fg }};margin-bottom:-1px"><span style="width:16px;height:16px;border-radius:8px;border:1px solid var(--text3);font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;background:{{ t.bg }};color:{{ t.pipFg }}">{{ t.s }}</span>{{ t.name }}<span style="color:var(--text3);font-size:12px">{{ t.n }}</span></div>
+      </sc-for>
+    </div>
+    <div style="display:flex;gap:24px;font-size:13px;color:var(--text1)"><span>White · 402 candidates incl. 100 colorless</span><span>Can build: <b style="color:var(--ink);font-weight:500">60, 40, 20</b></span><span>Creatures 188 · Removal 31 · Draw 14 · Ramp 2</span></div>
+    <div style="border:1px solid var(--border);border-radius:8px;background:var(--surface);overflow:hidden">
+      <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;padding:9px 18px;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border)"><span>Archetype</span><span>60 cards</span><span>40 cards</span><span>20 Jumpstart</span></div>
+      <sc-for list="{{ archRows }}" as="a" hint-placeholder-count="7">
+      <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;padding:0 18px;align-items:center;border-bottom:1px solid var(--surface2);min-height:54px">
+        <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:13.5px;font-weight:500">{{ a.name }}</span><span style="font-size:12px;color:var(--text2)">{{ a.desc }}</span></div>
+        <sc-for list="{{ a.cells }}" as="c" hint-placeholder-count="3">
+        <div style="display:flex;flex-direction:column;gap:2px;padding-right:12px"><span style="display:flex;align-items:center;gap:6px;font-size:13px;color:{{ c.fg }}"><span style="width:8px;height:8px;border-radius:4px;background:{{ c.dot }};border:1px solid var(--text2);flex-shrink:0"></span>{{ c.label }}</span><span style="font-size:11.5px;color:var(--text2)">{{ c.detail }}</span></div>
+        </sc-for>
+      </div>
+      </sc-for>
+    </div>
+    <div style="display:flex;gap:18px;font-size:12px;color:var(--text2);align-items:center"><span style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:4px;background:var(--ink);border:1px solid var(--text2)"></span>Viable</span><span style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:4px;background:var(--text3);border:1px solid var(--text2)"></span>Near miss, what is missing shown</span><span style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:4px;background:var(--surface);border:1px solid var(--text2)"></span>Not enough cards</span><span style="margin-left:auto;text-decoration:underline;color:var(--ink)">Build white →</span></div>
+  </main>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font-size:13px;color:var(--text1);height:20px;display:flex;align-items:center">Analysis · iPhone (Pool › Analysis)</div>
+<div style="width:390px;height:780px;background:var(--bg);border:1px solid var(--border2);border-radius:36px;overflow:hidden;display:flex;flex-direction:column">
+  <div style="height:50px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 6px;font-size:13px;font-weight:600"><span>9:41</span><span style="color:var(--text2);font-weight:500">●●● ▲ ▮</span></div>
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px 6px"><span style="font-size:22px;font-weight:700">Pool</span><span style="font-size:15px">Import</span></div>
+  <div style="padding:0 16px 10px"><div style="display:flex;border:1px solid var(--border2);border-radius:8px;overflow:hidden;font-size:13px"><span style="flex:1;text-align:center;padding:7px;color:var(--text1);background:var(--surface)">Cards</span><span style="flex:1;text-align:center;padding:7px;background:var(--ink);color:var(--on-ink)">Analysis</span></div></div>
+  <div style="padding:0 16px 10px;display:flex;gap:6px">
+    <sc-for list="{{ colorTabs }}" as="t" hint-placeholder-count="5"><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 0;border-radius:8px;border:1px solid {{ t.mBorder }};background:{{ t.mBg }}"><span style="width:18px;height:18px;border-radius:9px;border:1px solid var(--text3);font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;background:{{ t.bg }};color:{{ t.pipFg }}">{{ t.s }}</span><span style="font-size:11px;color:var(--text1)">{{ t.n }}</span></div></sc-for>
+  </div>
+  <div style="padding:0 16px 8px;font-size:12.5px;color:var(--text1)">White · 402 candidates · can build 60, 40, 20</div>
+  <div style="flex:1;overflow:hidden;background:var(--surface);border-top:1px solid var(--border)">
+    <sc-for list="{{ archRows }}" as="a" hint-placeholder-count="6">
+    <div style="padding:10px 16px;border-bottom:1px solid var(--surface2);display:flex;flex-direction:column;gap:6px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:14px;font-weight:500">{{ a.name }}</span><span style="display:flex;gap:10px;font-size:11.5px;color:var(--text1)"><sc-for list="{{ a.cells }}" as="c" hint-placeholder-count="3"><span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:4px;background:{{ c.dot }};border:1px solid var(--text2)"></span>{{ c.size }}</span></sc-for></span></div>
+      <div style="font-size:12px;color:var(--text2)">{{ a.mNote }}</div>
+    </div>
+    </sc-for>
+  </div>
+  <div style="height:84px;border-top:1px solid var(--border);background:var(--surface2);display:grid;grid-template-columns:repeat(4,1fr);padding:8px 8px 24px;font-size:10.5px">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--ink);font-weight:600"><span style="width:22px;height:22px;border-radius:5px;background:var(--ink)"></span>Pool</div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text2)"><span style="width:22px;height:22px;border-radius:5px;border:1.5px solid var(--text2)"></span>Build</div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text2)"><span style="width:22px;height:22px;border-radius:5px;border:1.5px solid var(--text2)"></span>Decks</div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text2)"><span style="width:22px;height:22px;border-radius:11px;border:1.5px solid var(--text2)"></span>Settings</div>
+  </div>
+</div>
+</div>
+<div id="1e" style="display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;gap:8px;align-items:center"><span style="font-size:11px;font-weight:600;background:var(--ink);color:var(--on-ink);padding:2px 7px;border-radius:4px">1e</span><span style="font-size:13px;color:var(--text1)">Analysis alt · all five colors in one matrix, size as a toggle</span></div>
+<div style="width:760px;height:740px;background:var(--bg);border:1px solid var(--border2);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;padding:22px 24px;gap:14px">
+  <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:20px;font-weight:600">Pool analysis</span><div style="display:inline-flex;border:1px solid var(--border2);border-radius:6px;overflow:hidden;font-size:12.5px"><span style="padding:6px 12px;background:var(--ink);color:var(--on-ink)">60</span><span style="padding:6px 12px;color:var(--text1);background:var(--surface);border-left:1px solid var(--border2)">40</span><span style="padding:6px 12px;color:var(--text1);background:var(--surface);border-left:1px solid var(--border2)">20</span></div></div>
+  <div style="border:1px solid var(--border);border-radius:8px;background:var(--surface);overflow:hidden;flex:1">
+    <div style="display:grid;grid-template-columns:1.4fr repeat(5,1fr);padding:9px 16px;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);align-items:center"><span>Archetype · 60</span>
+      <sc-for list="{{ colorTabs }}" as="t" hint-placeholder-count="5"><span style="display:flex;align-items:center;gap:6px"><span style="width:16px;height:16px;border-radius:8px;border:1px solid var(--text3);font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;background:{{ t.bg }};color:{{ t.pipFg }}">{{ t.s }}</span>{{ t.n }}</span></sc-for>
+    </div>
+    <sc-for list="{{ matrix }}" as="m" hint-placeholder-count="7">
+    <div style="display:grid;grid-template-columns:1.4fr repeat(5,1fr);padding:0 16px;align-items:center;border-bottom:1px solid var(--surface2);min-height:60px">
+      <span style="font-size:13.5px;font-weight:500">{{ m.name }}</span>
+      <sc-for list="{{ m.cells }}" as="c" hint-placeholder-count="5"><div style="display:flex;flex-direction:column;gap:3px;padding-right:8px"><span style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:{{ c.fg }}"><span style="width:8px;height:8px;border-radius:4px;background:{{ c.dot }};border:1px solid var(--text2);flex-shrink:0"></span>{{ c.label }}</span><span style="font-size:11px;color:var(--text2);line-height:1.3">{{ c.detail }}</span></div></sc-for>
+    </div>
+    </sc-for>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- 4 BUILD SETTINGS -->
+<div id="1f" style="display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap">
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;gap:8px;align-items:center"><span style="font-size:11px;font-weight:600;background:var(--ink);color:var(--on-ink);padding:2px 7px;border-radius:4px">1f</span><span style="font-size:13px;color:var(--text1)">Build settings · desktop (result pane empty)</span></div>
+<div style="width:1180px;height:740px;background:var(--bg);border:1px solid var(--border2);border-radius:10px;overflow:hidden;display:flex">
+  <nav style="width:200px;border-right:1px solid var(--border);background:var(--surface2);padding:18px 12px;display:flex;flex-direction:column;gap:2px;flex-shrink:0">
+    <div style="font-size:15px;font-weight:600;padding:4px 10px 16px">Bulk Brew</div>
+    <div style="font-size:13px;padding:7px 10px;border-radius:6px;color:var(--text1)">Pool</div>
+    <div style="font-size:13px;padding:6px 10px 6px 22px;border-radius:6px;color:var(--text1)">Import</div>
+    <div style="font-size:13px;padding:6px 10px 6px 22px;border-radius:6px;color:var(--text1)">Analysis</div>
+    <div style="font-size:13px;padding:7px 10px;border-radius:6px;background:var(--ink);color:var(--on-ink)">Build</div>
+    <div style="font-size:13px;padding:7px 10px;border-radius:6px;color:var(--text1)">Decks</div>
+    <div style="font-size:13px;padding:7px 10px;border-radius:6px;color:var(--text1)">Settings</div>
+    <div style="margin-top:auto;font-size:11px;color:var(--text3);padding:0 10px;line-height:1.5">Card data 2026-10-28<br>2,184 cards in pool</div>
+  </nav>
+  <main style="flex:1;display:flex;min-width:0">
+    <div style="width:400px;flex-shrink:0;border-right:1px solid var(--border);padding:22px 24px;display:flex;flex-direction:column;gap:20px;background:var(--surface)">
+      <div style="font-size:20px;font-weight:600">Build</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em">Deck size</div>
+        <div style="display:flex;border:1px solid var(--border2);border-radius:6px;overflow:hidden;font-size:13px"><span style="flex:1;text-align:center;padding:8px;background:var(--ink);color:var(--on-ink)">60</span><span style="flex:1;text-align:center;padding:8px;color:var(--text1);border-left:1px solid var(--border2)">40</span><span style="flex:1;text-align:center;padding:8px;color:var(--text1);border-left:1px solid var(--border2)">20 Jumpstart</span></div>
+        <div style="font-size:12px;color:var(--text2)">Casual constructed. Up to 4 copies of a card.</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em">Color</div>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px">
+          <sc-for list="{{ colorPick }}" as="c" hint-placeholder-count="5">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 4px 8px;border-radius:6px;border:1px solid {{ c.border }};background:{{ c.tileBg }};opacity:{{ c.op }}"><span style="width:22px;height:22px;border-radius:11px;border:1px solid var(--text3);font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;background:{{ c.bg }};color:{{ c.fg }}">{{ c.s }}</span><span style="font-size:12px;font-weight:500">{{ c.n }}</span><span style="font-size:10.5px;color:var(--text2)">{{ c.ok }}</span></div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em">Style</div>
+        <div style="border:1px solid var(--border);border-radius:6px;overflow:hidden">
+          <sc-for list="{{ styles }}" as="s" hint-placeholder-count="5">
+          <div style="display:grid;grid-template-columns:16px 1fr auto;gap:10px;align-items:center;padding:9px 12px;border-bottom:1px solid var(--surface2);opacity:{{ s.op }}"><span style="width:14px;height:14px;border-radius:7px;border:1.5px solid var(--ink);background:{{ s.radio }};box-shadow:inset 0 0 0 2px var(--surface)"></span><span style="display:flex;flex-direction:column"><span style="font-size:13px;font-weight:500">{{ s.name }}</span><span style="font-size:11.5px;color:var(--text2)">{{ s.desc }}</span></span><span style="font-size:11px;color:var(--text1)">{{ s.state }}</span></div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:13px;color:var(--text1)">Max copies per card</span><span style="display:inline-flex;border:1px solid var(--border2);border-radius:6px;overflow:hidden;font-size:14px"><span style="padding:3px 10px;color:var(--text1)">−</span><span style="padding:3px 12px;border-left:1px solid var(--border2);border-right:1px solid var(--border2);font-family:ui-monospace,Menlo,monospace;font-size:13px">4</span><span style="padding:3px 10px;color:var(--text1)">+</span></span></div>
+      <div style="margin-top:auto;height:40px;border-radius:6px;background:var(--ink);color:var(--on-ink);font-size:14px;font-weight:500;display:flex;align-items:center;justify-content:center">Build 60-card white deck</div>
+    </div>
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--text2);font-size:13px;line-height:1.6"><div style="max-width:280px">Your deck appears here.<br>White has 402 candidates and builds all three sizes.</div></div>
+  </main>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font-size:13px;color:var(--text1);height:20px;display:flex;align-items:center">Build · iPhone</div>
+<div style="width:390px;height:780px;background:var(--bg);border:1px solid var(--border2);border-radius:36px;overflow:hidden;display:flex;flex-direction:column">
+  <div style="height:50px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 6px;font-size:13px;font-weight:600"><span>9:41</span><span style="color:var(--text2);font-weight:500">●●● ▲ ▮</span></div>
+  <div style="padding:8px 16px 6px"><span style="font-size:22px;font-weight:700">Build</span></div>
+  <div style="flex:1;padding:4px 16px;display:flex;flex-direction:column;gap:16px;overflow:hidden">
+    <div style="display:flex;flex-direction:column;gap:6px"><div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em">Deck size</div><div style="display:flex;border:1px solid var(--border2);border-radius:8px;overflow:hidden;font-size:13px;background:var(--surface)"><span style="flex:1;text-align:center;padding:9px;background:var(--ink);color:var(--on-ink)">60</span><span style="flex:1;text-align:center;padding:9px;color:var(--text1);border-left:1px solid var(--border2)">40</span><span style="flex:1;text-align:center;padding:9px;color:var(--text1);border-left:1px solid var(--border2)">20 Jumpstart</span></div><div style="font-size:12px;color:var(--text2)">Casual constructed. Up to 4 copies.</div></div>
+    <div style="display:flex;flex-direction:column;gap:6px"><div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em">Color</div><div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px">
+      <sc-for list="{{ colorPick }}" as="c" hint-placeholder-count="5"><div style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 2px 8px;border-radius:8px;border:1px solid {{ c.border }};background:{{ c.tileBg }};opacity:{{ c.op }}"><span style="width:24px;height:24px;border-radius:12px;border:1px solid var(--text3);font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;background:{{ c.bg }};color:{{ c.fg }}">{{ c.s }}</span><span style="font-size:11px;color:var(--text2)">{{ c.ok }}</span></div></sc-for>
+    </div></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--text1)"><span>Max copies per card</span><span style="display:inline-flex;border:1px solid var(--border2);border-radius:6px;overflow:hidden;font-size:14px;background:var(--surface)"><span style="padding:5px 12px">−</span><span style="padding:5px 12px;border-left:1px solid var(--border2);border-right:1px solid var(--border2);font-family:ui-monospace,Menlo,monospace;font-size:13px;color:var(--ink)">4</span><span style="padding:5px 12px">+</span></span></div>
+    <div style="display:flex;flex-direction:column;gap:6px"><div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em">Style</div><div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface)">
+      <sc-for list="{{ stylesM }}" as="s" hint-placeholder-count="4"><div style="display:grid;grid-template-columns:16px 1fr auto;gap:10px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--surface2);opacity:{{ s.op }};min-height:44px"><span style="width:14px;height:14px;border-radius:7px;border:1.5px solid var(--ink);background:{{ s.radio }};box-shadow:inset 0 0 0 2px var(--surface)"></span><span style="display:flex;flex-direction:column"><span style="font-size:14px;font-weight:500">{{ s.name }}</span><span style="font-size:11.5px;color:var(--text2)">{{ s.desc }}</span></span><span style="font-size:11px;color:var(--text1)">{{ s.state }}</span></div></sc-for>
+    </div></div>
+  </div>
+  <div style="padding:8px 16px 10px"><div style="height:48px;border-radius:12px;background:var(--ink);color:var(--on-ink);font-size:15px;font-weight:500;display:flex;align-items:center;justify-content:center">Build 60-card white deck</div></div>
+  <div style="height:84px;border-top:1px solid var(--border);background:var(--surface2);display:grid;grid-template-columns:repeat(4,1fr);padding:8px 8px 24px;font-size:10.5px">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text2)"><span style="width:22px;height:22px;border-radius:5px;border:1.5px solid var(--text2)"></span>Pool</div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--ink);font-weight:600"><span style="width:22px;height:22px;border-radius:5px;background:var(--ink)"></span>Build</div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text2)"><span style="width:22px;height:22px;border-radius:5px;border:1.5px solid var(--text2)"></span>Decks</div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text2)"><span style="width:22px;height:22px;border-radius:11px;border:1.5px solid var(--text2)"></span>Settings</div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- 5 RESULT -->
+<div id="1g" style="display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap">
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;gap:8px;align-items:center"><span style="font-size:11px;font-weight:600;background:var(--ink);color:var(--on-ink);padding:2px 7px;border-radius:4px">1g</span><span style="font-size:13px;color:var(--text1)">Build result · desktop, settings collapsed to a summary bar</span></div>
+<div style="width:1180px;height:740px;background:var(--bg);border:1px solid var(--border2);border-radius:10px;overflow:hidden;display:flex">
+  <nav style="width:200px;border-right:1px solid var(--border);background:var(--surface2);padding:18px 12px;display:flex;flex-direction:column;gap:2px;flex-shrink:0">
+    <div style="font-size:15px;font-weight:600;padding:4px 10px 16px">Bulk Brew</div>
+    <div style="font-size:13px;padding:7px 10px;border-radius:6px;color:var(--text1)">Pool</div>
+    <div style="font-size:13px;padding:6px 10px 6px 22px;border-radius:6px;color:var(--text1)">Import</div>
+    <div style="font-size:13px;padding:6px 10px 6px 22px;border-radius:6px;color:var(--text1)">Analysis</div>
+    <div style="font-size:13px;padding:7px 10px;border-radius:6px;background:var(--ink);color:var(--on-ink)">Build</div>
+    <div style="font-size:13px;padding:7px 10px;border-radius:6px;color:var(--text1)">Decks</div>
+    <div style="font-size:13px;padding:7px 10px;border-radius:6px;color:var(--text1)">Settings</div>
+    <div style="margin-top:auto;font-size:11px;color:var(--text3);padding:0 10px;line-height:1.5">Card data 2026-10-28<br>2,184 cards in pool</div>
+  </nav>
+  <main style="flex:1;display:flex;flex-direction:column;min-width:0">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 28px;border-bottom:1px solid var(--border);background:var(--surface)">
+      <div style="display:flex;align-items:center;gap:14px"><span style="width:20px;height:20px;border-radius:10px;border:1px solid var(--text3);font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;background:var(--surface)">W</span><span style="font-size:17px;font-weight:600">White Tokens</span><span style="font-size:12.5px;color:var(--text1)">60 cards · 24 lands · max 4 copies</span><span style="font-size:12px;color:var(--text1);text-decoration:underline">Edit settings</span></div>
+      <div style="display:flex;gap:8px;align-items:center;font-size:13px">
+        <span style="padding:7px 12px;color:var(--text1)">Remove from pool</span>
+        <span style="padding:7px 12px;border:1px solid var(--border2);border-radius:6px;background:var(--surface)">Rebuild</span>
+        <span style="padding:7px 12px;border:1px solid var(--border2);border-radius:6px;background:var(--surface)">Export ▾</span>
+        <span style="padding:7px 16px;border-radius:6px;background:var(--ink);color:var(--on-ink);font-weight:500">Save deck</span>
+      </div>
+    </div>
+    <div style="flex:1;display:flex;min-width:0">
+      <div style="flex:1;padding:20px 28px;display:grid;grid-template-columns:1fr 1fr;gap:0 32px;align-content:start;font-size:13px;overflow:hidden">
+        <sc-for list="{{ deckGroups }}" as="g" hint-placeholder-count="4">
+        <div style="margin-bottom:16px">
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;padding-bottom:5px;border-bottom:1px solid var(--border);margin-bottom:3px"><span>{{ g.name }}</span><span>{{ g.n }}</span></div>
+          <sc-for list="{{ g.cards }}" as="c" hint-placeholder-count="4">
+          <div style="display:grid;grid-template-columns:22px 1fr auto;gap:8px;align-items:center;height:26px"><span style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--text1)">{{ c.qty }}</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.name }}<span style="color:var(--text3);font-size:11.5px;margin-left:8px">{{ c.why }}</span></span><span style="display:inline-flex;gap:2px"><sc-for list="{{ c.cost }}" as="p" hint-placeholder-count="2"><span style="width:15px;height:15px;border-radius:8px;border:1px solid var(--text3);font-size:8.5px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;background:{{ p.bg }};color:{{ p.fg }}">{{ p.s }}</span></sc-for></span></div>
+          </sc-for>
+        </div>
+        </sc-for>
+      </div>
+      <aside style="width:320px;flex-shrink:0;border-left:1px solid var(--border);background:var(--surface);padding:20px 22px;display:flex;flex-direction:column;gap:18px;font-size:13px">
+        <div style="display:flex;flex-direction:column;gap:4px"><div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em">Archetype</div><div style="font-weight:600;font-size:14px">Tokens</div><div style="color:var(--text1);line-height:1.5">Go wide with small creatures and token makers, then pump the team.</div></div>
+        <div style="display:flex;flex-direction:column;gap:6px"><div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em">Mana curve</div>
+          <div style="display:flex;align-items:flex-end;gap:6px;height:72px;padding-top:4px"><sc-for list="{{ curve }}" as="b" hint-placeholder-count="7"><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;height:100%;justify-content:flex-end"><span style="font-size:10.5px;color:var(--text1)">{{ b.n }}</span><span style="width:100%;background:var(--bar);border-radius:2px 2px 0 0;height:{{ b.h }}%"></span></div></sc-for></div>
+          <div style="display:flex;gap:6px"><sc-for list="{{ curve }}" as="b" hint-placeholder-count="7"><span style="flex:1;text-align:center;font-size:10.5px;color:var(--text2)">{{ b.mv }}</span></sc-for></div>
+          <div style="color:var(--text1);font-size:12px">24 lands: average cost 2.6, 2 cheap mana sources.</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px"><div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em">Roles</div>
+          <sc-for list="{{ roles }}" as="r" hint-placeholder-count="4"><div style="display:grid;grid-template-columns:80px 1fr 44px;gap:10px;align-items:center"><span style="color:var(--text1)">{{ r.name }}</span><span style="height:6px;background:var(--border);border-radius:3px;overflow:hidden;display:block"><span style="display:block;height:100%;background:var(--ink);width:{{ r.pct }}%"></span></span><span style="font-family:ui-monospace,Menlo,monospace;font-size:12px;text-align:right">{{ r.have }}/{{ r.want }}</span></div></sc-for>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px"><div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em">Key synergies</div>
+          <sc-for list="{{ synergies }}" as="s" hint-placeholder-count="3"><div style="color:var(--ink);line-height:1.45;padding-left:10px;border-left:2px solid var(--border2)">{{ s }}</div></sc-for>
+        </div>
+        <div style="margin-top:auto;font-size:12px;color:var(--text2);text-decoration:underline">Show builder notes</div>
+      </aside>
+    </div>
+  </main>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font-size:13px;color:var(--text1);height:20px;display:flex;align-items:center">Result · iPhone</div>
+<div style="width:390px;height:780px;background:var(--bg);border:1px solid var(--border2);border-radius:36px;overflow:hidden;display:flex;flex-direction:column">
+  <div style="height:50px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 6px;font-size:13px;font-weight:600"><span>9:41</span><span style="color:var(--text2);font-weight:500">●●● ▲ ▮</span></div>
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px 8px"><span style="font-size:15px;color:var(--text1)">‹ Build</span><span style="font-size:16px;font-weight:600">White Tokens</span><span style="font-size:15px">Export</span></div>
+  <div style="padding:0 16px 10px;display:flex;gap:8px;font-size:12px;color:var(--text1)"><span style="padding:4px 8px;background:var(--surface2);border-radius:4px">60 cards</span><span style="padding:4px 8px;background:var(--surface2);border-radius:4px">24 lands</span><span style="padding:4px 8px;background:var(--surface2);border-radius:4px">Tokens</span><span style="padding:4px 8px;background:var(--surface2);border-radius:4px">Still in pool</span></div>
+  <div style="padding:0 16px 10px"><div style="display:flex;border:1px solid var(--border2);border-radius:8px;overflow:hidden;font-size:13px;background:var(--surface)"><span style="flex:1;text-align:center;padding:7px;background:var(--ink);color:var(--on-ink)">Cards</span><span style="flex:1;text-align:center;padding:7px;color:var(--text1)">Why it works</span></div></div>
+  <div style="flex:1;overflow:hidden;background:var(--surface);border-top:1px solid var(--border);font-size:13px">
+    <div style="padding:10px 16px;display:flex;flex-direction:column;gap:6px;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:flex-end;gap:5px;height:44px"><sc-for list="{{ curve }}" as="b" hint-placeholder-count="7"><span style="flex:1;background:var(--bar);border-radius:2px 2px 0 0;height:{{ b.h }}%"></span></sc-for></div>
+      <div style="display:flex;gap:5px"><sc-for list="{{ curve }}" as="b" hint-placeholder-count="7"><span style="flex:1;text-align:center;font-size:10px;color:var(--text2)">{{ b.mv }}</span></sc-for></div>
+    </div>
+    <sc-for list="{{ deckGroupsM }}" as="g" hint-placeholder-count="2">
+    <div style="padding:8px 16px 2px;display:flex;justify-content:space-between;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;background:var(--surface2)"><span>{{ g.name }}</span><span>{{ g.n }}</span></div>
+    <sc-for list="{{ g.cards }}" as="c" hint-placeholder-count="4">
+    <div style="display:grid;grid-template-columns:22px 1fr auto;gap:8px;align-items:center;min-height:40px;padding:0 16px;border-bottom:1px solid var(--surface2)"><span style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--text1)">{{ c.qty }}</span><span style="display:flex;flex-direction:column"><span style="font-size:14px">{{ c.name }}</span><span style="font-size:11px;color:var(--text3)">{{ c.why }}</span></span><span style="display:inline-flex;gap:2px"><sc-for list="{{ c.cost }}" as="p" hint-placeholder-count="2"><span style="width:15px;height:15px;border-radius:8px;border:1px solid var(--text3);font-size:8.5px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;background:{{ p.bg }};color:{{ p.fg }}">{{ p.s }}</span></sc-for></span></div>
+    </sc-for>
+    </sc-for>
+  </div>
+  <div style="padding:10px 16px 34px;display:flex;gap:8px;border-top:1px solid var(--border);background:var(--bg)"><div style="flex:1;height:48px;border-radius:12px;border:1px solid var(--border2);background:var(--surface);font-size:15px;display:flex;align-items:center;justify-content:center">Rebuild</div><div style="flex:1.4;height:48px;border-radius:12px;background:var(--ink);color:var(--on-ink);font-size:15px;font-weight:500;display:flex;align-items:center;justify-content:center">Save deck</div></div>
+</div>
+</div>
+<div id="1h" style="display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;gap:8px;align-items:center"><span style="font-size:11px;font-weight:600;background:var(--ink);color:var(--on-ink);padding:2px 7px;border-radius:4px">1h</span><span style="font-size:13px;color:var(--text1)">Result alt · explanation on top, list below in one column</span></div>
+<div style="width:760px;height:740px;background:var(--bg);border:1px solid var(--border2);border-radius:10px;overflow:hidden;display:flex;flex-direction:column">
+  <div style="padding:20px 28px 16px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;justify-content:space-between;align-items:center"><div style="display:flex;align-items:baseline;gap:12px"><span style="font-size:18px;font-weight:600">White Tokens</span><span style="font-size:12.5px;color:var(--text1)">60 · 24 lands · avg 2.6</span></div><div style="display:flex;gap:8px;font-size:13px"><span style="padding:6px 12px;border:1px solid var(--border2);border-radius:6px">Rebuild</span><span style="padding:6px 12px;border:1px solid var(--border2);border-radius:6px">Export ▾</span><span style="padding:6px 14px;border-radius:6px;background:var(--ink);color:var(--on-ink)">Save</span></div></div>
+    <div style="display:grid;grid-template-columns:1fr 1.2fr 1fr;gap:28px;font-size:12.5px">
+      <div style="display:flex;flex-direction:column;gap:6px"><div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em">Curve</div><div style="display:flex;align-items:flex-end;gap:4px;height:56px"><sc-for list="{{ curve }}" as="b" hint-placeholder-count="7"><span style="flex:1;background:var(--bar);border-radius:2px 2px 0 0;height:{{ b.h }}%"></span></sc-for></div><div style="display:flex;gap:4px"><sc-for list="{{ curve }}" as="b" hint-placeholder-count="7"><span style="flex:1;text-align:center;font-size:10px;color:var(--text2)">{{ b.mv }}</span></sc-for></div></div>
+      <div style="display:flex;flex-direction:column;gap:5px"><div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em">Roles</div><sc-for list="{{ roles }}" as="r" hint-placeholder-count="4"><div style="display:grid;grid-template-columns:70px 1fr 36px;gap:8px;align-items:center"><span style="color:var(--text1)">{{ r.name }}</span><span style="height:5px;background:var(--border);border-radius:3px;overflow:hidden;display:block"><span style="display:block;height:100%;background:var(--ink);width:{{ r.pct }}%"></span></span><span style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;text-align:right">{{ r.have }}/{{ r.want }}</span></div></sc-for></div>
+      <div style="display:flex;flex-direction:column;gap:5px"><div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em">Synergies</div><sc-for list="{{ synergies }}" as="s" hint-placeholder-count="3"><div style="line-height:1.4;color:var(--ink)">{{ s }}</div></sc-for></div>
+    </div>
+  </div>
+  <div style="flex:1;overflow:hidden;padding:12px 28px;display:grid;grid-template-columns:1fr 1fr;gap:0 28px;align-content:start;font-size:13px">
+    <sc-for list="{{ deckGroups }}" as="g" hint-placeholder-count="4">
+    <div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;padding-bottom:4px;border-bottom:1px solid var(--border);margin-bottom:2px"><span>{{ g.name }}</span><span>{{ g.n }}</span></div>
+      <sc-for list="{{ g.cards }}" as="c" hint-placeholder-count="4"><div style="display:grid;grid-template-columns:22px 1fr auto;gap:8px;align-items:center;height:25px"><span style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--text1)">{{ c.qty }}</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.name }}</span><span style="display:inline-flex;gap:2px"><sc-for list="{{ c.cost }}" as="p" hint-placeholder-count="2"><span style="width:15px;height:15px;border-radius:8px;border:1px solid var(--text3);font-size:8.5px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;background:{{ p.bg }};color:{{ p.fg }}">{{ p.s }}</span></sc-for></span></div></sc-for>
+    </div>
+    </sc-for>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- 6 DECKS -->
+<div id="1i" style="display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap">
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;gap:8px;align-items:center"><span style="font-size:11px;font-weight:600;background:var(--ink);color:var(--on-ink);padding:2px 7px;border-radius:4px">1i</span><span style="font-size:13px;color:var(--text1)">Saved decks · desktop</span></div>
+<div style="width:1180px;height:740px;background:var(--bg);border:1px solid var(--border2);border-radius:10px;overflow:hidden;display:flex">
+  <nav style="width:200px;border-right:1px solid var(--border);background:var(--surface2);padding:18px 12px;display:flex;flex-direction:column;gap:2px;flex-shrink:0">
+    <div style="font-size:15px;font-weight:600;padding:4px 10px 16px">Bulk Brew</div>
+    <div style="font-size:13px;padding:7px 10px;border-radius:6px;color:var(--text1)">Pool</div>
+    <div style="font-size:13px;padding:6px 10px 6px 22px;border-radius:6px;color:var(--text1)">Import</div>
+    <div style="font-size:13px;padding:6px 10px 6px 22px;border-radius:6px;color:var(--text1)">Analysis</div>
+    <div style="font-size:13px;padding:7px 10px;border-radius:6px;color:var(--text1)">Build</div>
+    <div style="font-size:13px;padding:7px 10px;border-radius:6px;background:var(--ink);color:var(--on-ink)">Decks</div>
+    <div style="font-size:13px;padding:7px 10px;border-radius:6px;color:var(--text1)">Settings</div>
+    <div style="margin-top:auto;font-size:11px;color:var(--text3);padding:0 10px;line-height:1.5">Card data 2026-10-28<br>2,184 cards in pool</div>
+  </nav>
+  <main style="flex:1;padding:22px 32px;display:flex;flex-direction:column;gap:16px;min-width:0">
+    <div style="display:flex;align-items:center;justify-content:space-between"><div style="display:flex;align-items:baseline;gap:14px"><span style="font-size:20px;font-weight:600">Decks</span><span style="font-size:13px;color:var(--text1)">6 saved · 3 packets</span></div><div style="display:flex;gap:8px;font-size:13px"><span style="padding:7px 12px;border:1px solid var(--border2);border-radius:6px;background:var(--surface)">Pair packets</span><span style="padding:7px 14px;border-radius:6px;background:var(--ink);color:var(--on-ink)">New deck</span></div></div>
+    <div style="border:1px solid var(--border);border-radius:8px;background:var(--surface);overflow:hidden">
+      <div style="display:grid;grid-template-columns:28px 1.6fr 70px 1fr 120px 120px 220px;gap:12px;padding:9px 18px;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border)"><span></span><span>Name</span><span>Size</span><span>Archetype</span><span>Saved</span><span>Pool</span><span></span></div>
+      <sc-for list="{{ decks }}" as="d" hint-placeholder-count="6">
+      <div style="display:grid;grid-template-columns:28px 1.6fr 70px 1fr 120px 120px 220px;gap:12px;padding:0 18px;height:44px;align-items:center;border-bottom:1px solid var(--surface2);font-size:13px">
+        <span style="width:18px;height:18px;border-radius:9px;border:1px solid var(--text3);font-size:9.5px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;background:{{ d.bg }};color:{{ d.fg }}">{{ d.s }}</span>
+        <span style="font-weight:500">{{ d.name }}</span>
+        <span style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--text1)">{{ d.size }}</span>
+        <span style="color:var(--text1)">{{ d.arch }}</span>
+        <span style="color:var(--text2);font-size:12.5px">{{ d.date }}</span>
+        <span style="font-size:11.5px;padding:2px 8px;border-radius:4px;background:var(--surface2);color:var(--text1);justify-self:start">{{ d.committed }}</span>
+        <span style="display:flex;gap:14px;justify-content:flex-end;color:var(--text1)"><span style="color:var(--ink)">Open</span><span>Export</span><span>Disassemble</span></span>
+      </div>
+      </sc-for>
+    </div>
+    <div style="font-size:12.5px;color:var(--text2)">Disassemble deletes the deck and returns its cards to the pool. Delete without returning is under the deck's menu.</div>
+  </main>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font-size:13px;color:var(--text1);height:20px;display:flex;align-items:center">Decks · iPhone</div>
+<div style="width:390px;height:780px;background:var(--bg);border:1px solid var(--border2);border-radius:36px;overflow:hidden;display:flex;flex-direction:column">
+  <div style="height:50px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 6px;font-size:13px;font-weight:600"><span>9:41</span><span style="color:var(--text2);font-weight:500">●●● ▲ ▮</span></div>
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px 10px"><span style="font-size:22px;font-weight:700">Decks</span><span style="font-size:15px">Pair packets</span></div>
+  <div style="flex:1;overflow:hidden;background:var(--surface);border-top:1px solid var(--border)">
+    <sc-for list="{{ decks }}" as="d" hint-placeholder-count="6">
+    <div style="display:grid;grid-template-columns:22px 1fr auto;gap:12px;align-items:center;min-height:60px;padding:0 16px;border-bottom:1px solid var(--surface2)">
+      <span style="width:20px;height:20px;border-radius:10px;border:1px solid var(--text3);font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;background:{{ d.bg }};color:{{ d.fg }}">{{ d.s }}</span>
+      <span style="display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:500">{{ d.name }}</span><span style="font-size:12px;color:var(--text2)">{{ d.size }} · {{ d.arch }} · {{ d.date }}</span></span>
+      <span style="display:flex;align-items:center;gap:8px"><span style="font-size:11px;padding:2px 7px;border-radius:4px;background:var(--surface2);color:var(--text1)">{{ d.committed }}</span><span style="color:var(--text3);font-size:18px">›</span></span>
+    </div>
+    </sc-for>
+    <div style="padding:14px 16px;font-size:12px;color:var(--text2);line-height:1.5">Swipe a deck left to export or disassemble.</div>
+  </div>
+  <div style="height:84px;border-top:1px solid var(--border);background:var(--surface2);display:grid;grid-template-columns:repeat(4,1fr);padding:8px 8px 24px;font-size:10.5px">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text2)"><span style="width:22px;height:22px;border-radius:5px;border:1.5px solid var(--text2)"></span>Pool</div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text2)"><span style="width:22px;height:22px;border-radius:5px;border:1.5px solid var(--text2)"></span>Build</div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--ink);font-weight:600"><span style="width:22px;height:22px;border-radius:5px;background:var(--ink)"></span>Decks</div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text2)"><span style="width:22px;height:22px;border-radius:11px;border:1.5px solid var(--text2)"></span>Settings</div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- 7 SETTINGS -->
+<div id="1j" style="display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap">
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;gap:8px;align-items:center"><span style="font-size:11px;font-weight:600;background:var(--ink);color:var(--on-ink);padding:2px 7px;border-radius:4px">1j</span><span style="font-size:13px;color:var(--text1)">Settings and About · desktop</span></div>
+<div style="width:1180px;height:740px;background:var(--bg);border:1px solid var(--border2);border-radius:10px;overflow:hidden;display:flex">
+  <nav style="width:200px;border-right:1px solid var(--border);background:var(--surface2);padding:18px 12px;display:flex;flex-direction:column;gap:2px;flex-shrink:0">
+    <div style="font-size:15px;font-weight:600;padding:4px 10px 16px">Bulk Brew</div>
+    <div style="font-size:13px;padding:7px 10px;border-radius:6px;color:var(--text1)">Pool</div>
+    <div style="font-size:13px;padding:6px 10px 6px 22px;border-radius:6px;color:var(--text1)">Import</div>
+    <div style="font-size:13px;padding:6px 10px 6px 22px;border-radius:6px;color:var(--text1)">Analysis</div>
+    <div style="font-size:13px;padding:7px 10px;border-radius:6px;color:var(--text1)">Build</div>
+    <div style="font-size:13px;padding:7px 10px;border-radius:6px;color:var(--text1)">Decks</div>
+    <div style="font-size:13px;padding:7px 10px;border-radius:6px;background:var(--ink);color:var(--on-ink)">Settings</div>
+    <div style="margin-top:auto;font-size:11px;color:var(--text3);padding:0 10px;line-height:1.5">Card data 2026-10-28<br>2,184 cards in pool</div>
+  </nav>
+  <main style="flex:1;padding:22px 32px;display:grid;grid-template-columns:1fr 1fr;gap:20px 40px;align-content:start;font-size:13px;min-width:0">
+    <div style="grid-column:1/-1;font-size:20px;font-weight:600">Settings</div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em">Building</div>
+      <div style="border:1px solid var(--border);border-radius:8px;background:var(--surface);overflow:hidden">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-bottom:1px solid var(--surface2)"><span>Max copies, 60-card</span><span style="font-family:ui-monospace,Menlo,monospace;font-size:12.5px;border:1px solid var(--border2);border-radius:5px;padding:3px 10px">4</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-bottom:1px solid var(--surface2)"><span>Max copies, 40-card</span><span style="font-family:ui-monospace,Menlo,monospace;font-size:12.5px;border:1px solid var(--border2);border-radius:5px;padding:3px 10px">4</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-bottom:1px solid var(--surface2)"><span>Max copies, 20-card packet</span><span style="font-family:ui-monospace,Menlo,monospace;font-size:12.5px;border:1px solid var(--border2);border-radius:5px;padding:3px 10px">2</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-bottom:1px solid var(--surface2)"><span style="display:flex;flex-direction:column"><span>Unlimited basic lands</span><span style="font-size:11.5px;color:var(--text2)">Basics need not be imported</span></span><span style="width:32px;height:18px;border-radius:9px;background:var(--ink);position:relative;display:inline-block"><span style="position:absolute;right:2px;top:2px;width:14px;height:14px;border-radius:7px;background:var(--surface)"></span></span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 16px"><span>Include Un-set and acorn cards</span><span style="width:32px;height:18px;border-radius:9px;background:var(--border2);position:relative;display:inline-block"><span style="position:absolute;left:2px;top:2px;width:14px;height:14px;border-radius:7px;background:var(--surface)"></span></span></div>
+      </div>
+      <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;margin-top:6px">Display</div>
+      <div style="border:1px solid var(--border);border-radius:8px;background:var(--surface);overflow:hidden">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-bottom:1px solid var(--surface2)"><span style="display:flex;flex-direction:column"><span>Show card art</span><span style="font-size:11.5px;color:var(--text2)">Loads images from Scryfall as you browse</span></span><span style="width:32px;height:18px;border-radius:9px;background:var(--border2);position:relative;display:inline-block"><span style="position:absolute;left:2px;top:2px;width:14px;height:14px;border-radius:7px;background:var(--surface)"></span></span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 16px"><span>Appearance</span><span style="display:inline-flex;border:1px solid var(--border2);border-radius:5px;overflow:hidden;font-size:12px"><span style="padding:3px 10px;background:var(--ink);color:var(--on-ink)">Light</span><span style="padding:3px 10px;color:var(--text1)">Dark</span><span style="padding:3px 10px;color:var(--text1);border-left:1px solid var(--border2)">System</span></span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-top:1px solid var(--surface2)"><span style="display:flex;flex-direction:column"><span>Theme color</span><span style="font-size:11.5px;color:var(--text2)">Tints the whole app toward one color</span></span><span style="display:inline-flex;gap:6px;align-items:center"><span style="width:20px;height:20px;border-radius:10px;background:var(--text2);border:2px solid var(--ink)"></span><span style="width:20px;height:20px;border-radius:10px;background:oklch(.86 .02 85);border:1px solid var(--border2)"></span><span style="width:20px;height:20px;border-radius:10px;background:oklch(.78 .05 245);border:1px solid var(--border2)"></span><span style="width:20px;height:20px;border-radius:10px;background:oklch(.55 .04 305);border:1px solid var(--border2)"></span><span style="width:20px;height:20px;border-radius:10px;background:oklch(.72 .06 25);border:1px solid var(--border2)"></span><span style="width:20px;height:20px;border-radius:10px;background:oklch(.68 .06 150);border:1px solid var(--border2)"></span></span></div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em">Card data</div>
+      <div style="border:1px solid var(--border);border-radius:8px;background:var(--surface);padding:12px 16px;display:flex;justify-content:space-between;align-items:center"><span style="display:flex;flex-direction:column;gap:2px"><span>Scryfall oracle cards · v1</span><span style="font-size:11.5px;color:var(--text2)">2026-10-28 · 33,412 cards · 4.5 MB</span></span><span style="padding:5px 10px;border:1px solid var(--border2);border-radius:5px;font-size:12.5px">Check for updates</span></div>
+      <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;margin-top:6px">Backup</div>
+      <div style="border:1px solid var(--border);border-radius:8px;background:var(--surface);overflow:hidden">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-bottom:1px solid var(--surface2)"><span style="display:flex;flex-direction:column"><span>Export backup</span><span style="font-size:11.5px;color:var(--text2)">Pool, decks and settings as one file</span></span><span style="padding:5px 10px;border:1px solid var(--border2);border-radius:5px;font-size:12.5px">Export</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-bottom:1px solid var(--surface2)"><span>Restore from backup</span><span style="padding:5px 10px;border:1px solid var(--border2);border-radius:5px;font-size:12.5px">Choose file</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 16px"><span style="color:var(--text1)">Clear all data</span><span style="padding:5px 10px;border:1px solid var(--border2);border-radius:5px;font-size:12.5px;color:var(--text1)">Clear</span></div>
+      </div>
+      <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;margin-top:6px">About</div>
+      <div style="font-size:12.5px;color:var(--text1);line-height:1.6;display:flex;flex-direction:column;gap:8px">
+        <div>Bulk Brew 0.1.0 · MIT License · <u>Source on GitHub</u></div>
+        <div>Bulk Brew is unofficial Fan Content permitted under the Fan Content Policy. Not approved or endorsed by Wizards. Portions of the materials used are property of Wizards of the Coast. © Wizards of the Coast LLC.</div>
+        <div>Card data comes from Scryfall bulk data and Scryfall Tagger. Card images load from Scryfall on demand and are shown unmodified. Scryfall is not affiliated with Bulk Brew and does not endorse it.</div>
+      </div>
+    </div>
+  </main>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font-size:13px;color:var(--text1);height:20px;display:flex;align-items:center">Settings · iPhone</div>
+<div style="width:390px;height:780px;background:var(--bg);border:1px solid var(--border2);border-radius:36px;overflow:hidden;display:flex;flex-direction:column">
+  <div style="height:50px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 6px;font-size:13px;font-weight:600"><span>9:41</span><span style="color:var(--text2);font-weight:500">●●● ▲ ▮</span></div>
+  <div style="padding:8px 16px 10px"><span style="font-size:22px;font-weight:700">Settings</span></div>
+  <div style="flex:1;overflow:hidden;padding:0 16px;display:flex;flex-direction:column;gap:12px;font-size:14px">
+    <div style="flex-shrink:0;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em">Building</div>
+    <div style="flex-shrink:0;border:1px solid var(--border);border-radius:10px;background:var(--surface);overflow:hidden">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:0 14px;min-height:44px;border-bottom:1px solid var(--surface2)"><span>Max copies</span><span style="color:var(--text2);font-size:13px">60: 4 · 40: 4 · 20: 2 ›</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:0 14px;min-height:44px;border-bottom:1px solid var(--surface2)"><span>Unlimited basic lands</span><span style="width:40px;height:24px;border-radius:12px;background:var(--ink);position:relative;display:inline-block"><span style="position:absolute;right:2px;top:2px;width:20px;height:20px;border-radius:10px;background:var(--surface)"></span></span></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:0 14px;min-height:44px;border-bottom:1px solid var(--surface2)"><span>Include Un-set cards</span><span style="width:40px;height:24px;border-radius:12px;background:var(--border2);position:relative;display:inline-block"><span style="position:absolute;left:2px;top:2px;width:20px;height:20px;border-radius:10px;background:var(--surface)"></span></span></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:0 14px;min-height:44px"><span>Show card art</span><span style="width:40px;height:24px;border-radius:12px;background:var(--border2);position:relative;display:inline-block"><span style="position:absolute;left:2px;top:2px;width:20px;height:20px;border-radius:10px;background:var(--surface)"></span></span></div>
+    </div>
+    <div style="flex-shrink:0;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em">Card data</div>
+    <div style="flex-shrink:0;border:1px solid var(--border);border-radius:10px;background:var(--surface);overflow:hidden">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:0 14px;min-height:44px;border-bottom:1px solid var(--surface2)"><span style="display:flex;flex-direction:column"><span>Scryfall data v1</span><span style="font-size:12px;color:var(--text2)">2026-10-28 · 33,412 cards</span></span></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:0 14px;min-height:44px"><span>Check for card updates</span><span style="color:var(--text3)">›</span></div>
+    </div>
+    <div style="flex-shrink:0;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em">Backup</div>
+    <div style="flex-shrink:0;border:1px solid var(--border);border-radius:10px;background:var(--surface);overflow:hidden">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:0 14px;min-height:44px;border-bottom:1px solid var(--surface2)"><span>Export backup</span><span style="color:var(--text3)">›</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:0 14px;min-height:44px;border-bottom:1px solid var(--surface2)"><span>Restore from backup</span><span style="color:var(--text3)">›</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:0 14px;min-height:44px;color:var(--text1)"><span>Clear all data</span></div>
+    </div>
+    <div style="flex-shrink:0;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em">About</div>
+    <div style="flex-shrink:0;font-size:12px;color:var(--text1);line-height:1.55">Bulk Brew 0.1.0. Unofficial Fan Content permitted under the Fan Content Policy. Not approved or endorsed by Wizards. Card data from Scryfall, which is not affiliated with Bulk Brew.</div>
+  </div>
+  <div style="height:84px;border-top:1px solid var(--border);background:var(--surface2);display:grid;grid-template-columns:repeat(4,1fr);padding:8px 8px 24px;font-size:10.5px">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text2)"><span style="width:22px;height:22px;border-radius:5px;border:1.5px solid var(--text2)"></span>Pool</div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text2)"><span style="width:22px;height:22px;border-radius:5px;border:1.5px solid var(--text2)"></span>Build</div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text2)"><span style="width:22px;height:22px;border-radius:5px;border:1.5px solid var(--text2)"></span>Decks</div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--ink);font-weight:600"><span style="width:22px;height:22px;border-radius:11px;background:var(--ink)"></span>Settings</div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- NAV ALT -->
+<div id="1k" style="display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap">
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;gap:8px;align-items:center"><span style="font-size:11px;font-weight:600;background:var(--ink);color:var(--on-ink);padding:2px 7px;border-radius:4px">1k</span><span style="font-size:13px;color:var(--text1)">Navigation alt · desktop top bar mirrors the four mobile tabs; Import and Analysis as sub-tabs under Pool</span></div>
+<div style="width:1180px;height:300px;background:var(--bg);border:1px solid var(--border2);border-radius:10px;overflow:hidden;display:flex;flex-direction:column">
+  <div style="height:48px;border-bottom:1px solid var(--border);background:var(--surface);display:flex;align-items:center;padding:0 24px;gap:28px">
+    <span style="font-size:15px;font-weight:600">Bulk Brew</span>
+    <div style="display:flex;gap:4px;font-size:13px;height:100%;align-items:stretch">
+      <span style="display:flex;align-items:center;padding:0 12px;border-bottom:2px solid var(--ink);font-weight:500">Pool</span><span style="display:flex;align-items:center;padding:0 12px;color:var(--text1)">Build</span><span style="display:flex;align-items:center;padding:0 12px;color:var(--text1)">Decks</span><span style="display:flex;align-items:center;padding:0 12px;color:var(--text1)">Settings</span>
+    </div>
+    <span style="margin-left:auto;font-size:12px;color:var(--text3)">2,184 cards · data 2026-10-28</span>
+  </div>
+  <div style="padding:18px 24px 0;display:flex;align-items:center;gap:16px">
+    <span style="font-size:20px;font-weight:600">Pool</span>
+    <div style="display:inline-flex;border:1px solid var(--border2);border-radius:6px;overflow:hidden;font-size:12.5px"><span style="padding:5px 12px;background:var(--ink);color:var(--on-ink)">Cards</span><span style="padding:5px 12px;color:var(--text1);background:var(--surface);border-left:1px solid var(--border2)">Analysis</span><span style="padding:5px 12px;color:var(--text1);background:var(--surface);border-left:1px solid var(--border2)">Import</span></div>
+  </div>
+  <div style="padding:14px 24px;display:grid;grid-template-columns:40px 1fr 110px 190px 1fr;gap:12px;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border)"><span>Qty</span><span>Name</span><span>Cost</span><span>Type</span><span>Tags</span></div>
+  <sc-for list="{{ poolRowsM }}" as="r" hint-placeholder-count="4">
+  <div style="display:grid;grid-template-columns:40px 1fr 110px 190px 1fr;gap:12px;padding:0 24px;align-items:center;border-bottom:1px solid var(--surface2);font-size:13px;height:32px"><span style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--text1)">{{ r.qty }}</span><span style="font-weight:500">{{ r.name }}</span><span style="display:inline-flex;gap:2px"><sc-for list="{{ r.cost }}" as="p" hint-placeholder-count="2"><span style="width:16px;height:16px;border-radius:8px;border:1px solid var(--text3);font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;background:{{ p.bg }};color:{{ p.fg }}">{{ p.s }}</span></sc-for></span><span style="color:var(--text1)">{{ r.type }}</span><span style="color:var(--text2);font-size:12px">{{ r.tags }}</span></div>
+  </sc-for>
+</div>
+</div>
+</div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;light&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;tsType&quot;:&quot;'light'|'dark'&quot;,&quot;section&quot;:&quot;Theme&quot;},&quot;accent&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;grey&quot;,&quot;options&quot;:[&quot;grey&quot;,&quot;W&quot;,&quot;U&quot;,&quot;B&quot;,&quot;R&quot;,&quot;G&quot;],&quot;tsType&quot;:&quot;'grey'|'W'|'U'|'B'|'R'|'G'&quot;,&quot;section&quot;:&quot;Theme&quot;},&quot;showArt&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Pool&quot;},&quot;density&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;regular&quot;,&quot;options&quot;:[&quot;compact&quot;,&quot;regular&quot;,&quot;comfortable&quot;],&quot;tsType&quot;:&quot;'compact'|'regular'|'comfortable'&quot;,&quot;section&quot;:&quot;Pool&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const mode = this.props.theme ?? 'light';
+    const accent = this.props.accent ?? 'grey';
+    // hue, surface chroma (light), surface chroma (dark), ink chroma
+    const HUE = { grey:[0,0,0,0], W:[88,0.035,0.045,0.08], U:[240,0.045,0.07,0.14], B:[300,0.03,0.05,0.09], R:[30,0.05,0.08,0.16], G:[150,0.045,0.07,0.13] };
+    const theme = (m, key) => {
+      const [hh, cl, cd, ci] = HUE[key];
+      const o = (L, c) => `oklch(${L} ${c.toFixed(3)} ${hh})`;
+      if (m === 'dark') {
+        const s = cd, inkL = key === 'B' ? .80 : .82;
+        return { '--bg':o(.24,s), '--surface':o(.285,s), '--surface2':o(.33,s*1.1), '--border':o(.39,s), '--border2':o(.48,s), '--text3':o(.62,s*.6), '--text2':o(.74,s*.5), '--text1':o(.84,s*.4), '--ink':o(inkL,ci), '--on-ink':o(.22,s), '--bar':o(.66,ci*.7),
+          '--pip-w':'oklch(.93 .035 90)', '--pip-w-fg':'oklch(.30 .02 90)', '--pip-u':'oklch(.72 .11 240)', '--pip-u-fg':'oklch(.18 .04 240)', '--pip-b':'oklch(.42 .05 300)', '--pip-b-fg':'oklch(.94 .02 300)', '--pip-r':'oklch(.66 .15 30)', '--pip-r-fg':'oklch(.16 .04 30)', '--pip-g':'oklch(.62 .12 150)', '--pip-g-fg':'oklch(.16 .04 150)' };
+      }
+      const s = cl;
+      return { '--bg':o(.955,s), '--surface':o(.985,s*.5), '--surface2':o(.925,s*1.2), '--border':o(.87,s*1.1), '--border2':o(.78,s), '--text3':o(.62,s*.8), '--text2':o(.50,s*.9), '--text1':o(.40,s), '--ink':o(key==='W'?.42:.40,ci), '--on-ink':o(.985,s*.5), '--bar':o(.60,ci*.7),
+        '--pip-w':'oklch(.97 .03 90)', '--pip-w-fg':'oklch(.38 .03 90)', '--pip-u':'oklch(.86 .07 240)', '--pip-u-fg':'oklch(.30 .08 240)', '--pip-b':'oklch(.40 .04 300)', '--pip-b-fg':'oklch(.96 .01 300)', '--pip-r':'oklch(.80 .10 30)', '--pip-r-fg':'oklch(.32 .10 30)', '--pip-g':'oklch(.78 .09 150)', '--pip-g-fg':'oklch(.28 .07 150)' };
+    };
+    const rootStyle = { padding:'48px 56px', display:'flex', flexDirection:'column', gap:'56px', color:'var(--ink)', ...theme(mode, accent) };
+    const names = { grey:'Grey', W:'White', U:'Blue', B:'Black', R:'Red', G:'Green' };
+    const themeSamples = [];
+    for (const m of ['light','dark']) for (const k of ['grey','W','U','B','R','G']) themeSamples.push({ label: `${names[k]} · ${m}`, style: theme(m, k) });
+    const P = { W:{bg:'var(--pip-w)',fg:'var(--pip-w-fg)'}, U:{bg:'var(--pip-u)',fg:'var(--pip-u-fg)'}, B:{bg:'var(--pip-b)',fg:'var(--pip-b-fg)'}, R:{bg:'var(--pip-r)',fg:'var(--pip-r-fg)'}, G:{bg:'var(--pip-g)',fg:'var(--pip-g-fg)'}, C:{bg:'var(--surface2)',fg:'var(--text1)'} };
+    const pip = s => ({ s, ...(P[s] || P.C) });
+    const cost = str => str.split('').map(pip);
+    const card = (qty, name, c, type, tags) => ({ qty, name, cost: cost(c), type, tags, bg: 'transparent' });
+    const poolRows = [
+      card(3,'Thraben Inspector','W','Creature — Human Soldier','makes tokens, card draw'),
+      card(2,'Raise the Alarm','1W','Instant','makes tokens'),
+      card(4,'Shock','R','Instant','removal, burn'),
+      card(1,'Llanowar Elves','G','Creature — Elf Druid','ramp, mana dork'),
+      card(2,'Doom Blade','1B','Instant','removal'),
+      card(4,'Opt','U','Instant','card draw, cantrip'),
+      card(3,'Mogg Fanatic','R','Creature — Goblin','sacrifice outlet'),
+      card(2,'Grizzly Bears','1G','Creature — Bear',''),
+      card(1,'Blossoming Defense','G','Instant','protection'),
+      card(2,'Searing Spear','1R','Instant','removal, burn'),
+      card(1,'Carrion Feeder','B','Creature — Zombie','aristocrats payoff'),
+      card(3,'Omenspeaker','1U','Creature — Human Wizard','card selection'),
+      card(2,'Seeker of the Way','1W','Creature — Human Monk','lifegain, prowess'),
+      card(1,'Rancor','G','Enchantment — Aura','recursion'),
+      card(2,'Goblin Instigator','1R','Creature — Goblin','makes tokens'),
+      card(4,'Mind Stone','2','Artifact','ramp, card draw'),
+    ];
+    poolRows[0].bg = 'var(--surface2)';
+    const showArt = this.props.showArt ?? false;
+    const rowH = this.props.density === 'compact' ? 28 : this.props.density === 'comfortable' ? 44 : (showArt ? 38 : 32);
+    const colorCounts = [['W',402],['U',388],['B',451],['R',377],['G',466],['C',100]].map(([s,n]) => ({ ...pip(s), n }));
+    const tabNames = { W:'White', U:'Blue', B:'Black', R:'Red', G:'Green' };
+    const colorTabs = ['W','U','B','R','G'].map((s,i) => ({ s, name: tabNames[s], n: [402,388,451,377,466][i], bg: P[s].bg, pipFg: P[s].fg, line: i===0?'var(--ink)':'transparent', fg: i===0?'var(--ink)':'var(--text1)', mBorder: i===0?'var(--ink)':'var(--border)', mBg: i===0?'var(--surface)':'transparent' }));
+    const cell = (state, label, detail, size) => ({ dot: state==='ok'?'var(--ink)':state==='near'?'var(--text3)':'var(--surface)', fg: state==='no'?'var(--text3)':'var(--ink)', label, detail, size });
+    const archRows = [
+      { name:'Tokens', desc:'Go wide and pump the team', cells:[cell('ok','Viable','14 makers · 6 payoffs','60'),cell('ok','Viable','9 makers · 4 payoffs','40'),cell('ok','Viable','5 makers · 2 payoffs','20')], mNote:'Viable at every size. 14 token makers, 6 payoffs.' },
+      { name:'Aggro', desc:'Low curve, lots of creatures', cells:[cell('ok','Viable','31 one and two drops','60'),cell('ok','Viable','','40'),cell('ok','Viable','','20')], mNote:'Viable at every size. 31 cheap creatures.' },
+      { name:'Lifegain', desc:'Gain life, get paid for it', cells:[cell('near','Near miss','needs 3 more payoffs','60'),cell('ok','Viable','7 sources · 3 payoffs','40'),cell('ok','Viable','','20')], mNote:'Near miss at 60: needs 3 more payoffs.' },
+      { name:'Equipment', desc:'Suit up evasive creatures', cells:[cell('near','Near miss','needs 2 more equipment','60'),cell('near','Near miss','needs 1 more equipment','40'),cell('ok','Viable','3 equipment · 6 carriers','20')], mNote:'Near miss at 60 and 40: needs more equipment.' },
+      { name:'Control', desc:'Removal, draw, a few finishers', cells:[cell('no','Not enough','4 of 8 draw spells','60'),cell('near','Near miss','needs 1 more finisher','40'),cell('no','Not a packet style','','20')], mNote:'Not enough card draw. 4 of 8 needed.' },
+      { name:'Blink', desc:'Reuse enter effects', cells:[cell('no','Not enough','2 blink effects','60'),cell('no','Not enough','','40'),cell('no','Not enough','','20')], mNote:'Only 2 blink effects in white.' },
+    ];
+    const matrix = archRows.map(a => ({ name: a.name, cells: ['W','U','B','R','G'].map((c,i) => {
+      const st = a.cells[0]; const states = ['ok','near','no'];
+      const pick = states[(a.name.length + i) % 3];
+      const realW = i===0 ? (st.dot==='var(--ink)'?'ok':st.dot==='var(--text3)'?'near':'no') : pick;
+      return cell(realW, realW==='ok'?'Viable':realW==='near'?'Near miss':'Not enough', realW==='ok'?'enough enablers and payoffs':realW==='near'?'1 to 3 cards short':'', '');
+    }) }));
+    const colorPick = ['W','U','B','R','G'].map((s,i) => ({ s, n: tabNames[s], bg: P[s].bg, fg: P[s].fg, ok: ['402 · 60/40/20','388 · 40/20','451 · 60/40/20','377 · 40/20','466 · 60/40/20'][i], border: i===0?'var(--ink)':'var(--border)', tileBg: i===0?'var(--surface)':'transparent', op: 1 }));
+    const styles = [
+      { name:'Best fit', desc:'Let the builder pick the strongest style', state:'', radio:'var(--ink)', op:1 },
+      { name:'Tokens', desc:'Go wide and pump the team', state:'Viable', radio:'var(--surface)', op:1 },
+      { name:'Aggro', desc:'Low curve, lots of creatures', state:'Viable', radio:'var(--surface)', op:1 },
+      { name:'Lifegain', desc:'Needs 3 more payoffs', state:'Near miss', radio:'var(--surface)', op:.55 },
+      { name:'Equipment', desc:'Needs 2 more equipment', state:'Near miss', radio:'var(--surface)', op:.55 },
+    ];
+    const stylesM = styles.slice(0,4);
+    const dc = (qty, name, c, why) => ({ qty, name, cost: cost(c), why });
+    const deckGroups = [
+      { name:'Creatures', n:22, cards:[dc(4,'Thraben Inspector','W','token maker'),dc(4,'Seeker of the Way','1W','curve'),dc(3,'Attended Knight','2W','token maker'),dc(3,'Hanweir Militia Captain','1W','payoff'),dc(2,'Intangible Virtue','1W','payoff'),dc(2,'Precinct Captain','WW','token maker'),dc(2,'Sandsteppe Outcast','2W','token maker'),dc(2,'Ballyrush Banneret','1W','filler')] },
+      { name:'Instants and sorceries', n:10, cards:[dc(4,'Raise the Alarm','1W','token maker'),dc(2,'Swords to Plowshares','W','removal'),dc(2,'Valorous Stance','1W','removal'),dc(2,'Triplicate Spirits','4WW','token maker')] },
+      { name:'Enchantments and artifacts', n:4, cards:[dc(2,'Mind Stone','2','ramp, draw'),dc(2,'Spectral Procession','WWW','token maker')] },
+      { name:'Lands', n:24, cards:[dc(23,'Plains','',''),dc(1,'Windbrisk Heights','','payoff')] },
+    ];
+    const deckGroupsM = deckGroups.slice(0,2);
+    const curve = [[0,1],[1,8],[2,13],[3,9],[4,3],[5,1],['6+',1]].map(([mv,n]) => ({ mv, n, h: Math.round(n/13*100) }));
+    const roles = [['Removal',4,6],['Card draw',3,4],['Ramp',2,2],['Finishers',3,2]].map(([name,have,want]) => ({ name, have, want, pct: Math.min(100, Math.round(have/want*100)) }));
+    const synergies = ['Thraben Inspector and Raise the Alarm feed Intangible Virtue and Hanweir Militia Captain.', 'Spectral Procession and Triplicate Spirits turn 5 permanents into a Windbrisk Heights trigger.', 'Mind Stone smooths the curve and cycles late.'];
+    const decks = [
+      ['W','White Tokens','60','Tokens','Today','Cards removed'],['R','Red Aggro','40','Aggro','Yesterday','Cards removed'],['G','Green Ramp','60','Ramp','Oct 30','Still in pool'],['B','Black Aristocrats packet','20','Aristocrats','Oct 29','Cards removed'],['U','Blue Tempo packet','20','Tempo','Oct 29','Cards removed'],['G','Green Stompy packet','20','Stompy','Oct 28','Cards removed'],
+    ].map(([s,name,size,arch,date,committed]) => ({ ...pip(s), name, size, arch, date, committed }));
+    const unresolved = [{ qty:1, raw:'Grizzly Bearz', suggest:'Grizzly Bears' },{ qty:1, raw:'Thrill of Posibility', suggest:'Thrill of Possibility' },{ qty:2, raw:'Lightning Bolt (M10) 149', suggest:'Lightning Bolt' }];
+    const poolRowsM = poolRows.slice(0,12);
+    const greens = poolRows.filter(r => r.cost.some(p => p.s==='G'));
+    const poolGroups = [
+      { mv:1, count:4, rows: greens.filter(r => r.cost.length===1) },
+      { mv:2, count:7, rows: greens.filter(r => r.cost.length===2).concat([card(2,'Sakura-Tribe Elder','1G','Creature — Snake Shaman','ramp'),card(1,'Elvish Visionary','1G','Creature — Elf Shaman','card draw')]) },
+      { mv:3, count:5, rows: [card(2,'Eternal Witness','1GG','Creature — Human Shaman','recursion'),card(3,'Call of the Herd','2G','Sorcery','makes tokens, flashback'),card(1,'Wood Elves','2G','Creature — Elf Scout','ramp')] },
+    ];
+    return { rootStyle, themeSamples, poolRows, poolRowsM, poolGroups, colorCounts, colorTabs, archRows, matrix, colorPick, styles, stylesM, deckGroups, deckGroupsM, curve, roles, synergies, decks, unresolved, showArt, rowH };
+  }
+}
+</script>
+</body>
+</html>
