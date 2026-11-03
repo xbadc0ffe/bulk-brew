@@ -36,7 +36,8 @@ export function usePool(kv: KeyValueStore): PoolState {
     kv.get<Pool>(POOL_KEY)
       .then((saved) => {
         if (cancelled) return;
-        if (saved && saved.entries) setPool(saved);
+        // Never clobber edits made while the saved pool was still loading.
+        if (saved && saved.entries && !dirty.current) setPool(saved);
         setLoaded(true);
       })
       .catch(() => {
