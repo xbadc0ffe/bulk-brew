@@ -158,8 +158,8 @@ export function ImportScreen() {
             }}
           />
         </div>
-        <div className="flex items-center gap-3">
-          <span className="min-w-0 flex-1 text-[12.5px] text-fg-1">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="min-w-36 flex-1 text-[12.5px] text-fg-1">
             {plural(imp.parsed.lines.length, 'line')} · {plural(imp.totalCards, 'card')} ·{' '}
             {fmt(imp.parsed.skipped.length)} unreadable
             {imp.text && imp.format !== 'decklist' && ` · ${IMPORT_FORMAT_LABELS[imp.format]}`}
