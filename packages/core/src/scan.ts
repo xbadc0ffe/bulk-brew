@@ -14,6 +14,7 @@ import {
 import { listCandidates, type Candidate } from './candidates.ts';
 import type { CardIndex } from './pack.ts';
 import {
+  COLOR_LABELS,
   COLORS,
   type ArchetypeReport,
   type Color,
@@ -24,6 +25,26 @@ import {
 } from './types.ts';
 
 type SizeKey = '60' | '40' | '20';
+
+/**
+ * Share of a deck's spell slots that must be cards of the deck color.
+ * Colorless cards fit every color, so without this a pile of artifacts would
+ * count as a deck of any color. A constant for now; config if it needs tuning.
+ */
+export const MIN_COLORED_SHARE = 0.5;
+
+/**
+ * Curve profile for a size and archetype. Jumpstart packets always use the
+ * template's own profile: two packets must curve out together on 16 lands,
+ * whatever theme each one has.
+ */
+export function effectiveCurveProfile(
+  template: DeckTemplate,
+  archetype: Archetype | undefined,
+): string {
+  if (template.size === 20) return template.curveProfile;
+  return archetype?.curveProfile ?? template.curveProfile;
+}
 
 /** Role quotas for a size with the archetype's overrides applied, in template key order. */
 export function effectiveQuotas(
@@ -130,6 +151,7 @@ export function scanCandidates(
   const template = templateFor(config, size);
   const spellSlots = size - template.baseLands;
   let spells = 0;
+  let colored = 0;
   let creatures = 0;
   let distinct = 0;
   let nonbasics = 0;
@@ -138,6 +160,7 @@ export function scanCandidates(
     if (c.facts.spell) {
       spells += c.available;
       distinct += 1;
+      if (c.facts.card.identity.length > 0) colored += c.available;
       if (c.facts.creature) creatures += c.available;
     } else if (c.facts.land) {
       if (c.facts.basic) basics += c.available;
@@ -150,8 +173,13 @@ export function scanCandidates(
   // The builder's last fill pass ignores type caps, so a creature-only pool
   // with enough copies is buildable and "possible" only needs enough spells.
   const notes: string[] = [];
+  const coloredMin = Math.ceil(spellSlots * MIN_COLORED_SHARE);
   if (spells < spellSlots) {
-    notes.push(`needs ${spellSlots - spells} more spells for a ${size}-card deck`);
+    notes.push(`needs ${plural(spellSlots - spells, 'more spell')} for a ${size}-card deck`);
+  } else if (colored < coloredMin) {
+    notes.push(
+      `needs ${plural(coloredMin - colored, `more ${COLOR_LABELS[color]} card`)} (colorless cards alone do not make a ${COLOR_LABELS[color]} deck)`,
+    );
   } else if (creatures === spells && creatures >= spellSlots) {
     notes.push('all creatures: the deck will lean on combat with no spells');
   }
@@ -168,6 +196,7 @@ export function scanCandidates(
     color,
     size,
     candidates: spells,
+    colored,
     distinct,
     lands,
     spellSlots,

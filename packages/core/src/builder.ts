@@ -22,7 +22,13 @@ import {
 import { listCandidates, maxCopiesFor, type Candidate } from './candidates.ts';
 import { chooseManaBase, ManaBaseError, planLandCount, type SpellCopies } from './lands.ts';
 import type { CardIndex } from './pack.ts';
-import { countCopies, effectiveQuotas, effectiveTypeMix, scanCandidates } from './scan.ts';
+import {
+  countCopies,
+  effectiveCurveProfile,
+  effectiveQuotas,
+  effectiveTypeMix,
+  scanCandidates,
+} from './scan.ts';
 import {
   COLOR_LABELS,
   type BuildExplanation,
@@ -36,6 +42,24 @@ import {
 
 export class BuildError extends Error {
   override name = 'BuildError';
+}
+
+/** Reason recorded for a copy picked only to fill a slot. */
+export const FILLER_WHY = 'Filler';
+const CURVE_WHY_PREFIX = 'Curve: ';
+
+/** Reason recorded for a copy picked to fill a curve bucket. */
+export function curveWhy(bucket: number): string {
+  return bucket === 7 ? `${CURVE_WHY_PREFIX}7-plus drop` : `${CURVE_WHY_PREFIX}${bucket}-drop`;
+}
+
+/**
+ * Whether a pick counts as filler for evaluation: picked as filler, or picked
+ * for the curve by a card that fills none of the deck's roles.
+ */
+export function isFillerPick(why: string | undefined, fillsRole: boolean): boolean {
+  if (why === FILLER_WHY) return true;
+  return !fillsRole && (why?.startsWith(CURVE_WHY_PREFIX) ?? false);
 }
 
 /** Why a copy was picked, which also decides what gets trimmed first. */
@@ -318,7 +342,7 @@ function describeWhy(cand: Candidate, ctx: Ctx): string {
     if (cand.facts.payoffOf.includes(ctx.archetype.id)) return `${ctx.archetype.label} payoff`;
     if (cand.facts.enablerOf.includes(ctx.archetype.id)) return `${ctx.archetype.label} enabler`;
   }
-  return 'Filler';
+  return FILLER_WHY;
 }
 
 /** Roles fill in the template's key order, so removal comes before filler-ish roles. */
@@ -407,7 +431,7 @@ function fillCurve(state: State, ctx: Ctx): void {
       }
     }
     if (bucket < 0) return;
-    const label = bucket === 7 ? 'Curve: 7-plus drop' : `Curve: ${bucket}-drop`;
+    const label = curveWhy(bucket);
     const inBucket = (c: Candidate) => Math.max(1, c.facts.bucket) === bucket;
     if (!pickBest(state, ctx, inBucket, label, 'curve')) exhausted.add(bucket);
   }
@@ -576,7 +600,7 @@ export function buildDeck(
     archetype,
     quotas: effectiveQuotas(template, archetype),
     typeMix: effectiveTypeMix(template, archetype),
-    curveShape: curveProfileFor(config, archetype.curveProfile).shape,
+    curveShape: curveProfileFor(config, effectiveCurveProfile(template, archetype)).shape,
     weights: config.builderWeights,
     synergyScale: archetype.kind === 'synergy' ? archetype.synergyWeight : 1,
     roleLabels: new Map(config.roles.roles.map((r) => [r.id, r.label])),

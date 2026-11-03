@@ -72,6 +72,22 @@ export function manaSourceKind(card: CardRecord): ManaSourceKind | undefined {
   return undefined;
 }
 
+/** Every mana cost printed on the card: the card's own cost plus each face's. */
+export function manaCostsOf(card: CardRecord): string[] {
+  const costs: string[] = [];
+  if (card.manaCost) costs.push(card.manaCost);
+  for (const f of card.faces ?? []) if (f.manaCost) costs.push(f.manaCost);
+  return costs;
+}
+
+/**
+ * A {C} pip needs colorless mana specifically. Such cards have an empty color
+ * identity, so they would fit every color, yet a deck of basics cannot pay them.
+ */
+export function hasColorlessPip(card: CardRecord): boolean {
+  return manaCostsOf(card).some((cost) => /\{C\}/i.test(cost));
+}
+
 export function isMdfcLand(card: CardRecord): boolean {
   return card.layout === 'modal_dfc' && isLand(card) && !/^Land\b/.test(card.typeLine);
 }

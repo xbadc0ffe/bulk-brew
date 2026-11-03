@@ -2,12 +2,6 @@
 
 Ranked. The current phase is at the top. Finished phases are removed, not struck through.
 
-## Phase 6: evaluation harness
-
-- `eval/pools/white-bulk.txt` exists; add pools for the other colors and a thin pool.
-- Scoring script over all pools and sizes, results in `eval/results/`.
-- Rubric in `eval/rubric.md`.
-
 ## Phase 8: iOS app
 
 - Capacitor project around `apps/mobile`, bundled data pack and config, over-the-air data update.
@@ -16,6 +10,10 @@ Ranked. The current phase is at the top. Finished phases are removed, not struck
 
 ## Builder follow-ups
 
+- Cheap-heavy pools overshoot the low end of the curve: eval bulk-black 60 has 9 one-drops against a target of 3 (curve deviation 7), because role and theme passes pick cheap cards before the curve pass runs. Consider curve-aware ordering inside the role and theme passes.
+- `MIN_COLORED_SHARE` in scan.ts (half the spell slots must be the deck color) is a constant; move it to deck-templates.json if it ever needs tuning per size.
+- 60-card decks average 6.7 filler copies in the baseline (filler now includes curve picks that fill no role); the next config pass should look at roles for cheap creatures.
+- Creature-only pools always miss the cheap interaction minimum (eval creatures-only-green); fine as a note, but the Build screen could say so before building.
 - Tune the composition fallback: margin picks aggro for most creature-heavy pools.
 - Let the objective see land count changes during local search.
 - Prefer spreading copies across more distinct cards when the pool allows (variety).

@@ -6,6 +6,7 @@
 import { templateFor, type BulkBrewConfig } from './config.ts';
 import {
   cardMatches,
+  hasColorlessPip,
   isBasicLand,
   isEvasiveCreature,
   isFinisher,
@@ -162,6 +163,8 @@ export function listCandidates(
     if (!card) continue;
     if (card.unset && !settings.includeUnsets) continue;
     if (!fitsColor(card, color)) continue;
+    // Mono-color decks run basics of their color, which cannot make the {C} these cards demand.
+    if (hasColorlessPip(card)) continue;
     const facts = factsFor(index, config, card);
     if (facts.basic && settings.unlimitedBasics) continue;
     const available = facts.basic ? entry.qty : Math.min(entry.qty, limit);

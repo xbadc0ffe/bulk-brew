@@ -28,6 +28,8 @@
     "data:pull": "node scripts/pull-data-pack.mjs",
     "config:check": "node packages/pipeline/src/check-config.ts",
     "demo:build": "node packages/pipeline/src/demo-build.ts",
+    "eval": "node packages/pipeline/src/eval.ts",
+    "eval:pools": "node packages/pipeline/src/make-eval-pools.ts",
     "rules:fetch": "node scripts/fetch-comp-rules.mjs"
   },
   "devDependencies": {

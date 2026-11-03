@@ -222,6 +222,8 @@ export interface ScanReport {
   size: DeckSize;
   /** Available spell copies that fit the color. */
   candidates: number;
+  /** Of those, copies whose color identity is the color itself (not colorless). */
+  colored: number;
   /** Distinct spell cards that fit the color. */
   distinct: number;
   lands: number;

@@ -125,6 +125,8 @@ Versioned data files in `config/`, typed and validated by `packages/core/src/con
 
 Scan the pool and report, per color and per deck size, which archetypes are viable, with enabler and payoff counts (synergy archetypes) or role and curve counts (composition archetypes), plus how close near-misses are. The builder uses the scan as its seed step and the Build screen shows it to guide the style choice.
 
+A deck is possible when the pool has enough spells for the slots and at least half of those slots can be cards of the deck color (`MIN_COLORED_SHARE`); colorless cards fit every color but cannot make a color's deck on their own. Cards with a {C} pip are excluded, since basics cannot pay for them. The Build screen shows colored counts on the color buttons and the reason a color is unavailable.
+
 ## Builder
 
 ### Inputs
@@ -158,13 +160,13 @@ A deck with cards grouped by type, basics by color, and a `BuildExplanation`: ar
 
 ## Jumpstart packets
 
-A 20-card packet includes its lands (about 8) and is built so that any two packets of different colors shuffle into a playable 40-card deck: a lower curve, a self-contained theme, no cards that need the other color. The Decks screen pairs two saved packets and exports the combined list.
+A 20-card packet includes its lands (about 8) and is built so that any two packets of different colors shuffle into a playable 40-card deck: a lower curve, a self-contained theme, no cards that need the other color. Packets always use the template's `jumpstart` curve profile, whatever the archetype. The Decks screen pairs two saved packets and exports the combined list.
 
 ## Evaluation
 
 - Fixed test pools in `eval/pools/`, each exercising something specific.
 - A written rubric in `eval/rubric.md`: curve, type mix, role coverage, synergy, mana base, playability.
-- A dev-side script builds every pool with every setting, scores the decks, and records results in `eval/results/` so config changes can be compared over time.
+- `npm run eval` builds every pool at every size and color the scan allows, scores the decks with automatic metrics (size and copy invariants, land count against the formula clamp, curve deviation, type mix, role coverage, synergy density, filler, castability, build time), writes `eval/results/<date>-<sha>.json`, prints a summary per pool and per size, and shows deltas against the previous run. `npm run eval:pools` regenerates the synthetic pools from a fixed seed.
 - Claude reviews decks against the rubric as a development aid, not as ground truth. The user calibrates on a sample.
 
 ## Architecture
@@ -199,9 +201,9 @@ npm workspaces monorepo, TypeScript throughout.
 | 3     | Core: pack loader, name resolution, pool model with import report and backup              | mostly |
 | 4     | Guides and config v1: templates, roles, archetypes, synergy and land rules                | done   |
 | 5     | Archetype scan and builder v1: mono-color, all sizes, explanations, packet pairing        | done   |
-| 6     | Evaluation harness: test pools, rubric, results tracking                                  | next   |
+| 6     | Evaluation harness: test pools, rubric, results tracking                                  | done   |
 | 7     | Web app: full flow, card detail and art, backup, CSV import, offline, mobile layouts      | done   |
-| 8     | iOS app: Capacitor project, bundled data, over-the-air data updates, TestFlight           |        |
+| 8     | iOS app: Capacitor project, bundled data, over-the-air data updates, TestFlight           | next   |
 | 9     | Later: two-color builds, batch balanced mode, quality score, offline image download       |        |
 
 ## Decisions

@@ -24,7 +24,7 @@ Ramp and big creatures. Ten times the mana dorks of any other color, the most +1
 
 ## Colorless
 
-Artifacts fit any deck. Colorless creatures, mana rocks, and equipment are always candidates, so a thin color still gets a mana base and some bodies. Lands that make only colorless mana are limited by `land-rules.json`.
+Artifacts fit any deck. Colorless creatures, mana rocks, and equipment are always candidates, but they cannot carry a color on their own: the scan requires at least half of a deck's spell slots to be cards of the deck color (`MIN_COLORED_SHARE` in `packages/core/src/scan.ts`). Cards with a {C} pip in their cost, such as Eldrazi that need colorless mana specifically, are never candidates, because a deck of basics cannot pay for them. Lands that make only colorless mana are limited by `land-rules.json`.
 
 ## Where themes do not work
 

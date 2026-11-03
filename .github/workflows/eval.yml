@@ -1,0 +1,35 @@
+name: Evaluate decks
+
+# Manual only: builds every fixture pool with the pinned data pack and
+# uploads this run's scored results so a config or builder change can be
+# compared against the committed baseline in eval/results.
+
+on:
+  workflow_dispatch:
+    inputs:
+      styles:
+        description: Also build every viable style, not just best fit
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run data:pull
+      - run: npm run eval -- --out eval-out/results.json ${{ inputs.styles && '--styles' || '' }}
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-results
+          path: eval-out/results.json
+          if-no-files-found: warn

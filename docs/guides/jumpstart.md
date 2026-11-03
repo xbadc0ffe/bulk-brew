@@ -14,7 +14,7 @@ Official Jumpstart packets run 7 or 8 lands and 12 or 13 spells, which is where 
 
 ## Curve
 
-The `jumpstart` profile is 14% ones, 30% twos, 28% threes, 17% fours, 8% fives, 3% sixes, and nothing at seven. On 12 spells that is about 2, 4, 3, 2, 1, 0. The curve stays low because the other packet may be slower, and because 16 lands in 40 cards does not support many five-drops. The land formula's reference average is 2.6 for this size.
+The `jumpstart` profile is 14% ones, 30% twos, 28% threes, 17% fours, 8% fives, 3% sixes, and nothing at seven. On 12 spells that is about 2, 4, 3, 2, 1, 0. The curve stays low because the other packet may be slower, and because 16 lands in 40 cards does not support many five-drops. The land formula's reference average is 2.6 for this size. Every packet uses this profile, whatever its archetype, so an aggro packet and a control packet still curve out together.
 
 ## Self-contained
 

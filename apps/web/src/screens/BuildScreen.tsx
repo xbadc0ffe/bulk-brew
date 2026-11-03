@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { COLORS, COLOR_LABELS, type DeckSize } from '@bulk-brew/core';
+import { COLORS, COLOR_LABELS, type Color, type DeckSize, type ScanReport } from '@bulk-brew/core';
 import { DeckView } from '@bulk-brew/ui';
 import { useAppState } from '../app-context.ts';
 
@@ -91,12 +91,12 @@ export function BuildScreen() {
                 title={scan?.notes.join('; ')}
                 onClick={() => flow.setColor(c)}
               >
-                {COLOR_LABELS[c]} <span className="text-zinc-500">{scan?.candidates ?? 0}</span>
+                {COLOR_LABELS[c]} <span className="text-zinc-500">{scan?.colored ?? 0}</span>
               </button>
             );
           })}
         </div>
-        <p className={muted}>Counts are spell copies in the pool that fit each color.</p>
+        <ColorNotes scans={flow.scans} />
       </section>
 
       {flow.colorScan && (
@@ -144,6 +144,31 @@ export function BuildScreen() {
         {!flow.color && <span className={muted}>Pick a color first.</span>}
         {flow.error && <span className="text-sm text-amber-600">{flow.error}</span>}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Explains the color buttons: counts are cards of each color, colorless cards
+ * fit every color, and a disabled color says why so phone users see it too.
+ */
+function ColorNotes({ scans }: { scans: Record<Color, ScanReport> | undefined }) {
+  if (!scans) return null;
+  const any = scans[COLORS[0]!];
+  const colorless = any ? any.candidates - any.colored : 0;
+  const blocked = COLORS.filter((c) => !scans[c].possible && scans[c].colored > 0);
+  return (
+    <div className={muted}>
+      <p>
+        Counts are spell copies of each color.
+        {colorless > 0 &&
+          ` ${colorless} colorless ${colorless === 1 ? 'copy fits' : 'copies fit'} every color.`}
+      </p>
+      {blocked.map((c) => (
+        <p key={c}>
+          {COLOR_LABELS[c]}: {scans[c].notes.join('; ')}
+        </p>
+      ))}
     </div>
   );
 }
