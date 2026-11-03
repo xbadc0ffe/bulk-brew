@@ -1,0 +1,6 @@
+{
+  "maxCopies": { "60": 4, "40": 4, "20": 2 },
+  "unlimitedBasics": true,
+  "includeUnsets": false,
+  "showArt": false
+}

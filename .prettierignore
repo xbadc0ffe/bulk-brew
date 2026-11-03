@@ -1,0 +1,7 @@
+node_modules
+dist
+coverage
+data/raw
+data/packs
+docs/rules
+package-lock.json

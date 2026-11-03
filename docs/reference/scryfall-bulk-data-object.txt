@@ -1,0 +1,12 @@
+Fields
+
+Bulk data objects have the following properties:
+Property 	Type 	Atn 	Details
+id 	UUID 		A unique ID for this bulk item.
+uri 	URI 		The Scryfall API URI for this file.
+type 	String 		A computer-readable string for the kind of bulk item.
+name 	String 		A human-readable name for this file.
+description 	String 		A human-readable description for this file.
+updated_at 	Timestamp 		The time when this file was last updated.
+jsonl_download_uri 	URI 		The URI that hosts this bulk as jsonl.gz for fetching.
+compressed_size 	Integer 		The size of the compressed jsonl.gz file in integer bytes. 

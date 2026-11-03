@@ -1,0 +1,37 @@
+@import 'tailwindcss';
+@source '../../../packages/ui/src';
+
+html,
+body {
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Placeholder mana symbol styling until the design pass. */
+.mana {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: #d4d4d8;
+  color: #18181b;
+}
+.mana-w {
+  background: #f8f4d8;
+}
+.mana-u {
+  background: #bfdbfe;
+}
+.mana-b {
+  background: #a1a1aa;
+}
+.mana-r {
+  background: #fecaca;
+}
+.mana-g {
+  background: #bbf7d0;
+}

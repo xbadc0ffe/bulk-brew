@@ -1,0 +1,42 @@
+{
+  "name": "bulk-brew",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Turn a pile of bulk Magic: The Gathering cards into playable mono-color decks.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @bulk-brew/web",
+    "dev:mobile": "npm run dev -w @bulk-brew/mobile",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm run test && npm run build",
+    "data:fetch": "node scripts/fetch-scryfall-bulk.mjs",
+    "data:build": "node packages/pipeline/src/cli.ts",
+    "rules:fetch": "node scripts/fetch-comp-rules.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.6.6",
+    "eslint": "^10.14.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.7",
+    "globals": "^17.14.0",
+    "prettier": "^3.9.10",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.1",
+    "vitest": "^5.1.0"
+  }
+}

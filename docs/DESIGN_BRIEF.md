@@ -1,0 +1,113 @@
+# Bulk Brew: Design Brief
+
+For the interface design pass. Everything under the interface is shared and already specified in `SPEC.md`; this brief covers what people see and do.
+
+## The product in one paragraph
+
+A Magic: The Gathering player has a box of bulk cards. They paste a list of those cards into Bulk Brew, pick a deck size and a color, and get a playable mono-color deck built from what they own, with a short explanation of why it works. They accept it, the cards leave the pool, and they build the next one. Decks come in 60, 40, and 20-card sizes; two 20-card packets combine into a two-color 40-card deck, like the Jumpstart product. Everything runs on the device with no account.
+
+## Audience and tone
+
+Casual and kitchen-table players, people who draft a lot and have piles of commons and uncommons, parents and friends building starter decks, and anyone who wants to turn bulk into games. Assume they know what a mana curve is but not what a "role quota" is. Tone is friendly and plain. User-facing copy uses no em-dashes.
+
+## Two apps, one core
+
+| App    | Where it runs                                                 | Layout intent                                                                                                      |
+| ------ | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Web    | Desktop browser, GitHub Pages; also usable on a phone browser | Multi-pane. Pool list beside card detail; build settings beside the result; keyboard friendly.                     |
+| Mobile | iPhone and iPad through Capacitor                             | Phone: single column with a bottom tab bar and sheets. iPad: split view, pool list plus detail, build plus result. |
+
+Both are React 19 with Tailwind 4. Shared presentational pieces live in `packages/ui`; app-specific layouts live in `apps/web/src` and `apps/mobile/src`. The five screen ids in each app's `screens.tsx` are the information architecture; keep them. Do not change `packages/core`.
+
+Both apps support light and dark mode. No external fonts, CDNs, or trackers; everything is bundled. Mana symbols can use a bundled open-source mana font or small inline SVGs.
+
+## Screens
+
+### Import
+
+- A text area for pasted decklists (web also accepts a dropped or chosen text file; mobile offers paste from clipboard).
+- Live feedback while typing: lines read, total cards, unreadable lines.
+- A choice: add to the pool or replace the pool.
+- After import: a resolution report. Resolved count, and an unresolved list where each line can be fixed with suggestions ("did you mean") or skipped.
+- Help text showing the accepted formats: `4 Lightning Bolt`, `4x Lightning Bolt`, `4 Lightning Bolt (M10) 146`.
+
+### Pool
+
+- Summary header: total cards, cards per color, and a teaser of which colors can build which deck sizes.
+- A list (or grid when art is on) of cards with quantity, name, mana cost, type, and color. Thousands of rows are normal, so the list must be virtualized and searchable.
+- Filters: color, type, mana value, text search. Sort by name, mana value, color, quantity.
+- Card detail: image when art is on, oracle text, type line, tags in plain language ("removal", "makes tokens"). Edit quantity, remove.
+- Actions: clear pool (confirm), export pool as text, backup.
+- Empty state that leads to Import.
+
+### Build
+
+- Deck size choice: 60, 40, 20, with one line each describing the style.
+- Color choice: five colors, each showing how many candidate cards the pool has for it and whether a deck of the chosen size is possible.
+- Style choice: "best fit" by default, plus the archetypes the scan found viable for that color and size, each with a short description and a viability indicator. Near-misses show what is missing ("needs 3 more token makers").
+- Advanced: override max copies for this build.
+- Build button. Building is fast, under a couple of seconds, so a brief working state is enough.
+
+### Deck result and deck view
+
+The same view serves a fresh build and a saved deck.
+
+- Decklist grouped by type with counts; basics listed by color. Mana costs shown as symbols.
+- Mana curve as a small bar chart. Land count with its reasoning in one line ("24 lands: average cost 2.9, 3 cheap mana sources").
+- Explanation panel: archetype and what it does, role coverage against targets (removal 6 of 6, card draw 3 of 4), key synergies in plain words, notes.
+- Each card can reveal "why this card": the role or synergy slot it filled, or that it is filler.
+- Actions on a fresh build: Accept (saves and removes cards from the pool), Rebuild (choose another style), Discard.
+- Actions on a saved deck: rename, export as text, copy to clipboard, delete (with a "return cards to the pool" checkbox).
+- A badge shows whether the deck's cards were removed from the pool.
+
+### Decks
+
+- List of saved decks: name, size, color, archetype, date, committed badge.
+- Open a deck in the deck view.
+- Pair packets: pick two 20-card packets of different colors and export the combined 40-card list.
+- Empty state that leads to Build.
+
+### Settings
+
+- Max copies per deck size. Unlimited basics. Include Un-set cards. Show card art.
+- Card data: version date, and on mobile a "check for card updates" action with progress and result.
+- Backup: export everything (pool, decks, settings) as a file; restore from a file; clear all data (confirm).
+- About: app version, the Fan Content and Scryfall notices from `ATTRIBUTION.md`, license, link to the repo.
+
+## Flows
+
+1. **First run**: empty pool, Import is the obvious first step, then Build, then Accept, then Build again.
+2. **Unresolved cards**: the report lists them; the user fixes names inline or skips; the pool updates.
+3. **Build loop**: build, review the explanation, accept or rebuild with another style, repeat until the color runs dry. The Build screen should make it clear what is left.
+4. **Delete deck**: confirm, with the option to return the cards to the pool.
+5. **Pair packets**: choose two packets, see the combined list, export.
+6. **Card data update** (mobile): check, download, apply, show the new version date.
+7. **Backup and restore**: export a file, import it later on another device.
+
+## Data the interface consumes
+
+All types are in `packages/core/src/types.ts`.
+
+- `CardRecord`: name, mana cost, mana value, type line, oracle text, colors, types, tags, image id.
+- `Pool` and `PoolEntry`: card id, quantity, optional printing hint for art.
+- `Deck` and `DeckCard`: cards, basics by color, archetype, committed flag.
+- `BuildExplanation`: archetype, curve, roles with have and want, land reasoning, synergies, notes.
+- `ScanReport` and `ArchetypeReport`: per color and size, which archetypes are viable and how close the near-misses are.
+- `Settings`: copy limits, basics, Un-sets, art.
+
+Image URLs come from `imageUrl()` and `printingImageUrl()` in `packages/core/src/images.ts`.
+
+## Constraints
+
+- Card art is off by default and everything must work as text. Art, when on, loads from Scryfall on demand and must be shown whole: no cropping, recoloring, or overlays on the card image. Art crops, if ever used, need the artist name beside them.
+- No user data leaves the device. There is no sign-in and no sync.
+- Pools can hold thousands of cards; lists must stay fast.
+- Color is never the only signal; pair it with mana symbols or labels. Meet contrast guidelines in both themes. Mobile tap targets are at least 44 points and text respects the system text size.
+- The deck view is also the builder's debugging output, so the explanation must be able to show more detail without clutter, for example behind a disclosure.
+
+## Deliverables
+
+- Layouts and components for both apps, as React and Tailwind code in the paths above, or as mockups the implementation can follow.
+- A small design token set (colors, spacing, type) in each app's `index.css`.
+- Empty, loading, and error states for each screen.
+- Mana symbol treatment and the color palette for the five colors plus colorless.
