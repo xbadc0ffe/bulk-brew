@@ -2,20 +2,20 @@
 
 Turn a pile of bulk Magic: The Gathering cards into playable decks.
 
-Paste in your bulk, pick a deck size and a color, and Bulk Brew builds the best mono-color deck it can from what you own. Accept the deck and its cards leave the pool, so you can build the next one from what is left. Decks come in three sizes: 60 cards, 40 cards, and 20-card Jumpstart packets that pair into two-color 40-card decks.
+Paste in your bulk, pick a deck size and a color, and Bulk Brew builds the best mono-color deck it can from what you own. Remove the deck from the pool and its cards leave it, so you can build the next one from what is left. Decks come in three sizes: 60 cards, 40 cards, and 20-card Jumpstart packets that pair into two-color 40-card decks.
 
 Everything runs on your device. There is no account, no server, and nothing you import ever leaves your browser or phone.
 
 **Try it:** https://xbadc0ffe.github.io/bulk-brew/
 
-**Status:** working v1. Import decklists or ManaBox, Moxfield, and Deckbox CSV exports, keep a pool, build 60, 40, or 20-card mono-color decks with an explanation, accept them to remove their cards from the pool, export or copy decklists, pair two packets, back everything up to a file, and browse card details with optional art. The web app works offline once loaded. Styling is a plain placeholder until the design pass; the iOS app is next. See [SPEC.md](SPEC.md) for the plan and the decisions behind it.
+**Status:** working v1. Import decklists or ManaBox, Moxfield, and Deckbox CSV exports, keep a pool, build 60, 40, or 20-card mono-color decks with an explanation, save them or remove their cards from the pool, export or copy decklists, pair two packets, back everything up to a file, and browse card details with optional art. Light, dark, and six theme colors. The web app works offline once loaded; the iOS app is next. See [SPEC.md](SPEC.md) for the plan and the decisions behind it.
 
 ## How it works
 
 1. **Import** a decklist such as `4 Lightning Bolt (M10) 146`, or a ManaBox, Moxfield, or Deckbox CSV export.
 2. **Pool**: every card you imported, matched against a local card database built from Scryfall data.
 3. **Build**: choose 60, 40, or 20 cards and a color. The builder picks an archetype your pool supports, fills role quotas and a mana curve, and sizes the mana base from the curve and the cheap mana sources it chose.
-4. **Accept** the deck to save it and remove its cards from the pool, or discard it and try another style.
+4. **Save** the deck, or **remove it from the pool** to save it and take its cards out. Rebuild tries another style.
 5. **Export** any saved deck as plain decklist text.
 
 Card art is optional and off by default. When on, images load from Scryfall as you browse; nothing is bundled.

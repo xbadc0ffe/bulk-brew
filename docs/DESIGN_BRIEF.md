@@ -2,6 +2,8 @@
 
 For the interface design pass. Everything under the interface is shared and already specified in `SPEC.md`; this brief covers what people see and do.
 
+The design pass is done (milestone 7b). Where the shipped design differs from this brief, `SPEC.md` wins; most notably, Save deck and Remove from pool replace Accept and Discard.
+
 ## The product in one paragraph
 
 A Magic: The Gathering player has a box of bulk cards. They paste a list of those cards into Bulk Brew, pick a deck size and a color, and get a playable mono-color deck built from what they own, with a short explanation of why it works. They accept it, the cards leave the pool, and they build the next one. Decks come in 60, 40, and 20-card sizes; two 20-card packets combine into a two-color 40-card deck, like the Jumpstart product. Everything runs on the device with no account.

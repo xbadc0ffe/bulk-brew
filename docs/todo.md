@@ -19,16 +19,18 @@ Ranked. The current phase is at the top. Finished phases are removed, not struck
 - Prefer spreading copies across more distinct cards when the pool allows (variety).
 - Config tuning after the first builds: lifegain payoffs are thin outside white and black; spells payoffs are thin outside blue and red.
 
-## Design pass
+## Design follow-ups
 
-- Claude Design restyles both apps from docs/DESIGN_BRIEF.md, working on the existing screens in apps/web/src and apps/mobile/src.
+- Owner to pick among the design alternates kept as reference: 1c Pool grouped by mana value with art (the model for a grid or art view, not built), 1e Analysis as an all-colors matrix per size, 1h Result with the explanation above the list, 1k a desktop top bar instead of the sidebar.
+- `ink` and `fg-1` share a lightness in light mode, so primary and secondary text differ mostly by weight; if it reads flat, split `ink` into a text and an accent color (changes the look, check with the owner).
+- iPad: the mobile app shows the phone screens beside a side rail; the handoff suggests reusing the desktop layouts there.
+- `<meta name="theme-color">` stays dark grey; make it follow the theme.
+- Empty, loading, and error states follow the handoff's suggestions; confirm them with the owner.
+- Mobile: Rename uses the browser prompt; replace it with an inline field or a sheet.
 
 ## App follow-ups
 
-- Import: add-or-replace choice. Pool: type and mana value filters, grid view with art. Build: per-build max copies override. These are in the design brief but not built.
-
-- Hook tests with a DOM test environment (needs a jsdom dev dependency; ask first).
-- Mobile pool list is not windowed; fine up to a few thousand rows, revisit if it lags.
+- Hook tests with a DOM test environment (needs a jsdom dev dependency; ask first). useBuildFlow's save, remove, and rebuild paths are the first candidates.
 - Service worker: show a "new version available" prompt instead of waiting for the next load.
 - Card detail: show rulings fetched from Scryfall on demand.
 

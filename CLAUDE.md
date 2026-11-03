@@ -72,7 +72,7 @@ npx -w @bulk-brew/web vite preview --port 4173 --strictPort   # in the backgroun
 npm run smoke                                                  # or: npm run smoke -- https://xbadc0ffe.github.io/bulk-brew/
 ```
 
-The smoke test imports `eval/pools/white-bulk.txt`, builds, accepts, and checks the pool and Decks screens. Screenshots land in `.smoke/` (gitignored).
+The smoke test imports `eval/pools/white-bulk.txt`, builds, saves, removes the deck from the pool, and checks the pool and Decks screens. Screenshots land in `.smoke/` (gitignored).
 
 ## Environment notes
 
