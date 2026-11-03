@@ -4,7 +4,7 @@ Source of truth for scope, data, and architecture. Describes what exists and wha
 
 ## Purpose
 
-Turn a large pool of bulk Magic: The Gathering cards into playable casual decks. The user imports a card list into a pool, picks a deck size and a color, and the app builds the best deck it can from what is available. Removing a deck from the pool saves it and takes its cards out, so the next build uses what is left.
+Turn a large pool of bulk Magic: The Gathering cards into playable casual decks. The user imports a card list into a pool, picks a deck size and a color, and the app builds the best deck it can from what is available. Accepting a deck saves it and takes its cards out of the pool, so the next build uses what is left. The app calls the pool the Bulk List.
 
 The app is self-sufficient: no language model calls at runtime, no developer server, no user data sent anywhere. All judgment lives in data (card facts, tags, config) and a deterministic builder.
 
@@ -34,21 +34,24 @@ Version 1 builds mono-color decks in all three sizes. Candidate cards are those 
 
 ### Pool flow
 
-1. **Import** decklist text or a collection CSV (ManaBox, Moxfield, Deckbox, or any CSV with name and quantity columns), pasted or from a file. The app checks every line before anything is added: it reports how many cards resolved, and each unresolved line can be renamed, swapped for a suggestion, or skipped. The cards are then added to the pool or replace it (with a confirmation).
+1. **Import** decklist text or a collection CSV (ManaBox, Moxfield, Deckbox, or any CSV with name and quantity columns), pasted or from a file. Import is a subpage of the Bulk List. The text is checked live as it is typed: matched cards and colors, and each unmatched line, which can be renamed, swapped for a suggestion, or skipped. Import adds the matched cards to the pool; lines that did not match stay in the box.
 2. **Pool** is the single active set of available cards, keyed by oracle id with quantities. It persists on the device between sessions and can be exported as a backup file and restored.
 3. **Build** a deck from the pool. The result is a full decklist with an explanation.
-4. **Save deck** keeps the deck with its cards still in the pool. **Remove from pool** saves it if needed and takes its cards out of the pool (the `committed` flag). **Rebuild** builds again with the next viable style. **Edit settings** leaves the result and returns to the form with every choice kept. An unsaved result survives moving between screens.
+4. **Accept** (after a confirmation) saves the deck and takes its cards out of the pool (the `committed` flag). **Reject** drops the result and returns to the form with every choice kept. **Export** copies or downloads the list. A result survives moving between screens until it is accepted or rejected.
 5. **Build again** from what is left, until the pool runs out of a color.
-6. **Clear pool** and **delete deck** are one action each with a confirmation. **Disassemble** returns a removed deck's cards to the pool and deletes it; delete without returning is in the deck's menu. Removing a saved deck from the pool later is refused, with a count, when the pool no longer holds all its cards.
+6. **Clear pool** and **delete deck** are one action each with a confirmation. **Disassemble** returns a deck's cards to the pool and deletes it; delete without returning is in the deck's menu. Accepting is refused, with a count, when the pool no longer holds all of the deck's cards.
+7. **Pair** two 20-card packets of different colors from a packet's view: a what-if preview of the combined 40-card deck, and **Merge**, which replaces both packets with one deck (packets still in the pool are taken out of it first).
 
-Basic lands are unlimited by default and need not be imported. While they are unlimited, basics in an import are counted but not stored. Nonbasic lands are always tracked.
+Basic lands are unlimited by default and need not be imported; imported basics are kept as pasted. The Unlimited basic lands switch lives on the Build form. Nonbasic lands are always tracked.
+
+The Bulk List filters by color, type, subtype, mana value (a comparison and a value), short tags, and subtags, sorts by any column, can select several cards to remove at once, and can open the pool analysis under the list. Short tags ("Removal", "Draw", "+1/+1") come from `config/display-tags.json`; subtags are the config's role and style labels; the card detail also lists the raw Scryfall tags.
 
 ### Settings
 
 Defaults live in `config/settings.defaults.json`.
 
 - Max copies per card, per deck size (60: 4, 40: 4, 20: 2).
-- Unlimited basics (on).
+- Unlimited basics (on), set on the Build form.
 - Include Un-set and acorn cards (off).
 - Show card art (off on first launch, remembered).
 - Appearance: light, dark, or system, and a theme color (grey or one of the five colors). This is a device preference kept in `localStorage` so it applies before first paint; it is not part of `Settings` and not in backups.
@@ -226,7 +229,9 @@ Resolved questions, kept so they are not reopened by accident.
 - Land count: formula from curve and cheap mana sources, not a fixed number.
 - Colors: mono only in version 1; two-color via packet pairing; never three.
 - Name: Bulk Brew, repo `bulk-brew`. An unrelated dormant repo shares the name; not a concern.
-- Result actions: Save deck and Remove from pool replace Accept and Discard (design pass). Save keeps the cards in the pool; Remove from pool saves if needed and commits.
+- Result actions: Accept (with a confirmation), Reject, and Export. A short-lived Save deck and Remove from pool pair from the design pass was dropped after owner review; decks saved without accepting show "Not accepted" and can still be accepted.
+- Short display tags live in `config/display-tags.json`, matched with the same matcher format as roles plus role and style references. They are for showing and filtering only; the builder never reads them, so they are not part of the config version a deck records.
+- Pairing packets is a what-if view from a packet; Merge replaces both packets with one 40-card deck. Basics return on disassembly only if both packets took them.
 - Appearance lives in `localStorage`, outside `Settings` and backups, so no settings format changed.
 - Near miss is a display label only: not viable, the size is buildable, and at most 3 cards short in total (`NEAR_MISS_SHORTFALL` in `packages/ui/src/data/analysis.ts`). The builder never reads it.
 - Plain-language card tags are the config's role labels and style (archetype) labels, not raw Scryfall tags; the raw tags stay behind a disclosure.

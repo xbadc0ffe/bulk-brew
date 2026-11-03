@@ -283,7 +283,7 @@ export function Dropdown(props: {
     };
     document.addEventListener('pointerdown', onDown);
     document.addEventListener('keydown', onKey, true);
-    wrap.current?.querySelector<HTMLElement>('[data-menu] button')?.focus();
+    wrap.current?.querySelector<HTMLElement>('[data-menu] input, [data-menu] button')?.focus();
     return () => {
       document.removeEventListener('pointerdown', onDown);
       document.removeEventListener('keydown', onKey, true);

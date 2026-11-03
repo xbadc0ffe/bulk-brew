@@ -18,3 +18,4 @@ export * from './decks.ts';
 export * from './export.ts';
 export * from './csv.ts';
 export * from './backup.ts';
+export * from './display-tags.ts';

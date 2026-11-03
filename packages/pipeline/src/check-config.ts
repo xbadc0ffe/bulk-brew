@@ -11,7 +11,13 @@ import {
   cardMatches,
   collectTagReferences,
   configVersion,
+  displayTagReferences,
+  displayTagsFor,
+  factsFor,
+  CardIndex,
   validateConfig,
+  validateDisplayTags,
+  type DisplayTagsConfig,
   type BulkBrewConfig,
   type CardRecord,
   type Color,
@@ -42,7 +48,10 @@ function countRow(label: string, counts: Record<string, number>): string {
 
 function main(): number {
   const config = loadConfigDir(CONFIG_DIR);
-  const problems = validateConfig(config);
+  const displayTags = JSON.parse(
+    readFileSync(path.join(CONFIG_DIR, 'display-tags.json'), 'utf8'),
+  ) as DisplayTagsConfig;
+  const problems = [...validateConfig(config), ...validateDisplayTags(displayTags, config)];
   if (problems.length) {
     console.error(`config has ${problems.length} problem(s):`);
     for (const p of problems) console.error(`  - ${p}`);
@@ -61,15 +70,30 @@ function main(): number {
 
   const universe = new Set<string>();
   for (const c of pack.cards) for (const t of c.tags) universe.add(t);
-  const missing = [...collectTagReferences(config)].filter((t) => !universe.has(t)).sort();
+  const referenced = new Set([
+    ...collectTagReferences(config),
+    ...displayTagReferences(displayTags),
+  ]);
+  const missing = [...referenced].filter((t) => !universe.has(t)).sort();
   if (missing.length) {
     console.error(`${missing.length} tag(s) referenced in config do not exist in the pack:`);
     for (const t of missing) console.error(`  - ${t}`);
     return 1;
   }
   console.log(
-    `all ${collectTagReferences(config).size} referenced tags exist in the pack (${universe.size} tags total)`,
+    `all ${referenced.size} referenced tags exist in the pack (${universe.size} tags total)`,
   );
+
+  const index = new CardIndex(pack);
+  console.log(`
+display tag matches among ${mono.length} mono-color cards:`);
+  for (const tag of displayTags.tags) {
+    const counts: Record<string, number> = {};
+    for (const c of mono)
+      if (displayTagsFor(c, factsFor(index, config, c), displayTags).some((t) => t.id === tag.id))
+        counts[colorOf(c)] = (counts[colorOf(c)] ?? 0) + 1;
+    console.log(countRow(tag.label, counts));
+  }
 
   console.log(`\nrole matches among ${mono.length} mono-color cards:`);
   for (const role of config.roles.roles) {

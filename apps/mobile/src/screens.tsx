@@ -1,42 +1,32 @@
 import { useMemo, useRef, useState, type ReactNode } from 'react';
-import {
-  addToPool,
-  COLORS,
-  COLOR_LABELS,
-  emptyPool,
-  exportBackup,
-  poolToDecklist,
-  type Color,
-  type PoolEntry,
-} from '@bulk-brew/core';
+import { COLORS, COLOR_LABELS, exportBackup, poolToDecklist, type Color } from '@bulk-brew/core';
 import {
   analysisRows,
   backupFilename,
   buildableSizes,
   COLOR_KEYS,
   DECK_SIZES,
+  DISPLAY_TAGS,
   downloadText,
   EMPTY_FILTERS,
   filterCount,
   ManaCost,
-  MANA_VALUES,
+  MV_OPS,
   phone,
   Pip,
-  POOL_SORTS,
+  poolFacets,
   poolRows,
   poolSummary,
   scanShortfall,
   Segmented,
-  tagOptions,
-  Toggle,
-  TYPE_KEYS,
+  SORT_CHOICES,
   useImport,
   useWindowedRows,
   ViabilityDot,
   type AnalysisRow,
-  type ImportMode,
+  type MvOp,
+  type PoolFacets,
   type PoolFilters,
-  type PoolSort,
 } from '@bulk-brew/ui';
 import { useAppState } from './app-context.ts';
 import { useNav, type PoolView } from './nav.ts';
@@ -80,10 +70,10 @@ export function PoolScreen() {
   const nav = useNav();
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <LargeTitle title="Pool" action={{ label: 'Import', onClick: () => nav.go('import') }} />
+      <LargeTitle title="Bulk List" action={{ label: 'Import', onClick: () => nav.go('import') }} />
       <div className="px-4 pb-2.5">
         <Segmented
-          label="Pool view"
+          label="Bulk List view"
           options={VIEWS}
           value={nav.poolView}
           onChange={nav.setPoolView}
@@ -111,22 +101,37 @@ function PoolCards() {
   const [sheet, setSheet] = useState(false);
   const listRef = useRef<HTMLUListElement>(null);
   const rows = useMemo(
-    () => (index ? poolRows(pool.pool, index, { ...filters, sort, config }) : []),
+    () =>
+      index
+        ? poolRows(pool.pool, index, { ...filters, sort, config, displayTags: DISPLAY_TAGS })
+        : [],
     [index, pool.pool, filters, sort, config],
   );
   const summary = useMemo(
     () => (index ? poolSummary(pool.pool, index) : undefined),
     [index, pool.pool],
   );
-  const win = useWindowedRows(rows.length, 52, listRef, `${sort}|${JSON.stringify(filters)}`);
+  const win = useWindowedRows(
+    rows.length,
+    52,
+    listRef,
+    `${JSON.stringify(sort)}|${JSON.stringify(filters)}`,
+  );
   const count = filterCount(filters);
+  const facets = useMemo(
+    () => (index ? poolFacets(pool.pool, index, config, DISPLAY_TAGS) : undefined),
+    [index, pool.pool, config],
+  );
+  // The phone picker offers a few fixed orders; a column sort from elsewhere shows as its key.
+  const sortId =
+    SORT_CHOICES.find((c) => JSON.stringify(c.sort) === JSON.stringify(sort))?.id ?? 'name';
 
   if (!index || !pool.loaded || !summary)
-    return <p className={`${phone.note} p-4`}>Loading pool</p>;
+    return <p className={`${phone.note} p-4`}>Loading your bulk list</p>;
   if (summary.distinct === 0) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
-        <p className={phone.note}>Your pool is empty. Import a list to start.</p>
+        <p className={phone.note}>Your bulk list is empty. Import a list to start.</p>
         <button
           type="button"
           className={`${phone.primary} max-w-60`}
@@ -175,11 +180,11 @@ function PoolCards() {
           <label className="relative flex items-center gap-1">
             <span className="sr-only">Sort</span>
             <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value as PoolSort)}
+              value={sortId}
+              onChange={(e) => setSort(SORT_CHOICES.find((c) => c.id === e.target.value)?.sort)}
               className="min-h-11 appearance-none bg-transparent pr-3 text-right text-fg-2"
             >
-              {POOL_SORTS.map((s) => (
+              {SORT_CHOICES.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.label}
                 </option>
@@ -237,7 +242,7 @@ function PoolCards() {
           className="min-h-11 text-fg-1 underline"
           onClick={() =>
             downloadText(
-              `bulk-brew-pool-${new Date().toISOString().slice(0, 10)}.txt`,
+              `bulk-brew-list-${new Date().toISOString().slice(0, 10)}.txt`,
               poolToDecklist(pool.pool, index),
             )
           }
@@ -269,7 +274,7 @@ function PoolCards() {
           type="button"
           className="min-h-11 text-fg-1 underline"
           onClick={() => {
-            if (window.confirm('Remove every card from the pool? Saved decks stay.')) {
+            if (window.confirm('Remove every card from your bulk list? Saved decks stay.')) {
               pool.actions.clear();
               build.reset();
             }
@@ -284,10 +289,7 @@ function PoolCards() {
         onClose={() => setSheet(false)}
         filters={filters}
         setFilters={setFilters}
-        sort={sort}
-        setSort={setSort}
-        unlimitedBasics={settings.settings.unlimitedBasics}
-        onBasics={(v) => settings.update({ unlimitedBasics: v })}
+        facets={facets}
       />
     </div>
   );
@@ -298,19 +300,20 @@ function FilterSheet(props: {
   onClose(): void;
   filters: PoolFilters;
   setFilters(f: PoolFilters): void;
-  sort: PoolSort;
-  setSort(s: PoolSort): void;
-  unlimitedBasics: boolean;
-  onBasics(v: boolean): void;
+  facets: PoolFacets | undefined;
 }) {
-  const { config } = useAppState();
-  const { filters: f, setFilters } = props;
-  const tags = useMemo(() => tagOptions(config), [config]);
+  const { filters: f, setFilters, facets } = props;
+  const [subtypeQuery, setSubtypeQuery] = useState('');
   const section = (title: string, children: ReactNode) => (
     <section key={title} className="flex flex-col gap-2 pt-4">
       <h3 className={phone.groupLabel}>{title}</h3>
       <div className="flex flex-wrap gap-1.5">{children}</div>
     </section>
+  );
+  if (!facets) return null;
+  const q = subtypeQuery.trim().toLowerCase();
+  const subtypes = facets.subtypes.filter(
+    (s) => f.subtypes.includes(s.id) || (q ? s.label.toLowerCase().includes(q) : s.count >= 3),
   );
   return (
     <Sheet
@@ -334,7 +337,7 @@ function FilterSheet(props: {
       )}
       {section(
         'Type',
-        TYPE_KEYS.map((t) => (
+        facets.types.map((t) => (
           <Chip
             key={t.id}
             on={f.types.includes(t.id)}
@@ -344,51 +347,82 @@ function FilterSheet(props: {
           </Chip>
         )),
       )}
-      {section(
-        'Mana value',
-        MANA_VALUES.map((m) => (
-          <Chip
-            key={m.id}
-            on={f.manaValues.includes(m.id)}
-            onClick={() => setFilters({ ...f, manaValues: toggle(f.manaValues, m.id) })}
-          >
-            {m.label}
-          </Chip>
-        )),
-      )}
-      {tags.map((g) =>
-        section(
-          `Tags: ${g.group}`,
-          g.tags.map((t) => (
+      <section className="flex flex-col gap-2 pt-4">
+        <h3 className={phone.groupLabel}>Subtype</h3>
+        <input
+          type="search"
+          value={subtypeQuery}
+          onChange={(e) => setSubtypeQuery(e.target.value)}
+          placeholder="Find a subtype"
+          aria-label="Find a subtype"
+          className={phone.field}
+        />
+        <div className="flex flex-wrap gap-1.5">
+          {subtypes.slice(0, 40).map((s) => (
             <Chip
-              key={t.id}
-              on={f.tags.includes(t.id)}
-              onClick={() => setFilters({ ...f, tags: toggle(f.tags, t.id) })}
+              key={s.id}
+              on={f.subtypes.includes(s.id)}
+              onClick={() => setFilters({ ...f, subtypes: toggle(f.subtypes, s.id) })}
             >
-              {t.label}
+              {s.label}
             </Chip>
-          )),
-        ),
-      )}
+          ))}
+        </div>
+      </section>
+      <section className="flex flex-col gap-2 pt-4">
+        <h3 className={phone.groupLabel}>Mana value</h3>
+        <div className="flex gap-2">
+          <select
+            aria-label="Compare mana value"
+            value={f.mv.op}
+            onChange={(e) => setFilters({ ...f, mv: { ...f.mv, op: e.target.value as MvOp } })}
+            className={`${phone.field} min-h-11 flex-1`}
+          >
+            {MV_OPS.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.id === 'any' ? 'Any mana value' : o.label}
+              </option>
+            ))}
+          </select>
+          <select
+            aria-label="Mana value to compare with"
+            value={f.mv.value}
+            disabled={f.mv.op === 'any'}
+            onChange={(e) => setFilters({ ...f, mv: { ...f.mv, value: Number(e.target.value) } })}
+            className={`${phone.field} min-h-11 w-24 disabled:opacity-50`}
+          >
+            {facets.manaValues.map((v) => (
+              <option key={v} value={v}>
+                {v}
+              </option>
+            ))}
+          </select>
+        </div>
+      </section>
       {section(
-        'Sort',
-        POOL_SORTS.map((s) => (
-          <Chip key={s.id} on={props.sort === s.id} onClick={() => props.setSort(s.id)}>
-            {s.label}
+        'Tags',
+        facets.tags.map((t) => (
+          <Chip
+            key={t.id}
+            on={f.tags.includes(t.id)}
+            onClick={() => setFilters({ ...f, tags: toggle(f.tags, t.id) })}
+          >
+            {t.label}
           </Chip>
         )),
       )}
-      <div className={`${phone.group} mt-5`}>
-        <label className={phone.row}>
-          <span className="flex-1 text-[0.9375rem]">Unlimited basic lands</span>
-          <Toggle
-            label="Unlimited basic lands"
-            checked={props.unlimitedBasics}
-            onChange={props.onBasics}
-            variant="phone"
-          />
-        </label>
-      </div>
+      {section(
+        'Subtags',
+        facets.subtags.map((t) => (
+          <Chip
+            key={t.id}
+            on={f.subtags.includes(t.id)}
+            onClick={() => setFilters({ ...f, subtags: toggle(f.subtags, t.id) })}
+          >
+            {t.label}
+          </Chip>
+        )),
+      )}
     </Sheet>
   );
 }
@@ -415,7 +449,7 @@ function Analysis() {
   const nav = useNav();
   const [color, setColor] = useState<Color>(() => build.color ?? 'W');
   const rows = useMemo(() => (scans ? analysisRows(scans, color) : []), [scans, color]);
-  if (!scans || !pool.loaded) return <p className={`${phone.note} p-4`}>Loading pool</p>;
+  if (!scans || !pool.loaded) return <p className={`${phone.note} p-4`}>Loading</p>;
   const scan = scans[60][color];
   const sizes = buildableSizes(scans, color);
   const name = COLOR_LABELS[color];
@@ -499,30 +533,13 @@ function Analysis() {
 
 // ---------------------------------------------------------------- Import
 
-const MODES: { id: ImportMode; label: string }[] = [
-  { id: 'add', label: 'Add to pool' },
-  { id: 'replace', label: 'Replace pool' },
-];
-
 export function ImportScreen() {
-  const { index, pool, settings, pack, build } = useAppState();
+  const { index, pool, settings, pack } = useAppState();
   const nav = useNav();
   const fileInput = useRef<HTMLInputElement>(null);
   const [note, setNote] = useState<string>();
-  const target = useMemo(
-    () => ({
-      add: pool.actions.add,
-      replace: (entries: PoolEntry[]) => {
-        pool.actions.transform(() => addToPool(emptyPool(), entries));
-        // A build made from the old pool no longer fits.
-        build.reset();
-      },
-    }),
-    [pool.actions, build],
-  );
-  const imp = useImport(index, target, {
+  const imp = useImport(index, pool.actions.add, {
     includeUnsets: settings.settings.includeUnsets,
-    unlimitedBasics: settings.settings.unlimitedBasics,
   });
   const preview = imp.preview;
 
@@ -536,45 +553,21 @@ export function ImportScreen() {
     }
   };
 
-  const commit = () => {
-    if (!preview) return;
-    if (
-      imp.mode === 'replace' &&
-      !window.confirm(
-        `Replace the whole pool with these ${plural(preview.cards, 'card')}? The cards in it now are removed.`,
-      )
-    )
-      return;
-    imp.commit();
-  };
-
-  const bottom = preview ? (
-    <button type="button" className={phone.primary} disabled={preview.cards === 0} onClick={commit}>
-      {imp.mode === 'replace'
-        ? `Replace pool with ${plural(preview.cards, 'card')}`
-        : `Add ${plural(preview.cards, 'card')} to pool`}
-    </button>
-  ) : imp.done ? (
-    <button type="button" className={phone.primary} onClick={() => nav.go('pool')}>
-      Open the pool
-    </button>
-  ) : (
-    <button
-      type="button"
-      className={phone.primary}
-      disabled={!imp.canResolve}
-      onClick={imp.resolve}
-    >
-      Import
-    </button>
-  );
-
   return (
     <Pushed
-      back={{ label: 'Pool', onClick: () => nav.go('pool') }}
+      back={{ label: 'Bulk List', onClick: () => nav.go('pool') }}
       title="Import"
       action={{ label: 'Paste', onClick: () => void paste() }}
-      bottom={bottom}
+      bottom={
+        <button
+          type="button"
+          className={phone.primary}
+          disabled={!imp.canImport}
+          onClick={imp.commit}
+        >
+          {preview && preview.cards > 0 ? `Import ${plural(preview.cards, 'card')}` : 'Import'}
+        </button>
+      }
     >
       <div className="flex flex-col gap-3 px-4 pb-4">
         <textarea
@@ -611,54 +604,47 @@ export function ImportScreen() {
           />
         </div>
         {note && <p className={phone.note}>{note}</p>}
-        <Segmented
-          label="Import mode"
-          options={MODES}
-          value={imp.mode}
-          onChange={imp.setMode}
-          variant="phone"
-        />
+        <p role="status" className={imp.done ? 'text-[0.875rem]' : 'sr-only'}>
+          {imp.done
+            ? `Added ${plural(imp.done.cards, 'card')} to your bulk list.${
+                imp.done.left > 0
+                  ? ` ${plural(imp.done.left, 'line')} did not match and ${imp.done.left === 1 ? 'is' : 'are'} still in the box.`
+                  : ''
+              }`
+            : ''}
+        </p>
         {pack.status === 'loading' && <p className={phone.note}>Card data is still loading.</p>}
         {!preview && !imp.done && (
           <p className={phone.note}>
-            Paste a decklist or a ManaBox, Moxfield, or Deckbox export, then tap Import. Every line
-            is checked before anything is added.
-          </p>
-        )}
-        {imp.done && (
-          <p className="text-[0.875rem]">
-            {imp.done.mode === 'replace' ? 'Replaced the pool with ' : 'Added '}
-            {plural(imp.done.cards, 'card')}
-            {imp.done.mode === 'replace' ? '.' : ' to the pool.'}
+            Paste a decklist or a ManaBox, Moxfield, or Deckbox export. Every line is checked as you
+            go, and Import adds the cards that matched.
           </p>
         )}
         {preview && (
           <>
             <div className="flex gap-6">
-              <PhoneStat value={preview.cards} caption="resolved" />
-              <PhoneStat value={preview.unresolved.length} caption="unresolved" muted />
-              {settings.settings.unlimitedBasics && (
-                <PhoneStat value={preview.basics} caption="basics" muted />
-              )}
+              <PhoneStat value={preview.cards} caption="matched" />
+              <PhoneStat value={preview.distinct} caption="unique" muted />
+              <PhoneStat value={preview.unresolved.length} caption="not matched" muted />
             </div>
             {preview.unresolved.length > 0 ? (
               <ul className={phone.group}>
-                {preview.unresolved.map((u, i) => {
+                {preview.unresolved.slice(0, 30).map((u, i) => {
                   const next = preview.unresolved[i + 1] ?? preview.unresolved[i - 1];
                   const then = (fn: () => void) => {
                     fn();
                     setTimeout(() => {
-                      if (next) document.getElementById(`unresolved-${next.line.line}`)?.focus();
+                      if (next) document.getElementById(`unresolved-${next.key}`)?.focus();
                     }, 0);
                   };
-                  const suggestion = u.suggestions[0];
+                  const suggestion = imp.suggestionsFor(u.name)[0];
                   const submit = (value: string) => {
                     const v = value.trim();
-                    if (v && v !== u.name) imp.editLine(u.line.line, v);
+                    if (v && v !== u.name) imp.editLine(u.key, v);
                   };
                   return (
                     <li
-                      key={u.line.line}
+                      key={u.key}
                       className="flex flex-col gap-1.5 border-b border-surface-2 px-3 py-2.5 last:border-b-0"
                     >
                       <div className="flex items-center gap-2.5">
@@ -666,9 +652,9 @@ export function ImportScreen() {
                           {u.line.qty}
                         </span>
                         <input
-                          id={`unresolved-${u.line.line}`}
+                          id={`unresolved-${u.key}`}
                           defaultValue={u.name}
-                          aria-label={`Card name on line ${u.line.line}`}
+                          aria-label={`Card name, line ${u.line.line}`}
                           enterKeyHint="done"
                           onBlur={(e) => {
                             const row = e.currentTarget.closest('li');
@@ -700,9 +686,7 @@ export function ImportScreen() {
                           <button
                             type="button"
                             className="min-h-11 px-1 font-medium text-ink"
-                            onClick={() =>
-                              then(() => imp.acceptSuggestion(u.line.line, suggestion))
-                            }
+                            onClick={() => then(() => imp.acceptSuggestion(u.key, suggestion))}
                           >
                             Use
                           </button>
@@ -710,7 +694,7 @@ export function ImportScreen() {
                         <button
                           type="button"
                           className="min-h-11 px-1 text-fg-2"
-                          onClick={() => then(() => imp.skip(u.line.line))}
+                          onClick={() => then(() => imp.skip(u.key))}
                         >
                           Skip
                         </button>
@@ -721,13 +705,9 @@ export function ImportScreen() {
               </ul>
             ) : (
               <p className={phone.note}>
-                {preview.cards === 0
-                  ? preview.basics > 0
-                    ? 'Only basic lands, which are unlimited and not stored.'
-                    : 'Nothing to add. Check the names or the format.'
-                  : preview.skipped > 0
-                    ? `Skipped ${plural(preview.skipped, 'line')}. Everything else matched.`
-                    : 'Every line matched a card.'}
+                {preview.skipped > 0
+                  ? `Skipped ${plural(preview.skipped, 'line')}. Everything else matched.`
+                  : 'Every line matched a card.'}
               </p>
             )}
             {preview.unresolved.length > 1 && (
@@ -736,7 +716,7 @@ export function ImportScreen() {
                 className="min-h-11 self-start text-[0.875rem] text-fg-1 underline"
                 onClick={imp.skipAll}
               >
-                Skip all unresolved
+                Skip all that did not match
               </button>
             )}
           </>

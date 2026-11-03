@@ -13,20 +13,12 @@ import {
 } from '@bulk-brew/ui';
 import { useAppState } from '../app-context.ts';
 import { useNav } from '../nav.ts';
-import { PackGate } from '../screens.tsx';
 
 const SIZE_HEADS: Record<number, string> = { 60: '60 cards', 40: '40 cards', 20: '20 Jumpstart' };
 const fmt = (n: number) => n.toLocaleString('en-US');
 
-export function AnalysisScreen() {
-  return (
-    <PackGate>
-      <Analysis />
-    </PackGate>
-  );
-}
-
-function Analysis() {
+/** What the pool can build, for one color at all three sizes. Shown under the Bulk List. */
+export function AnalysisPanel() {
   const { scans, pool, index, config, build } = useAppState();
   const nav = useNav();
   const [color, setColor] = useState<Color>(() => build.color ?? 'W');
@@ -40,17 +32,7 @@ function Analysis() {
     [config],
   );
 
-  if (!scans || !pool.loaded) return <p className={`${ui.note} p-8`}>Loading pool</p>;
-  if (total === 0) {
-    return (
-      <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
-        <p className={ui.note}>Your pool is empty. Import a list to see what it can build.</p>
-        <button type="button" className={ui.primary} onClick={() => nav.go('import')}>
-          Import
-        </button>
-      </div>
-    );
-  }
+  if (!scans || !pool.loaded) return <p className={`${ui.note} p-6`}>Loading</p>;
 
   const scan = scans[60][color];
   const colorless = scan.candidates - scan.colored;
@@ -58,9 +40,9 @@ function Analysis() {
   const name = COLOR_LABELS[color];
 
   return (
-    <div className="flex h-full flex-col gap-4 overflow-y-auto px-8 py-[22px]">
+    <div className="flex flex-col gap-4 px-6 py-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-[20px] font-semibold">Pool analysis</h1>
+        <h2 className="text-[16px] font-semibold">Analysis</h2>
         <span className="text-[12.5px] text-fg-2">Scanned {fmt(total)} cards</span>
       </div>
 

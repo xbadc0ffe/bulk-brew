@@ -14,7 +14,7 @@ import {
   type ScanReport,
   type Settings,
 } from '@bulk-brew/core';
-import { archetypeViability, type ScansBySize } from './analysis.ts';
+import type { ScansBySize } from './analysis.ts';
 import { poolShortfall, shortfallMessage } from './poolCheck.ts';
 import type { DecksState } from './useDecks.ts';
 import type { PoolState } from './usePool.ts';
@@ -47,29 +47,25 @@ export interface BuildFlow {
   result: BuildResult | undefined;
   /** Copy limit the current result was built with. */
   resultMaxCopies: number | undefined;
-  /** The stored deck saved from the current result, while it still exists. */
-  saved: Deck | undefined;
   error: string | undefined;
   building: boolean;
   canBuild: boolean;
   build(): void;
-  /** Build again with the next viable style after the current deck's. */
-  rebuild(): void;
-  /** How many other viable styles Rebuild can move to. */
-  otherStyles: number;
-  /** Save the deck and keep its cards in the pool. */
-  save(): Deck | undefined;
-  /** Save if needed, remove the deck's cards from the pool, and return to the form. */
-  removeFromPool(): Deck | undefined;
-  /** Leave the result and return to the form with every choice kept. */
-  editSettings(): void;
-  /** Forget the result, the saved link, the last confirmation, and the copy override. For pool resets. */
+  /**
+   * Save the deck and take its cards out of the pool, then return to the
+   * form. Refuses, with a message in `error`, when the pool no longer holds
+   * all the cards.
+   */
+  accept(): Deck | undefined;
+  /** Drop the result and return to the form with every choice kept. */
+  reject(): void;
+  /** Forget the result, the last confirmation, and the copy override. For pool resets. */
   reset(): void;
-  /** The deck most recently removed from the pool, for a confirmation line. */
+  /** The deck most recently accepted, for a confirmation line. */
   accepted: Deck | undefined;
 }
 
-/** State for the Build screen: choices, scan, build, save. Lives in the app provider so it survives navigation. */
+/** State for the Build screen: choices, scan, build, accept. Lives in the app provider so it survives navigation. */
 export function useBuildFlow(input: BuildFlowInput): BuildFlow {
   const { index, config, pool, settings, decks, scans } = input;
   const [size, setSizeState] = useState<DeckSize>(60);
@@ -79,8 +75,6 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
   const [override, setOverride] = useState<{ size: DeckSize; base: number; value: number }>();
   const [result, setResult] = useState<BuildResult>();
   const [resultMaxCopies, setResultMaxCopies] = useState<number>();
-  /** Id of the stored deck saved from the current result. */
-  const [savedId, setSavedId] = useState<string>();
   const [error, setError] = useState<string>();
   const [building, setBuilding] = useState(false);
   const [accepted, setAccepted] = useState<Deck>();
@@ -88,8 +82,6 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
   const stored = settings.maxCopies[size];
   const maxCopies =
     override && override.size === size && override.base === stored ? override.value : stored;
-  // Read the stored copy, so a rename, commit, or delete made in Decks shows here.
-  const saved = savedId ? decks.decks.find((d) => d.id === savedId) : undefined;
   const buildSettings = useMemo(
     (): Settings =>
       maxCopies === settings.maxCopies[size]
@@ -104,40 +96,39 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
   }, [index, pool.pool, config, buildSettings, settings, scans, size]);
   const colorScan = color && sizeScans ? sizeScans[color] : undefined;
 
-  const clearResult = useCallback(() => {
+  const reject = useCallback(() => {
     setResult(undefined);
-    setSavedId(undefined);
     setError(undefined);
   }, []);
 
   const setSize = useCallback(
     (s: DeckSize) => {
       setSizeState(s);
-      clearResult();
+      reject();
     },
-    [clearResult],
+    [reject],
   );
   const setColor = useCallback(
     (c: Color) => {
       setColorState(c);
       setStyleState(undefined);
-      clearResult();
+      reject();
     },
-    [clearResult],
+    [reject],
   );
   const setStyle = useCallback(
     (s: string | undefined) => {
       setStyleState(s);
-      clearResult();
+      reject();
     },
-    [clearResult],
+    [reject],
   );
   const setMaxCopies = useCallback(
     (n: number) => {
       setOverride({ size, base: stored, value: Math.max(1, Math.min(99, Math.floor(n))) });
-      clearResult();
+      reject();
     },
-    [clearResult, size, stored],
+    [reject, size, stored],
   );
 
   // Run the build on the next tick so the working state can paint first.
@@ -150,7 +141,6 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
           : { size, color, settings: buildSettings };
         setResult(buildDeck(request, pool.pool, index, config));
         setResultMaxCopies(maxCopies);
-        setSavedId(undefined);
         setError(undefined);
       } catch (err) {
         setResult(undefined);
@@ -170,77 +160,31 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
     setBuilding(true);
   }, [canBuild]);
 
-  const viableStyles = useMemo(
-    () =>
-      colorScan
-        ? colorScan.archetypes
-            .filter((a) => archetypeViability(a, colorScan) === 'viable')
-            .map((a) => a.archetype)
-        : [],
-    [colorScan],
-  );
-  const current = result?.deck.archetype;
-  const otherStyles = viableStyles.filter((s) => s !== current).length;
-
-  const rebuild = useCallback(() => {
-    if (!current || building || viableStyles.length === 0) return;
-    const at = viableStyles.indexOf(current);
-    const next = viableStyles[(at + 1) % viableStyles.length];
-    if (!next || next === current) return;
-    // Keep the old result on screen until the new one replaces it.
-    setStyleState(next);
-    setBuilding(true);
-  }, [current, building, viableStyles]);
-
-  /** The deck as it should be stored: the saved copy, or a fresh one with an id and time. */
-  const toSave = useCallback((): Deck | undefined => {
-    if (saved) return saved;
-    if (!result) return undefined;
+  const accept = useCallback((): Deck | undefined => {
+    if (!result || !index) return undefined;
     const now = new Date().toISOString();
     const id = newDeckId(`${now}:${JSON.stringify(result.deck.cards)}:${decks.decks.length}`);
-    return { ...result.deck, id, createdAt: now, committed: false };
-  }, [saved, result, decks.decks.length]);
-
-  const save = useCallback((): Deck | undefined => {
-    if (saved) return saved;
-    const deck = toSave();
-    if (!deck) return undefined;
-    decks.save(deck);
-    setSavedId(deck.id);
-    return deck;
-  }, [saved, toSave, decks]);
-
-  const removeFromPool = useCallback((): Deck | undefined => {
-    const base = toSave();
-    if (!base || !index) return undefined;
-    // Already removed elsewhere (from Decks): nothing more to take.
-    if (base.committed) {
-      clearResult();
-      setAccepted(base);
-      return base;
-    }
-    const short = poolShortfall(pool.pool, base, settings, index, config);
+    const fresh: Deck = { ...result.deck, id, createdAt: now, committed: false };
+    const short = poolShortfall(pool.pool, fresh, settings, index, config);
     if (short > 0) {
       setError(shortfallMessage(short));
       return undefined;
     }
-    const now = new Date().toISOString();
     // commitDeck is pure, so computing the deck here and the pool in the
     // updater gives the same answer.
-    const { deck } = commitDeck(pool.pool, base, settings, index, config, now);
-    pool.actions.transform((p) => commitDeck(p, base, settings, index, config, now).pool);
-    if (saved) decks.update(deck);
-    else decks.save(deck);
-    clearResult();
+    const { deck } = commitDeck(pool.pool, fresh, settings, index, config, now);
+    pool.actions.transform((p) => commitDeck(p, fresh, settings, index, config, now).pool);
+    decks.save(deck);
+    reject();
     setAccepted(deck);
     return deck;
-  }, [toSave, saved, index, pool.pool, pool.actions, settings, config, decks, clearResult]);
+  }, [result, index, decks, pool.pool, pool.actions, settings, config, reject]);
 
   const reset = useCallback(() => {
-    clearResult();
+    reject();
     setAccepted(undefined);
     setOverride(undefined);
-  }, [clearResult]);
+  }, [reject]);
 
   return {
     size,
@@ -255,16 +199,12 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
     colorScan,
     result,
     resultMaxCopies,
-    saved,
     error,
     building,
     canBuild,
     build,
-    rebuild,
-    otherStyles,
-    save,
-    removeFromPool,
-    editSettings: clearResult,
+    accept,
+    reject,
     reset,
     accepted,
   };

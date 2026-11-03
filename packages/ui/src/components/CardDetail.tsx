@@ -3,7 +3,8 @@ import type { BulkBrewConfig, CardIndex, CardRecord, PrintingHint } from '@bulk-
 import { CardImage } from './CardImage.tsx';
 import { Stepper, type Variant } from './controls.tsx';
 import { ManaCost } from '../ManaCost.tsx';
-import { cardTags } from '../data/poolView.ts';
+import { DISPLAY_TAGS } from '../data/config.ts';
+import { cardTags, majorTags, typeParts } from '../data/poolView.ts';
 import { phone as phoneStyles, ui } from '../styles.ts';
 
 export interface CardDetailProps {
@@ -16,7 +17,7 @@ export interface CardDetailProps {
   showArt: boolean;
   /** Shows a close button and moves focus to it when a card opens. */
   onClose?: (() => void) | undefined;
-  /** Close on Escape even without a close button (the pool panel). */
+  /** Close on Escape even without a close button. */
   onEscape?: (() => void) | undefined;
   onQtyChange?: ((qty: number) => void) | undefined;
   onRemove?: (() => void) | undefined;
@@ -42,9 +43,50 @@ function stats(face: FaceLike): string | undefined {
   return undefined;
 }
 
-function typeWithStats(face: FaceLike): string {
+/** One face laid out like a card: name, cost, type, subtype, rules text, stats. */
+function FaceBlock({ face, phone }: { face: FaceLike; phone: boolean }) {
+  const { type, subtype } = typeParts(face.typeLine);
   const s = stats(face);
-  return s ? `${face.typeLine} · ${s}` : face.typeLine;
+  const size = phone
+    ? {
+        name: 'text-[1.0625rem]',
+        type: 'text-[0.875rem]',
+        sub: 'text-[0.8125rem]',
+        body: 'text-[0.9375rem]',
+      }
+    : { name: 'text-[16px]', type: 'text-[13px]', sub: 'text-[12.5px]', body: 'text-[13px]' };
+  return (
+    <article className="flex flex-col rounded-lg border border-line-strong bg-surface">
+      <header className="flex flex-col gap-1.5 px-3.5 pt-3 pb-2.5">
+        <h2 className={`${size.name} leading-tight font-semibold`}>{face.name}</h2>
+        {face.manaCost && (
+          <div>
+            <ManaCost cost={face.manaCost} />
+          </div>
+        )}
+      </header>
+      <div className="flex flex-col gap-0.5 border-t border-line px-3.5 py-2">
+        <span className={`${size.type} font-medium`}>{type}</span>
+        {subtype && <span className={`${size.sub} text-fg-1 italic`}>{subtype}</span>}
+      </div>
+      {face.text && (
+        <div
+          className={`flex flex-col gap-1.5 border-t border-line px-3.5 py-2.5 ${size.body} leading-[1.55]`}
+        >
+          {face.text.split('\n').map((p, i) => (
+            <p key={i}>{p}</p>
+          ))}
+        </div>
+      )}
+      {s && (
+        <div
+          className={`border-t border-line px-3.5 py-1.5 text-right font-semibold tabular-nums ${size.body}`}
+        >
+          {s}
+        </div>
+      )}
+    </article>
+  );
 }
 
 /** Everything the app knows about one card. Presentational; the host supplies the panel or sheet. */
@@ -61,11 +103,12 @@ export function CardDetail(props: CardDetailProps) {
     variant = 'desktop',
   } = props;
   const phone = variant === 'phone';
-  const tags = useMemo(() => {
+  const major = useMemo(() => majorTags(index, config, DISPLAY_TAGS, card), [index, config, card]);
+  const general = useMemo(() => {
     const seen = new Set<string>();
     return cardTags(index, config, card).filter((t) => !seen.has(t.label) && seen.add(t.label));
   }, [index, config, card]);
-  const multiFace = (card.faces?.length ?? 0) > 1;
+  const faces: FaceLike[] = card.faces && card.faces.length > 1 ? card.faces : [card];
   const closeButton = useRef<HTMLButtonElement>(null);
 
   // Keyboard users land on Close when a card opens and can leave with Escape.
@@ -85,126 +128,119 @@ export function CardDetail(props: CardDetailProps) {
     return () => document.removeEventListener('keydown', onKey);
   }, [escape]);
 
-  const t = phone
-    ? {
-        name: 'text-[1.125rem] font-semibold leading-tight',
-        type: 'text-[0.8125rem] text-fg-1',
-        body: 'text-[0.9375rem] leading-[1.55]',
-        small: 'text-[0.8125rem] text-fg-2',
-      }
-    : {
-        name: 'text-[16px] font-semibold leading-[1.25]',
-        type: 'text-[12.5px] text-fg-1',
-        body: 'text-[13px] leading-[1.55]',
-        small: 'text-[12.5px] text-fg-2',
-      };
+  const label = phone ? phoneStyles.groupLabel : ui.sectionLabel;
+  const small = phone ? 'text-[0.8125rem] text-fg-2' : 'text-[12.5px] text-fg-2';
+  const bubble = phone ? 'px-2.5 py-1 text-[0.75rem]' : 'px-2.5 py-[3px] text-[12px]';
+  const editable = qty !== undefined && props.onQtyChange;
 
   return (
     <div className={`flex min-h-full flex-col ${phone ? 'gap-4' : 'gap-3.5'}`}>
-      <div className="flex items-start gap-3">
-        {showArt && !phone && (
-          <CardImage
-            card={card}
-            printing={printing}
-            size="normal"
-            className="h-[86px] w-auto shrink-0 rounded-[4px]"
-          />
-        )}
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <h2 className={t.name}>{card.name}</h2>
-          <div className={t.type}>{typeWithStats(card)}</div>
-          {card.manaCost && (
-            <div>
-              <ManaCost cost={card.manaCost} />
-            </div>
+      {(onClose || editable) && (
+        <div className="flex items-center justify-between gap-3">
+          {editable ? (
+            <span className="flex items-center gap-2.5">
+              <span className={phone ? 'text-[0.9375rem] text-fg-1' : 'text-[13px] text-fg-1'}>
+                Quantity
+              </span>
+              <Stepper
+                label="Quantity"
+                value={qty}
+                min={1}
+                onChange={props.onQtyChange!}
+                variant={variant}
+              />
+            </span>
+          ) : (
+            <span />
+          )}
+          {onClose && (
+            <button
+              ref={closeButton}
+              type="button"
+              className={
+                phone
+                  ? 'min-h-11 shrink-0 px-1 text-[0.9375rem] font-medium text-ink'
+                  : `${ui.quiet} shrink-0 px-1 text-[16px] leading-none`
+              }
+              onClick={onClose}
+              aria-label="Close card detail"
+            >
+              {phone ? 'Done' : '✕'}
+            </button>
           )}
         </div>
-        {onClose && (
-          <button
-            ref={closeButton}
-            type="button"
-            className={
-              phone
-                ? 'min-h-11 shrink-0 px-1 text-[0.9375rem] font-medium text-ink'
-                : `${ui.quiet} shrink-0 px-1 text-[16px] leading-none`
-            }
-            onClick={onClose}
-            aria-label="Close card detail"
-          >
-            {phone ? 'Done' : '✕'}
-          </button>
-        )}
-      </div>
+      )}
+      {qty !== undefined && !props.onQtyChange && (
+        <p className={small}>{qty > 0 ? `${qty} in your bulk list` : 'Not in your bulk list'}</p>
+      )}
 
-      {showArt && phone && (
+      {showArt && (
         <CardImage
           card={card}
           printing={printing}
           size="normal"
-          className="mx-auto w-full max-w-xs rounded-[12px]"
+          className={`mx-auto w-full rounded-[12px] ${phone ? 'max-w-xs' : 'max-w-[256px]'}`}
         />
       )}
 
-      <div className={`flex flex-col gap-3 border-t border-line pt-3 ${t.body}`}>
-        {multiFace
-          ? card.faces!.map((f, i) => (
-              <div key={i} className="flex flex-col gap-0.5">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-medium">{f.name}</span>
-                  <ManaCost cost={f.manaCost} size={15} />
-                </div>
-                <div className={t.type}>{typeWithStats(f)}</div>
-                {f.text && <p className="whitespace-pre-line">{f.text}</p>}
-              </div>
-            ))
-          : card.text && <p className="whitespace-pre-line">{card.text}</p>}
-      </div>
+      {faces.map((f, i) => (
+        <FaceBlock key={i} face={f} phone={phone} />
+      ))}
 
-      {tags.length > 0 && (
-        <ul className="flex flex-wrap gap-1.5" aria-label="Tags">
-          {tags.map((tag) => (
+      {major.length > 0 && (
+        <section className="flex flex-col gap-1.5">
+          <h3 className={label}>Tags</h3>
+          <ul className="flex flex-wrap gap-1.5">
+            {major.map((t) => (
+              <li
+                key={t.id}
+                title={t.description}
+                className={`rounded-full border border-line-strong bg-surface font-medium text-ink ${bubble}`}
+              >
+                {t.label}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {general.length > 0 && (
+        <section className="flex flex-col gap-1.5">
+          <h3 className={label}>Roles and styles</h3>
+          <ul className="flex flex-wrap gap-1.5">
+            {general.map((t) => (
+              <li key={t.label} className={`rounded-full bg-surface-2 text-fg-1 ${bubble}`}>
+                {t.label}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <details className={small}>
+        <summary className="cursor-pointer">Scryfall tags ({card.tags.length})</summary>
+        <ul className="mt-2 flex flex-wrap gap-1">
+          {card.tags.length === 0 && <li>none</li>}
+          {card.tags.map((t) => (
             <li
-              key={tag.label}
-              className={
-                phone ? 'rounded bg-surface-2 px-2 py-[0.1875rem] text-[0.75rem] text-fg-1' : ui.tag
-              }
+              key={t}
+              className="rounded border border-line px-1.5 py-px font-mono text-[11px] text-fg-1"
             >
-              {tag.label}
+              {t}
             </li>
           ))}
         </ul>
-      )}
-
-      {qty !== undefined && !props.onQtyChange && <p className={t.small}>{qty} in your pool</p>}
-      {qty !== undefined && props.onQtyChange && (
-        <div className="flex items-center justify-between gap-3 border-t border-line pt-3.5">
-          <span className={phone ? 'text-[0.9375rem] text-fg-1' : 'text-[13px] text-fg-1'}>
-            Quantity
-          </span>
-          <Stepper
-            label="Quantity"
-            value={qty}
-            min={1}
-            onChange={props.onQtyChange}
-            variant={variant}
-          />
-        </div>
-      )}
+      </details>
 
       {props.inDecks && (
-        <p className={t.small}>
+        <p className={small}>
           {props.inDecks.length > 0
             ? `In saved decks: ${props.inDecks.length} (${props.inDecks.join(', ')})`
             : 'Not in any saved deck.'}
         </p>
       )}
 
-      {card.unset && <p className={t.small}>Un-set card. Used only when the setting allows.</p>}
-
-      <details className={t.small}>
-        <summary className="cursor-pointer">Scryfall tags ({card.tags.length})</summary>
-        <p className="mt-1 break-words">{card.tags.join(', ') || 'none'}</p>
-      </details>
+      {card.unset && <p className={small}>Un-set card. Used only when the setting allows.</p>}
 
       {props.onRemove && (
         <div className="mt-auto pt-2">
@@ -215,7 +251,7 @@ export function CardDetail(props: CardDetailProps) {
             }
             onClick={props.onRemove}
           >
-            Remove from pool
+            Remove from bulk list
           </button>
         </div>
       )}

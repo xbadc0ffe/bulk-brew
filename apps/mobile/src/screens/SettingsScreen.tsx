@@ -1,33 +1,21 @@
 import { useRef, useState } from 'react';
-import {
-  configVersion,
-  DATA_SCHEMA_VERSION,
-  exportBackup,
-  parseBackup,
-  type DeckSize,
-} from '@bulk-brew/core';
+import { exportBackup, parseBackup, type DeckSize } from '@bulk-brew/core';
 import {
   APPEARANCE_MODES,
   applyBackup,
   backupFilename,
-  CONFIG_PROBLEMS,
   downloadText,
-  FAN_CONTENT_NOTICE,
   phone,
   readFileText,
-  REPO_URL,
-  SCRYFALL_NOTICE,
-  SCRYFALL_URL,
   Segmented,
   Stepper,
   THEME_COLORS,
   Toggle,
-  WIZARDS_NOTICE,
   type ThemeColor,
 } from '@bulk-brew/ui';
-import { version } from '../../package.json';
 import { useAppState } from '../app-context.ts';
 import { Group, LargeTitle, Pushed, Row, ToggleRow } from '../parts.tsx';
+import { AboutPage } from './AboutPage.tsx';
 
 const SWATCH: Record<ThemeColor, string> = {
   grey: 'var(--text2)',
@@ -44,10 +32,10 @@ const SIZES: { size: DeckSize; label: string }[] = [
   { size: 20, label: '20-card packet' },
 ];
 
-type Sub = 'copies' | 'appearance' | undefined;
+type Sub = 'copies' | 'appearance' | 'about' | undefined;
 
 export function SettingsScreen() {
-  const { kv, pack, index, config, settings, pool, decks, appearance, build } = useAppState();
+  const { kv, index, settings, pool, decks, appearance, build } = useAppState();
   const s = settings.settings;
   // Controls wait for the stored settings so an early edit cannot be overwritten.
   const ready = settings.loaded && pool.loaded && decks.loaded;
@@ -72,7 +60,7 @@ export function SettingsScreen() {
       const when = backup.exportedAt.slice(0, 10);
       if (
         !window.confirm(
-          `Replace your pool, decks, and settings with the backup from ${when} (${cards} cards, ${backup.decks.length} decks)?`,
+          `Replace your bulk list, decks, and settings with the backup from ${when} (${cards} cards, ${backup.decks.length} decks)?`,
         )
       )
         return;
@@ -86,7 +74,7 @@ export function SettingsScreen() {
   };
 
   const clearAll = () => {
-    if (!window.confirm('Delete your pool, every saved deck, and your settings?')) return;
+    if (!window.confirm('Delete your bulk list, every saved deck, and your settings?')) return;
     pool.actions.clear();
     decks.replaceAll([]);
     settings.reset();
@@ -109,15 +97,6 @@ export function SettingsScreen() {
             onClick={() => setSub('copies')}
             disabled={!ready}
           />
-          <ToggleRow label="Unlimited basic lands" hint="Basics need not be imported">
-            <Toggle
-              label="Unlimited basic lands"
-              checked={s.unlimitedBasics}
-              disabled={!ready}
-              onChange={(v) => settings.update({ unlimitedBasics: v })}
-              variant="phone"
-            />
-          </ToggleRow>
           <ToggleRow label="Include Un-set and acorn cards">
             <Toggle
               label="Include Un-set and acorn cards"
@@ -146,40 +125,16 @@ export function SettingsScreen() {
           />
         </Group>
 
-        <Group label="Card data">
-          <Row
-            label={`Scryfall data v${DATA_SCHEMA_VERSION}`}
-            hint={
-              pack.status === 'ready'
-                ? `${pack.index.version} · ${pack.index.size.toLocaleString('en-US')} cards · config ${configVersion(config)}`
-                : pack.status === 'loading'
-                  ? 'Loading'
-                  : `Failed to load: ${pack.error}`
-            }
-          />
-          <Row
-            label="Check for card updates"
-            hint="Coming in a later update"
-            onClick={() => {}}
-            disabled
-          />
-          {CONFIG_PROBLEMS.length > 0 && (
-            <div className="px-4 py-2.5 text-[0.8125rem] text-ink">
-              The shipped config has problems: {CONFIG_PROBLEMS.join('; ')}
-            </div>
-          )}
-        </Group>
-
         <Group label="Backup">
           <Row
             label="Export backup"
-            hint="Pool, decks and settings as one file"
+            hint="Bulk list, decks, and settings as one file"
             onClick={exportNow}
             disabled={!ready}
           />
           <Row
             label="Restore from backup"
-            hint="Replaces your pool, decks, and settings"
+            hint="Replaces your bulk list, decks, and settings"
             onClick={() => restoreInput.current?.click()}
             disabled={!ready}
           />
@@ -205,35 +160,23 @@ export function SettingsScreen() {
           {message}
         </p>
 
-        <section className="flex flex-col gap-2 px-1 text-[0.75rem] leading-[1.55] text-fg-1">
-          <h2 className={phone.groupLabel}>About</h2>
-          <p>
-            Bulk Brew {version} · MIT License ·{' '}
-            <a className="text-ink underline" href={REPO_URL} target="_blank" rel="noreferrer">
-              Source on GitHub
-            </a>
-          </p>
-          <p>{FAN_CONTENT_NOTICE}</p>
-          <p>{WIZARDS_NOTICE}</p>
-          <p>
-            {SCRYFALL_NOTICE}{' '}
-            <a className="text-ink underline" href={SCRYFALL_URL} target="_blank" rel="noreferrer">
-              scryfall.com
-            </a>
-          </p>
-          <button
-            type="button"
-            className="min-h-11 self-start text-[0.8125rem] text-fg-2 underline"
-            disabled={!ready}
-            onClick={() => {
-              settings.reset();
-              setMessage('Settings are back to their defaults.');
-            }}
-          >
-            Reset settings to defaults
-          </button>
-        </section>
+        <Group>
+          <Row label="About Bulk Brew" onClick={() => setSub('about')} />
+        </Group>
+        <button
+          type="button"
+          className="min-h-11 self-start px-1 text-[0.8125rem] text-fg-2 underline"
+          disabled={!ready}
+          onClick={() => {
+            settings.reset();
+            setMessage('Settings are back to their defaults.');
+          }}
+        >
+          Reset settings to defaults
+        </button>
       </div>
+
+      {sub === 'about' && <AboutPage onBack={() => setSub(undefined)} />}
 
       {sub === 'copies' && (
         <Pushed back={{ label: 'Settings', onClick: () => setSub(undefined) }} title="Max copies">

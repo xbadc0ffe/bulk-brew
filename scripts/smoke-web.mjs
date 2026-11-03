@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // End-to-end smoke test of the web app in a headless Chromium browser (Edge
 // or Chrome) over the DevTools protocol. Drives the main loop a person uses:
-// load, paste a pool, check it, add it, open Pool, build a 60-card deck, leave
-// and come back, save it, remove its cards from the pool, confirm the pool
+// load, paste a list, import it, open the Bulk List, build a 60-card deck, leave
+// and come back, accept it (which removes its cards), confirm the list
 // shrank, and see the deck on Decks.
 //
 // Usage: node scripts/smoke-web.mjs [appUrl] [poolFile] [outDir]
@@ -151,16 +151,17 @@ try {
   await send('Runtime.enable');
   await send('Page.enable');
   await send('Page.navigate', { url: appUrl });
-  await waitForText(/Card data \d{4}-\d{2}-\d{2}/, 30000);
+  await waitForText(/Your bulk list is empty|unique/, 30000);
   log('load', `card data loaded from ${appUrl}`);
 
   const pool = readFileSync(poolFile, 'utf8');
-  // The sidebar footer reads "1,234 cards in pool".
+  // The sidebar reads "Bulk List 1,234".
   const poolCount = async () => {
-    const m = (await waitForText(/[\d,]+ cards in pool/)).match(/([\d,]+) cards in pool/);
+    const m = (await waitForText(/Bulk List\s+[\d,]+/)).match(/Bulk List\s+([\d,]+)/);
     return Number(m[1].replace(/,/g, ''));
   };
-  await click('^Import$');
+  // The empty Bulk List offers Import.
+  await click('^Import$', 'last');
   await evaluate(`(() => {
     const ta = document.querySelector('textarea');
     const set = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set;
@@ -168,18 +169,15 @@ try {
     ta.dispatchEvent(new Event('input', { bubbles: true }));
     return true;
   })()`);
-  await sleep(300);
-  // The Import button in the form, not the sidebar item of the same name.
-  await click('^Import$', 'last');
   log(
     'check',
-    oneLine((await waitForText(/cards resolved/)).match(/[\d,]+\s+cards resolved/)[0], 80),
+    oneLine((await waitForText(/cards matched/)).match(/[\d,]+\s+cards matched/)[0], 80),
   );
-  await click('^Add [\\d,]+ cards? to pool$');
-  log('import', (await waitForText(/Added [\d,]+ cards/)).match(/Added[^\n]*/)[0]);
+  await click('^Import [\\d,]+ cards?$');
+  log('import', (await waitForText(/Added [\d,]+ cards?/)).match(/Added[^\n]*/)[0]);
   await shot('1-import');
 
-  await click('^Pool$');
+  await click('^Bulk List');
   await waitForText(/unique/);
   const before = await poolCount();
   log('pool', `${before} cards`);
@@ -190,28 +188,29 @@ try {
   // The color tile reads "W White 754 · 60/40/20".
   await click('White\\d');
   await click('^Build 60-card white deck$');
-  log('deck', oneLine(await waitForText(/Edit settings/, 30000), 160));
+  log('deck', oneLine(await waitForText(/Accept/, 30000), 160));
   await shot('3-deck');
 
-  await click('^Pool$');
+  await click('^Bulk List');
   await waitForText(/unique/);
   await click('^Build$');
-  await waitForText(/Edit settings/, 5000);
-  log('navigation', 'built deck survived a trip to Pool');
+  await waitForText(/Reject/, 5000);
+  log('navigation', 'built deck survived a trip to the Bulk List');
 
-  await click('^Save deck$');
-  await waitForText(/Saved/);
-  await click('^Remove from pool$');
-  log('remove', oneLine((await waitForText(/Saved "/)).match(/Saved "[^\n]*/)[0], 160));
+  await click('^Accept$');
+  // The confirmation's own Accept button comes last.
+  await waitForText(/save the deck and remove the cards/);
+  await click('^Accept$', 'last');
+  log('accept', oneLine((await waitForText(/Saved "/)).match(/Saved "[^\n]*/)[0], 160));
 
-  await click('^Pool$');
+  await click('^Bulk List');
   await waitForText(/unique/);
   const after = await poolCount();
   log('pool-after', `${before} before, ${after} after`);
-  if (after >= before) throw new Error('pool did not shrink after Remove from pool');
+  if (after >= before) throw new Error('the bulk list did not shrink after Accept');
 
-  await click('^Decks$');
-  log('decks', oneLine(await waitForText(/Cards removed/), 160));
+  await click('^Decks');
+  log('decks', oneLine(await waitForText(/1 saved/), 160));
   await shot('4-decks');
 
   if (pageErrors > 0) throw new Error(`${pageErrors} page or console errors`);

@@ -1,0 +1,150 @@
+{
+  "version": "1",
+  "tags": [
+    {
+      "id": "removal",
+      "label": "Removal",
+      "description": "Destroys, exiles, or otherwise answers an opposing creature or permanent.",
+      "roles": ["removal", "sweeper"],
+      "match": [
+        {
+          "anyTags": [
+            "removal-creature",
+            "removal-planeswalker",
+            "removal-artifact",
+            "removal-enchantment",
+            "sweeper"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "burn",
+      "label": "Burn",
+      "description": "Deals direct damage to creatures or players.",
+      "match": [{ "anyTags": ["burn-creature", "burn-player", "burn-any"] }]
+    },
+    {
+      "id": "draw",
+      "label": "Draw",
+      "description": "Draws extra cards or digs for them.",
+      "roles": ["cardAdvantage"],
+      "match": [{ "anyTags": ["draw", "loot"] }]
+    },
+    {
+      "id": "ramp",
+      "label": "Ramp",
+      "description": "Makes extra mana or fetches lands.",
+      "roles": ["ramp"],
+      "match": [{ "anyTags": ["ramp", "mana-dork", "mana-rock", "land-ramp"] }]
+    },
+    {
+      "id": "evasion",
+      "label": "Evasion",
+      "description": "Hard to block, or makes other creatures hard to block.",
+      "roles": ["evasiveThreat"],
+      "match": [{ "anyTags": ["evasion", "gives-evasion"] }]
+    },
+    {
+      "id": "finisher",
+      "label": "Finisher",
+      "description": "A big threat that can close out a game.",
+      "roles": ["finisher"]
+    },
+    {
+      "id": "control",
+      "label": "Control",
+      "description": "Counters, taps, freezes, bounces, or strips the opponent's hand.",
+      "match": [{ "anyTags": ["counterspell", "tapper", "freeze", "bounce", "hand-disruption"] }]
+    },
+    {
+      "id": "pump",
+      "label": "Pump",
+      "description": "Makes creatures bigger for a turn or for good.",
+      "match": [{ "anyTags": ["combat-trick", "anthem", "keyword-anthem"] }]
+    },
+    {
+      "id": "protection",
+      "label": "Protection",
+      "description": "Keeps creatures or other permanents safe.",
+      "match": [{ "anyTags": ["protects-creature", "protects-all", "gives-indestructible"] }]
+    },
+    {
+      "id": "tokens",
+      "label": "Tokens",
+      "description": "Makes tokens or rewards having them.",
+      "styles": ["tokens"],
+      "match": [{ "anyTags": ["repeatable-token-generator", "repeatable-creature-tokens"] }]
+    },
+    {
+      "id": "plusCounters",
+      "label": "+1/+1",
+      "description": "Puts +1/+1 counters on creatures or rewards them.",
+      "styles": ["counters"],
+      "match": [{ "anyTags": ["gives-pp-counters", "gains-pp-counters", "pp-counters-matter"] }]
+    },
+    {
+      "id": "minusCounters",
+      "label": "-1/-1",
+      "description": "Puts -1/-1 counters on creatures or rewards them.",
+      "match": [{ "anyTags": ["gives-mm-counters", "mm-counters-matter"] }]
+    },
+    {
+      "id": "lifegain",
+      "label": "Lifegain",
+      "description": "Gains life or rewards gaining it.",
+      "styles": ["lifegain"],
+      "match": [{ "anyTags": ["lifegain"] }]
+    },
+    {
+      "id": "sacrifice",
+      "label": "Sacrifice",
+      "description": "Sacrifices your own permanents for value, or pays off when they die.",
+      "styles": ["aristocrats"],
+      "match": [{ "anyTags": ["sacrifice-outlet"] }]
+    },
+    {
+      "id": "graveyard",
+      "label": "Graveyard",
+      "description": "Brings cards back or uses what is in the graveyard.",
+      "styles": ["graveyard"],
+      "match": [{ "anyTags": ["recursion", "reanimate", "cards-in-graveyard-matter"] }]
+    },
+    {
+      "id": "mill",
+      "label": "Mill",
+      "description": "Puts cards from the opponent's library into the graveyard.",
+      "match": [{ "anyTags": ["mill-opponent"] }]
+    },
+    {
+      "id": "tutor",
+      "label": "Tutor",
+      "description": "Searches the library for a specific card.",
+      "match": [{ "anyTags": ["tutor"], "excludeTags": ["tutor-land"] }]
+    },
+    {
+      "id": "blink",
+      "label": "Blink",
+      "description": "Exiles a permanent and returns it to replay its enter effect.",
+      "match": [{ "anyTags": ["flicker"] }]
+    },
+    {
+      "id": "artifacts",
+      "label": "Artifacts",
+      "description": "An artifact, or a card that cares about artifacts.",
+      "styles": ["artifacts"]
+    },
+    {
+      "id": "auras",
+      "label": "Auras",
+      "description": "Auras and equipment, or cards that reward attaching them.",
+      "styles": ["auras"]
+    },
+    {
+      "id": "spells",
+      "label": "Spells",
+      "description": "Instants and sorceries, or cards that trigger when you cast them.",
+      "styles": ["spells"]
+    }
+  ]
+}

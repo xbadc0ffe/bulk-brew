@@ -1,6 +1,5 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useDeferredValue, useMemo, useRef, useState } from 'react';
 import {
-  isBasicLand,
   parseImportText,
   resolveLines,
   suggestNames,
@@ -8,16 +7,15 @@ import {
   type CardIndex,
   type CardRecord,
   type CsvFormat,
-  type ImportReport,
   type ParsedLine,
   type ParseResult,
   type PoolEntry,
   type ResolvedLine,
 } from '@bulk-brew/core';
 import { readFileText } from '../util/files.ts';
+import { colorKey, type ColorKey } from './poolView.ts';
 
 export type ImportFormat = CsvFormat | 'decklist';
-export type ImportMode = 'add' | 'replace';
 
 export const IMPORT_FORMAT_LABELS: Record<ImportFormat, string> = {
   decklist: 'decklist',
@@ -27,24 +25,26 @@ export const IMPORT_FORMAT_LABELS: Record<ImportFormat, string> = {
   generic: 'CSV',
 };
 
-/** A line the index could not match, with the name as the user last typed it. */
+/** A line the card data could not match, with the name as the user last typed it. */
 export interface OpenLine {
   line: ParsedLine;
-  /** Current text of the editable name field. */
+  /** Key for fixes and skips: the line's text, so edits elsewhere do not disturb it. */
+  key: string;
   name: string;
-  suggestions: string[];
 }
 
 export interface ImportPreview {
-  /** Lines that will be added, fixed lines included, basics excluded when not stored. */
+  /** Lines that will be added, fixed lines included. */
   resolved: ResolvedLine[];
   unresolved: OpenLine[];
   /** Copies that will be added. */
   cards: number;
-  /** Copies of basic lands left out because basics are unlimited. */
-  basics: number;
+  /** Distinct cards that will be added. */
+  distinct: number;
   /** Lines the user skipped. */
   skipped: number;
+  /** Copies by color class, for the live breakdown. */
+  byColor: Record<ColorKey, number>;
 }
 
 export interface ImportState {
@@ -54,67 +54,65 @@ export interface ImportState {
   loadFile(file: File): Promise<void>;
   parsed: ParseResult;
   format: ImportFormat;
-  /** Copies across all readable lines, for the live count. */
+  /** Copies across all readable lines. */
   totalCards: number;
-  mode: ImportMode;
-  setMode(mode: ImportMode): void;
-  /** Set after resolve(); cleared when the text changes or the cards are added. */
+  /** Live check of the text; undefined until there are lines and card data. */
   preview: ImportPreview | undefined;
-  /** Match the text against the card data without touching the pool. */
-  resolve(): void;
   /** Try a new name for an unresolved line. */
-  editLine(lineNo: number, name: string): void;
+  editLine(key: string, name: string): void;
   /** Swap in a suggested name. */
-  acceptSuggestion(lineNo: number, name: string): void;
-  skip(lineNo: number): void;
+  acceptSuggestion(key: string, name: string): void;
+  skip(key: string): void;
   skipAll(): void;
-  /** Add (or replace the pool with) the resolved cards. Returns the copies added. */
+  /** Close matches for a name, cached. */
+  suggestionsFor(name: string): string[];
+  /** Add the matched cards to the pool. Unmatched lines stay in the box. Returns copies added. */
   commit(): number;
-  /** The last commit, for a confirmation line. */
-  done: { cards: number; mode: ImportMode } | undefined;
-  canResolve: boolean;
+  /** The last import, for a confirmation line. */
+  done: { cards: number; left: number } | undefined;
+  canImport: boolean;
 }
 
-export interface ImportTarget {
-  add(entries: PoolEntry[]): void;
-  replace(entries: PoolEntry[]): void;
+const keyOf = (line: ParsedLine) => line.raw.trim();
+
+function lineText(line: ParsedLine, name: string): string {
+  const printing = line.set
+    ? ` (${line.set.toUpperCase()})${line.collectorNumber ? ` ${line.collectorNumber}` : ''}`
+    : '';
+  return `${line.qty} ${name}${printing}`;
 }
 
 export function useImport(
   index: CardIndex | undefined,
-  target: ImportTarget,
-  opts: { includeUnsets: boolean; unlimitedBasics: boolean },
+  add: (entries: PoolEntry[]) => void,
+  opts: { includeUnsets: boolean },
 ): ImportState {
-  const { includeUnsets, unlimitedBasics } = opts;
+  const { includeUnsets } = opts;
   const [text, setTextRaw] = useState('');
-  const [mode, setMode] = useState<ImportMode>('add');
-  const [report, setReport] = useState<ImportReport>();
-  /** Lines fixed by an edit or a suggestion, by line number. */
-  const [fixed, setFixed] = useState<Map<number, CardRecord>>(new Map());
-  /** Edited names that still did not match, with fresh suggestions. */
-  const [edits, setEdits] = useState<Map<number, { name: string; suggestions: string[] }>>(
-    new Map(),
-  );
-  const [skipped, setSkipped] = useState<Set<number>>(new Set());
-  const [done, setDone] = useState<{ cards: number; mode: ImportMode }>();
-  const parsed = useMemo(() => parseImportText(text), [text]);
+  /** Lines fixed by an edit or a suggestion, by line text. */
+  const [fixed, setFixed] = useState<Map<string, CardRecord>>(new Map());
+  /** Edited names that still did not match. */
+  const [edits, setEdits] = useState<Map<string, string>>(new Map());
+  const [skipped, setSkipped] = useState<Set<string>>(new Set());
+  const [done, setDone] = useState<{ cards: number; left: number }>();
+  const suggestions = useRef(new Map<string, string[]>());
+
+  // Parsing and matching follow the text a beat behind, so typing stays smooth.
+  const deferred = useDeferredValue(text);
+  const parsed = useMemo(() => parseImportText(deferred), [deferred]);
   const totalCards = useMemo(() => parsed.lines.reduce((n, l) => n + l.qty, 0), [parsed]);
-
-  const clearReport = useCallback(() => {
-    setReport(undefined);
-    setFixed(new Map());
-    setEdits(new Map());
-    setSkipped(new Set());
-  }, []);
-
-  const setText = useCallback(
-    (t: string) => {
-      setTextRaw(t);
-      clearReport();
-      setDone(undefined);
-    },
-    [clearReport],
+  const report = useMemo(
+    () =>
+      index && parsed.lines.length
+        ? resolveLines(parsed.lines, index, { includeUnsets, suggest: false })
+        : undefined,
+    [index, parsed, includeUnsets],
   );
+
+  const setText = useCallback((t: string) => {
+    setTextRaw(t);
+    setDone(undefined);
+  }, []);
 
   const loadFile = useCallback(
     async (file: File) => {
@@ -123,100 +121,88 @@ export function useImport(
     [setText],
   );
 
-  const resolve = useCallback(() => {
-    if (!index) return;
-    clearReport();
-    setDone(undefined);
-    setReport(resolveLines(parsed.lines, index, { includeUnsets }));
-  }, [index, parsed, includeUnsets, clearReport]);
-
   const preview = useMemo((): ImportPreview | undefined => {
     if (!report) return undefined;
-    const all: ResolvedLine[] = [...report.resolved];
+    const resolved: ResolvedLine[] = [...report.resolved];
     const unresolved: OpenLine[] = [];
+    let skips = 0;
     for (const u of report.unresolved) {
-      const n = u.line.line;
-      if (skipped.has(n)) continue;
-      const card = fixed.get(n);
-      if (card) {
-        all.push({ line: u.line, card });
+      const key = keyOf(u.line);
+      if (skipped.has(key)) {
+        skips += 1;
         continue;
       }
-      const edit = edits.get(n);
-      unresolved.push({
-        line: u.line,
-        name: edit?.name ?? u.line.name,
-        suggestions: edit?.suggestions ?? u.suggestions,
-      });
-    }
-    let basics = 0;
-    let cards = 0;
-    const resolved: ResolvedLine[] = [];
-    for (const r of all) {
-      if (unlimitedBasics && isBasicLand(r.card)) {
-        basics += r.line.qty;
-        continue;
-      }
-      cards += r.line.qty;
-      resolved.push(r);
+      const card = fixed.get(key);
+      if (card) resolved.push({ line: u.line, card });
+      else unresolved.push({ line: u.line, key, name: edits.get(key) ?? u.line.name });
     }
     resolved.sort((a, b) => a.line.line - b.line.line);
-    const skippedLines = report.unresolved.filter((u) => skipped.has(u.line.line)).length;
-    return { resolved, unresolved, cards, basics, skipped: skippedLines };
-  }, [report, fixed, edits, skipped, unlimitedBasics]);
+    const byColor: Record<ColorKey, number> = { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0, M: 0 };
+    const ids = new Set<string>();
+    let cards = 0;
+    for (const r of resolved) {
+      cards += r.line.qty;
+      ids.add(r.card.id);
+      byColor[colorKey(r.card)] += r.line.qty;
+    }
+    return { resolved, unresolved, cards, distinct: ids.size, skipped: skips, byColor };
+  }, [report, fixed, edits, skipped]);
 
-  const fix = useCallback((lineNo: number, card: CardRecord) => {
-    setFixed((m) => new Map(m).set(lineNo, card));
-    setEdits((m) => {
-      const next = new Map(m);
-      next.delete(lineNo);
-      return next;
-    });
-  }, []);
+  const suggestionsFor = useCallback(
+    (name: string): string[] => {
+      if (!index) return [];
+      let s = suggestions.current.get(name);
+      if (!s) suggestions.current.set(name, (s = suggestNames(index, name)));
+      return s;
+    },
+    [index],
+  );
 
   const editLine = useCallback(
-    (lineNo: number, name: string) => {
+    (key: string, name: string) => {
       if (!index) return;
       const card = index.find(name, includeUnsets ? { includeUnsets: true } : {});
-      if (card) fix(lineNo, card);
-      else
-        setEdits((m) => new Map(m).set(lineNo, { name, suggestions: suggestNames(index, name) }));
+      if (card) setFixed((m) => new Map(m).set(key, card));
+      else setEdits((m) => new Map(m).set(key, name));
     },
-    [index, includeUnsets, fix],
+    [index, includeUnsets],
   );
 
   const acceptSuggestion = useCallback(
-    (lineNo: number, name: string) => {
+    (key: string, name: string) => {
       // Suggestions come from the whole index, so Un-set names are allowed here.
       const card = index?.find(name, { includeUnsets: true });
-      if (card) fix(lineNo, card);
+      if (card) setFixed((m) => new Map(m).set(key, card));
     },
-    [index, fix],
+    [index],
   );
 
-  const skip = useCallback((lineNo: number) => {
-    setSkipped((s) => new Set(s).add(lineNo));
-  }, []);
+  const skip = useCallback((key: string) => setSkipped((s) => new Set(s).add(key)), []);
 
   const skipAll = useCallback(() => {
     if (!preview) return;
     setSkipped((s) => {
       const next = new Set(s);
-      for (const u of preview.unresolved) next.add(u.line.line);
+      for (const u of preview.unresolved) next.add(u.key);
       return next;
     });
   }, [preview]);
 
   const commit = useCallback((): number => {
-    if (!preview) return 0;
-    const entries = toPoolEntries(preview.resolved);
-    if (mode === 'replace') target.replace(entries);
-    else target.add(entries);
-    setDone({ cards: preview.cards, mode });
-    setTextRaw('');
-    clearReport();
+    // Only import what the user sees: wait for the preview to catch up with the text.
+    if (!preview || preview.cards === 0 || deferred !== text) return 0;
+    add(toPoolEntries(preview.resolved));
+    // Unmatched lines stay in the box so they can be fixed and imported next.
+    const leftover = preview.unresolved.map((u) =>
+      parsed.format === 'decklist' ? u.line.raw : lineText(u.line, u.name),
+    );
+    setTextRaw(leftover.join('\n'));
+    setFixed(new Map());
+    setEdits(new Map());
+    setSkipped(new Set());
+    setDone({ cards: preview.cards, left: leftover.length });
     return preview.cards;
-  }, [preview, mode, target, clearReport]);
+  }, [preview, parsed.format, add, deferred, text]);
 
   return {
     text,
@@ -225,16 +211,14 @@ export function useImport(
     parsed,
     format: parsed.format,
     totalCards,
-    mode,
-    setMode,
     preview,
-    resolve,
     editLine,
     acceptSuggestion,
     skip,
     skipAll,
+    suggestionsFor,
     commit,
     done,
-    canResolve: Boolean(index) && parsed.lines.length > 0,
+    canImport: Boolean(preview && preview.cards > 0 && deferred === text),
   };
 }

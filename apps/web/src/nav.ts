@@ -1,19 +1,23 @@
 import { createContext, useContext } from 'react';
 import type { PoolFilters, PoolSort } from '@bulk-brew/ui';
 
-/** The five screen ids are the information architecture; Analysis is a view of Pool. */
-export type ScreenId = 'import' | 'pool' | 'build' | 'decks' | 'settings';
-export type PoolView = 'cards' | 'analysis';
+/**
+ * Screens. Import is a subpage of the Bulk List (screen id `pool`) with no
+ * sidebar item of its own; About sits under Settings.
+ */
+export type ScreenId = 'import' | 'pool' | 'build' | 'decks' | 'settings' | 'about';
 
 export interface Nav {
   screen: ScreenId;
-  poolView: PoolView;
-  go(screen: ScreenId, poolView?: PoolView): void;
-  /** Pool search, filters, and sort, kept here so they survive leaving the Pool. */
+  go(screen: ScreenId): void;
+  /** Bulk List search, filters, and sort, kept here so they survive leaving the list. */
   poolFilters: PoolFilters;
   setPoolFilters(f: PoolFilters | ((f: PoolFilters) => PoolFilters)): void;
   poolSort: PoolSort;
   setPoolSort(s: PoolSort): void;
+  /** Whether the analysis panel is open under the Bulk List. */
+  analyze: boolean;
+  setAnalyze(open: boolean): void;
 }
 
 export const NavContext = createContext<Nav | undefined>(undefined);

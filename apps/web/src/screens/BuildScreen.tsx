@@ -1,12 +1,15 @@
+import { useState } from 'react';
 import { COLORS, COLOR_LABELS, type DeckSize } from '@bulk-brew/core';
 import {
   archetypeInfo,
   archetypeViability,
   buildableSizes,
+  ConfirmDialog,
   Pip,
   Segmented,
   Stepper,
   scanShortfall,
+  Toggle,
   ui,
   useStatus,
   type ScansBySize,
@@ -49,7 +52,7 @@ function sizesText(scans: ScansBySize | undefined, color: (typeof COLORS)[number
 }
 
 function BuildForm() {
-  const { build: flow, scans, config } = useAppState();
+  const { build: flow, scans, config, settings } = useAppState();
   const colorName = flow.color ? COLOR_LABELS[flow.color] : undefined;
   const scan = flow.colorScan;
   const styles = scan
@@ -73,7 +76,7 @@ function BuildForm() {
         </h1>
         {flow.accepted && (
           <p role="status" className={`${ui.error} leading-[1.5]`}>
-            Saved &quot;{flow.accepted.name}&quot; and removed its cards from the pool. Build
+            Saved &quot;{flow.accepted.name}&quot; and removed its cards from your bulk list. Build
             another from what is left.
           </p>
         )}
@@ -159,6 +162,21 @@ function BuildForm() {
           )}
         </div>
 
+        <label className="flex items-center justify-between gap-3">
+          <span className="flex flex-col">
+            <span className="text-[13px] text-fg-1">Unlimited basic lands</span>
+            <span className="text-[11.5px] text-fg-2">
+              Add basics freely instead of using the ones in your bulk list
+            </span>
+          </span>
+          <Toggle
+            label="Unlimited basic lands"
+            checked={settings.settings.unlimitedBasics}
+            disabled={!settings.loaded}
+            onChange={(v) => settings.update({ unlimitedBasics: v })}
+          />
+        </label>
+
         <div className="flex items-center justify-between gap-3">
           <span className="text-[13px] text-fg-1">Max copies per card</span>
           <Stepper
@@ -237,68 +255,64 @@ function StyleRow(props: {
   );
 }
 
+/** The result view goes away after Accept or Reject; land on the form's heading. */
+function focusForm() {
+  requestAnimationFrame(() => document.getElementById('build-title')?.focus());
+}
+
 function BuildResultView() {
   const { build: flow, index } = useAppState();
   const [status, setStatus] = useStatus();
+  const [confirm, setConfirm] = useState(false);
   const result = flow.result;
   if (!result || !index) return null;
-  const deck = flow.saved ?? result.deck;
+  const deck = result.deck;
   const lands = result.explanation.lands.count;
-  const rebuildTitle =
-    flow.otherStyles === 0 ? 'No other style is viable for this color and size.' : undefined;
 
   return (
-    <DeckLayout
-      deck={deck}
-      meta={`${deck.size} cards · ${lands} lands · max ${flow.resultMaxCopies ?? flow.maxCopies} copies`}
-      badge={flow.saved?.committed ? 'Cards removed' : 'Still in pool'}
-      after={
-        <button
-          type="button"
-          className={`${ui.link} text-[12px] text-fg-1`}
-          onClick={flow.editSettings}
-        >
-          Edit settings
-        </button>
-      }
-      status={flow.error ?? status}
-      actions={
-        <>
-          <button
-            type="button"
-            className={`${ui.quiet} px-1 text-[13px]`}
-            disabled={flow.building}
-            onClick={() => {
-              // The result view goes away; land on the form's heading.
-              if (flow.removeFromPool())
-                requestAnimationFrame(() => document.getElementById('build-title')?.focus());
-            }}
-          >
-            Remove from pool
-          </button>
-          <button
-            type="button"
-            className={ui.secondary}
-            disabled={flow.otherStyles === 0 || flow.building}
-            title={rebuildTitle}
-            onClick={flow.rebuild}
-          >
-            {flow.building ? 'Building…' : 'Rebuild'}
-          </button>
-          <ExportMenu deck={deck} onStatus={setStatus} />
-          <button
-            type="button"
-            className={ui.primary}
-            disabled={!!flow.saved || flow.building}
-            onClick={() => {
-              flow.save();
-              setStatus('Saved to Decks. Its cards are still in the pool.');
-            }}
-          >
-            {flow.saved ? 'Saved' : 'Save deck'}
-          </button>
-        </>
-      }
-    />
+    <>
+      <DeckLayout
+        deck={deck}
+        meta={`${deck.size} cards · ${lands} lands · max ${flow.resultMaxCopies ?? flow.maxCopies} copies`}
+        status={flow.error ?? status}
+        actions={
+          <>
+            <button
+              type="button"
+              className={ui.primary}
+              disabled={flow.building}
+              onClick={() => setConfirm(true)}
+            >
+              Accept
+            </button>
+            <button
+              type="button"
+              className={ui.secondary}
+              disabled={flow.building}
+              onClick={() => {
+                flow.reject();
+                focusForm();
+              }}
+            >
+              Reject
+            </button>
+            <ExportMenu deck={deck} onStatus={setStatus} label="Export ▾" />
+          </>
+        }
+      />
+      <ConfirmDialog
+        open={confirm}
+        title="Accept this deck?"
+        message="This will save the deck and remove the cards from your bulk list."
+        confirmLabel="Accept"
+        cancelLabel="Decline"
+        focus="confirm"
+        onConfirm={() => {
+          setConfirm(false);
+          if (flow.accept()) focusForm();
+        }}
+        onCancel={() => setConfirm(false)}
+      />
+    </>
   );
 }

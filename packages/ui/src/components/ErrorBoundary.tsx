@@ -30,7 +30,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   clearAll = async (): Promise<void> => {
-    if (!window.confirm('Delete your pool, every saved deck, and your settings, then reload?'))
+    if (!window.confirm('Delete your bulk list, every saved deck, and your settings, then reload?'))
       return;
     for (const key of Object.values(STORAGE_KEYS)) {
       try {

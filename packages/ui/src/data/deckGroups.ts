@@ -1,5 +1,6 @@
 import {
   archetypeById,
+  COLORS,
   primaryGroup,
   type BulkBrewConfig,
   type CardIndex,
@@ -93,12 +94,29 @@ export function archetypeInfo(
   config: BulkBrewConfig,
   id: string,
 ): { label: string; description: string } {
+  // Merged packets record both styles as "a+b".
+  if (id.includes('+')) {
+    const parts = id.split('+').map((p) => archetypeInfo(config, p).label);
+    return {
+      label: parts.join(' + '),
+      description: `Two packets merged into one deck: ${parts.join(' and ')}.`,
+    };
+  }
   try {
     const a = archetypeById(config, id);
     return { label: a.label, description: a.description };
   } catch {
     return { label: id, description: '' };
   }
+}
+
+/** The deck's colors in WUBRG order: its cards' colors plus its basics. */
+export function deckColors(deck: Deck, index: CardIndex): Color[] {
+  const set = new Set<Color>();
+  for (const [c, n] of Object.entries(deck.basics)) if ((n ?? 0) > 0) set.add(c as Color);
+  for (const dc of deck.cards) for (const c of index.get(dc.cardId)?.identity ?? []) set.add(c);
+  if (set.size === 0) set.add(deck.color);
+  return COLORS.filter((c) => set.has(c));
 }
 
 /** A file name from a deck name: "White Tokens 60" becomes "white-tokens-60.txt". */

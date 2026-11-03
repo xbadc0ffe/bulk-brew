@@ -29,5 +29,5 @@ export function poolShortfall(
 }
 
 export function shortfallMessage(short: number): string {
-  return `${short} of this deck's cards ${short === 1 ? 'is' : 'are'} no longer in the pool, so it cannot be removed. Rebuild to use what the pool holds now.`;
+  return `${short} of this deck's cards ${short === 1 ? 'is' : 'are'} no longer in your bulk list, so it cannot be accepted. Build again to use what the list holds now.`;
 }

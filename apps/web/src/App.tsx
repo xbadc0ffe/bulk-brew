@@ -8,11 +8,12 @@ import {
   type PoolFilters,
   type PoolSort,
 } from '@bulk-brew/ui';
+import { version } from '../package.json';
 import { AppStateProvider } from './app-state.tsx';
 import { useAppState } from './app-context.ts';
-import { NavContext, type Nav, type PoolView, type ScreenId } from './nav.ts';
+import { NavContext, type Nav, type ScreenId } from './nav.ts';
 import { ImportScreen, PoolScreen } from './screens.tsx';
-import { AnalysisScreen } from './screens/AnalysisScreen.tsx';
+import { AboutScreen } from './screens/AboutScreen.tsx';
 import { BuildScreen } from './screens/BuildScreen.tsx';
 import { DecksScreen } from './screens/DecksScreen.tsx';
 import { SettingsScreen } from './screens/SettingsScreen.tsx';
@@ -30,29 +31,15 @@ export function App() {
   );
 }
 
-interface NavItem {
-  id: string;
-  label: string;
-  screen: ScreenId;
-  poolView?: PoolView;
-  indent?: boolean;
-}
-
-const NAV: NavItem[] = [
-  { id: 'pool', label: 'Pool', screen: 'pool', poolView: 'cards' },
-  { id: 'import', label: 'Import', screen: 'import', indent: true },
-  { id: 'analysis', label: 'Analysis', screen: 'pool', poolView: 'analysis', indent: true },
-  { id: 'build', label: 'Build', screen: 'build' },
-  { id: 'decks', label: 'Decks', screen: 'decks' },
-  { id: 'settings', label: 'Settings', screen: 'settings' },
+const NAV: { screen: ScreenId; label: string }[] = [
+  { screen: 'pool', label: 'Bulk List' },
+  { screen: 'build', label: 'Build' },
+  { screen: 'decks', label: 'Decks' },
+  { screen: 'settings', label: 'Settings' },
+  { screen: 'about', label: 'About' },
 ];
 
-function activeItem(screen: ScreenId, poolView: PoolView): string {
-  if (screen === 'pool') return poolView === 'analysis' ? 'analysis' : 'pool';
-  return screen;
-}
-
-/** Card detail over the right edge, for cards opened outside the Pool screen. */
+/** Card detail over the right edge, for cards opened outside the Bulk List. */
 function DetailOverlay() {
   const { detail, index, config, settings, decks, pool } = useAppState();
   const open = detail.current;
@@ -61,7 +48,7 @@ function DetailOverlay() {
   const inDecks = decks.decks.filter((d) => d.cards.some((c) => c.cardId === card.id));
   return (
     <aside
-      className="fixed inset-y-0 right-0 z-40 w-[300px] max-w-full overflow-y-auto border-l border-line bg-surface p-[22px]"
+      className="fixed inset-y-0 right-0 z-40 w-[320px] max-w-full overflow-y-auto border-l border-line bg-surface p-[22px]"
       aria-label="Card detail"
     >
       <CardDetail
@@ -78,95 +65,87 @@ function DetailOverlay() {
   );
 }
 
-function SidebarFooter() {
-  const { pack, pool, index } = useAppState();
-  const cards = useMemo(
-    () => (index ? poolSummary(pool.pool, index).cards : 0),
-    [index, pool.pool],
-  );
-  return (
-    <div className="mt-auto px-2.5 text-[11px] leading-[1.5] text-fg-2">
-      {pack.status === 'ready' && (
-        <>
-          <div>Card data {pack.index.version}</div>
-          <div>{cards.toLocaleString('en-US')} cards in pool</div>
-        </>
-      )}
-      {pack.status === 'loading' && <div>Loading card data</div>}
-      {pack.status === 'error' && <div>Card data failed: {pack.error}</div>}
-    </div>
-  );
-}
-
 /**
  * Desktop shell: a left sidebar, a main pane, and the card detail on the
  * right. Below 768px the sidebar folds into a top bar.
  */
 function Shell() {
   const [screen, setScreen] = useState<ScreenId>('pool');
-  const [poolView, setPoolView] = useState<PoolView>('cards');
-  // Bumped on every navigation, so choosing the current item again resets its sub-view.
+  // Bumped when the current screen is chosen again, to reset its sub-view.
   const [visit, setVisit] = useState(0);
   const [poolFilters, setPoolFilters] = useState<PoolFilters>(EMPTY_FILTERS);
-  const [poolSort, setPoolSort] = useState<PoolSort>('name');
-  const { detail } = useAppState();
+  const [poolSort, setPoolSort] = useState<PoolSort>(undefined);
+  const [analyze, setAnalyze] = useState(false);
+  const { detail, pool, index, decks } = useAppState();
   const nav: Nav = useMemo(
     () => ({
       screen,
-      poolView,
-      go(next, view) {
-        // Choosing the current screen again resets its sub-view; Import keeps its text.
+      go(next) {
+        // Import keeps its text when chosen again.
         if (next === screen && next !== 'import') setVisit((v) => v + 1);
         setScreen(next);
-        if (view) setPoolView(view);
-        else if (next === 'pool') setPoolView('cards');
       },
       poolFilters,
       setPoolFilters,
       poolSort,
       setPoolSort,
+      analyze,
+      setAnalyze,
     }),
-    [screen, poolView, poolFilters, poolSort],
+    [screen, poolFilters, poolSort, analyze],
   );
-  const active = activeItem(screen, poolView);
-  const inPool = active === 'import' || active === 'analysis';
+  const cards = useMemo(
+    () => (index ? poolSummary(pool.pool, index).cards : undefined),
+    [index, pool.pool],
+  );
+  const counts: Partial<Record<ScreenId, number | undefined>> = {
+    pool: cards,
+    decks: decks.loaded ? decks.decks.length : undefined,
+  };
+  // Import lives under the Bulk List, so the Bulk List item stays lit.
+  const active = screen === 'import' ? 'pool' : screen;
 
   const Screen =
     screen === 'import'
       ? ImportScreen
       : screen === 'pool'
-        ? poolView === 'analysis'
-          ? AnalysisScreen
-          : PoolScreen
+        ? PoolScreen
         : screen === 'build'
           ? BuildScreen
           : screen === 'decks'
             ? DecksScreen
-            : SettingsScreen;
+            : screen === 'settings'
+              ? SettingsScreen
+              : AboutScreen;
 
-  const item = (n: NavItem, compact: boolean) => {
-    const on = n.id === active;
-    const parent = n.id === 'pool' && inPool;
+  const item = (n: (typeof NAV)[number], compact: boolean) => {
+    const on = n.screen === active;
+    const count = counts[n.screen];
     return (
       <button
-        key={n.id}
+        key={n.screen}
         type="button"
         onClick={() => {
           detail.close();
-          nav.go(n.screen, n.poolView);
+          nav.go(n.screen);
         }}
         aria-current={on ? 'page' : undefined}
-        className={`rounded-md text-left text-[13px] whitespace-nowrap ${
-          compact ? 'px-2.5 py-1.5' : n.indent ? 'py-1.5 pr-2.5 pl-[22px]' : 'px-2.5 py-[7px]'
+        className={`flex items-center justify-between gap-2 rounded-lg border text-left whitespace-nowrap ${
+          compact ? 'px-3 py-1.5 text-[13px]' : 'px-3.5 py-2.5 text-[15px]'
         } ${
           on
-            ? 'bg-ink text-on-ink'
-            : parent
-              ? 'font-medium text-ink hover:bg-surface'
-              : 'text-fg-1 hover:bg-surface hover:text-ink'
+            ? 'border-ink bg-ink font-medium text-on-ink'
+            : 'border-line bg-surface text-fg-1 hover:border-line-strong hover:text-ink'
         }`}
       >
-        {n.label}
+        <span>{n.label}</span>
+        {count !== undefined && (
+          <span
+            className={`tabular-nums ${on ? 'text-on-ink' : 'text-fg-2'} ${compact ? '' : 'text-[13px]'}`}
+          >
+            {count.toLocaleString('en-US')}
+          </span>
+        )}
       </button>
     );
   };
@@ -176,23 +155,31 @@ function Shell() {
       <div className="flex h-dvh flex-col bg-canvas text-ink md:flex-row">
         <nav
           aria-label="Main"
-          className="hidden w-[200px] shrink-0 flex-col gap-0.5 border-r border-line bg-surface-2 px-3 py-[18px] md:flex"
+          className="hidden w-[208px] shrink-0 flex-col gap-1.5 border-r border-line bg-surface-2 px-3 py-4 md:flex"
         >
-          <div className="px-2.5 pt-1 pb-4 text-[15px] font-semibold">Bulk Brew</div>
           {NAV.map((n) => item(n, false))}
-          <SidebarFooter />
+          <div className="mt-auto flex items-center gap-2.5 px-1.5 pt-4">
+            <img
+              src={`${import.meta.env.BASE_URL}icon.svg`}
+              alt=""
+              className="size-9 shrink-0 rounded-lg"
+            />
+            <div className="flex flex-col leading-tight">
+              <span className="text-[14px] font-semibold">Bulk Brew</span>
+              <span className="text-[11.5px] text-fg-2">Version {version}</span>
+            </div>
+          </div>
         </nav>
         <nav
           aria-label="Main"
-          className="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-line bg-surface-2 px-3 py-2 md:hidden"
+          className="flex shrink-0 items-center gap-1.5 overflow-x-auto border-b border-line bg-surface-2 px-3 py-2 md:hidden"
         >
-          <span className="mr-2 text-[15px] font-semibold whitespace-nowrap">Bulk Brew</span>
           {NAV.map((n) => item(n, true))}
         </nav>
         <main className="min-h-0 min-w-0 flex-1 overflow-hidden">
           <Screen key={visit} />
         </main>
-        {!(screen === 'pool' && poolView === 'cards') && <DetailOverlay />}
+        {screen !== 'pool' && <DetailOverlay />}
       </div>
     </NavContext.Provider>
   );

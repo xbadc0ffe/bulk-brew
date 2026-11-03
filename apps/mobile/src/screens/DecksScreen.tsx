@@ -2,9 +2,9 @@ import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { COLOR_LABELS, deckToDecklist, pairPackets, type Deck } from '@bulk-brew/core';
 import {
   archetypeInfo,
-  deckFilename,
+  ConfirmDialog,
+  DeckList,
   disassembleQuestion,
-  downloadText,
   landCount,
   phone,
   Pip,
@@ -19,28 +19,31 @@ import { ActionSheet, LargeTitle, Pushed } from '../parts.tsx';
 import { PackGate } from '../screens.tsx';
 import { DeckScreen } from './DeckView.tsx';
 
-type View = { kind: 'list' } | { kind: 'deck'; id: string } | { kind: 'pair' };
+type View = { kind: 'list' } | { kind: 'deck'; id: string } | { kind: 'pair'; id: string };
 
 export function DecksScreen() {
   const { decks } = useAppState();
   const [view, setView] = useState<View>({ kind: 'list' });
-  // Pairing needs two packets of different colors.
-  const pairable = new Set(decks.decks.filter((d) => d.size === 20).map((d) => d.color)).size >= 2;
-  const open = view.kind === 'deck' ? decks.decks.find((d) => d.id === view.id) : undefined;
+  const current = view.kind !== 'list' ? decks.decks.find((d) => d.id === view.id) : undefined;
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <LargeTitle
-        title="Decks"
-        action={{
-          label: 'Pair packets',
-          disabled: !pairable,
-          onClick: () => setView({ kind: 'pair' }),
-        }}
-      />
+      <LargeTitle title="Decks" />
       <PackGate>
         <DeckRows onOpen={(id) => setView({ kind: 'deck', id })} />
-        {open && <SavedDeck deck={open} onBack={() => setView({ kind: 'list' })} />}
-        {view.kind === 'pair' && <PairPackets onBack={() => setView({ kind: 'list' })} />}
+        {current && view.kind === 'deck' && (
+          <SavedDeck
+            deck={current}
+            onBack={() => setView({ kind: 'list' })}
+            onPair={() => setView({ kind: 'pair', id: current.id })}
+          />
+        )}
+        {current && view.kind === 'pair' && (
+          <PairPackets
+            packet={current}
+            onBack={() => setView({ kind: 'deck', id: current.id })}
+            onMerged={(id) => setView({ kind: 'deck', id })}
+          />
+        )}
       </PackGate>
     </div>
   );
@@ -56,6 +59,7 @@ function DeckRows({ onOpen }: { onOpen(id: string): void }) {
   const nav = useNav();
   const actions = useActions();
   const [exporting, setExporting] = useState<Deck>();
+  const [disassembling, setDisassembling] = useState<Deck>();
   const [status, setStatus] = useStatus();
 
   if (!decks.loaded) return <p className={`${phone.note} p-4`}>Loading decks</p>;
@@ -85,9 +89,7 @@ function DeckRows({ onOpen }: { onOpen(id: string): void }) {
               { label: 'Export', onClick: () => setExporting(d) },
               {
                 label: 'Disassemble',
-                onClick: () => {
-                  if (window.confirm(disassembleQuestion(d))) actions.disassemble(d);
-                },
+                onClick: () => setDisassembling(d),
               },
             ]}
           >
@@ -98,7 +100,7 @@ function DeckRows({ onOpen }: { onOpen(id: string): void }) {
                 {d.size} · {archetypeInfo(config, d.archetype).label} · {savedLabel(d.createdAt)}
               </span>
             </span>
-            <span className={phone.badge}>{d.committed ? 'Cards removed' : 'Still in pool'}</span>
+            {!d.committed && <span className={phone.badge}>Not accepted</span>}
             <span aria-hidden className="text-[1.125rem] leading-none text-fg-3">
               ›
             </span>
@@ -111,6 +113,18 @@ function DeckRows({ onOpen }: { onOpen(id: string): void }) {
       <p role="status" className={status ? 'px-4 pt-2 text-[0.75rem] text-fg-2' : 'sr-only'}>
         {status}
       </p>
+      <ConfirmDialog
+        open={!!disassembling}
+        title={disassembling ? `Disassemble "${disassembling.name}"?` : ''}
+        message={disassembling ? disassembleQuestion(disassembling) : ''}
+        confirmLabel="Disassemble"
+        variant="phone"
+        onConfirm={() => {
+          if (disassembling) actions.disassemble(disassembling);
+          setDisassembling(undefined);
+        }}
+        onCancel={() => setDisassembling(undefined)}
+      />
       {exporting && index && (
         <ActionSheet
           open
@@ -219,12 +233,19 @@ function SwipeRow(props: {
   );
 }
 
-function SavedDeck({ deck, onBack }: { deck: Deck; onBack(): void }) {
+function SavedDeck({ deck, onBack, onPair }: { deck: Deck; onBack(): void; onPair(): void }) {
   const { config, index, decks } = useAppState();
   const actions = useActions();
   const [status, setStatus] = useStatus();
+  const [confirm, setConfirm] = useState<'disassemble' | 'delete' | 'accept'>();
   if (!index) return null;
+  const canPair = decks.decks.some(
+    (d) => d.size === 20 && d.id !== deck.id && d.color !== deck.color,
+  );
   const extra = [
+    ...(deck.size === 20 && canPair
+      ? [{ label: 'Pair with another packet', onSelect: onPair }]
+      : []),
     {
       label: 'Rename',
       onSelect: () => {
@@ -233,126 +254,156 @@ function SavedDeck({ deck, onBack }: { deck: Deck; onBack(): void }) {
       },
     },
     ...(deck.committed
-      ? [
-          {
-            label: 'Delete without returning cards',
-            onSelect: () => {
-              if (window.confirm(`Delete "${deck.name}" without returning its cards?`)) {
-                actions.deleteOnly(deck);
-                onBack();
-              }
-            },
-          },
-        ]
-      : [
-          {
-            label: 'Remove from pool',
-            onSelect: () =>
-              setStatus(actions.removeFromPool(deck) ?? 'Removed its cards from the pool.'),
-          },
-        ]),
+      ? [{ label: 'Delete without returning cards', onSelect: () => setConfirm('delete' as const) }]
+      : [{ label: 'Accept', onSelect: () => setConfirm('accept' as const) }]),
   ];
   return (
-    <DeckScreen
-      deck={deck}
-      back={{ label: 'Decks', onClick: onBack }}
-      chips={[
-        `${deck.size} cards`,
-        `${landCount(deck, index)} lands`,
-        archetypeInfo(config, deck.archetype).label,
-        deck.committed ? 'Cards removed' : 'Still in pool',
-      ]}
-      actions={extra}
-      status={status}
-      onStatus={setStatus}
-      bottom={
-        <button
-          type="button"
-          className={phone.secondary}
-          onClick={() => {
-            if (window.confirm(disassembleQuestion(deck))) {
-              actions.disassemble(deck);
-              onBack();
-            }
-          }}
-        >
-          {deck.committed ? 'Disassemble' : 'Delete'}
-        </button>
-      }
-    />
+    <>
+      <DeckScreen
+        deck={deck}
+        back={{ label: 'Decks', onClick: onBack }}
+        chips={[
+          `${deck.size} cards`,
+          `${landCount(deck, index)} lands`,
+          archetypeInfo(config, deck.archetype).label,
+          ...(deck.committed ? [] : ['Not accepted']),
+        ]}
+        actions={extra}
+        status={status}
+        onStatus={setStatus}
+        bottom={
+          <button
+            type="button"
+            className={phone.secondary}
+            onClick={() => setConfirm('disassemble')}
+          >
+            Disassemble
+          </button>
+        }
+      />
+      <ConfirmDialog
+        open={confirm === 'disassemble'}
+        title={`Disassemble "${deck.name}"?`}
+        message={disassembleQuestion(deck)}
+        confirmLabel="Disassemble"
+        variant="phone"
+        onConfirm={() => {
+          setConfirm(undefined);
+          actions.disassemble(deck);
+          onBack();
+        }}
+        onCancel={() => setConfirm(undefined)}
+      />
+      <ConfirmDialog
+        open={confirm === 'delete'}
+        title={`Delete "${deck.name}"?`}
+        message="This deletes the deck without returning its cards. Your bulk list stays as it is."
+        confirmLabel="Delete"
+        variant="phone"
+        onConfirm={() => {
+          setConfirm(undefined);
+          actions.deleteOnly(deck);
+          onBack();
+        }}
+        onCancel={() => setConfirm(undefined)}
+      />
+      <ConfirmDialog
+        open={confirm === 'accept'}
+        title="Accept this deck?"
+        message="This will remove the deck's cards from your bulk list."
+        confirmLabel="Accept"
+        cancelLabel="Decline"
+        focus="confirm"
+        variant="phone"
+        onConfirm={() => {
+          setConfirm(undefined);
+          setStatus(actions.removeFromPool(deck) ?? 'Accepted. Its cards left your bulk list.');
+        }}
+        onCancel={() => setConfirm(undefined)}
+      />
+    </>
   );
 }
 
-function PairPackets({ onBack }: { onBack(): void }) {
-  const { decks, index, config } = useAppState();
-  const [status, setStatus] = useStatus();
-  const packets = useMemo(() => decks.decks.filter((d) => d.size === 20), [decks.decks]);
-  const [a, setA] = useState(packets[0]?.id ?? '');
-  const [b, setB] = useState(packets.find((p) => p.color !== packets[0]?.color)?.id ?? '');
-  const pa = packets.find((p) => p.id === a);
-  const pb = packets.find((p) => p.id === b);
-  const pair = pa && pb && index ? pairPackets(pa, pb, index, config) : undefined;
-
-  const select = (value: string, set: (v: string) => void, label: string) => (
-    <label className="flex flex-col gap-1">
-      <span className={phone.groupLabel}>{label}</span>
-      <select value={value} onChange={(e) => set(e.target.value)} className={phone.field}>
-        <option value="">Choose a packet</option>
-        {packets.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.name} ({COLOR_LABELS[p.color]})
-          </option>
-        ))}
-      </select>
-    </label>
+/** A what-if view: this packet plus another, with Merge to make it real. */
+function PairPackets(props: { packet: Deck; onBack(): void; onMerged(id: string): void }) {
+  const { packet, onBack, onMerged } = props;
+  const { decks, index, config, settings, detail } = useAppState();
+  const actions = useActions();
+  const others = useMemo(
+    () =>
+      decks.decks.filter((d) => d.size === 20 && d.id !== packet.id && d.color !== packet.color),
+    [decks.decks, packet],
   );
+  const [otherId, setOtherId] = useState(others[0]?.id ?? '');
+  const [confirm, setConfirm] = useState(false);
+  const [error, setError] = useState<string>();
+  const other = others.find((d) => d.id === otherId);
+  const pair = other && index ? pairPackets(packet, other, index, config) : undefined;
 
   return (
     <Pushed
-      back={{ label: 'Decks', onClick: onBack }}
+      back={{ label: 'Packet', onClick: onBack }}
       title="Pair packets"
       bottom={
-        pair?.ok ? (
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              className={phone.secondary}
-              onClick={() => downloadText(deckFilename(pair.deck.name), pair.text)}
-            >
-              Download
-            </button>
-            <button
-              type="button"
-              className={phone.primary}
-              onClick={() =>
-                navigator.clipboard.writeText(pair.text).then(
-                  () => setStatus('Copied the combined list.'),
-                  () => setStatus('Copy failed. Try Download instead.'),
-                )
-              }
-            >
-              Copy list
-            </button>
-          </div>
-        ) : undefined
+        <button
+          type="button"
+          className={phone.primary}
+          disabled={!pair?.ok}
+          onClick={() => setConfirm(true)}
+        >
+          Merge into one deck
+        </button>
       }
     >
-      <div className="flex flex-col gap-3 px-4 pb-4">
+      <div className="flex flex-col gap-3 px-4 pb-3">
         <p className="text-[0.8125rem] leading-[1.5] text-fg-1">
-          Two 20-card packets of different colors make a 40-card two-color deck, like Jumpstart.
+          A preview of {packet.name} played with another packet as a 40-card deck. Nothing changes
+          until you merge them.
         </p>
-        {select(a, setA, 'First packet')}
-        {select(b, setB, 'Second packet')}
+        <label className="flex flex-col gap-1">
+          <span className={phone.groupLabel}>Pair with</span>
+          <select
+            value={otherId}
+            onChange={(e) => setOtherId(e.target.value)}
+            className={`${phone.field} min-h-11`}
+          >
+            {others.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name} ({COLOR_LABELS[p.color]})
+              </option>
+            ))}
+          </select>
+        </label>
+        {error && <p className={phone.error}>{error}</p>}
         {pair && !pair.ok && <p className={phone.error}>{pair.error}</p>}
-        <p role="status" className={status ? phone.note : 'sr-only'}>
-          {status}
-        </p>
-        {pair?.ok && (
-          <pre className="overflow-x-auto rounded-[10px] border border-line bg-surface px-3 py-2.5 font-mono text-[0.75rem] leading-[1.6]">
-            {pair.text}
-          </pre>
-        )}
       </div>
+      {pair?.ok && index && (
+        <DeckList
+          deck={pair.deck}
+          index={index}
+          config={config}
+          showArt={settings.settings.showArt}
+          onOpenCard={detail.open}
+          variant="phone"
+        />
+      )}
+      <ConfirmDialog
+        open={confirm}
+        title="Merge these packets?"
+        message={`"${packet.name}" and "${other?.name ?? ''}" are deleted and replaced by one 40-card deck.`}
+        confirmLabel="Merge"
+        focus="confirm"
+        variant="phone"
+        onConfirm={() => {
+          setConfirm(false);
+          if (!other) return;
+          const r = actions.merge(packet, other);
+          if ('error' in r) setError(r.error);
+          else onMerged(r.deck.id);
+        }}
+        onCancel={() => setConfirm(false)}
+      />
     </Pushed>
   );
 }

@@ -28,9 +28,15 @@ Ranked. The current phase is at the top. Finished phases are removed, not struck
 - Empty, loading, and error states follow the handoff's suggestions; confirm them with the owner.
 - Mobile: Rename uses the browser prompt; replace it with an inline field or a sheet.
 
+## Owner review follow-ups
+
+- Mobile parity for the web-only changes of the owner review: column sorting, the Analyze split, multi-select removal, and the deck details expand.
+- Tune `config/display-tags.json` after use; Blink and -1/-1 match few cards, Artifacts and Graveyard match many.
+- Decks saved with the short-lived Save deck show "Not accepted"; drop that path once no such decks remain.
+
 ## App follow-ups
 
-- Hook tests with a DOM test environment (needs a jsdom dev dependency; ask first). useBuildFlow's save, remove, and rebuild paths are the first candidates.
+- Hook tests with a DOM test environment (needs a jsdom dev dependency; ask first). useBuildFlow's accept and reject paths and the packet merge are the first candidates.
 - Service worker: show a "new version available" prompt instead of waiting for the next load.
 - Card detail: show rulings fetched from Scryfall on demand.
 

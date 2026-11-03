@@ -30,7 +30,7 @@ export function App() {
 }
 
 const TABS: { id: TabIconName; label: string; screen: ScreenId }[] = [
-  { id: 'pool', label: 'Pool', screen: 'pool' },
+  { id: 'pool', label: 'Bulk List', screen: 'pool' },
   { id: 'build', label: 'Build', screen: 'build' },
   { id: 'decks', label: 'Decks', screen: 'decks' },
   { id: 'settings', label: 'Settings', screen: 'settings' },
@@ -84,7 +84,7 @@ function Shell() {
   const [poolView, setPoolView] = useState<PoolView>('cards');
   const [visit, setVisit] = useState(0);
   const [poolFilters, setPoolFilters] = useState<PoolFilters>(EMPTY_FILTERS);
-  const [poolSort, setPoolSort] = useState<PoolSort>('name');
+  const [poolSort, setPoolSort] = useState<PoolSort>(undefined);
   const { detail, pack } = useAppState();
   const nav: Nav = useMemo(
     () => ({

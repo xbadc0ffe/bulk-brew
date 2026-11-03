@@ -56,7 +56,7 @@ export function viabilityDetail(
       : `${report.enablers.have} spells`;
   }
   if (state === 'near') return report.notes.join(', ');
-  if (!scan.possible) return scanShortfall(scan) ?? 'pool too small for this size';
+  if (!scan.possible) return scanShortfall(scan) ?? 'not enough cards for this size';
   if (report.kind === 'synergy' && report.notes.some((n) => !NEEDS.test(n)))
     return 'does not work in this color';
   if (report.kind === 'synergy')

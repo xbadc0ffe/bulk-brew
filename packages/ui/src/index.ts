@@ -48,17 +48,15 @@ export { COLOR_NAMES, COLOR_ORDER } from './colors.ts';
 export * from './attribution.ts';
 export { downloadText, readFileText, backupFilename } from './util/files.ts';
 export { openKv, type KeyValueStore } from './storage/kv.ts';
-export { CONFIG, CONFIG_PROBLEMS, DEFAULT_SETTINGS } from './data/config.ts';
+export { CONFIG, CONFIG_PROBLEMS, DEFAULT_SETTINGS, DISPLAY_TAGS } from './data/config.ts';
 export { usePack, type PackState } from './data/usePack.ts';
 export { usePool, type PoolActions, type PoolState } from './data/usePool.ts';
 export {
   useImport,
   IMPORT_FORMAT_LABELS,
   type ImportFormat,
-  type ImportMode,
   type ImportPreview,
   type ImportState,
-  type ImportTarget,
   type OpenLine,
 } from './data/useImport.ts';
 export { useSettings, type SettingsState } from './data/useSettings.ts';
@@ -74,26 +72,36 @@ export { applyBackup } from './data/backup.ts';
 export {
   poolRows,
   poolSummary,
+  poolFacets,
   cardTags,
   colorKey,
   filterCount,
-  tagOptions,
+  majorTags,
+  nextSort,
+  subtypesOf,
+  typeParts,
   COLOR_KEYS,
   EMPTY_FILTERS,
-  MANA_VALUES,
-  POOL_SORTS,
+  MV_OPS,
+  SORT_CHOICES,
   TYPE_KEYS,
   type CardTag,
   type ColorKey,
+  type Facet,
+  type MvOp,
+  type PoolFacets,
   type PoolFilters,
   type PoolRow,
   type PoolSort,
   type PoolSummary,
+  type SortKey,
   type TypeKey,
 } from './data/poolView.ts';
 export { DeckList, DeckExplanation, type DeckListProps } from './components/DeckParts.tsx';
+export { ConfirmDialog, type ConfirmDialogProps } from './components/ConfirmDialog.tsx';
 export {
   archetypeInfo,
+  deckColors,
   deckFilename,
   deckGroups,
   landCount,

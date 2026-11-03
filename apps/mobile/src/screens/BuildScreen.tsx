@@ -1,17 +1,20 @@
+import { useState } from 'react';
 import { COLORS, COLOR_LABELS, type DeckSize } from '@bulk-brew/core';
 import {
   archetypeInfo,
   archetypeViability,
   buildableSizes,
+  ConfirmDialog,
   phone,
   Pip,
   scanShortfall,
   Segmented,
   Stepper,
+  Toggle,
   useStatus,
 } from '@bulk-brew/ui';
 import { useAppState } from '../app-context.ts';
-import { LargeTitle } from '../parts.tsx';
+import { LargeTitle, ToggleRow } from '../parts.tsx';
 import { PackGate } from '../screens.tsx';
 import { DeckScreen } from './DeckView.tsx';
 
@@ -44,7 +47,7 @@ export function BuildScreen() {
 }
 
 function BuildForm() {
-  const { build: flow, scans, config } = useAppState();
+  const { build: flow, scans, config, settings } = useAppState();
   const scan = flow.colorScan;
   const colorName = flow.color ? COLOR_LABELS[flow.color] : undefined;
   const styles = scan
@@ -64,7 +67,7 @@ function BuildForm() {
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4">
         {flow.accepted && (
           <p role="status" className={phone.error}>
-            Saved &quot;{flow.accepted.name}&quot; and removed its cards from the pool.
+            Saved &quot;{flow.accepted.name}&quot; and removed its cards from your bulk list.
           </p>
         )}
         <section className="flex flex-col gap-2">
@@ -118,6 +121,21 @@ function BuildForm() {
             </p>
           )}
         </section>
+
+        <div className={phone.group}>
+          <ToggleRow
+            label="Unlimited basic lands"
+            hint="Add basics freely instead of using the ones in your bulk list"
+          >
+            <Toggle
+              label="Unlimited basic lands"
+              checked={settings.settings.unlimitedBasics}
+              disabled={!settings.loaded}
+              onChange={(v) => settings.update({ unlimitedBasics: v })}
+              variant="phone"
+            />
+          </ToggleRow>
+        </div>
 
         <div className="flex items-center justify-between gap-3">
           <span className="text-[0.875rem] text-fg-1">Max copies per card</span>
@@ -216,49 +234,58 @@ function StyleRow(props: {
 function BuildResult() {
   const { build: flow, config } = useAppState();
   const [status, setStatus] = useStatus();
+  const [confirm, setConfirm] = useState(false);
   const result = flow.result;
   if (!result) return null;
-  const deck = flow.saved ?? result.deck;
+  const deck = result.deck;
   return (
-    <DeckScreen
-      deck={deck}
-      back={{ label: 'Build', onClick: flow.editSettings }}
-      chips={[
-        `${deck.size} cards`,
-        `${result.explanation.lands.count} lands`,
-        archetypeInfo(config, deck.archetype).label,
-        flow.saved?.committed ? 'Cards removed' : 'Still in pool',
-      ]}
-      actions={
-        flow.building
-          ? []
-          : [{ label: 'Save and remove from pool', onSelect: () => void flow.removeFromPool() }]
-      }
-      status={flow.error ?? status}
-      onStatus={setStatus}
-      bottom={
-        <div className="grid grid-cols-[1fr_1.4fr] gap-2">
-          <button
-            type="button"
-            className={phone.secondary}
-            disabled={flow.otherStyles === 0 || flow.building}
-            onClick={flow.rebuild}
-          >
-            {flow.building ? 'Building…' : 'Rebuild'}
-          </button>
-          <button
-            type="button"
-            className={phone.primary}
-            disabled={!!flow.saved || flow.building}
-            onClick={() => {
-              flow.save();
-              setStatus('Saved to Decks. Its cards are still in the pool.');
-            }}
-          >
-            {flow.saved ? 'Saved' : 'Save deck'}
-          </button>
-        </div>
-      }
-    />
+    <>
+      <DeckScreen
+        deck={deck}
+        back={{ label: 'Build', onClick: flow.reject }}
+        chips={[
+          `${deck.size} cards`,
+          `${result.explanation.lands.count} lands`,
+          archetypeInfo(config, deck.archetype).label,
+        ]}
+        actions={[]}
+        status={flow.error ?? status}
+        onStatus={setStatus}
+        bottom={
+          <div className="grid grid-cols-[1fr_1.4fr] gap-2">
+            <button
+              type="button"
+              className={phone.secondary}
+              disabled={flow.building}
+              onClick={flow.reject}
+            >
+              Reject
+            </button>
+            <button
+              type="button"
+              className={phone.primary}
+              disabled={flow.building}
+              onClick={() => setConfirm(true)}
+            >
+              Accept
+            </button>
+          </div>
+        }
+      />
+      <ConfirmDialog
+        open={confirm}
+        title="Accept this deck?"
+        message="This will save the deck and remove the cards from your bulk list."
+        confirmLabel="Accept"
+        cancelLabel="Decline"
+        focus="confirm"
+        variant="phone"
+        onConfirm={() => {
+          setConfirm(false);
+          flow.accept();
+        }}
+        onCancel={() => setConfirm(false)}
+      />
+    </>
   );
 }

@@ -1,30 +1,17 @@
 import { useRef, useState, type ReactNode } from 'react';
-import {
-  configVersion,
-  DATA_SCHEMA_VERSION,
-  exportBackup,
-  parseBackup,
-  type DeckSize,
-} from '@bulk-brew/core';
+import { exportBackup, parseBackup, type DeckSize } from '@bulk-brew/core';
 import {
   APPEARANCE_MODES,
   applyBackup,
   backupFilename,
-  CONFIG_PROBLEMS,
   downloadText,
-  FAN_CONTENT_NOTICE,
   readFileText,
-  REPO_URL,
-  SCRYFALL_NOTICE,
-  SCRYFALL_URL,
   Segmented,
   THEME_COLORS,
   Toggle,
   ui,
-  WIZARDS_NOTICE,
   type ThemeColor,
 } from '@bulk-brew/ui';
-import { version } from '../../package.json';
 import { useAppState } from '../app-context.ts';
 
 /** Swatch fills from the design; grey follows the theme's secondary text color. */
@@ -111,7 +98,7 @@ function Row({
 }
 
 export function SettingsScreen() {
-  const { kv, pack, index, config, settings, pool, decks, appearance, build } = useAppState();
+  const { kv, index, settings, pool, decks, appearance, build } = useAppState();
   const s = settings.settings;
   // Controls wait for the stored settings so an early edit cannot be overwritten.
   const ready = settings.loaded && pool.loaded && decks.loaded;
@@ -135,7 +122,7 @@ export function SettingsScreen() {
       const when = backup.exportedAt.slice(0, 10);
       if (
         !window.confirm(
-          `Replace your pool, decks, and settings with the backup from ${when} (${cards} cards, ${backup.decks.length} decks)?`,
+          `Replace your bulk list, decks, and settings with the backup from ${when} (${cards} cards, ${backup.decks.length} decks)?`,
         )
       )
         return;
@@ -149,7 +136,7 @@ export function SettingsScreen() {
   };
 
   const clearAll = () => {
-    if (!window.confirm('Delete your pool, every saved deck, and your settings?')) return;
+    if (!window.confirm('Delete your bulk list, every saved deck, and your settings?')) return;
     pool.actions.clear();
     decks.replaceAll([]);
     settings.reset();
@@ -174,14 +161,6 @@ export function SettingsScreen() {
                 />
               </Row>
             ))}
-            <Row label="Unlimited basic lands" hint="Basics need not be imported">
-              <Toggle
-                label="Unlimited basic lands"
-                checked={s.unlimitedBasics}
-                disabled={!ready}
-                onChange={(v) => settings.update({ unlimitedBasics: v })}
-              />
-            </Row>
             <Row label="Include Un-set and acorn cards">
               <Toggle
                 label="Include Un-set and acorn cards"
@@ -247,40 +226,13 @@ export function SettingsScreen() {
         </div>
 
         <div className="flex flex-col gap-5">
-          <Group title="Card data">
-            <Row
-              label={`Scryfall oracle cards · v${DATA_SCHEMA_VERSION}`}
-              hint={
-                pack.status === 'ready'
-                  ? `${pack.index.version} · ${pack.index.size.toLocaleString('en-US')} cards · config ${configVersion(config)}`
-                  : pack.status === 'loading'
-                    ? 'Loading'
-                    : `Failed to load: ${pack.error}`
-              }
-            />
-            <Row
-              label="Updates"
-              hint="New card data arrives with app updates, usually weekly. Reload to get the latest."
-            />
-            {CONFIG_PROBLEMS.length > 0 && (
-              <div className="px-4 py-[11px] text-ink">
-                <p>The shipped config has problems:</p>
-                <ul className="list-disc pl-5">
-                  {CONFIG_PROBLEMS.map((p) => (
-                    <li key={p}>{p}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </Group>
-
           <Group title="Backup">
-            <Row label="Export backup" hint="Pool, decks and settings as one file">
+            <Row label="Export backup" hint="Bulk list, decks, and settings as one file">
               <button type="button" className={ui.small} disabled={!ready} onClick={exportNow}>
                 Export
               </button>
             </Row>
-            <Row label="Restore from backup" hint="Replaces your pool, decks, and settings">
+            <Row label="Restore from backup" hint="Replaces your bulk list, decks, and settings">
               <button
                 type="button"
                 className={ui.small}
@@ -311,24 +263,6 @@ export function SettingsScreen() {
           <p role="status" className={message ? '-mt-3 text-[12.5px] text-fg-2' : 'sr-only'}>
             {message}
           </p>
-
-          <section className="flex flex-col gap-2 text-[12.5px] leading-[1.6] text-fg-1">
-            <h2 className={ui.sectionLabel}>About</h2>
-            <p>
-              Bulk Brew {version} · MIT License ·{' '}
-              <a className={ui.link} href={REPO_URL} target="_blank" rel="noreferrer">
-                Source on GitHub
-              </a>
-            </p>
-            <p>{FAN_CONTENT_NOTICE}</p>
-            <p>{WIZARDS_NOTICE}</p>
-            <p>
-              {SCRYFALL_NOTICE}{' '}
-              <a className={ui.link} href={SCRYFALL_URL} target="_blank" rel="noreferrer">
-                scryfall.com
-              </a>
-            </p>
-          </section>
         </div>
       </div>
     </div>
