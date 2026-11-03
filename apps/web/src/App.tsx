@@ -97,12 +97,15 @@ function SidebarFooter() {
 function Shell() {
   const [screen, setScreen] = useState<ScreenId>('pool');
   const [poolView, setPoolView] = useState<PoolView>('cards');
+  // Bumped on every navigation, so choosing the current item again resets its sub-view.
+  const [visit, setVisit] = useState(0);
   const { detail } = useAppState();
   const nav: Nav = useMemo(
     () => ({
       screen,
       poolView,
       go(next, view) {
+        setVisit((v) => v + 1);
         setScreen(next);
         if (view) setPoolView(view);
         else if (next === 'pool') setPoolView('cards');
@@ -172,7 +175,7 @@ function Shell() {
           {NAV.map((n) => item(n, true))}
         </nav>
         <main className="min-h-0 min-w-0 flex-1 overflow-hidden">
-          <Screen />
+          <Screen key={visit} />
         </main>
         {!(screen === 'pool' && poolView === 'cards') && <DetailOverlay />}
       </div>
