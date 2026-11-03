@@ -1,15 +1,9 @@
 import { useMemo, useState } from 'react';
-import {
-  COLOR_LABELS,
-  commitDeck,
-  deckToDecklist,
-  pairPackets,
-  returnDeck,
-  type Deck,
-} from '@bulk-brew/core';
+import { COLOR_LABELS, deckToDecklist, pairPackets, type Deck } from '@bulk-brew/core';
 import {
   archetypeInfo,
   deckFilename,
+  disassembleQuestion,
   downloadText,
   Dropdown,
   landCount,
@@ -17,6 +11,7 @@ import {
   Pip,
   savedLabel,
   ui,
+  useDeckActions,
   useStatus,
 } from '@bulk-brew/ui';
 import { useAppState } from '../app-context.ts';
@@ -34,26 +29,16 @@ export function DecksScreen() {
 
 type View = { kind: 'list' } | { kind: 'deck'; id: string } | { kind: 'pair' };
 
-/** Shared deck actions, so the list and the deck view behave the same. */
-function useDeckActions() {
+/** Shared deck actions with this app's confirmations. Each returns whether it went ahead. */
+function useDeckActionsWithConfirm() {
   const { decks, pool, index, config, settings } = useAppState();
+  const actions = useDeckActions({ index, config, pool, decks, settings: settings.settings });
   return {
-    /** Return the cards if they left the pool, then delete the deck. Asks first. */
     disassemble(deck: Deck): boolean {
-      const ok = window.confirm(
-        deck.committed
-          ? `Disassemble "${deck.name}"? Its cards go back to the pool and the deck is deleted.`
-          : `Delete "${deck.name}"? Its cards never left the pool.`,
-      );
-      if (!ok || !index) return false;
-      if (deck.committed) {
-        const now = new Date().toISOString();
-        pool.actions.transform((p) => returnDeck(p, deck, index, config, now));
-      }
-      decks.remove(deck.id);
+      if (!window.confirm(disassembleQuestion(deck))) return false;
+      actions.disassemble(deck);
       return true;
     },
-    /** Delete without returning the cards. Asks first. */
     deleteOnly(deck: Deck): boolean {
       if (
         !window.confirm(
@@ -61,26 +46,16 @@ function useDeckActions() {
         )
       )
         return false;
-      decks.remove(deck.id);
+      actions.deleteOnly(deck);
       return true;
     },
-    removeFromPool(deck: Deck): void {
-      if (!index || deck.committed) return;
-      const now = new Date().toISOString();
-      const { deck: committed } = commitDeck(
-        pool.pool,
-        deck,
-        settings.settings,
-        index,
-        config,
-        now,
-      );
-      pool.actions.transform(
-        (p) => commitDeck(p, deck, settings.settings, index, config, now).pool,
-      );
-      decks.update(committed);
-    },
+    removeFromPool: actions.removeFromPool,
   };
+}
+
+/** Move focus once the element that had it is gone. */
+function focusLater(id: string) {
+  requestAnimationFrame(() => document.getElementById(id)?.focus());
 }
 
 function Decks() {
@@ -89,8 +64,25 @@ function Decks() {
   const open = view.kind === 'deck' ? decks.decks.find((d) => d.id === view.id) : undefined;
 
   if (!decks.loaded) return <p className={`${ui.note} p-8`}>Loading decks</p>;
-  if (view.kind === 'pair') return <PairPackets onBack={() => setView({ kind: 'list' })} />;
-  if (open) return <SavedDeck deck={open} onBack={() => setView({ kind: 'list' })} />;
+  if (view.kind === 'pair')
+    return (
+      <PairPackets
+        onBack={() => {
+          setView({ kind: 'list' });
+          focusLater('decks-title');
+        }}
+      />
+    );
+  if (open)
+    return (
+      <SavedDeck
+        deck={open}
+        onBack={() => {
+          setView({ kind: 'list' });
+          focusLater('decks-title');
+        }}
+      />
+    );
   return (
     <DeckTable
       onOpen={(id) => setView({ kind: 'deck', id })}
@@ -102,10 +94,12 @@ function Decks() {
 function DeckTable({ onOpen, onPair }: { onOpen(id: string): void; onPair(): void }) {
   const { decks, config } = useAppState();
   const nav = useNav();
-  const actions = useDeckActions();
+  const actions = useDeckActionsWithConfirm();
   const [status, setStatus] = useStatus();
   const list = decks.decks;
   const packets = list.filter((d) => d.size === 20).length;
+  // Pairing needs two packets of different colors.
+  const pairable = new Set(list.filter((d) => d.size === 20).map((d) => d.color)).size >= 2;
 
   if (list.length === 0) {
     return (
@@ -121,7 +115,9 @@ function DeckTable({ onOpen, onPair }: { onOpen(id: string): void; onPair(): voi
   return (
     <div className="flex h-full flex-col gap-4 overflow-y-auto px-8 py-[22px]">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <h1 className="text-[20px] font-semibold">Decks</h1>
+        <h1 id="decks-title" tabIndex={-1} className="text-[20px] font-semibold">
+          Decks
+        </h1>
         <span className="text-[13px] text-fg-1">
           {list.length} saved · {packets} {packets === 1 ? 'packet' : 'packets'}
         </span>
@@ -129,8 +125,10 @@ function DeckTable({ onOpen, onPair }: { onOpen(id: string): void; onPair(): voi
           <button
             type="button"
             className={ui.secondary}
-            disabled={packets < 2}
-            title={packets < 2 ? 'Save two 20-card packets to pair them.' : undefined}
+            disabled={!pairable}
+            title={
+              pairable ? undefined : 'Save two 20-card packets of different colors to pair them.'
+            }
             onClick={onPair}
           >
             Pair packets
@@ -183,14 +181,23 @@ function DeckTable({ onOpen, onPair }: { onOpen(id: string): void; onPair(): voi
                 </td>
                 <td className="pr-[18px]">
                   <span className="flex items-center justify-end gap-3.5">
-                    <button type="button" className={ui.link} onClick={() => onOpen(d.id)}>
+                    <button
+                      id={`open-${d.id}`}
+                      type="button"
+                      className={ui.link}
+                      onClick={() => onOpen(d.id)}
+                    >
                       Open
                     </button>
                     <ExportMenuInline deck={d} onStatus={setStatus} />
                     <button
                       type="button"
                       className={ui.quiet}
-                      onClick={() => actions.disassemble(d)}
+                      onClick={() => {
+                        const next = list[list.indexOf(d) + 1] ?? list[list.indexOf(d) - 1];
+                        if (actions.disassemble(d))
+                          focusLater(next ? `open-${next.id}` : 'decks-title');
+                      }}
                     >
                       Disassemble
                     </button>
@@ -205,11 +212,9 @@ function DeckTable({ onOpen, onPair }: { onOpen(id: string): void; onPair(): voi
         Disassemble deletes the deck and returns its cards to the pool. Delete without returning is
         under the deck&apos;s menu.
       </p>
-      {status && (
-        <p role="status" className="text-[12.5px] text-fg-2">
-          {status}
-        </p>
-      )}
+      <p role="status" className="min-h-4 text-[12.5px] text-fg-2">
+        {status}
+      </p>
     </div>
   );
 }
@@ -250,7 +255,7 @@ function ExportMenuInline({ deck, onStatus }: { deck: Deck; onStatus(s: string):
 
 function SavedDeck({ deck, onBack }: { deck: Deck; onBack(): void }) {
   const { decks, index } = useAppState();
-  const actions = useDeckActions();
+  const actions = useDeckActionsWithConfirm();
   const [status, setStatus] = useStatus();
   const [renaming, setRenaming] = useState(false);
   const [name, setName] = useState(deck.name);
@@ -299,10 +304,9 @@ function SavedDeck({ deck, onBack }: { deck: Deck; onBack(): void }) {
             <button
               type="button"
               className={`${ui.quiet} px-1 text-[13px]`}
-              onClick={() => {
-                actions.removeFromPool(deck);
-                setStatus('Removed its cards from the pool.');
-              }}
+              onClick={() =>
+                setStatus(actions.removeFromPool(deck) ?? 'Removed its cards from the pool.')
+              }
             >
               Remove from pool
             </button>
@@ -432,13 +436,11 @@ function PairPackets({ onBack }: { onBack(): void }) {
             onFocus={(e) => e.currentTarget.select()}
             className="rounded-lg border border-line-strong bg-surface px-3.5 py-3 font-mono text-[12.5px] leading-[1.6]"
           />
-          {status && (
-            <p role="status" className="text-[12.5px] text-fg-2">
-              {status}
-            </p>
-          )}
         </div>
       )}
+      <p role="status" className="min-h-4 max-w-xl text-[12.5px] text-fg-2">
+        {status}
+      </p>
     </div>
   );
 }

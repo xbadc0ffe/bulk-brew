@@ -43,6 +43,41 @@ const COPY_ROWS: { size: DeckSize; label: string }[] = [
   { size: 20, label: 'Max copies, 20-card packet' },
 ];
 
+/** A number field that edits a draft and saves a clamped value on blur or Enter. */
+function CopiesField(props: {
+  id: string;
+  value: number;
+  disabled: boolean;
+  onCommit(n: number): void;
+}) {
+  const { id, value, disabled, onCommit } = props;
+  const [draft, setDraft] = useState<string>();
+  const commit = () => {
+    if (draft === undefined) return;
+    const n = Math.round(Number(draft));
+    if (draft.trim() !== '' && Number.isFinite(n)) onCommit(Math.max(1, Math.min(99, n)));
+    setDraft(undefined);
+  };
+  return (
+    <input
+      id={id}
+      type="number"
+      inputMode="numeric"
+      min={1}
+      max={99}
+      disabled={disabled}
+      value={draft ?? String(value)}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') commit();
+        if (e.key === 'Escape') setDraft(undefined);
+      }}
+      className="w-14 rounded-[5px] border border-line-strong bg-surface px-2.5 py-[3px] text-center font-mono text-[12.5px] disabled:opacity-50"
+    />
+  );
+}
+
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="flex flex-col gap-2">
@@ -76,7 +111,7 @@ function Row({
 }
 
 export function SettingsScreen() {
-  const { kv, pack, index, config, settings, pool, decks, appearance } = useAppState();
+  const { kv, pack, index, config, settings, pool, decks, appearance, build } = useAppState();
   const s = settings.settings;
   // Controls wait for the stored settings so an early edit cannot be overwritten.
   const ready = settings.loaded && pool.loaded && decks.loaded;
@@ -105,6 +140,8 @@ export function SettingsScreen() {
       )
         return;
       await applyBackup(backup, { kv, pool, decks, settings });
+      // A build made from the old pool no longer fits.
+      build.editSettings();
       setMessage(`Restored the backup from ${when}.`);
     } catch (err) {
       setMessage(`Restore failed: ${err instanceof Error ? err.message : String(err)}`);
@@ -117,6 +154,7 @@ export function SettingsScreen() {
     decks.replaceAll([]);
     settings.reset();
     appearance.reset();
+    build.editSettings();
     setMessage('Everything was cleared.');
   };
 
@@ -128,22 +166,11 @@ export function SettingsScreen() {
           <Group title="Building">
             {COPY_ROWS.map(({ size, label }) => (
               <Row key={size} label={label} htmlFor={`copies-${size}`}>
-                <input
+                <CopiesField
                   id={`copies-${size}`}
-                  type="number"
-                  min={1}
-                  max={99}
-                  disabled={!ready}
                   value={s.maxCopies[size]}
-                  onChange={(e) =>
-                    settings.update({
-                      maxCopies: {
-                        ...s.maxCopies,
-                        [size]: Math.max(1, Math.min(99, Number(e.target.value) || 1)),
-                      },
-                    })
-                  }
-                  className="w-14 rounded-[5px] border border-line-strong bg-surface px-2.5 py-[3px] text-center font-mono text-[12.5px] disabled:opacity-50"
+                  disabled={!ready}
+                  onCommit={(n) => settings.update({ maxCopies: { ...s.maxCopies, [size]: n } })}
                 />
               </Row>
             ))}
@@ -231,6 +258,10 @@ export function SettingsScreen() {
                     : `Failed to load: ${pack.error}`
               }
             />
+            <Row
+              label="Updates"
+              hint="New card data arrives with app updates, usually weekly. Reload to get the latest."
+            />
             {CONFIG_PROBLEMS.length > 0 && (
               <div className="px-4 py-[11px] text-ink">
                 <p>The shipped config has problems:</p>
@@ -277,11 +308,9 @@ export function SettingsScreen() {
               </button>
             </Row>
           </Group>
-          {message && (
-            <p role="status" className="-mt-3 text-[12.5px] text-fg-2">
-              {message}
-            </p>
-          )}
+          <p role="status" className={message ? '-mt-3 text-[12.5px] text-fg-2' : 'sr-only'}>
+            {message}
+          </p>
 
           <section className="flex flex-col gap-2 text-[12.5px] leading-[1.6] text-fg-1">
             <h2 className={ui.sectionLabel}>About</h2>

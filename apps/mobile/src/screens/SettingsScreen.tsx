@@ -1,5 +1,11 @@
-import { useState } from 'react';
-import { configVersion, exportBackup, parseBackup, type DeckSize } from '@bulk-brew/core';
+import { useRef, useState } from 'react';
+import {
+  configVersion,
+  DATA_SCHEMA_VERSION,
+  exportBackup,
+  parseBackup,
+  type DeckSize,
+} from '@bulk-brew/core';
 import {
   APPEARANCE_MODES,
   applyBackup,
@@ -7,30 +13,47 @@ import {
   CONFIG_PROBLEMS,
   downloadText,
   FAN_CONTENT_NOTICE,
-  LICENSE_LINE,
+  phone,
   readFileText,
   REPO_URL,
   SCRYFALL_NOTICE,
   SCRYFALL_URL,
   Segmented,
+  Stepper,
   THEME_COLORS,
+  Toggle,
   WIZARDS_NOTICE,
+  type ThemeColor,
 } from '@bulk-brew/ui';
 import { version } from '../../package.json';
 import { useAppState } from '../app-context.ts';
+import { Group, LargeTitle, Pushed, Row } from '../parts.tsx';
 
-const muted = 'text-sm text-zinc-600 dark:text-zinc-400';
-const input =
-  'w-16 rounded border border-zinc-300 bg-white px-2 py-1 text-base disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900';
-const button =
-  'rounded border border-zinc-300 bg-white px-3 py-2 text-sm active:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900';
+const SWATCH: Record<ThemeColor, string> = {
+  grey: 'var(--text2)',
+  W: 'oklch(0.86 0.02 85)',
+  U: 'oklch(0.78 0.05 245)',
+  B: 'oklch(0.55 0.04 305)',
+  R: 'oklch(0.72 0.06 25)',
+  G: 'oklch(0.68 0.06 150)',
+};
+
+const SIZES: { size: DeckSize; label: string }[] = [
+  { size: 60, label: '60-card deck' },
+  { size: 40, label: '40-card deck' },
+  { size: 20, label: '20-card packet' },
+];
+
+type Sub = 'copies' | 'appearance' | undefined;
 
 export function SettingsScreen() {
-  const { kv, pack, index, config, settings, pool, decks, appearance } = useAppState();
+  const { kv, pack, index, config, settings, pool, decks, appearance, build } = useAppState();
   const s = settings.settings;
   // Controls wait for the stored settings so an early edit cannot be overwritten.
   const ready = settings.loaded && pool.loaded && decks.loaded;
   const [message, setMessage] = useState<string>();
+  const [sub, setSub] = useState<Sub>();
+  const restoreInput = useRef<HTMLInputElement>(null);
 
   const exportNow = () => {
     const now = new Date();
@@ -54,9 +77,11 @@ export function SettingsScreen() {
       )
         return;
       await applyBackup(backup, { kv, pool, decks, settings });
+      // A build made from the old pool no longer fits.
+      build.editSettings();
       setMessage(`Restored the backup from ${when}.`);
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : String(err));
+      setMessage(`Restore failed: ${err instanceof Error ? err.message : String(err)}`);
     }
   };
 
@@ -66,160 +91,219 @@ export function SettingsScreen() {
     decks.replaceAll([]);
     settings.reset();
     appearance.reset();
+    build.editSettings();
     setMessage('Everything was cleared.');
   };
 
+  const mode = APPEARANCE_MODES.find((m) => m.id === appearance.appearance.mode)?.label;
+  const theme = THEME_COLORS.find((t) => t.id === appearance.appearance.theme)?.label;
+
   return (
-    <div className="flex flex-col gap-5 text-sm">
-      <section className="flex flex-col gap-2">
-        <h2 className="font-semibold">Copies per card</h2>
-        {([60, 40, 20] as DeckSize[]).map((size) => (
-          <label key={size} className="flex items-center justify-between py-1">
-            {size}-card deck
-            <input
-              type="number"
-              min={1}
-              max={99}
+    <div className="flex min-h-0 flex-1 flex-col">
+      <LargeTitle title="Settings" />
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pb-6">
+        <Group label="Building">
+          <Row
+            label="Max copies"
+            value={`60: ${s.maxCopies[60]} · 40: ${s.maxCopies[40]} · 20: ${s.maxCopies[20]}`}
+            onClick={() => setSub('copies')}
+            disabled={!ready}
+          />
+          <Row label="Unlimited basic lands" hint="Basics need not be imported">
+            <Toggle
+              label="Unlimited basic lands"
+              checked={s.unlimitedBasics}
               disabled={!ready}
-              value={s.maxCopies[size]}
-              onChange={(e) =>
-                settings.update({
-                  maxCopies: { ...s.maxCopies, [size]: Math.max(1, Number(e.target.value) || 1) },
-                })
-              }
-              className={input}
+              onChange={(v) => settings.update({ unlimitedBasics: v })}
+              variant="phone"
             />
-          </label>
-        ))}
-        <p className={muted}>Basic lands are never limited.</p>
-      </section>
-
-      <section className="flex flex-col gap-2">
-        <h2 className="font-semibold">Pool</h2>
-        <label className="flex items-center gap-3 py-1">
-          <input
-            type="checkbox"
-            disabled={!ready}
-            checked={s.unlimitedBasics}
-            onChange={(e) => settings.update({ unlimitedBasics: e.target.checked })}
-          />
-          Basic lands are unlimited
-        </label>
-        <label className="flex items-center gap-3 py-1">
-          <input
-            type="checkbox"
-            disabled={!ready}
-            checked={s.includeUnsets}
-            onChange={(e) => settings.update({ includeUnsets: e.target.checked })}
-          />
-          Include Un-set and acorn cards
-        </label>
-      </section>
-
-      <section className="flex flex-col gap-2">
-        <h2 className="font-semibold">Display</h2>
-        <label className="flex items-center gap-3 py-1">
-          <input
-            type="checkbox"
-            disabled={!ready}
-            checked={s.showArt}
-            onChange={(e) => settings.update({ showArt: e.target.checked })}
-          />
-          Show card art (loads images from Scryfall as you browse)
-        </label>
-      </section>
-
-      <section className="flex flex-col gap-2">
-        <h2 className="font-semibold">Appearance</h2>
-        <Segmented
-          label="Appearance"
-          options={APPEARANCE_MODES}
-          value={appearance.appearance.mode}
-          onChange={appearance.setMode}
-        />
-        <Segmented
-          label="Theme color"
-          options={THEME_COLORS}
-          value={appearance.appearance.theme}
-          onChange={appearance.setTheme}
-        />
-      </section>
-
-      <section className="flex flex-col gap-2">
-        <h2 className="font-semibold">Backup</h2>
-        <p className={muted}>
-          One file holds your pool, saved decks, and settings. Restoring replaces all three.
-        </p>
-        <div className="flex flex-wrap gap-2">
-          <button type="button" className={button} disabled={!ready} onClick={exportNow}>
-            Export backup
-          </button>
-          <label className={`${button} ${ready ? '' : 'opacity-50'}`}>
-            Restore backup
-            <input
-              type="file"
-              accept=".json,application/json"
-              className="sr-only"
+          </Row>
+          <Row label="Include Un-set and acorn cards">
+            <Toggle
+              label="Include Un-set and acorn cards"
+              checked={s.includeUnsets}
               disabled={!ready}
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) void restore(file);
-                e.target.value = '';
-              }}
+              onChange={(v) => settings.update({ includeUnsets: v })}
+              variant="phone"
             />
-          </label>
-          <button type="button" className={button} disabled={!ready} onClick={clearAll}>
-            Clear all data
-          </button>
-        </div>
-        {message && <p className={muted}>{message}</p>}
-      </section>
+          </Row>
+        </Group>
 
-      <section className="flex flex-col gap-2">
-        <h2 className="font-semibold">Card data</h2>
-        <p className={muted}>
-          {pack.status === 'ready'
-            ? `Version ${pack.index.version}, ${pack.index.size} cards.`
-            : pack.status === 'loading'
-              ? 'Loading.'
-              : `Failed to load: ${pack.error}`}
+        <Group label="Display">
+          <Row label="Show card art" hint="Loads images from Scryfall as you browse">
+            <Toggle
+              label="Show card art"
+              checked={s.showArt}
+              disabled={!ready}
+              onChange={(v) => settings.update({ showArt: v })}
+              variant="phone"
+            />
+          </Row>
+          <Row
+            label="Appearance"
+            value={`${mode} · ${theme}`}
+            onClick={() => setSub('appearance')}
+          />
+        </Group>
+
+        <Group label="Card data">
+          <Row
+            label={`Scryfall data v${DATA_SCHEMA_VERSION}`}
+            hint={
+              pack.status === 'ready'
+                ? `${pack.index.version} · ${pack.index.size.toLocaleString('en-US')} cards · config ${configVersion(config)}`
+                : pack.status === 'loading'
+                  ? 'Loading'
+                  : `Failed to load: ${pack.error}`
+            }
+          />
+          <Row
+            label="Check for card updates"
+            hint="Arrives with the iOS app"
+            onClick={() => {}}
+            disabled
+          />
+          {CONFIG_PROBLEMS.length > 0 && (
+            <div className="px-4 py-2.5 text-[0.8125rem] text-ink">
+              The shipped config has problems: {CONFIG_PROBLEMS.join('; ')}
+            </div>
+          )}
+        </Group>
+
+        <Group label="Backup">
+          <Row
+            label="Export backup"
+            hint="Pool, decks and settings as one file"
+            onClick={exportNow}
+            disabled={!ready}
+          />
+          <Row
+            label="Restore from backup"
+            hint="Replaces your pool, decks, and settings"
+            onClick={() => restoreInput.current?.click()}
+            disabled={!ready}
+          />
+          <Row
+            label={<span className="text-fg-1">Clear all data</span>}
+            onClick={clearAll}
+            disabled={!ready}
+          />
+        </Group>
+        <input
+          ref={restoreInput}
+          type="file"
+          accept=".json,application/json"
+          className="sr-only"
+          tabIndex={-1}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) void restore(file);
+            e.target.value = '';
+          }}
+        />
+        <p role="status" className={message ? `${phone.note} px-1` : 'sr-only'}>
+          {message}
         </p>
-        {CONFIG_PROBLEMS.length > 0 && (
-          <div className="text-amber-600">
-            <p>The shipped config has problems:</p>
-            <ul className="list-disc pl-5">
-              {CONFIG_PROBLEMS.map((p) => (
-                <li key={p}>{p}</li>
+
+        <section className="flex flex-col gap-2 px-1 text-[0.75rem] leading-[1.55] text-fg-1">
+          <h2 className={phone.groupLabel}>About</h2>
+          <p>
+            Bulk Brew {version} · MIT License ·{' '}
+            <a className="text-ink underline" href={REPO_URL} target="_blank" rel="noreferrer">
+              Source on GitHub
+            </a>
+          </p>
+          <p>{FAN_CONTENT_NOTICE}</p>
+          <p>{WIZARDS_NOTICE}</p>
+          <p>
+            {SCRYFALL_NOTICE}{' '}
+            <a className="text-ink underline" href={SCRYFALL_URL} target="_blank" rel="noreferrer">
+              scryfall.com
+            </a>
+          </p>
+          <button
+            type="button"
+            className="min-h-11 self-start text-[0.8125rem] text-fg-2 underline"
+            disabled={!ready}
+            onClick={() => {
+              settings.reset();
+              setMessage('Settings are back to their defaults.');
+            }}
+          >
+            Reset settings to defaults
+          </button>
+        </section>
+      </div>
+
+      {sub === 'copies' && (
+        <Pushed back={{ label: 'Settings', onClick: () => setSub(undefined) }} title="Max copies">
+          <div className="flex flex-col gap-3 px-4 pb-4">
+            <Group>
+              {SIZES.map(({ size, label }) => (
+                <Row key={size} label={label}>
+                  <Stepper
+                    label={`Max copies, ${label}`}
+                    value={s.maxCopies[size]}
+                    min={1}
+                    max={99}
+                    onChange={(n) => settings.update({ maxCopies: { ...s.maxCopies, [size]: n } })}
+                    variant="phone"
+                  />
+                </Row>
               ))}
-            </ul>
+            </Group>
+            <p className={`${phone.note} px-1`}>
+              The most copies of one card a deck may use. Basic lands are never limited.
+            </p>
           </div>
-        )}
-      </section>
+        </Pushed>
+      )}
 
-      <section className="flex flex-col gap-2">
-        <h2 className="font-semibold">About</h2>
-        <p className={muted}>
-          Bulk Brew {version}. Card data {index?.version ?? 'not loaded'}
-          {index ? `, ${index.size} cards` : ''}. Config {configVersion(config)}.
-        </p>
-        <p className={muted}>{FAN_CONTENT_NOTICE}</p>
-        <p className={muted}>{WIZARDS_NOTICE}</p>
-        <p className={muted}>
-          {SCRYFALL_NOTICE}{' '}
-          <a className="underline" href={SCRYFALL_URL} target="_blank" rel="noreferrer">
-            scryfall.com
-          </a>
-        </p>
-        <p className={muted}>
-          {LICENSE_LINE}{' '}
-          <a className="underline" href={REPO_URL} target="_blank" rel="noreferrer">
-            Source on GitHub
-          </a>
-        </p>
-        <button type="button" className={button} disabled={!ready} onClick={settings.reset}>
-          Reset settings to defaults
-        </button>
-      </section>
+      {sub === 'appearance' && (
+        <Pushed back={{ label: 'Settings', onClick: () => setSub(undefined) }} title="Appearance">
+          <div className="flex flex-col gap-4 px-4 pb-4">
+            <section className="flex flex-col gap-1.5">
+              <h2 className={phone.groupLabel}>Mode</h2>
+              <Segmented
+                label="Appearance"
+                options={APPEARANCE_MODES}
+                value={appearance.appearance.mode}
+                onChange={appearance.setMode}
+                variant="phone"
+              />
+              <p className={`${phone.note} px-1`}>
+                System follows the light or dark setting of your device.
+              </p>
+            </section>
+            <section className="flex flex-col gap-1.5">
+              <h2 className={phone.groupLabel}>Theme color</h2>
+              <div role="radiogroup" aria-label="Theme color" className={phone.group}>
+                {THEME_COLORS.map((t) => {
+                  const on = appearance.appearance.theme === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={on}
+                      onClick={() => appearance.setTheme(t.id)}
+                      className={`${phone.row} w-full active:bg-surface-2`}
+                    >
+                      <span
+                        aria-hidden
+                        className={`size-6 shrink-0 rounded-full ${on ? 'outline-2 outline-offset-2 outline-ink' : 'border border-line-strong'}`}
+                        style={{ background: SWATCH[t.id] }}
+                      />
+                      <span className="flex-1 text-left text-[0.9375rem]">{t.label}</span>
+                      {on && <span className="text-[0.9375rem] text-ink">✓</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          </div>
+        </Pushed>
+      )}
     </div>
   );
 }

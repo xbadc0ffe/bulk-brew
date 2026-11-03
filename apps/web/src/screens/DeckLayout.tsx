@@ -75,11 +75,13 @@ export function DeckLayout(props: {
         {props.badge && <span className={ui.badge}>{props.badge}</span>}
         {props.after}
         <div className="ml-auto flex flex-wrap items-center gap-2">{props.actions}</div>
-        {props.status && (
-          <p role="status" className="basis-full text-right text-[12px] text-fg-2">
-            {props.status}
-          </p>
-        )}
+        {/* Always present, so screen readers announce new text. */}
+        <p
+          role="status"
+          className={props.status ? 'basis-full text-right text-[12px] text-fg-2' : 'sr-only'}
+        >
+          {props.status}
+        </p>
       </header>
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:flex-row lg:overflow-hidden">
         <div className="min-w-0 flex-1 px-7 py-5 lg:overflow-y-auto">

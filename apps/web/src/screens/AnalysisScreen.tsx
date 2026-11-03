@@ -64,15 +64,31 @@ function Analysis() {
         <span className="text-[12.5px] text-fg-2">Scanned {fmt(total)} cards</span>
       </div>
 
-      <div role="tablist" aria-label="Color" className="flex flex-wrap border-b border-line">
+      <div
+        role="tablist"
+        aria-label="Color"
+        className="flex flex-wrap border-b border-line"
+        onKeyDown={(e) => {
+          if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+          e.preventDefault();
+          const at = COLORS.indexOf(color);
+          const next =
+            COLORS[(at + (e.key === 'ArrowRight' ? 1 : COLORS.length - 1)) % COLORS.length]!;
+          setColor(next);
+          document.getElementById(`tab-${next}`)?.focus();
+        }}
+      >
         {COLORS.map((c) => {
           const on = c === color;
           return (
             <button
               key={c}
               type="button"
+              id={`tab-${c}`}
               role="tab"
               aria-selected={on}
+              aria-controls="analysis-panel"
+              tabIndex={on ? 0 : -1}
               onClick={() => setColor(c)}
               className={`-mb-px flex items-center gap-1.5 border-b-2 px-3.5 pt-2 pb-2.5 text-[13px] ${
                 on ? 'border-ink text-ink' : 'border-transparent text-fg-1 hover:text-ink'
@@ -88,7 +104,12 @@ function Analysis() {
         })}
       </div>
 
-      <div role="tabpanel" aria-label={name} className="flex flex-col gap-4">
+      <div
+        id="analysis-panel"
+        role="tabpanel"
+        aria-labelledby={`tab-${color}`}
+        className="flex flex-col gap-4"
+      >
         <p className="flex flex-wrap gap-x-6 gap-y-1 text-[13px] text-fg-1">
           <span>
             {name} · {fmt(scan.candidates)} candidates
@@ -148,16 +169,20 @@ function Analysis() {
           <span className="flex items-center gap-1.5">
             <ViabilityDot state="none" /> Not enough cards
           </span>
-          <button
-            type="button"
-            className={`${ui.link} ml-auto text-[12px]`}
-            onClick={() => {
-              build.setColor(color);
-              nav.go('build');
-            }}
-          >
-            Build {name.toLowerCase()} →
-          </button>
+          {sizes.length > 0 && (
+            <button
+              type="button"
+              className={`${ui.link} ml-auto text-[12px]`}
+              onClick={() => {
+                // Land on a size this color can build, and keep a result already shown for it.
+                if (!scans[build.size][color].possible) build.setSize(sizes[0]!);
+                if (build.color !== color) build.setColor(color);
+                nav.go('build');
+              }}
+            >
+              Build {name.toLowerCase()} →
+            </button>
+          )}
         </div>
       </div>
     </div>

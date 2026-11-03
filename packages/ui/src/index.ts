@@ -68,6 +68,8 @@ export { useCardDetail, type CardDetailState, type OpenCard } from './data/useCa
 export { useWindowedRows, type WindowedRows } from './data/useWindowedRows.ts';
 export { useMediaQuery } from './data/useMediaQuery.ts';
 export { useStatus } from './data/useStatus.ts';
+export { poolShortfall, shortfallMessage } from './data/poolCheck.ts';
+export { useDeckActions, disassembleQuestion, type DeckActions } from './data/useDeckActions.ts';
 export { applyBackup } from './data/backup.ts';
 export {
   poolRows,
@@ -89,7 +91,6 @@ export {
   type PoolSummary,
   type TypeKey,
 } from './data/poolView.ts';
-export { DeckView, type DeckViewProps } from './components/DeckView.tsx';
 export { DeckList, DeckExplanation, type DeckListProps } from './components/DeckParts.tsx';
 export {
   archetypeInfo,
@@ -100,7 +101,6 @@ export {
   type DeckGroup,
   type DeckRow,
 } from './data/deckGroups.ts';
-export { CurveBars } from './components/CurveBars.tsx';
 export { CardImage, type CardImageProps } from './components/CardImage.tsx';
 export { CardDetail, type CardDetailProps } from './components/CardDetail.tsx';
 export { ErrorBoundary } from './components/ErrorBoundary.tsx';

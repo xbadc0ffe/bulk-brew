@@ -105,7 +105,8 @@ function Shell() {
       screen,
       poolView,
       go(next, view) {
-        setVisit((v) => v + 1);
+        // Choosing the current screen again resets its sub-view; Import keeps its text.
+        if (next === screen && next !== 'import') setVisit((v) => v + 1);
         setScreen(next);
         if (view) setPoolView(view);
         else if (next === 'pool') setPoolView('cards');

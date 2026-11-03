@@ -15,6 +15,7 @@ import {
   type Settings,
 } from '@bulk-brew/core';
 import { archetypeViability, type ScansBySize } from './analysis.ts';
+import { poolShortfall, shortfallMessage } from './poolCheck.ts';
 import type { DecksState } from './useDecks.ts';
 import type { PoolState } from './usePool.ts';
 
@@ -46,7 +47,7 @@ export interface BuildFlow {
   result: BuildResult | undefined;
   /** Copy limit the current result was built with. */
   resultMaxCopies: number | undefined;
-  /** The saved copy of the current result, once saved. */
+  /** The stored deck saved from the current result, while it still exists. */
   saved: Deck | undefined;
   error: string | undefined;
   building: boolean;
@@ -72,15 +73,21 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
   const [size, setSizeState] = useState<DeckSize>(60);
   const [color, setColorState] = useState<Color>();
   const [style, setStyleState] = useState<string>();
-  const [copiesOverride, setCopiesOverride] = useState<number>();
+  /** A copy limit for this build, valid only while the size and stored setting match. */
+  const [override, setOverride] = useState<{ size: DeckSize; base: number; value: number }>();
   const [result, setResult] = useState<BuildResult>();
   const [resultMaxCopies, setResultMaxCopies] = useState<number>();
-  const [saved, setSaved] = useState<Deck>();
+  /** Id of the stored deck saved from the current result. */
+  const [savedId, setSavedId] = useState<string>();
   const [error, setError] = useState<string>();
   const [building, setBuilding] = useState(false);
   const [accepted, setAccepted] = useState<Deck>();
 
-  const maxCopies = copiesOverride ?? settings.maxCopies[size];
+  const stored = settings.maxCopies[size];
+  const maxCopies =
+    override && override.size === size && override.base === stored ? override.value : stored;
+  // Read the stored copy, so a rename, commit, or delete made in Decks shows here.
+  const saved = savedId ? decks.decks.find((d) => d.id === savedId) : undefined;
   const buildSettings = useMemo(
     (): Settings =>
       maxCopies === settings.maxCopies[size]
@@ -97,14 +104,13 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
 
   const clearResult = useCallback(() => {
     setResult(undefined);
-    setSaved(undefined);
+    setSavedId(undefined);
     setError(undefined);
   }, []);
 
   const setSize = useCallback(
     (s: DeckSize) => {
       setSizeState(s);
-      setCopiesOverride(undefined);
       clearResult();
     },
     [clearResult],
@@ -126,10 +132,10 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
   );
   const setMaxCopies = useCallback(
     (n: number) => {
-      setCopiesOverride(Math.max(1, Math.floor(n)));
+      setOverride({ size, base: stored, value: Math.max(1, Math.min(99, Math.floor(n))) });
       clearResult();
     },
-    [clearResult],
+    [clearResult, size, stored],
   );
 
   // Run the build on the next tick so the working state can paint first.
@@ -142,7 +148,7 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
           : { size, color, settings: buildSettings };
         setResult(buildDeck(request, pool.pool, index, config));
         setResultMaxCopies(maxCopies);
-        setSaved(undefined);
+        setSavedId(undefined);
         setError(undefined);
       } catch (err) {
         setResult(undefined);
@@ -198,23 +204,35 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
     const deck = toSave();
     if (!deck) return undefined;
     decks.save(deck);
-    setSaved(deck);
+    setSavedId(deck.id);
     return deck;
   }, [saved, toSave, decks]);
 
   const removeFromPool = useCallback((): Deck | undefined => {
     const base = toSave();
     if (!base || !index) return undefined;
+    // Already removed elsewhere (from Decks): nothing more to take.
+    if (base.committed) {
+      clearResult();
+      setAccepted(base);
+      return base;
+    }
+    const short = poolShortfall(pool.pool, base, settings, index, config);
+    if (short > 0) {
+      setError(shortfallMessage(short));
+      return undefined;
+    }
     const now = new Date().toISOString();
     // commitDeck is pure, so computing the deck here and the pool in the
     // updater gives the same answer.
     const { deck } = commitDeck(pool.pool, base, settings, index, config, now);
     pool.actions.transform((p) => commitDeck(p, base, settings, index, config, now).pool);
-    decks.save(deck);
+    if (saved) decks.update(deck);
+    else decks.save(deck);
     clearResult();
     setAccepted(deck);
     return deck;
-  }, [toSave, index, pool.pool, pool.actions, settings, config, decks, clearResult]);
+  }, [toSave, saved, index, pool.pool, pool.actions, settings, config, decks, clearResult]);
 
   return {
     size,

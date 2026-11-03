@@ -6,6 +6,7 @@ import {
   Pip,
   Segmented,
   Stepper,
+  scanShortfall,
   ui,
   useStatus,
   type ScansBySize,
@@ -67,7 +68,9 @@ function BuildForm() {
   return (
     <div className="flex h-full flex-col overflow-y-auto md:flex-row md:overflow-hidden">
       <section className="flex shrink-0 flex-col gap-5 border-line bg-surface px-6 py-[22px] md:w-[400px] md:overflow-y-auto md:border-r">
-        <h1 className="text-[20px] font-semibold">Build</h1>
+        <h1 id="build-title" tabIndex={-1} className="text-[20px] font-semibold">
+          Build
+        </h1>
         {flow.accepted && (
           <p role="status" className={`${ui.error} leading-[1.5]`}>
             Saved &quot;{flow.accepted.name}&quot; and removed its cards from the pool. Build
@@ -89,7 +92,7 @@ function BuildForm() {
 
         <div className="flex flex-col gap-2">
           <h2 className={ui.sectionLabel}>Color</h2>
-          <div role="radiogroup" aria-label="Color" className="grid grid-cols-5 gap-1.5">
+          <div role="group" aria-label="Color" className="grid grid-cols-5 gap-1.5">
             {COLORS.map((c) => {
               const s = flow.sizeScans?.[c];
               const can = s?.possible ?? false;
@@ -98,14 +101,15 @@ function BuildForm() {
                 <button
                   key={c}
                   type="button"
-                  role="radio"
-                  aria-checked={on}
-                  disabled={!can}
+                  aria-pressed={on}
+                  aria-disabled={!can}
                   title={can ? undefined : s?.notes.join('; ')}
-                  onClick={() => flow.setColor(c)}
+                  onClick={() => {
+                    if (can && !on) flow.setColor(c);
+                  }}
                   className={`flex min-w-0 flex-col items-center gap-1 rounded-md border px-1 pt-2.5 pb-2 text-center ${
-                    on ? 'border-ink bg-surface' : 'border-line hover:bg-surface-2'
-                  } disabled:cursor-default disabled:opacity-55 disabled:hover:bg-transparent`}
+                    on ? 'border-ink bg-surface' : 'border-line'
+                  } ${can ? (on ? '' : 'hover:bg-surface-2') : 'cursor-default opacity-55'}`}
                 >
                   <Pip symbol={c} size={22} />
                   <span className="text-[12px] font-medium">{COLOR_LABELS[c]}</span>
@@ -116,11 +120,17 @@ function BuildForm() {
               );
             })}
           </div>
+          {flow.color && scan && !scan.possible && (
+            <p className="text-[12px] text-fg-2">
+              {COLOR_LABELS[flow.color]} cannot build a {flow.size}-card deck:{' '}
+              {scanShortfall(scan) ?? 'not enough cards'}.
+            </p>
+          )}
         </div>
 
         <div className="flex flex-col gap-2">
           <h2 className={ui.sectionLabel}>Style</h2>
-          {scan ? (
+          {scan?.possible ? (
             <div role="radiogroup" aria-label="Style" className="rounded-md border border-line">
               <StyleRow
                 name="Best fit"
@@ -152,6 +162,7 @@ function BuildForm() {
         <div className="flex items-center justify-between gap-3">
           <span className="text-[13px] text-fg-1">Max copies per card</span>
           <Stepper
+            max={99}
             label="Max copies per card"
             value={flow.maxCopies}
             min={1}
@@ -240,7 +251,7 @@ function BuildResultView() {
     <DeckLayout
       deck={deck}
       meta={`${deck.size} cards · ${lands} lands · max ${flow.resultMaxCopies ?? flow.maxCopies} copies`}
-      badge="Still in pool"
+      badge={flow.saved?.committed ? 'Cards removed' : 'Still in pool'}
       after={
         <button
           type="button"
@@ -250,13 +261,18 @@ function BuildResultView() {
           Edit settings
         </button>
       }
-      status={status}
+      status={flow.error ?? status}
       actions={
         <>
           <button
             type="button"
             className={`${ui.quiet} px-1 text-[13px]`}
-            onClick={flow.removeFromPool}
+            disabled={flow.building}
+            onClick={() => {
+              // The result view goes away; land on the form's heading.
+              if (flow.removeFromPool())
+                requestAnimationFrame(() => document.getElementById('build-title')?.focus());
+            }}
           >
             Remove from pool
           </button>
@@ -273,7 +289,7 @@ function BuildResultView() {
           <button
             type="button"
             className={ui.primary}
-            disabled={!!flow.saved}
+            disabled={!!flow.saved || flow.building}
             onClick={() => {
               flow.save();
               setStatus('Saved to Decks. Its cards are still in the pool.');
