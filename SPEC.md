@@ -119,7 +119,7 @@ Tests cover the edge cases above with fixture cards.
 
 ## Config
 
-Versioned data files in `config/`. See `config/README.md` for the file list. In short: deck templates per size (land formula constants, curve targets, type mix, role quotas, tolerances), role definitions mapped to Tagger tags, synergy and composition archetypes, synergy rules, land rules, builder weights, settings defaults, and the tag overlay. Initial values come from the guides in `docs/guides/`, which the user reviews.
+Versioned data files in `config/`, typed and validated by `packages/core/src/config.ts`. See `config/README.md` for the file list. In short: deck templates per size (land formula constants, default curve profile, type mix, role quotas, tolerances), curve profiles, role definitions as matchers over Tagger tags, keywords, types, and derived facts, synergy and composition archetypes, synergy rules, land rules, builder weights, settings defaults, and the tag overlay. Initial values come from the guides in `docs/guides/`, which the user reviews. `npm run config:check` validates the bundle against the data pack.
 
 ## Archetype scan
 
@@ -195,10 +195,10 @@ npm workspaces monorepo, TypeScript throughout.
 | Phase | Deliverable                                                                               | Status |
 | ----- | ----------------------------------------------------------------------------------------- | ------ |
 | 1     | Repo bootstrap: monorepo, license, docs, download scripts, CI, Pages deploy, design brief | done   |
-| 2     | Data pipeline: pack, manifest, edge-case tests, weekly refresh workflow                   | next   |
-| 3     | Core: pack loader, name resolution, pool model with import report and backup              |        |
-| 4     | Guides and config v1: templates, roles, archetypes, synergy and land rules                |        |
-| 5     | Archetype scan and builder v1: mono-color, all sizes, explanations, packet pairing        |        |
+| 2     | Data pipeline: pack, manifest, edge-case tests, weekly refresh workflow                   | done   |
+| 3     | Core: pack loader, name resolution, pool model with import report and backup              | mostly |
+| 4     | Guides and config v1: templates, roles, archetypes, synergy and land rules                | done   |
+| 5     | Archetype scan and builder v1: mono-color, all sizes, explanations, packet pairing        | next   |
 | 6     | Evaluation harness: test pools, rubric, results tracking                                  |        |
 | 7     | Web app: full flow, art toggle, storage, offline, design pass applied                     |        |
 | 8     | iOS app: Capacitor project, bundled data, over-the-air data updates, TestFlight           |        |

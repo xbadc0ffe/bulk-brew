@@ -1,11 +1,13 @@
 # Deckbuilding guides
 
-Distilled guides that are the source material for the files in `config/`. Claude drafts them in phase 4, the user reviews and locks them. Each guide states what it recommends and why, so the config numbers have a traceable reason.
+The reasoning behind the numbers in `config/`. Each guide names the config file and keys it feeds, so a change in one place can be mirrored in the other. The user reviews and tunes these; the builder only reads config.
 
-Planned guides:
+| Guide                             | Feeds                                                                |
+| --------------------------------- | -------------------------------------------------------------------- |
+| [Deck shapes](deck-shapes.md)     | `deck-templates.json`, `curve-profiles.json`, `builder-weights.json` |
+| [Colors](colors.md)               | Which archetypes to expect per color; `archetypes.json` color limits |
+| [Archetypes](archetypes.md)       | `archetypes.json`, `roles.json`, `synergy-rules.json`                |
+| [Mana base](mana-base.md)         | `deck-templates.json` land formula, `land-rules.json`                |
+| [Jumpstart packets](jumpstart.md) | The 20-card template and curve profile                               |
 
-- `deck-shapes.md`: curve, type mix, role coverage, and land counts for 60, 40, and 20-card decks, including the land count formula and how cheap mana sources and the curve move it.
-- `colors.md`: what each color does well in mono-color bulk decks and its typical archetypes.
-- `archetypes.md`: synergy archetypes (tokens, +1/+1 counters, aristocrats, graveyard, spells-matter, lifegain, artifacts) and composition archetypes (aggro, midrange, control), with enabler and payoff definitions.
-- `mana-base.md`: basic land handling, nonbasic lands in mono-color decks, colorless-producing lands, lands that enter tapped.
-- `jumpstart.md`: how a 20-card packet is built so that any two packets make a playable 40-card deck.
+Run `npm run config:check` after editing config. It validates the files, confirms every tag exists in the current data pack, and prints how many cards each role and archetype matches per color.

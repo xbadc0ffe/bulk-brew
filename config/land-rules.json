@@ -1,0 +1,18 @@
+{
+  "version": "1",
+  "basics": {
+    "names": { "W": "Plains", "U": "Island", "B": "Swamp", "R": "Mountain", "G": "Forest" }
+  },
+  "nonbasic": {
+    "producesDeckColor": 2.0,
+    "colorlessOnly": -1.0,
+    "entersTapped": -1.5,
+    "utility": 1.0,
+    "minScore": 0.5,
+    "maxShare": 0.4,
+    "maxColorlessOnly": { "60": 4, "40": 2, "20": 1 }
+  },
+  "mdfc": {
+    "landFaceCountsAsLand": true
+  }
+}

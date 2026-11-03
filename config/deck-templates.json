@@ -1,0 +1,116 @@
+{
+  "version": "1",
+  "templates": {
+    "60": {
+      "size": 60,
+      "label": "60-card deck",
+      "description": "Casual constructed. Four copies of a card at most.",
+      "baseLands": 24,
+      "landFormula": {
+        "referenceMv": 2.9,
+        "slopePerMv": 2.0,
+        "credits": {
+          "rockCheap": 0.5,
+          "rockThree": 0.3,
+          "dorkCheap": 0.4,
+          "dorkThree": 0.25,
+          "landRamp": 0.5,
+          "mdfcLand": 0.6
+        },
+        "min": 20,
+        "max": 27
+      },
+      "curveProfile": "midrange",
+      "typeMix": {
+        "creatureMin": 0.45,
+        "creatureMax": 0.7,
+        "instantSorceryMin": 0.1,
+        "noncreaturePermanentMax": 0.3
+      },
+      "roles": {
+        "removal": { "min": 4, "target": 7 },
+        "cardAdvantage": { "min": 2, "target": 5 },
+        "cheapInteraction": { "min": 2, "target": 4 },
+        "finisher": { "min": 2, "target": 4 },
+        "ramp": { "min": 0, "target": 2 },
+        "earlyCreature": { "min": 4, "target": 8 }
+      },
+      "maxCopies": 4,
+      "tolerances": { "curve": 1, "typeMix": 0.05 }
+    },
+    "40": {
+      "size": 40,
+      "label": "40-card deck",
+      "description": "Limited style, like a draft or sealed deck. Creature heavy.",
+      "baseLands": 17,
+      "landFormula": {
+        "referenceMv": 3.0,
+        "slopePerMv": 1.3,
+        "credits": {
+          "rockCheap": 0.35,
+          "rockThree": 0.2,
+          "dorkCheap": 0.3,
+          "dorkThree": 0.2,
+          "landRamp": 0.35,
+          "mdfcLand": 0.5
+        },
+        "min": 15,
+        "max": 18
+      },
+      "curveProfile": "midrange",
+      "typeMix": {
+        "creatureMin": 0.55,
+        "creatureMax": 0.75,
+        "instantSorceryMin": 0.1,
+        "noncreaturePermanentMax": 0.25
+      },
+      "roles": {
+        "removal": { "min": 3, "target": 5 },
+        "cardAdvantage": { "min": 1, "target": 3 },
+        "cheapInteraction": { "min": 1, "target": 3 },
+        "finisher": { "min": 2, "target": 3 },
+        "ramp": { "min": 0, "target": 1 },
+        "earlyCreature": { "min": 3, "target": 6 }
+      },
+      "maxCopies": 4,
+      "tolerances": { "curve": 1, "typeMix": 0.05 }
+    },
+    "20": {
+      "size": 20,
+      "label": "Jumpstart packet",
+      "description": "Half a deck with its own lands. Any two packets shuffle into a 40-card deck.",
+      "baseLands": 8,
+      "landFormula": {
+        "referenceMv": 2.6,
+        "slopePerMv": 0.7,
+        "credits": {
+          "rockCheap": 0.2,
+          "rockThree": 0.1,
+          "dorkCheap": 0.15,
+          "dorkThree": 0.1,
+          "landRamp": 0.2,
+          "mdfcLand": 0.3
+        },
+        "min": 7,
+        "max": 9
+      },
+      "curveProfile": "jumpstart",
+      "typeMix": {
+        "creatureMin": 0.55,
+        "creatureMax": 0.8,
+        "instantSorceryMin": 0.08,
+        "noncreaturePermanentMax": 0.25
+      },
+      "roles": {
+        "removal": { "min": 1, "target": 2 },
+        "cardAdvantage": { "min": 0, "target": 1 },
+        "cheapInteraction": { "min": 1, "target": 2 },
+        "finisher": { "min": 1, "target": 2 },
+        "ramp": { "min": 0, "target": 1 },
+        "earlyCreature": { "min": 2, "target": 4 }
+      },
+      "maxCopies": 2,
+      "tolerances": { "curve": 1, "typeMix": 0.08 }
+    }
+  }
+}

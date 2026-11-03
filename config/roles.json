@@ -1,0 +1,84 @@
+{
+  "version": "1",
+  "roles": [
+    {
+      "id": "removal",
+      "label": "Removal",
+      "description": "Deals with one opposing creature or threat: destroy, exile, burn, pacify, bounce.",
+      "match": [
+        {
+          "anyTags": ["removal-creature", "removal-planeswalker"],
+          "excludeTags": ["sweeper"]
+        }
+      ]
+    },
+    {
+      "id": "sweeper",
+      "label": "Sweeper",
+      "description": "Clears several creatures at once.",
+      "match": [{ "allTags": ["sweeper", "removal-creature"] }]
+    },
+    {
+      "id": "cardAdvantage",
+      "label": "Card advantage",
+      "description": "Draws extra cards or keeps the hand full over time.",
+      "match": [
+        {
+          "anyTags": [
+            "pure-draw",
+            "burst-draw",
+            "draw-engine",
+            "impulsive-draw",
+            "repeatable-card-advantage",
+            "cantrip",
+            "loot",
+            "rummage"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cheapInteraction",
+      "label": "Cheap interaction",
+      "description": "Instants and cheap spells that swing combat or answer a play for two mana or less.",
+      "match": [
+        {
+          "anyTags": [
+            "combat-trick",
+            "protects-creature",
+            "counterspell",
+            "spot-removal",
+            "removal-bounce",
+            "freeze"
+          ],
+          "excludeTypes": ["creature", "land"],
+          "maxMv": 2
+        }
+      ]
+    },
+    {
+      "id": "finisher",
+      "label": "Finisher",
+      "description": "A threat that ends the game on its own: a big body, a big flyer, or a planeswalker.",
+      "match": [{ "derived": "finisher" }]
+    },
+    {
+      "id": "ramp",
+      "label": "Ramp",
+      "description": "Mana creatures, mana rocks, and spells that fetch lands, costing three or less.",
+      "match": [{ "derived": "cheapManaSource" }]
+    },
+    {
+      "id": "earlyCreature",
+      "label": "Early creature",
+      "description": "A creature costing one or two, so the deck has plays on the first turns.",
+      "match": [{ "types": ["creature"], "maxMv": 2 }]
+    },
+    {
+      "id": "evasiveThreat",
+      "label": "Evasive threat",
+      "description": "A creature that gets past blockers: flying, menace, and similar.",
+      "match": [{ "derived": "evasiveCreature" }]
+    }
+  ]
+}

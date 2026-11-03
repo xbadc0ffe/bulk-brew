@@ -1,0 +1,214 @@
+{
+  "version": "1",
+  "rules": [
+    {
+      "id": "tokens-pump",
+      "note": "Token makers plus anthems and go-wide payoffs.",
+      "enabler": [{ "anyTags": ["repeatable-creature-tokens", "multiple-bodies"] }],
+      "payoff": [
+        {
+          "anyTags": [
+            "anthem",
+            "keyword-anthem",
+            "power-boost-to-all",
+            "creature-count-matters",
+            "synergy-token",
+            "synergy-token-creature",
+            "overrun",
+            "gives-pp-counters-to-all"
+          ]
+        }
+      ],
+      "weight": 1.0
+    },
+    {
+      "id": "tokens-fodder",
+      "note": "Token makers feed sacrifice outlets.",
+      "enabler": [{ "anyTags": ["repeatable-creature-tokens", "multiple-bodies"] }],
+      "payoff": [{ "anyTags": ["sacrifice-outlet-creature", "free-sacrifice-outlet"] }],
+      "weight": 0.7
+    },
+    {
+      "id": "counters",
+      "note": "Counter placers and cards that care about counters.",
+      "enabler": [
+        { "anyTags": ["gives-pp-counters", "gains-pp-counters", "repeatable-pp-counters"] }
+      ],
+      "payoff": [
+        {
+          "anyTags": [
+            "counters-matter",
+            "pp-counters-matter",
+            "repeatable-proliferate",
+            "pseudo-proliferate",
+            "gives-pp-counters-to-all"
+          ]
+        }
+      ],
+      "weight": 1.0
+    },
+    {
+      "id": "aristocrats-outlet",
+      "note": "Sacrifice outlets plus death payoffs.",
+      "enabler": [
+        {
+          "anyTags": [
+            "sacrifice-outlet-creature",
+            "repeatable-sacrifice-outlet",
+            "free-sacrifice-outlet"
+          ]
+        }
+      ],
+      "payoff": [
+        { "anyTags": ["blood-artist-ability", "sacrifice-matters", "your-sacrifice-matters"] },
+        {
+          "anyTags": ["death-trigger"],
+          "excludeTags": ["death-trigger-self", "death-trigger-opponent", "cheat-death"],
+          "excludeTypes": ["instant", "sorcery"]
+        }
+      ],
+      "weight": 1.0
+    },
+    {
+      "id": "aristocrats-fodder",
+      "note": "Creatures that want to die plus outlets to kill them.",
+      "enabler": [{ "anyTags": ["death-trigger-self"], "types": ["creature"] }],
+      "payoff": [{ "anyTags": ["sacrifice-outlet-creature", "free-sacrifice-outlet"] }],
+      "weight": 0.8
+    },
+    {
+      "id": "graveyard",
+      "note": "Self-mill and discard plus recursion and graveyard payoffs.",
+      "enabler": [
+        {
+          "anyTags": [
+            "mill-self",
+            "graveyard-fuel-self",
+            "discard-outlet",
+            "loot",
+            "rummage",
+            "sacrifice-self"
+          ]
+        }
+      ],
+      "payoff": [
+        {
+          "anyTags": [
+            "recursion-creature",
+            "reanimate-creature",
+            "cards-in-graveyard-matter",
+            "castable-from-graveyard",
+            "activate-from-graveyard",
+            "threshold",
+            "undergrowth",
+            "delve",
+            "unearth"
+          ]
+        }
+      ],
+      "weight": 1.0
+    },
+    {
+      "id": "spells",
+      "note": "Instants and sorceries plus prowess-style creatures.",
+      "enabler": [{ "anyTypes": ["instant", "sorcery"], "excludeTypes": ["creature"] }],
+      "payoff": [
+        {
+          "anyTags": [
+            "synergy-instant",
+            "synergy-sorcery",
+            "synergy-noncreature",
+            "prowess-like",
+            "magecraft"
+          ]
+        },
+        { "anyKeywords": ["Prowess"] }
+      ],
+      "weight": 1.0
+    },
+    {
+      "id": "lifegain",
+      "note": "Life gain sources plus cards that reward gaining life.",
+      "enabler": [
+        { "anyTags": ["lifegain", "repeatable-lifegain", "gives-lifelink", "gains-lifelink"] },
+        { "anyKeywords": ["Lifelink"] }
+      ],
+      "payoff": [
+        { "anyTags": ["lifegain-matters", "pridemate", "lifegain-to-damage", "synergy-lifelink"] }
+      ],
+      "weight": 1.0
+    },
+    {
+      "id": "artifacts",
+      "note": "Artifacts plus cards that count or care about them.",
+      "enabler": [{ "types": ["artifact"] }, { "anyTags": ["repeatable-artifact-tokens"] }],
+      "payoff": [
+        {
+          "anyTags": [
+            "synergy-artifact",
+            "synergy-artifact-creature",
+            "artifact-count-matters",
+            "affinity"
+          ]
+        }
+      ],
+      "weight": 1.0
+    },
+    {
+      "id": "auras",
+      "note": "Auras and equipment plus cards that reward attaching them.",
+      "enabler": [{ "typeLineAny": ["Aura", "Equipment"] }],
+      "payoff": [
+        {
+          "anyTags": [
+            "synergy-aura",
+            "synergy-equipment",
+            "synergy-enchantment",
+            "heroic",
+            "enchantment-engine"
+          ]
+        }
+      ],
+      "weight": 1.0
+    },
+    {
+      "id": "auras-hexproof",
+      "note": "Hexproof creatures are safe places to put auras and equipment.",
+      "enabler": [{ "anyKeywords": ["Hexproof"], "types": ["creature"] }],
+      "payoff": [{ "typeLineAny": ["Aura", "Equipment"] }],
+      "weight": 0.6
+    },
+    {
+      "id": "flyers-pump",
+      "note": "Evasive creatures plus anthems and evasion granters.",
+      "enabler": [{ "derived": "evasiveCreature" }],
+      "payoff": [
+        {
+          "anyTags": [
+            "anthem",
+            "keyword-anthem",
+            "power-boost-to-all",
+            "gives-evasion",
+            "gives-flying",
+            "synergy-flying"
+          ]
+        }
+      ],
+      "weight": 0.8
+    },
+    {
+      "id": "ramp-finishers",
+      "note": "Cheap mana sources plus big threats to spend the mana on.",
+      "enabler": [{ "derived": "cheapManaSource" }],
+      "payoff": [{ "derived": "finisher" }],
+      "weight": 0.8
+    },
+    {
+      "id": "haste-finishers",
+      "note": "Haste granters make big creatures hit the turn they land.",
+      "enabler": [{ "anyTags": ["gives-haste"] }],
+      "payoff": [{ "derived": "finisher" }],
+      "weight": 0.3
+    }
+  ]
+}

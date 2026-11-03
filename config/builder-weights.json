@@ -1,0 +1,15 @@
+{
+  "version": "1",
+  "objective": {
+    "curveDeviation": 1.0,
+    "typeMixDeviation": 1.0,
+    "roleShortfall": 2.0,
+    "synergyDensity": 1.5,
+    "themeHit": 0.3
+  },
+  "tiebreaks": ["themeTagHits", "statsPerMana", "lowerMv", "name"],
+  "localSearch": {
+    "maxPasses": 3,
+    "maxSwapsPerPass": 200
+  }
+}

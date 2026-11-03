@@ -1,0 +1,29 @@
+{
+  "version": "1",
+  "profiles": [
+    {
+      "id": "aggro",
+      "label": "Aggro",
+      "description": "Cheap creatures and tricks. Most spells cost one to three.",
+      "shape": [0.2, 0.33, 0.25, 0.14, 0.06, 0.02, 0.0]
+    },
+    {
+      "id": "midrange",
+      "label": "Midrange",
+      "description": "A smooth curve peaking at two and three with a few expensive threats.",
+      "shape": [0.08, 0.25, 0.27, 0.2, 0.12, 0.05, 0.03]
+    },
+    {
+      "id": "control",
+      "label": "Control",
+      "description": "Fewer early plays, more answers, and top-end threats that win late.",
+      "shape": [0.06, 0.2, 0.24, 0.2, 0.14, 0.09, 0.07]
+    },
+    {
+      "id": "jumpstart",
+      "label": "Jumpstart packet",
+      "description": "Low and tight so two packets together still curve out on eight lands each.",
+      "shape": [0.14, 0.3, 0.28, 0.17, 0.08, 0.03, 0.0]
+    }
+  ]
+}

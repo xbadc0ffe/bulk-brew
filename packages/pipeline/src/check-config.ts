@@ -1,0 +1,108 @@
+// Entry point for `npm run config:check`. Validates the config bundle, then,
+// when a built data pack is present, verifies every tag slug exists and
+// reports how many mono-color cards each role and archetype matches per
+// color, so unproductive tags and thin themes are visible before building.
+
+import { existsSync, readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import {
+  CONFIG_FILES,
+  cardMatches,
+  collectTagReferences,
+  configVersion,
+  validateConfig,
+  type BulkBrewConfig,
+  type CardRecord,
+  type Color,
+  type DataPack,
+} from '@bulk-brew/core';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+const CONFIG_DIR = path.join(ROOT, 'config');
+const PACK_PATH = path.join(ROOT, 'data', 'packs', 'cards.v1.json');
+const COLORS: (Color | 'C')[] = ['W', 'U', 'B', 'R', 'G', 'C'];
+
+export function loadConfigDir(dir: string): BulkBrewConfig {
+  const bundle: Record<string, unknown> = {};
+  for (const [key, file] of Object.entries(CONFIG_FILES)) {
+    bundle[key] = JSON.parse(readFileSync(path.join(dir, file), 'utf8'));
+  }
+  return bundle as unknown as BulkBrewConfig;
+}
+
+function colorOf(card: CardRecord): Color | 'C' {
+  return card.identity[0] ?? 'C';
+}
+
+function countRow(label: string, counts: Record<string, number>): string {
+  const cells = COLORS.map((c) => `${c}${String(counts[c] ?? 0).padStart(5)}`).join(' ');
+  return `  ${label.padEnd(28)} ${cells}`;
+}
+
+function main(): number {
+  const config = loadConfigDir(CONFIG_DIR);
+  const problems = validateConfig(config);
+  if (problems.length) {
+    console.error(`config has ${problems.length} problem(s):`);
+    for (const p of problems) console.error(`  - ${p}`);
+    return 1;
+  }
+  console.log(`config ${configVersion(config)} is valid`);
+
+  if (!existsSync(PACK_PATH)) {
+    console.log(
+      'no data pack at data/packs/cards.v1.json; skipping tag checks (run npm run data:build)',
+    );
+    return 0;
+  }
+  const pack = JSON.parse(readFileSync(PACK_PATH, 'utf8')) as DataPack;
+  const mono = pack.cards.filter((c) => c.identity.length <= 1 && !c.unset);
+
+  const universe = new Set<string>();
+  for (const c of pack.cards) for (const t of c.tags) universe.add(t);
+  const missing = [...collectTagReferences(config)].filter((t) => !universe.has(t)).sort();
+  if (missing.length) {
+    console.error(`${missing.length} tag(s) referenced in config do not exist in the pack:`);
+    for (const t of missing) console.error(`  - ${t}`);
+    return 1;
+  }
+  console.log(
+    `all ${collectTagReferences(config).size} referenced tags exist in the pack (${universe.size} tags total)`,
+  );
+
+  console.log(`\nrole matches among ${mono.length} mono-color cards:`);
+  for (const role of config.roles.roles) {
+    const counts: Record<string, number> = {};
+    for (const c of mono)
+      if (cardMatches(c, role.match)) counts[colorOf(c)] = (counts[colorOf(c)] ?? 0) + 1;
+    console.log(countRow(role.id, counts));
+  }
+
+  console.log('\nsynergy archetype enablers / payoffs:');
+  for (const a of config.archetypes.archetypes) {
+    if (a.kind !== 'synergy') continue;
+    const en: Record<string, number> = {};
+    const pay: Record<string, number> = {};
+    for (const c of mono) {
+      const col = colorOf(c);
+      if (cardMatches(c, a.enablers)) en[col] = (en[col] ?? 0) + 1;
+      if (cardMatches(c, a.payoffs)) pay[col] = (pay[col] ?? 0) + 1;
+    }
+    console.log(countRow(`${a.id} enablers`, en));
+    console.log(countRow(`${a.id} payoffs`, pay));
+  }
+
+  let unmatched = 0;
+  for (const c of mono) {
+    if (c.types.includes('land')) continue;
+    if (!config.roles.roles.some((r) => cardMatches(c, r.match))) unmatched++;
+  }
+  console.log(`\n${unmatched} mono-color nonland cards match no role (filler by tiebreaks)`);
+  return 0;
+}
+
+// Run only when invoked as a script, so loadConfigDir can be imported elsewhere.
+if (process.argv[1]?.replace(/\\/g, '/').endsWith('/check-config.ts')) {
+  process.exitCode = main();
+}

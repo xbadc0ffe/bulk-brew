@@ -8,3 +8,5 @@ export * from './images.ts';
 export * from './pack.ts';
 export * from './resolve.ts';
 export * from './pool.ts';
+export * from './config.ts';
+export * from './matchers.ts';

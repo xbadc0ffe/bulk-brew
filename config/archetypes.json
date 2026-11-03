@@ -1,0 +1,347 @@
+{
+  "version": "1",
+  "archetypes": [
+    {
+      "kind": "composition",
+      "id": "aggro",
+      "label": "Aggro",
+      "description": "Cheap creatures, combat tricks, and a fast clock.",
+      "curveProfile": "aggro",
+      "typeMixOverrides": { "creatureMin": 0.6, "creatureMax": 0.8 },
+      "roleOverrides": {
+        "60": {
+          "earlyCreature": { "min": 10, "target": 14 },
+          "cheapInteraction": { "min": 3, "target": 6 },
+          "removal": { "min": 3, "target": 5 },
+          "cardAdvantage": { "min": 0, "target": 2 },
+          "finisher": { "min": 1, "target": 2 }
+        },
+        "40": {
+          "earlyCreature": { "min": 7, "target": 9 },
+          "cheapInteraction": { "min": 2, "target": 4 },
+          "removal": { "min": 2, "target": 4 },
+          "cardAdvantage": { "min": 0, "target": 1 },
+          "finisher": { "min": 1, "target": 2 }
+        },
+        "20": {
+          "earlyCreature": { "min": 4, "target": 5 },
+          "cheapInteraction": { "min": 1, "target": 2 },
+          "removal": { "min": 1, "target": 2 },
+          "cardAdvantage": { "min": 0, "target": 0 },
+          "finisher": { "min": 0, "target": 1 }
+        }
+      }
+    },
+    {
+      "kind": "composition",
+      "id": "midrange",
+      "label": "Midrange",
+      "description": "Good creatures, solid removal, and a few game-ending threats.",
+      "curveProfile": "midrange"
+    },
+    {
+      "kind": "composition",
+      "id": "control",
+      "label": "Control",
+      "description": "Answers first, card advantage second, a few big threats to close.",
+      "curveProfile": "control",
+      "typeMixOverrides": { "creatureMin": 0.25, "creatureMax": 0.5, "instantSorceryMin": 0.25 },
+      "roleOverrides": {
+        "60": {
+          "removal": { "min": 6, "target": 10 },
+          "sweeper": { "min": 1, "target": 2 },
+          "cardAdvantage": { "min": 4, "target": 7 },
+          "cheapInteraction": { "min": 3, "target": 5 },
+          "finisher": { "min": 2, "target": 3 },
+          "earlyCreature": { "min": 0, "target": 2 }
+        },
+        "40": {
+          "removal": { "min": 4, "target": 7 },
+          "sweeper": { "min": 0, "target": 1 },
+          "cardAdvantage": { "min": 2, "target": 4 },
+          "cheapInteraction": { "min": 2, "target": 3 },
+          "finisher": { "min": 2, "target": 3 },
+          "earlyCreature": { "min": 0, "target": 2 }
+        },
+        "20": {
+          "removal": { "min": 2, "target": 3 },
+          "sweeper": { "min": 0, "target": 0 },
+          "cardAdvantage": { "min": 1, "target": 2 },
+          "cheapInteraction": { "min": 1, "target": 2 },
+          "finisher": { "min": 1, "target": 2 },
+          "earlyCreature": { "min": 0, "target": 1 }
+        }
+      }
+    },
+    {
+      "kind": "synergy",
+      "id": "tokens",
+      "label": "Tokens",
+      "description": "Make lots of small creatures, then pump the team.",
+      "curveProfile": "midrange",
+      "enablers": [{ "anyTags": ["repeatable-creature-tokens", "multiple-bodies"] }],
+      "payoffs": [
+        {
+          "anyTags": [
+            "anthem",
+            "keyword-anthem",
+            "power-boost-to-all",
+            "creature-count-matters",
+            "synergy-token",
+            "synergy-token-creature",
+            "overrun",
+            "gives-pp-counters-to-all"
+          ]
+        }
+      ],
+      "minimums": {
+        "60": { "enablers": 8, "payoffs": 4 },
+        "40": { "enablers": 5, "payoffs": 3 },
+        "20": { "enablers": 3, "payoffs": 1 }
+      },
+      "synergyWeight": 1.0
+    },
+    {
+      "kind": "synergy",
+      "id": "counters",
+      "label": "+1/+1 counters",
+      "description": "Creatures that grow, and cards that reward growing them.",
+      "curveProfile": "midrange",
+      "enablers": [
+        { "anyTags": ["gives-pp-counters", "gains-pp-counters", "repeatable-pp-counters"] }
+      ],
+      "payoffs": [
+        {
+          "anyTags": [
+            "counters-matter",
+            "pp-counters-matter",
+            "repeatable-proliferate",
+            "pseudo-proliferate",
+            "gives-pp-counters-to-all"
+          ]
+        }
+      ],
+      "minimums": {
+        "60": { "enablers": 8, "payoffs": 3 },
+        "40": { "enablers": 5, "payoffs": 2 },
+        "20": { "enablers": 3, "payoffs": 1 }
+      },
+      "synergyWeight": 1.0
+    },
+    {
+      "kind": "synergy",
+      "id": "aristocrats",
+      "label": "Aristocrats",
+      "description": "Sacrifice your own creatures for value, with payoffs when they die.",
+      "curveProfile": "midrange",
+      "enablers": [
+        {
+          "anyTags": [
+            "sacrifice-outlet-creature",
+            "repeatable-sacrifice-outlet",
+            "free-sacrifice-outlet"
+          ]
+        },
+        { "anyTags": ["repeatable-creature-tokens", "multiple-bodies", "death-trigger-self"] }
+      ],
+      "payoffs": [
+        { "anyTags": ["blood-artist-ability", "sacrifice-matters", "your-sacrifice-matters"] },
+        {
+          "anyTags": ["death-trigger"],
+          "excludeTags": ["death-trigger-self", "death-trigger-opponent", "cheat-death"],
+          "excludeTypes": ["instant", "sorcery"]
+        }
+      ],
+      "minimums": {
+        "60": { "enablers": 8, "payoffs": 4 },
+        "40": { "enablers": 5, "payoffs": 2 },
+        "20": { "enablers": 3, "payoffs": 1 }
+      },
+      "synergyWeight": 1.0
+    },
+    {
+      "kind": "synergy",
+      "id": "graveyard",
+      "label": "Graveyard",
+      "description": "Fill the graveyard, then bring things back or get paid for what is in it.",
+      "curveProfile": "midrange",
+      "enablers": [
+        {
+          "anyTags": [
+            "mill-self",
+            "graveyard-fuel-self",
+            "discard-outlet",
+            "loot",
+            "rummage",
+            "sacrifice-self"
+          ]
+        }
+      ],
+      "payoffs": [
+        {
+          "anyTags": [
+            "recursion-creature",
+            "reanimate-creature",
+            "cards-in-graveyard-matter",
+            "castable-from-graveyard",
+            "activate-from-graveyard",
+            "threshold",
+            "undergrowth",
+            "delve",
+            "unearth"
+          ]
+        }
+      ],
+      "minimums": {
+        "60": { "enablers": 6, "payoffs": 5 },
+        "40": { "enablers": 4, "payoffs": 3 },
+        "20": { "enablers": 2, "payoffs": 2 }
+      },
+      "synergyWeight": 1.0
+    },
+    {
+      "kind": "synergy",
+      "id": "spells",
+      "label": "Spells matter",
+      "description": "Lots of instants and sorceries, with creatures that grow or trigger when you cast them.",
+      "curveProfile": "aggro",
+      "typeMixOverrides": { "creatureMin": 0.3, "creatureMax": 0.55, "instantSorceryMin": 0.35 },
+      "enablers": [{ "anyTypes": ["instant", "sorcery"], "excludeTypes": ["creature"] }],
+      "payoffs": [
+        {
+          "anyTags": [
+            "synergy-instant",
+            "synergy-sorcery",
+            "synergy-noncreature",
+            "prowess-like",
+            "magecraft"
+          ]
+        },
+        { "anyKeywords": ["Prowess"] }
+      ],
+      "minimums": {
+        "60": { "enablers": 14, "payoffs": 5 },
+        "40": { "enablers": 9, "payoffs": 3 },
+        "20": { "enablers": 5, "payoffs": 2 }
+      },
+      "synergyWeight": 1.0
+    },
+    {
+      "kind": "synergy",
+      "id": "lifegain",
+      "label": "Lifegain",
+      "description": "Gain life often, with cards that grow or draw when you do.",
+      "curveProfile": "midrange",
+      "enablers": [
+        { "anyTags": ["lifegain", "repeatable-lifegain", "gives-lifelink", "gains-lifelink"] },
+        { "anyKeywords": ["Lifelink"] }
+      ],
+      "payoffs": [
+        { "anyTags": ["lifegain-matters", "pridemate", "lifegain-to-damage", "synergy-lifelink"] }
+      ],
+      "minimums": {
+        "60": { "enablers": 8, "payoffs": 3 },
+        "40": { "enablers": 5, "payoffs": 2 },
+        "20": { "enablers": 3, "payoffs": 1 }
+      },
+      "synergyWeight": 1.0,
+      "colors": ["W", "B", "G"]
+    },
+    {
+      "kind": "synergy",
+      "id": "artifacts",
+      "label": "Artifacts",
+      "description": "Many artifacts, with cards that count or care about them.",
+      "curveProfile": "midrange",
+      "enablers": [{ "types": ["artifact"] }, { "anyTags": ["repeatable-artifact-tokens"] }],
+      "payoffs": [
+        {
+          "anyTags": [
+            "synergy-artifact",
+            "synergy-artifact-creature",
+            "artifact-count-matters",
+            "affinity"
+          ]
+        }
+      ],
+      "minimums": {
+        "60": { "enablers": 10, "payoffs": 4 },
+        "40": { "enablers": 6, "payoffs": 2 },
+        "20": { "enablers": 3, "payoffs": 1 }
+      },
+      "synergyWeight": 1.0
+    },
+    {
+      "kind": "synergy",
+      "id": "auras",
+      "label": "Auras and equipment",
+      "description": "Suit up a few creatures and get paid for attaching things.",
+      "curveProfile": "aggro",
+      "enablers": [{ "typeLineAny": ["Aura", "Equipment"] }],
+      "payoffs": [
+        {
+          "anyTags": [
+            "synergy-aura",
+            "synergy-equipment",
+            "synergy-enchantment",
+            "heroic",
+            "enchantment-engine"
+          ]
+        },
+        { "anyKeywords": ["Hexproof"], "types": ["creature"] }
+      ],
+      "minimums": {
+        "60": { "enablers": 8, "payoffs": 4 },
+        "40": { "enablers": 5, "payoffs": 2 },
+        "20": { "enablers": 3, "payoffs": 1 }
+      },
+      "synergyWeight": 1.0
+    },
+    {
+      "kind": "synergy",
+      "id": "flyers",
+      "label": "Flyers",
+      "description": "Evasive creatures and ways to make them hit harder.",
+      "curveProfile": "aggro",
+      "enablers": [{ "derived": "evasiveCreature" }],
+      "payoffs": [
+        {
+          "anyTags": [
+            "anthem",
+            "keyword-anthem",
+            "power-boost-to-all",
+            "gives-evasion",
+            "gives-flying",
+            "synergy-flying"
+          ]
+        }
+      ],
+      "minimums": {
+        "60": { "enablers": 10, "payoffs": 3 },
+        "40": { "enablers": 7, "payoffs": 2 },
+        "20": { "enablers": 4, "payoffs": 1 }
+      },
+      "synergyWeight": 0.8
+    },
+    {
+      "kind": "synergy",
+      "id": "bigCreatures",
+      "label": "Ramp into big creatures",
+      "description": "Cheap mana sources that power out large threats early.",
+      "curveProfile": "midrange",
+      "enablers": [{ "derived": "cheapManaSource" }],
+      "payoffs": [{ "derived": "finisher" }],
+      "minimums": {
+        "60": { "enablers": 6, "payoffs": 5 },
+        "40": { "enablers": 4, "payoffs": 3 },
+        "20": { "enablers": 2, "payoffs": 2 }
+      },
+      "synergyWeight": 0.8,
+      "roleOverrides": {
+        "60": { "ramp": { "min": 4, "target": 7 }, "finisher": { "min": 4, "target": 6 } },
+        "40": { "ramp": { "min": 3, "target": 4 }, "finisher": { "min": 3, "target": 4 } },
+        "20": { "ramp": { "min": 2, "target": 2 }, "finisher": { "min": 2, "target": 3 } }
+      }
+    }
+  ]
+}

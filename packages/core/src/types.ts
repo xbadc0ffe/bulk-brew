@@ -164,7 +164,11 @@ export interface RoleCount {
 /** Why the builder made the deck it made. Also the builder's debugging output. */
 export interface BuildExplanation {
   archetype: string;
-  /** Spell count per mana value, index 0 through 7 (7 means seven or more). */
+  /**
+   * Spell count per mana value, index 0 through 7 (7 means seven or more).
+   * Curve profiles cover 1 through 7-plus; zero-cost spells are compared
+   * against the 1 bucket.
+   */
   curve: number[];
   roles: Record<string, RoleCount>;
   lands: {

@@ -11,9 +11,12 @@ Ranked. The current phase is at the top. Finished phases are removed, not struck
 - Settings screen: copy limits, basics, Un-sets, art toggle, wired to storage.
 - Hook tests with a DOM test environment (needs a jsdom dev dependency; ask first).
 
-## Phase 4: guides and config v1
-
 ## Phase 5: archetype scan and builder v1
+
+- Scan: per color and size, evaluate archetype minimums and role quotas over the pool; report near-misses.
+- Builder: candidates, archetype choice, reserved lands, role and curve fill passes with per-type caps, land formula, local search, nonbasics and basics, provenance per card.
+- Deck storage, Build and Deck screens, Accept to commit, Decks list, packet pairing.
+- Config tuning after the first builds: lifegain payoffs are thin outside white and black; spells payoffs are thin outside blue and red.
 
 ## Phase 6: evaluation harness
 
