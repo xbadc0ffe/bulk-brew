@@ -25,6 +25,7 @@
     "check": "npm run typecheck && npm run lint && npm run format:check && npm run test && npm run build",
     "data:fetch": "node scripts/fetch-scryfall-bulk.mjs",
     "data:build": "node packages/pipeline/src/cli.ts",
+    "data:pull": "node scripts/pull-data-pack.mjs",
     "rules:fetch": "node scripts/fetch-comp-rules.mjs"
   },
   "devDependencies": {

@@ -9,6 +9,7 @@ coverage/
 # Raw third-party data (downloaded by scripts, never committed)
 data/raw/
 data/packs/
+apps/*/public/data/
 docs/rules/*
 !docs/rules/README.md
 

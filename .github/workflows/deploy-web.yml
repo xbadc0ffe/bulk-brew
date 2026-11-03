@@ -24,6 +24,8 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      - name: Install the pinned data pack (or rebuild it if the release is missing)
+        run: npm run data:pull || (npm run data:fetch && npm run data:build)
       - run: npm run build -w @bulk-brew/web
         env:
           BASE_PATH: /bulk-brew/

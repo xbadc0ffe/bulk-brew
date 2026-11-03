@@ -35,8 +35,6 @@ export interface CardFace {
   power?: string;
   toughness?: string;
   loyalty?: string;
-  /** Scryfall printing id of this face's image, when the face has its own image. */
-  img?: string;
 }
 
 /**

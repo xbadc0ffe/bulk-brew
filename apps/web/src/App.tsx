@@ -1,4 +1,6 @@
 import { useState, type ComponentType } from 'react';
+import { AppStateProvider } from './app-state.tsx';
+import { useAppState } from './app-context.ts';
 import { BuildScreen, DecksScreen, ImportScreen, PoolScreen, SettingsScreen } from './screens.tsx';
 
 export type ScreenId = 'import' | 'pool' | 'build' | 'decks' | 'settings';
@@ -11,12 +13,21 @@ const SCREENS: { id: ScreenId; label: string; component: ComponentType }[] = [
   { id: 'settings', label: 'Settings', component: SettingsScreen },
 ];
 
+export function App() {
+  return (
+    <AppStateProvider>
+      <Shell />
+    </AppStateProvider>
+  );
+}
+
 /**
  * Desktop-first shell: a left navigation rail and a main pane.
  * Placeholder layout; the design pass replaces it.
  */
-export function App() {
+function Shell() {
   const [screen, setScreen] = useState<ScreenId>('import');
+  const { pack } = useAppState();
   const current = SCREENS.find((s) => s.id === screen) ?? SCREENS[0]!;
   const Screen = current.component;
 
@@ -39,6 +50,11 @@ export function App() {
             {s.label}
           </button>
         ))}
+        <div className="mt-auto text-xs text-zinc-500">
+          {pack.status === 'ready' && `Card data ${pack.index.version}`}
+          {pack.status === 'loading' && 'Loading card data'}
+          {pack.status === 'error' && `Card data failed: ${pack.error}`}
+        </div>
       </nav>
       <main className="flex-1 p-8">
         <h1 className="mb-4 text-2xl font-semibold">{current.label}</h1>

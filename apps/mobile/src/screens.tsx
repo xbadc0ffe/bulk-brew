@@ -1,56 +1,164 @@
 import { useMemo, useState } from 'react';
-import { parseDecklist } from '@bulk-brew/core';
-import { ManaCost } from '@bulk-brew/ui';
+import type { Color } from '@bulk-brew/core';
+import {
+  COLOR_ORDER,
+  ManaCost,
+  poolRows,
+  poolSummary,
+  useImport,
+  type ColorFilter,
+} from '@bulk-brew/ui';
+import { useAppState } from './app-context.ts';
 
-// Placeholder screens. Each becomes its own file during the design pass.
+// Plain functional screens for phones. The design pass restyles and splits them up.
+
+const button =
+  'rounded border border-zinc-300 bg-white px-3 py-2 text-sm active:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900';
+const primary =
+  'rounded bg-zinc-900 px-4 py-2 text-sm text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900';
+const muted = 'text-sm text-zinc-600 dark:text-zinc-400';
 
 export function ImportScreen() {
-  const [text, setText] = useState('');
-  const parsed = useMemo(() => parseDecklist(text), [text]);
-  const total = parsed.lines.reduce((n, l) => n + l.qty, 0);
+  const { index, pool } = useAppState();
+  const imp = useImport(index, pool.actions.add);
+  const total = imp.parsed.lines.reduce((n, l) => n + l.qty, 0);
+
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-sm text-zinc-600 dark:text-zinc-400">
-        Paste a decklist or collection export.
-      </p>
+      <p className={muted}>Paste a decklist or collection export.</p>
       <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        rows={10}
+        value={imp.text}
+        onChange={(e) => imp.setText(e.target.value)}
+        rows={8}
         placeholder={'4 Lightning Bolt (M10) 146\n2 Llanowar Elves\nForest x10'}
         className="w-full rounded border border-zinc-300 bg-white p-3 font-mono text-base dark:border-zinc-700 dark:bg-zinc-900"
       />
-      <div className="text-sm">
-        {parsed.lines.length} lines, {total} cards, {parsed.skipped.length} unreadable
+      <div className="flex items-center gap-2">
+        <button type="button" className={primary} disabled={!imp.canAdd} onClick={imp.addToPool}>
+          Add to pool
+        </button>
+        <span className={muted}>
+          {imp.parsed.lines.length} lines, {total} cards
+        </span>
       </div>
+      {imp.report && (
+        <div className="rounded border border-zinc-200 p-3 text-sm dark:border-zinc-800">
+          <p>Added {imp.report.cardCount} cards to the pool.</p>
+          {imp.report.unresolved.map((u) => (
+            <div key={u.line.line} className="mt-2 flex flex-wrap items-center gap-2">
+              <code className="text-xs">{u.line.raw}</code>
+              {u.suggestions.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  className={button}
+                  onClick={() => imp.acceptSuggestion(u, s)}
+                >
+                  Use {s}
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
 export function PoolScreen() {
+  const { index, pool, pack } = useAppState();
+  const [search, setSearch] = useState('');
+  const [color, setColor] = useState<ColorFilter>('all');
+  const rows = useMemo(
+    () => (index ? poolRows(pool.pool, index, { search, color }) : []),
+    [index, pool.pool, search, color],
+  );
+  const summary = useMemo(
+    () => (index ? poolSummary(pool.pool, index) : undefined),
+    [index, pool.pool],
+  );
+
+  if (pack.status !== 'ready' || !index || !pool.loaded) return <p className={muted}>Loading.</p>;
+  if (!summary || summary.distinct === 0)
+    return <p className={muted}>The pool is empty. Import some cards first.</p>;
+
   return (
-    <p className="text-sm text-zinc-600 dark:text-zinc-400">
-      Your active pool. Example cost: <ManaCost cost="{2}{R}" />
-    </p>
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap gap-1">
+        {(['all', ...COLOR_ORDER, 'C'] as ColorFilter[]).map((c) => (
+          <button
+            key={c}
+            type="button"
+            onClick={() => setColor(c)}
+            aria-pressed={color === c}
+            className={`${button} ${color === c ? 'ring-2 ring-zinc-500' : ''}`}
+          >
+            {c === 'all'
+              ? `All ${summary.cards}`
+              : c === 'C'
+                ? `C ${summary.byColor.C}`
+                : `${c} ${summary.byColor[c as Color]}`}
+          </button>
+        ))}
+      </div>
+      <input
+        type="search"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search"
+        className="w-full rounded border border-zinc-300 bg-white px-3 py-2 text-base dark:border-zinc-700 dark:bg-zinc-900"
+      />
+      <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">
+        {rows.map(({ entry, card }) => (
+          <li key={card.id} className="flex items-center gap-3 py-2">
+            <span className="w-6 text-right tabular-nums">{entry.qty}</span>
+            <span className="flex-1">
+              <span className="block">{card.name}</span>
+              <span className={`block text-xs ${muted}`}>{card.typeLine}</span>
+            </span>
+            <ManaCost cost={card.manaCost} />
+            <button
+              type="button"
+              className={button}
+              onClick={() => pool.actions.remove(card.id, 1)}
+              aria-label={`Remove one ${card.name}`}
+            >
+              -
+            </button>
+          </li>
+        ))}
+      </ul>
+      <button
+        type="button"
+        className={button}
+        onClick={() => {
+          if (window.confirm('Remove every card from the pool?')) pool.actions.clear();
+        }}
+      >
+        Clear pool
+      </button>
+    </div>
   );
 }
 
 export function BuildScreen() {
   return (
-    <p className="text-sm text-zinc-600 dark:text-zinc-400">
-      Pick a size, a color, and an optional style, then build.
+    <p className={muted}>
+      Pick a size, a color, and an optional style, then build. Coming in phase 5.
     </p>
   );
 }
 
 export function DecksScreen() {
-  return <p className="text-sm text-zinc-600 dark:text-zinc-400">Saved decks.</p>;
+  return <p className={muted}>Saved decks. Coming in phase 5.</p>;
 }
 
 export function SettingsScreen() {
+  const { pack } = useAppState();
   return (
-    <p className="text-sm text-zinc-600 dark:text-zinc-400">
-      Copy limits, basics, Un-sets, card art, card data updates, backup, about.
+    <p className={muted}>
+      Card data:{' '}
+      {pack.status === 'ready' ? `${pack.index.version}, ${pack.index.size} cards` : pack.status}
     </p>
   );
 }

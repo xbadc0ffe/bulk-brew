@@ -1,4 +1,6 @@
 import { useState, type ComponentType } from 'react';
+import { AppStateProvider } from './app-state.tsx';
+import { useAppState } from './app-context.ts';
 import { BuildScreen, DecksScreen, ImportScreen, PoolScreen, SettingsScreen } from './screens.tsx';
 
 export type ScreenId = 'import' | 'pool' | 'build' | 'decks' | 'settings';
@@ -11,20 +13,34 @@ const SCREENS: { id: ScreenId; label: string; component: ComponentType }[] = [
   { id: 'settings', label: 'Settings', component: SettingsScreen },
 ];
 
+export function App() {
+  return (
+    <AppStateProvider>
+      <Shell />
+    </AppStateProvider>
+  );
+}
+
 /**
  * Phone-first shell: a title bar, a scrolling content area, and a bottom tab bar
  * that respects the home indicator safe area. Tablet layouts come with the
  * design pass.
  */
-export function App() {
+function Shell() {
   const [screen, setScreen] = useState<ScreenId>('import');
+  const { pack } = useAppState();
   const current = SCREENS.find((s) => s.id === screen) ?? SCREENS[0]!;
   const Screen = current.component;
 
   return (
     <div className="flex min-h-dvh flex-col bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
       <header className="border-b border-zinc-200 px-4 pt-[env(safe-area-inset-top)] dark:border-zinc-800">
-        <h1 className="py-3 text-lg font-semibold">{current.label}</h1>
+        <h1 className="py-3 text-lg font-semibold">
+          {current.label}
+          {pack.status === 'loading' && (
+            <span className="ml-2 text-xs font-normal text-zinc-500">loading card data</span>
+          )}
+        </h1>
       </header>
       <main className="flex-1 overflow-y-auto p-4">
         <Screen />

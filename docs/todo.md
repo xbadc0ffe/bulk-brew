@@ -2,20 +2,14 @@
 
 Ranked. The current phase is at the top. Finished phases are removed, not struck through.
 
-## Phase 2: data pipeline
+## Phase 3: core library (remaining)
 
-- Read the three bulk files, filter to paper-playable layouts, trim to `CardRecord`.
-- Derive normalized types, `entersTapped`, `unset`, multi-face handling (split, adventure, transform, modal DFC).
-- Join Tagger tags, apply `config/tag-overlay.json`.
-- Disambiguate the 36 names that map to more than one oracle id.
-- Emit the data pack and `data/manifest.json`; publish as a release asset.
-- Weekly refresh workflow that opens a pull request when card data changed.
-
-## Phase 3: core library
-
-- Data pack loader and name index.
-- Name resolution: full names, front-face names, accents and punctuation.
-- Pool model: import with resolved and unresolved report, add, remove, clear, export, backup.
+- Backup: export and import pool, decks, and settings as one JSON file.
+- Collection CSV imports (ManaBox, Moxfield, Deckbox) next to decklist text.
+- Virtualize the pool list for pools with thousands of distinct cards.
+- Card detail view: oracle text, tags in plain words, art when enabled.
+- Settings screen: copy limits, basics, Un-sets, art toggle, wired to storage.
+- Hook tests with a DOM test environment (needs a jsdom dev dependency; ask first).
 
 ## Phase 4: guides and config v1
 
@@ -36,6 +30,8 @@ Ranked. The current phase is at the top. Finished phases are removed, not struck
 - Collection CSV imports (ManaBox, Moxfield) in addition to decklist text.
 
 ## Open questions
+
+- Modal double-faced cards with a land back face are marked entersTapped from the land face; decide how the builder treats them.
 
 - Commit policy: commit after each verified step (current default) or only when asked.
 - Pick a short app id for the iOS bundle identifier before phase 8.

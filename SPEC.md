@@ -85,7 +85,7 @@ JSON was chosen over SQLite because the data is small, loads with one fetch, nee
 
 ### Filters and edge cases
 
-- Exclude cards not available in paper and non-playable layouts: tokens, emblems, art series, planes, schemes, vanguards, and similar.
+- Exclude non-playable layouts (tokens, emblems, art series, planes, schemes, vanguards, and similar), oversized cards, and Alchemy digital-only designs. The oracle file lists one printing per card and sometimes picks a digital printing of a real paper card, so a printing's paper flag is not used as a filter.
 - Un-set and acorn cards stay in the pack flagged `unset` and are excluded by default.
 - Multi-face cards: a modal double-faced card with a land face counts as both a land and a spell; split and adventure cards carry multiple costs; transforming cards use the front face for cost and color.
 - X spells, hybrid, and Phyrexian mana are handled in mana value and castability logic.
@@ -104,8 +104,8 @@ Tests cover the edge cases above with fixture cards.
 ### Publishing and updates
 
 - Raw bulk files and built packs are never committed. The repo pins `data/manifest.json`.
-- A weekly GitHub Actions workflow fetches the bulk files, rebuilds the pack, and when the card data changed, publishes the pack as a release asset tagged `data-YYYY-MM-DD` and opens a pull request bumping the manifest. Merging redeploys the web app.
-- The web app fetches the pack named by the manifest and caches it; a new deploy brings the new pack.
+- A weekly GitHub Actions workflow fetches the bulk files, rebuilds the pack, and when the data date changed, publishes the pack as a release asset tagged `data-YYYY-MM-DD`, commits the manifest bump to main, and triggers the web deploy.
+- The web deploy downloads the pinned pack with `npm run data:pull`, verifies its checksum, and serves it from the site's own origin as `data/cards.v1.json`, compressed in transit by the host. The browser caches it; a new deploy brings the new pack.
 - The iOS app bundles the pack and config at build time and offers "check for card updates", which downloads a newer pack and config from GitHub. Apple permits data updates; code changes still need an App Store release. No user data is sent.
 
 ## Images
