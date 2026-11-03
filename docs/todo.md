@@ -11,14 +11,21 @@ Ranked. The current phase is at the top. Finished phases are removed, not struck
 - Settings screen: copy limits, basics, Un-sets, art toggle, wired to storage.
 - Hook tests with a DOM test environment (needs a jsdom dev dependency; ask first).
 
-## Phase 5: archetype scan and builder v1
-
 - Scan: per color and size, evaluate archetype minimums and role quotas over the pool; report near-misses.
 - Builder: candidates, archetype choice, reserved lands, role and curve fill passes with per-type caps, land formula, local search, nonbasics and basics, provenance per card.
 - Deck storage, Build and Deck screens, Accept to commit, Decks list, packet pairing.
 - Config tuning after the first builds: lifegain payoffs are thin outside white and black; spells payoffs are thin outside blue and red.
 
 ## Phase 6: evaluation harness
+
+- `eval/pools/white-bulk.txt` exists; add pools for the other colors and a thin pool.
+- Scoring script over all pools and sizes, results in `eval/results/`.
+
+## Builder follow-ups
+
+- Tune the composition fallback: margin picks aggro for most creature-heavy pools.
+- Let the objective see land count changes during local search.
+- Prefer spreading copies across more distinct cards when the pool allows (variety).
 
 ## Phase 7: web app
 

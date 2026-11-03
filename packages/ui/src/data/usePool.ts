@@ -16,6 +16,8 @@ export interface PoolActions {
   remove(cardId: string, qty?: number): void;
   setQty(cardId: string, qty: number): void;
   clear(): void;
+  /** Apply any pure pool function, for deck commits and returns. */
+  transform(fn: (pool: Pool) => Pool): void;
 }
 
 export interface PoolState {
@@ -64,6 +66,7 @@ export function usePool(kv: KeyValueStore): PoolState {
     remove: useCallback((cardId, qty) => update((p) => removeFromPool(p, cardId, qty)), [update]),
     setQty: useCallback((cardId, qty) => update((p) => setPoolQty(p, cardId, qty)), [update]),
     clear: useCallback(() => update(() => emptyPool()), [update]),
+    transform: useCallback((fn) => update(fn), [update]),
   };
 
   return { pool, loaded, actions };

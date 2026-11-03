@@ -17,3 +17,5 @@ Versioned data files that hold every judgment call the builder makes. Logic live
 Every file carries a `version` field. A deck records the joined config version it was built with (see `configVersion()` in `packages/core/src/config.ts`).
 
 Edit, then run `npm run config:check`: it validates shapes and cross-references, confirms every tag slug exists in the current data pack, and prints per-color match counts for each role and archetype. The same validation runs in `npm test`.
+
+Builder tiebreaks in `builder-weights.json` apply in list order after one fixed leading check: a card that fills a curve bucket still below its target beats one that does not. Card id breaks any remaining tie.

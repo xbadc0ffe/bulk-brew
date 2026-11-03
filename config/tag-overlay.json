@@ -1,5 +1,7 @@
 {
   "version": "2026-11-02",
   "add": {},
-  "remove": {}
+  "remove": {
+    "White Orchid Phantom": ["tutor-land-to-battlefield"]
+  }
 }

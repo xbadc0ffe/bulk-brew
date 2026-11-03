@@ -62,6 +62,8 @@ export type ManaSourceKind = 'rock' | 'dork' | 'landRamp';
 /** Nonland mana source costing 3 or less, for the land formula. */
 export function manaSourceKind(card: CardRecord): ManaSourceKind | undefined {
   if (isLand(card) || card.mv > 3) return undefined;
+  // "donate-" tags mark effects that ramp the opponent, not you.
+  if (card.tags.some((t) => t.startsWith('donate-'))) return undefined;
   if (card.tags.includes('mana-dork') && isCreature(card)) return 'dork';
   if (card.tags.includes('mana-rock')) return 'rock';
   // "land-ramp" also covers extra-land effects, which want more lands, not fewer.

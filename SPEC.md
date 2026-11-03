@@ -198,8 +198,8 @@ npm workspaces monorepo, TypeScript throughout.
 | 2     | Data pipeline: pack, manifest, edge-case tests, weekly refresh workflow                   | done   |
 | 3     | Core: pack loader, name resolution, pool model with import report and backup              | mostly |
 | 4     | Guides and config v1: templates, roles, archetypes, synergy and land rules                | done   |
-| 5     | Archetype scan and builder v1: mono-color, all sizes, explanations, packet pairing        | next   |
-| 6     | Evaluation harness: test pools, rubric, results tracking                                  |        |
+| 5     | Archetype scan and builder v1: mono-color, all sizes, explanations, packet pairing        | done   |
+| 6     | Evaluation harness: test pools, rubric, results tracking                                  | next   |
 | 7     | Web app: full flow, art toggle, storage, offline, design pass applied                     |        |
 | 8     | iOS app: Capacitor project, bundled data, over-the-air data updates, TestFlight           |        |
 | 9     | Later: two-color builds, batch balanced mode, quality score, offline image download       |        |
@@ -214,7 +214,7 @@ Resolved questions, kept so they are not reopened by accident.
 - Data distribution: release assets plus a pinned manifest, not committed packs.
 - Rulings: never bundled.
 - Pools: one active pool. Multiple named pools are not planned.
-- Deleting a deck: offers to return its cards to the pool.
+- Deleting a deck: offers to return its cards to the pool. A committed deck records `basicsTaken` when basics were tracked at commit time, so the return does not depend on the current setting.
 - Copy limits: 4 for 60 and 40, 2 for 20, adjustable.
 - Un-set cards: excluded by default, toggle in settings.
 - Land count: formula from curve and cheap mana sources, not a fixed number.

@@ -78,6 +78,9 @@ export function PoolScreen() {
     [index, pool.pool],
   );
 
+  if (pack.status === 'error') {
+    return <p className="text-sm text-amber-600">Card data failed to load: {pack.error}</p>;
+  }
   if (pack.status !== 'ready' || !index || !pool.loaded) return <p className={muted}>Loading.</p>;
   if (!summary || summary.distinct === 0)
     return <p className={muted}>The pool is empty. Import some cards first.</p>;
@@ -138,27 +141,5 @@ export function PoolScreen() {
         Clear pool
       </button>
     </div>
-  );
-}
-
-export function BuildScreen() {
-  return (
-    <p className={muted}>
-      Pick a size, a color, and an optional style, then build. Coming in phase 5.
-    </p>
-  );
-}
-
-export function DecksScreen() {
-  return <p className={muted}>Saved decks. Coming in phase 5.</p>;
-}
-
-export function SettingsScreen() {
-  const { pack } = useAppState();
-  return (
-    <p className={muted}>
-      Card data:{' '}
-      {pack.status === 'ready' ? `${pack.index.version}, ${pack.index.size} cards` : pack.status}
-    </p>
   );
 }

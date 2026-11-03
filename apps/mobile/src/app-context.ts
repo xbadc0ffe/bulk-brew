@@ -1,12 +1,16 @@
 import { createContext, useContext } from 'react';
-import type { CardIndex } from '@bulk-brew/core';
-import type { PackState, PoolState } from '@bulk-brew/ui';
+import type { BulkBrewConfig, CardIndex } from '@bulk-brew/core';
+import type { BuildFlow, DecksState, PackState, PoolState, SettingsState } from '@bulk-brew/ui';
 
 export interface AppState {
   pack: PackState;
-  /** Convenience: the index when the pack is ready. */
   index: CardIndex | undefined;
+  config: BulkBrewConfig;
   pool: PoolState;
+  settings: SettingsState;
+  decks: DecksState;
+  /** Build screen state, kept here so it survives tab changes. */
+  build: BuildFlow;
 }
 
 export const AppContext = createContext<AppState | undefined>(undefined);

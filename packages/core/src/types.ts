@@ -7,6 +7,16 @@ export const DATA_SCHEMA_VERSION = 1;
 /** The five Magic colors. */
 export type Color = 'W' | 'U' | 'B' | 'R' | 'G';
 
+export const COLORS: readonly Color[] = ['W', 'U', 'B', 'R', 'G'];
+
+export const COLOR_LABELS: Record<Color, string> = {
+  W: 'White',
+  U: 'Blue',
+  B: 'Black',
+  R: 'Red',
+  G: 'Green',
+};
+
 /** A color a permanent can produce; 'C' is colorless. */
 export type ManaColor = Color | 'C';
 
@@ -120,6 +130,8 @@ export interface DeckCard {
   cardId: string;
   qty: number;
   printing?: PrintingHint;
+  /** Short reason the builder chose this card: a role, a theme slot, a curve need, or filler. */
+  why?: string;
 }
 
 export interface Deck {
@@ -134,6 +146,8 @@ export interface Deck {
   basics: Partial<Record<Color, number>>;
   /** True once the deck's cards were removed from the pool. */
   committed: boolean;
+  /** Set when the commit also removed basics (basics were tracked), so a return puts them back. */
+  basicsTaken?: true;
   createdAt: string;
   configVersion: string;
   dataVersion: string;
@@ -154,6 +168,9 @@ export interface BuildRequest {
   /** Preferred archetype id. Used when viable, otherwise the strongest viable one. */
   style?: string;
   settings: Settings;
+  /** Deck id and timestamp come from the caller so the core stays free of clocks and randomness. */
+  id?: string;
+  createdAt?: string;
 }
 
 export interface RoleCount {
@@ -175,6 +192,7 @@ export interface BuildExplanation {
     count: number;
     averageMv: number;
     cheapManaSources: number;
+    nonbasics: number;
   };
   synergies: string[];
   notes: string[];
@@ -188,15 +206,29 @@ export interface BuildResult {
 /** Viability of one archetype for one color and deck size. */
 export interface ArchetypeReport {
   archetype: string;
+  label: string;
+  kind: 'synergy' | 'composition';
   viable: boolean;
+  /** Synergy archetypes count enablers and payoffs; composition ones count spells against slots. */
   enablers: RoleCount;
   payoffs: RoleCount;
+  /** How far above the minimums the pool sits, as a ratio; negative means short. */
+  margin: number;
   notes: string[];
 }
 
 export interface ScanReport {
   color: Color;
   size: DeckSize;
+  /** Available spell copies that fit the color. */
   candidates: number;
+  /** Distinct spell cards that fit the color. */
+  distinct: number;
+  lands: number;
+  /** Spell slots the template leaves after its base land count. */
+  spellSlots: number;
+  /** Whether a deck of this size can be built at all. */
+  possible: boolean;
   archetypes: ArchetypeReport[];
+  notes: string[];
 }

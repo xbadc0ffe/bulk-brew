@@ -27,6 +27,7 @@
     "data:build": "node packages/pipeline/src/cli.ts",
     "data:pull": "node scripts/pull-data-pack.mjs",
     "config:check": "node packages/pipeline/src/check-config.ts",
+    "demo:build": "node packages/pipeline/src/demo-build.ts",
     "rules:fetch": "node scripts/fetch-comp-rules.mjs"
   },
   "devDependencies": {

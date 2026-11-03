@@ -1,7 +1,10 @@
 import { useState, type ComponentType } from 'react';
 import { AppStateProvider } from './app-state.tsx';
 import { useAppState } from './app-context.ts';
-import { BuildScreen, DecksScreen, ImportScreen, PoolScreen, SettingsScreen } from './screens.tsx';
+import { ImportScreen, PoolScreen } from './screens.tsx';
+import { BuildScreen } from './screens/BuildScreen.tsx';
+import { DecksScreen } from './screens/DecksScreen.tsx';
+import { SettingsScreen } from './screens/SettingsScreen.tsx';
 
 export type ScreenId = 'import' | 'pool' | 'build' | 'decks' | 'settings';
 
@@ -27,7 +30,7 @@ export function App() {
  */
 function Shell() {
   const [screen, setScreen] = useState<ScreenId>('import');
-  const { pack } = useAppState();
+  const { pack, decks } = useAppState();
   const current = SCREENS.find((s) => s.id === screen) ?? SCREENS[0]!;
   const Screen = current.component;
 
@@ -48,6 +51,9 @@ function Shell() {
             }`}
           >
             {s.label}
+            {s.id === 'decks' && decks.decks.length > 0 && (
+              <span className="ml-2 text-xs text-zinc-500">{decks.decks.length}</span>
+            )}
           </button>
         ))}
         <div className="mt-auto text-xs text-zinc-500">

@@ -225,35 +225,3 @@ export function PoolScreen() {
     </div>
   );
 }
-
-export function BuildScreen() {
-  return (
-    <p className={muted}>
-      Pick a deck size (60, 40, 20), a color, and an optional style, then build. Coming in phase 5.
-    </p>
-  );
-}
-
-export function DecksScreen() {
-  return (
-    <p className={muted}>
-      Saved decks. Export, delete, or pair two 20-card packets into a 40-card deck. Coming in phase
-      5.
-    </p>
-  );
-}
-
-export function SettingsScreen() {
-  const { pack } = useAppState();
-  return (
-    <div className={`flex flex-col gap-2 ${muted}`}>
-      <p>
-        Card data:{' '}
-        {pack.status === 'ready' ? `${pack.index.version}, ${pack.index.size} cards` : pack.status}
-      </p>
-      <p>
-        Copy limits, basics, Un-sets, card art, backup and restore, about: coming with the full app.
-      </p>
-    </div>
-  );
-}

@@ -1,11 +1,6 @@
-import type { Color } from '@bulk-brew/core';
+import { COLOR_LABELS, COLORS, type Color } from '@bulk-brew/core';
 
-export const COLOR_NAMES: Record<Color, string> = {
-  W: 'White',
-  U: 'Blue',
-  B: 'Black',
-  R: 'Red',
-  G: 'Green',
-};
+/** One source of truth for color names lives in the core. */
+export const COLOR_NAMES: Record<Color, string> = COLOR_LABELS;
 
-export const COLOR_ORDER: Color[] = ['W', 'U', 'B', 'R', 'G'];
+export const COLOR_ORDER: readonly Color[] = COLORS;

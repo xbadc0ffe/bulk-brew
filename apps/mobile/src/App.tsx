@@ -1,7 +1,10 @@
 import { useState, type ComponentType } from 'react';
 import { AppStateProvider } from './app-state.tsx';
 import { useAppState } from './app-context.ts';
-import { BuildScreen, DecksScreen, ImportScreen, PoolScreen, SettingsScreen } from './screens.tsx';
+import { ImportScreen, PoolScreen } from './screens.tsx';
+import { BuildScreen } from './screens/BuildScreen.tsx';
+import { DecksScreen } from './screens/DecksScreen.tsx';
+import { SettingsScreen } from './screens/SettingsScreen.tsx';
 
 export type ScreenId = 'import' | 'pool' | 'build' | 'decks' | 'settings';
 

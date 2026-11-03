@@ -1,0 +1,106 @@
+// Dev tool: build a deck from a decklist file against the real data pack.
+// Usage: npm run demo:build -- <pool.txt> <color> [size] [style]
+
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import {
+  addToPool,
+  BuildError,
+  buildDeck,
+  CardIndex,
+  deckToDecklist,
+  emptyPool,
+  parseDecklist,
+  parsePack,
+  resolveLines,
+  scanPool,
+  toPoolEntries,
+  validateConfig,
+  type Color,
+  type DeckSize,
+  type Settings,
+} from '@bulk-brew/core';
+import { loadConfigDir } from './check-config.ts';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+
+function main(): number {
+  const [poolPath, colorArg, sizeArg, style] = process.argv.slice(2);
+  if (!poolPath || !colorArg) {
+    console.error('usage: npm run demo:build -- <pool.txt> <W|U|B|R|G> [60|40|20] [style]');
+    return 2;
+  }
+  const color = colorArg.toUpperCase() as Color;
+  const size = (sizeArg ? Number(sizeArg) : 60) as DeckSize;
+
+  const t0 = Date.now();
+  const pack = parsePack(readFileSync(path.join(ROOT, 'data', 'packs', 'cards.v1.json'), 'utf8'));
+  const index = new CardIndex(pack);
+  const config = loadConfigDir(path.join(ROOT, 'config'));
+  const problems = validateConfig(config);
+  if (problems.length) {
+    console.error('config problems:', problems);
+    return 1;
+  }
+  const settings = JSON.parse(
+    readFileSync(path.join(ROOT, 'config', 'settings.defaults.json'), 'utf8'),
+  ) as Settings;
+  const t1 = Date.now();
+
+  const text = readFileSync(path.resolve(poolPath), 'utf8');
+  const report = resolveLines(parseDecklist(text).lines, index, { suggest: false });
+  const pool = addToPool(emptyPool('demo'), toPoolEntries(report.resolved), 'demo');
+  console.log(
+    `pool: ${report.cardCount} cards, ${report.resolved.length} lines, ${report.unresolved.length} unresolved (load ${t1 - t0} ms)`,
+  );
+
+  const t2 = Date.now();
+  const scan = scanPool(pool, index, config, settings, size, color);
+  console.log(
+    `scan ${color} ${size}: ${scan.candidates} spell copies (${scan.distinct} distinct), ${scan.lands} lands, ${scan.spellSlots} slots, possible=${scan.possible} (${Date.now() - t2} ms)`,
+  );
+  for (const a of scan.archetypes) {
+    const counts =
+      a.kind === 'synergy'
+        ? `enablers ${a.enablers.have}/${a.enablers.want}, payoffs ${a.payoffs.have}/${a.payoffs.want}`
+        : `spells ${a.enablers.have}/${a.enablers.want}`;
+    console.log(
+      `  ${a.viable ? 'ok ' : '-- '} ${a.label.padEnd(24)} ${counts}${a.notes.length ? '  (' + a.notes.join('; ') + ')' : ''}`,
+    );
+  }
+
+  const t3 = Date.now();
+  try {
+    const request = style
+      ? { size, color, settings, style, id: 'demo', createdAt: 'demo' }
+      : { size, color, settings, id: 'demo', createdAt: 'demo' };
+    const result = buildDeck(request, pool, index, config);
+    const ms = Date.now() - t3;
+    console.log(`\nbuilt "${result.deck.name}" in ${ms} ms\n`);
+    console.log(deckToDecklist(result.deck, index, config));
+    const e = result.explanation;
+    console.log('curve (0..7+):', e.curve.join(' '));
+    console.log(
+      'roles:',
+      Object.entries(e.roles)
+        .map(([k, v]) => `${k} ${v.have}/${v.want}`)
+        .join(', '),
+    );
+    console.log('synergies:', e.synergies.length ? e.synergies.join(' | ') : 'none');
+    for (const n of e.notes) console.log('note:', n);
+    console.log('\nwhy:');
+    for (const c of result.deck.cards) {
+      console.log(`  ${c.qty} ${index.get(c.cardId)?.name}: ${c.why}`);
+    }
+    return 0;
+  } catch (err) {
+    if (err instanceof BuildError) {
+      console.error(`cannot build: ${err.message}`);
+      return 1;
+    }
+    throw err;
+  }
+}
+
+process.exitCode = main();
