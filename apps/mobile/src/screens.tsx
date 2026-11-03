@@ -4,14 +4,18 @@ import {
   COLORS,
   COLOR_LABELS,
   emptyPool,
+  exportBackup,
+  poolToDecklist,
   type Color,
   type PoolEntry,
 } from '@bulk-brew/core';
 import {
   analysisRows,
+  backupFilename,
   buildableSizes,
   COLOR_KEYS,
   DECK_SIZES,
+  downloadText,
   EMPTY_FILTERS,
   filterCount,
   ManaCost,
@@ -96,10 +100,14 @@ function toggle<T>(list: T[], id: T): T[] {
 }
 
 function PoolCards() {
-  const { index, pool, settings, detail, config } = useAppState();
+  const { index, pool, settings, detail, config, decks, build } = useAppState();
   const nav = useNav();
-  const [filters, setFilters] = useState<PoolFilters>(EMPTY_FILTERS);
-  const [sort, setSort] = useState<PoolSort>('name');
+  const {
+    poolFilters: filters,
+    setPoolFilters: setFilters,
+    poolSort: sort,
+    setPoolSort: setSort,
+  } = nav;
   const [sheet, setSheet] = useState(false);
   const listRef = useRef<HTMLUListElement>(null);
   const rows = useMemo(
@@ -169,7 +177,7 @@ function PoolCards() {
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value as PoolSort)}
-              className="min-h-8 appearance-none bg-transparent pr-3 text-right text-fg-2"
+              className="min-h-11 appearance-none bg-transparent pr-3 text-right text-fg-2"
             >
               {POOL_SORTS.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -222,6 +230,54 @@ function PoolCards() {
           </button>
         </div>
       )}
+
+      <div className="flex flex-wrap gap-x-5 px-4 pt-2 pb-4 text-[0.8125rem]">
+        <button
+          type="button"
+          className="min-h-11 text-fg-1 underline"
+          onClick={() =>
+            downloadText(
+              `bulk-brew-pool-${new Date().toISOString().slice(0, 10)}.txt`,
+              poolToDecklist(pool.pool, index),
+            )
+          }
+        >
+          Export pool
+        </button>
+        <button
+          type="button"
+          className="min-h-11 text-fg-1 underline"
+          onClick={() => {
+            const now = new Date();
+            downloadText(
+              backupFilename(now),
+              exportBackup(
+                {
+                  pool: pool.pool,
+                  decks: decks.decks,
+                  settings: settings.settings,
+                  dataVersion: index.version,
+                },
+                now.toISOString(),
+              ),
+            );
+          }}
+        >
+          Backup
+        </button>
+        <button
+          type="button"
+          className="min-h-11 text-fg-1 underline"
+          onClick={() => {
+            if (window.confirm('Remove every card from the pool? Saved decks stay.')) {
+              pool.actions.clear();
+              build.reset();
+            }
+          }}
+        >
+          Clear pool
+        </button>
+      </div>
 
       <FilterSheet
         open={sheet}
@@ -343,8 +399,10 @@ function phoneNote(row: AnalysisRow): string {
   const viable = states.filter((s) => s.state === 'viable');
   const near = states.filter((s) => s.state === 'near');
   if (viable.length === 3) return `Viable at every size. ${cap(states[0]!.detail)}.`;
-  if (near.length > 0)
-    return `Near miss at ${near.map((s) => s.size).join(' and ')}: ${near[0]!.detail}.`;
+  if (near.length > 0) {
+    const miss = `Near miss at ${near.map((s) => s.size).join(' and ')}: ${near[0]!.detail}.`;
+    return viable.length ? `Viable at ${viable.map((s) => s.size).join(' and ')}. ${miss}` : miss;
+  }
   if (viable.length > 0) {
     const none = states.filter((s) => s.state === 'none').map((s) => s.size);
     return `Viable at ${viable.map((s) => s.size).join(' and ')}, not enough for ${none.join(' and ')}.`;
@@ -364,15 +422,14 @@ function Analysis() {
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
       <div className="flex flex-col gap-2.5 px-4 pb-2.5">
-        <div role="radiogroup" aria-label="Color" className="grid grid-cols-5 gap-1.5">
+        <div role="group" aria-label="Color" className="grid grid-cols-5 gap-1.5">
           {COLORS.map((c) => {
             const on = c === color;
             return (
               <button
                 key={c}
                 type="button"
-                role="radio"
-                aria-checked={on}
+                aria-pressed={on}
                 aria-label={`${COLOR_LABELS[c]}, ${scans[60][c].candidates} candidates`}
                 onClick={() => setColor(c)}
                 className={`flex flex-col items-center gap-1 rounded-lg border py-2 ${on ? 'border-ink bg-surface' : 'border-line'}`}
@@ -448,17 +505,20 @@ const MODES: { id: ImportMode; label: string }[] = [
 ];
 
 export function ImportScreen() {
-  const { index, pool, settings, pack } = useAppState();
+  const { index, pool, settings, pack, build } = useAppState();
   const nav = useNav();
   const fileInput = useRef<HTMLInputElement>(null);
   const [note, setNote] = useState<string>();
   const target = useMemo(
     () => ({
       add: pool.actions.add,
-      replace: (entries: PoolEntry[]) =>
-        pool.actions.transform(() => addToPool(emptyPool(), entries)),
+      replace: (entries: PoolEntry[]) => {
+        pool.actions.transform(() => addToPool(emptyPool(), entries));
+        // A build made from the old pool no longer fits.
+        build.reset();
+      },
     }),
-    [pool.actions],
+    [pool.actions, build],
   );
   const imp = useImport(index, target, {
     includeUnsets: settings.settings.includeUnsets,
@@ -532,7 +592,7 @@ export function ImportScreen() {
           </span>
           <button
             type="button"
-            className="min-h-9 text-ink underline"
+            className="min-h-11 text-ink underline"
             onClick={() => fileInput.current?.click()}
           >
             Choose file
@@ -639,7 +699,7 @@ export function ImportScreen() {
                         {suggestion && (
                           <button
                             type="button"
-                            className="min-h-9 px-1 font-medium text-ink"
+                            className="min-h-11 px-1 font-medium text-ink"
                             onClick={() =>
                               then(() => imp.acceptSuggestion(u.line.line, suggestion))
                             }
@@ -649,7 +709,7 @@ export function ImportScreen() {
                         )}
                         <button
                           type="button"
-                          className="min-h-9 px-1 text-fg-2"
+                          className="min-h-11 px-1 text-fg-2"
                           onClick={() => then(() => imp.skip(u.line.line))}
                         >
                           Skip

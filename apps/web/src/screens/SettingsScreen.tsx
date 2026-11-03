@@ -141,7 +141,7 @@ export function SettingsScreen() {
         return;
       await applyBackup(backup, { kv, pool, decks, settings });
       // A build made from the old pool no longer fits.
-      build.editSettings();
+      build.reset();
       setMessage(`Restored the backup from ${when}.`);
     } catch (err) {
       setMessage(`Restore failed: ${err instanceof Error ? err.message : String(err)}`);
@@ -154,7 +154,7 @@ export function SettingsScreen() {
     decks.replaceAll([]);
     settings.reset();
     appearance.reset();
-    build.editSettings();
+    build.reset();
     setMessage('Everything was cleared.');
   };
 

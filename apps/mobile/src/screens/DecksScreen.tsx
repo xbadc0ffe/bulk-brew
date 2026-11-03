@@ -108,11 +108,9 @@ function DeckRows({ onOpen }: { onOpen(id: string): void }) {
       <p className="px-4 pt-3 text-[0.75rem] text-fg-2">
         Swipe a deck left to export or disassemble.
       </p>
-      {status && (
-        <p role="status" className="px-4 pt-2 text-[0.75rem] text-fg-2">
-          {status}
-        </p>
-      )}
+      <p role="status" className={status ? 'px-4 pt-2 text-[0.75rem] text-fg-2' : 'sr-only'}>
+        {status}
+      </p>
       {exporting && index && (
         <ActionSheet
           open
@@ -129,8 +127,6 @@ function DeckRows({ onOpen }: { onOpen(id: string): void }) {
   );
 }
 
-const SWIPE = 176;
-
 /** A row that slides left to reveal actions. Tapping it opens the deck. */
 function SwipeRow(props: {
   onOpen(): void;
@@ -140,19 +136,27 @@ function SwipeRow(props: {
   const [x, setX] = useState(0);
   const [dragging, setDragging] = useState(false);
   const drag = useRef<{ x0: number; y0: number; base: number; moved: boolean } | null>(null);
+  /** Set when a drag ends, so the click the browser may send afterwards is ignored. */
+  const suppressClick = useRef(false);
+  const tray = useRef<HTMLDivElement>(null);
+  const row = useRef<HTMLButtonElement>(null);
   const open = x !== 0;
+  // The tray is sized in rem, so it follows the text size; read its width when needed.
+  const width = () => tray.current?.offsetWidth ?? 176;
 
   return (
     <li className="relative border-b border-surface-2 last:border-b-0">
-      <div className="absolute inset-y-0 right-0 flex" style={{ width: SWIPE }} aria-hidden={!open}>
+      <div ref={tray} className="absolute inset-y-0 right-0 flex w-44" aria-hidden={!open}>
         {props.actions.map((a, i) => (
           <button
             key={a.label}
             type="button"
             tabIndex={open ? 0 : -1}
-            className={`flex-1 text-[0.8125rem] ${i === props.actions.length - 1 ? 'bg-ink text-on-ink' : 'bg-surface-2 text-ink'}`}
+            className={`flex-1 px-1 text-[0.8125rem] ${i === props.actions.length - 1 ? 'bg-ink text-on-ink' : 'bg-surface-2 text-ink'}`}
             onClick={() => {
               setX(0);
+              // Focus the row first, so a sheet the action opens returns focus there.
+              row.current?.focus();
               a.onClick();
             }}
           >
@@ -161,6 +165,7 @@ function SwipeRow(props: {
         ))}
       </div>
       <button
+        ref={row}
         type="button"
         className="relative flex min-h-[3.75rem] w-full touch-pan-y items-center gap-3 bg-surface px-4 py-2 text-left"
         style={{
@@ -169,21 +174,29 @@ function SwipeRow(props: {
         }}
         onPointerDown={(e) => {
           drag.current = { x0: e.clientX, y0: e.clientY, base: x, moved: false };
+          suppressClick.current = false;
         }}
         onPointerMove={(e) => {
           const d = drag.current;
-          if (!d) return;
+          // A mouse moving with no button held is not a drag.
+          if (!d || (e.pointerType === 'mouse' && e.buttons === 0)) return;
           const dx = e.clientX - d.x0;
           if (!d.moved && Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(e.clientY - d.y0)) {
             d.moved = true;
             setDragging(true);
             e.currentTarget.setPointerCapture(e.pointerId);
           }
-          if (d.moved) setX(Math.max(-SWIPE, Math.min(0, d.base + dx)));
+          if (d.moved) setX(Math.max(-width(), Math.min(0, d.base + dx)));
         }}
         onPointerUp={() => {
           const d = drag.current;
-          if (d?.moved) setX((v) => (v < -SWIPE / 2 ? -SWIPE : 0));
+          drag.current = null;
+          if (d?.moved) {
+            // A click, if any, follows at once; iOS sends none after a swipe.
+            suppressClick.current = true;
+            setTimeout(() => (suppressClick.current = false), 300);
+            setX((v) => (v < -width() / 2 ? -width() : 0));
+          }
           setDragging(false);
         }}
         onPointerCancel={() => {
@@ -192,9 +205,10 @@ function SwipeRow(props: {
           setX(0);
         }}
         onClick={() => {
-          const d = drag.current;
-          drag.current = null;
-          if (d?.moved) return;
+          if (suppressClick.current) {
+            suppressClick.current = false;
+            return;
+          }
           if (open) setX(0);
           else props.onOpen();
         }}
@@ -330,11 +344,9 @@ function PairPackets({ onBack }: { onBack(): void }) {
         {select(a, setA, 'First packet')}
         {select(b, setB, 'Second packet')}
         {pair && !pair.ok && <p className={phone.error}>{pair.error}</p>}
-        {status && (
-          <p role="status" className={phone.note}>
-            {status}
-          </p>
-        )}
+        <p role="status" className={status ? phone.note : 'sr-only'}>
+          {status}
+        </p>
         {pair?.ok && (
           <pre className="overflow-x-auto rounded-[10px] border border-line bg-surface px-3 py-2.5 font-mono text-[0.75rem] leading-[1.6]">
             {pair.text}

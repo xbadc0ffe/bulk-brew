@@ -36,7 +36,6 @@ import {
   type ImportMode,
   type OpenLine,
   type PoolFilters,
-  type PoolSort,
 } from '@bulk-brew/ui';
 import { useAppState } from './app-context.ts';
 import { useNav } from './nav.ts';
@@ -71,15 +70,18 @@ const MODES: { id: ImportMode; label: string }[] = [
 ];
 
 export function ImportScreen() {
-  const { index, pool, pack, settings } = useAppState();
+  const { index, pool, pack, settings, build } = useAppState();
   const nav = useNav();
   const target = useMemo(
     () => ({
       add: pool.actions.add,
-      replace: (entries: PoolEntry[]) =>
-        pool.actions.transform(() => addToPool(emptyPool(), entries)),
+      replace: (entries: PoolEntry[]) => {
+        pool.actions.transform(() => addToPool(emptyPool(), entries));
+        // A build made from the old pool no longer fits.
+        build.reset();
+      },
     }),
-    [pool.actions],
+    [pool.actions, build],
   );
   const imp = useImport(index, target, {
     includeUnsets: settings.settings.includeUnsets,
@@ -440,11 +442,15 @@ export function PoolScreen() {
 }
 
 function PoolLoaded() {
-  const { index, pool, settings, detail, config, decks } = useAppState();
+  const { index, pool, settings, detail, config, decks, build } = useAppState();
   const nav = useNav();
   const showArt = settings.settings.showArt;
-  const [filters, setFilters] = useState<PoolFilters>(EMPTY_FILTERS);
-  const [sort, setSort] = useState<PoolSort>('name');
+  const {
+    poolFilters: filters,
+    setPoolFilters: setFilters,
+    poolSort: sort,
+    setPoolSort: setSort,
+  } = nav;
   const searchRef = useRef<HTMLInputElement>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const tbodyRef = useRef<HTMLTableSectionElement>(null);
@@ -778,6 +784,7 @@ function PoolLoaded() {
                 if (window.confirm('Remove every card from the pool? Saved decks stay.')) {
                   detail.close();
                   pool.actions.clear();
+                  build.reset();
                 }
               }}
             >

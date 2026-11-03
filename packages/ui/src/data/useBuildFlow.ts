@@ -63,6 +63,8 @@ export interface BuildFlow {
   removeFromPool(): Deck | undefined;
   /** Leave the result and return to the form with every choice kept. */
   editSettings(): void;
+  /** Forget the result, the saved link, the last confirmation, and the copy override. For pool resets. */
+  reset(): void;
   /** The deck most recently removed from the pool, for a confirmation line. */
   accepted: Deck | undefined;
 }
@@ -234,6 +236,12 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
     return deck;
   }, [toSave, saved, index, pool.pool, pool.actions, settings, config, decks, clearResult]);
 
+  const reset = useCallback(() => {
+    clearResult();
+    setAccepted(undefined);
+    setOverride(undefined);
+  }, [clearResult]);
+
   return {
     size,
     setSize,
@@ -257,6 +265,7 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
     save,
     removeFromPool,
     editSettings: clearResult,
+    reset,
     accepted,
   };
 }

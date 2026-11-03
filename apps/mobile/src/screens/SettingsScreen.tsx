@@ -27,7 +27,7 @@ import {
 } from '@bulk-brew/ui';
 import { version } from '../../package.json';
 import { useAppState } from '../app-context.ts';
-import { Group, LargeTitle, Pushed, Row } from '../parts.tsx';
+import { Group, LargeTitle, Pushed, Row, ToggleRow } from '../parts.tsx';
 
 const SWATCH: Record<ThemeColor, string> = {
   grey: 'var(--text2)',
@@ -78,7 +78,7 @@ export function SettingsScreen() {
         return;
       await applyBackup(backup, { kv, pool, decks, settings });
       // A build made from the old pool no longer fits.
-      build.editSettings();
+      build.reset();
       setMessage(`Restored the backup from ${when}.`);
     } catch (err) {
       setMessage(`Restore failed: ${err instanceof Error ? err.message : String(err)}`);
@@ -91,7 +91,7 @@ export function SettingsScreen() {
     decks.replaceAll([]);
     settings.reset();
     appearance.reset();
-    build.editSettings();
+    build.reset();
     setMessage('Everything was cleared.');
   };
 
@@ -109,7 +109,7 @@ export function SettingsScreen() {
             onClick={() => setSub('copies')}
             disabled={!ready}
           />
-          <Row label="Unlimited basic lands" hint="Basics need not be imported">
+          <ToggleRow label="Unlimited basic lands" hint="Basics need not be imported">
             <Toggle
               label="Unlimited basic lands"
               checked={s.unlimitedBasics}
@@ -117,8 +117,8 @@ export function SettingsScreen() {
               onChange={(v) => settings.update({ unlimitedBasics: v })}
               variant="phone"
             />
-          </Row>
-          <Row label="Include Un-set and acorn cards">
+          </ToggleRow>
+          <ToggleRow label="Include Un-set and acorn cards">
             <Toggle
               label="Include Un-set and acorn cards"
               checked={s.includeUnsets}
@@ -126,11 +126,11 @@ export function SettingsScreen() {
               onChange={(v) => settings.update({ includeUnsets: v })}
               variant="phone"
             />
-          </Row>
+          </ToggleRow>
         </Group>
 
         <Group label="Display">
-          <Row label="Show card art" hint="Loads images from Scryfall as you browse">
+          <ToggleRow label="Show card art" hint="Loads images from Scryfall as you browse">
             <Toggle
               label="Show card art"
               checked={s.showArt}
@@ -138,7 +138,7 @@ export function SettingsScreen() {
               onChange={(v) => settings.update({ showArt: v })}
               variant="phone"
             />
-          </Row>
+          </ToggleRow>
           <Row
             label="Appearance"
             value={`${mode} · ${theme}`}
@@ -159,7 +159,7 @@ export function SettingsScreen() {
           />
           <Row
             label="Check for card updates"
-            hint="Arrives with the iOS app"
+            hint="Coming in a later update"
             onClick={() => {}}
             disabled
           />

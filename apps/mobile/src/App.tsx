@@ -1,5 +1,12 @@
 import { useMemo, useState } from 'react';
-import { CardDetail, ErrorBoundary, openKv } from '@bulk-brew/ui';
+import {
+  CardDetail,
+  EMPTY_FILTERS,
+  ErrorBoundary,
+  openKv,
+  type PoolFilters,
+  type PoolSort,
+} from '@bulk-brew/ui';
 import { AppStateProvider } from './app-state.tsx';
 import { useAppState } from './app-context.ts';
 import { NavContext, type Nav, type PoolView, type ScreenId } from './nav.ts';
@@ -76,6 +83,8 @@ function Shell() {
   const [screen, setScreen] = useState<ScreenId>('pool');
   const [poolView, setPoolView] = useState<PoolView>('cards');
   const [visit, setVisit] = useState(0);
+  const [poolFilters, setPoolFilters] = useState<PoolFilters>(EMPTY_FILTERS);
+  const [poolSort, setPoolSort] = useState<PoolSort>('name');
   const { detail, pack } = useAppState();
   const nav: Nav = useMemo(
     () => ({
@@ -87,22 +96,25 @@ function Shell() {
         setScreen(next);
         if (view) setPoolView(view);
       },
+      poolFilters,
+      setPoolFilters,
+      poolSort,
+      setPoolSort,
       setPoolView,
     }),
-    [screen, poolView],
+    [screen, poolView, poolFilters, poolSort],
   );
   // Import is pushed from Pool, so the Pool tab stays lit.
   const tab = screen === 'import' ? 'pool' : screen;
+  // Import is pushed over Pool, so Pool stays mounted underneath with its scroll and state.
   const Screen =
-    screen === 'import'
-      ? ImportScreen
-      : screen === 'pool'
-        ? PoolScreen
-        : screen === 'build'
-          ? BuildScreen
-          : screen === 'decks'
-            ? DecksScreen
-            : SettingsScreen;
+    screen === 'import' || screen === 'pool'
+      ? PoolScreen
+      : screen === 'build'
+        ? BuildScreen
+        : screen === 'decks'
+          ? DecksScreen
+          : SettingsScreen;
 
   const select = (s: ScreenId) => {
     detail.close();
@@ -139,6 +151,7 @@ function Shell() {
         </nav>
         <main className="flex min-h-0 min-w-0 flex-1 flex-col pt-[env(safe-area-inset-top)]">
           <Screen key={visit} />
+          {screen === 'import' && <ImportScreen />}
         </main>
         <nav
           aria-label="Main"

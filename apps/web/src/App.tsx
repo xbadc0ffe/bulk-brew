@@ -1,5 +1,13 @@
 import { useMemo, useState } from 'react';
-import { CardDetail, ErrorBoundary, openKv, poolSummary } from '@bulk-brew/ui';
+import {
+  CardDetail,
+  EMPTY_FILTERS,
+  ErrorBoundary,
+  openKv,
+  poolSummary,
+  type PoolFilters,
+  type PoolSort,
+} from '@bulk-brew/ui';
 import { AppStateProvider } from './app-state.tsx';
 import { useAppState } from './app-context.ts';
 import { NavContext, type Nav, type PoolView, type ScreenId } from './nav.ts';
@@ -99,6 +107,8 @@ function Shell() {
   const [poolView, setPoolView] = useState<PoolView>('cards');
   // Bumped on every navigation, so choosing the current item again resets its sub-view.
   const [visit, setVisit] = useState(0);
+  const [poolFilters, setPoolFilters] = useState<PoolFilters>(EMPTY_FILTERS);
+  const [poolSort, setPoolSort] = useState<PoolSort>('name');
   const { detail } = useAppState();
   const nav: Nav = useMemo(
     () => ({
@@ -111,8 +121,12 @@ function Shell() {
         if (view) setPoolView(view);
         else if (next === 'pool') setPoolView('cards');
       },
+      poolFilters,
+      setPoolFilters,
+      poolSort,
+      setPoolSort,
     }),
-    [screen, poolView],
+    [screen, poolView, poolFilters, poolSort],
   );
   const active = activeItem(screen, poolView);
   const inPool = active === 'import' || active === 'analysis';

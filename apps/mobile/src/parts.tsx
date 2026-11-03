@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { phone } from '@bulk-brew/ui';
 
 // Phone building blocks. Sizes are in rem so they follow the system text size.
@@ -144,6 +145,19 @@ export function Row(props: {
   return <div className={phone.row}>{body}</div>;
 }
 
+/** A grouped-list row whose whole area toggles the switch inside it. */
+export function ToggleRow(props: { label: string; hint?: ReactNode; children: ReactNode }) {
+  return (
+    <label className={`${phone.row} cursor-pointer`}>
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="text-[0.9375rem]">{props.label}</span>
+        {props.hint && <span className="text-[0.75rem] text-fg-2">{props.hint}</span>}
+      </span>
+      {props.children}
+    </label>
+  );
+}
+
 /** Closes on Escape and moves focus into the panel when it opens. */
 function useModal(open: boolean, onClose: () => void) {
   const panel = useRef<HTMLDivElement>(null);
@@ -155,7 +169,7 @@ function useModal(open: boolean, onClose: () => void) {
   useEffect(() => {
     if (!open) return;
     const before = document.activeElement as HTMLElement | null;
-    panel.current?.querySelector<HTMLElement>('button, input, select')?.focus();
+    panel.current?.querySelector<HTMLElement>('[data-autofocus], button, input, select')?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') close.current();
     };
@@ -179,7 +193,8 @@ export function Sheet(props: {
   const { open, onClose, title, lead, children } = props;
   const panel = useModal(open, onClose);
   if (!open) return null;
-  return (
+  // Portaled to body so it stacks above pushed screens and the card sheet.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex flex-col justify-end">
       <button
         type="button"
@@ -210,6 +225,7 @@ export function Sheet(props: {
           <h2 className="text-[1rem] font-semibold">{title}</h2>
           <button
             type="button"
+            data-autofocus
             className="min-h-11 justify-self-end px-2 text-[0.9375rem] font-medium text-ink"
             onClick={onClose}
           >
@@ -218,7 +234,8 @@ export function Sheet(props: {
         </div>
         <div className="min-h-0 overflow-y-auto px-4 pb-4">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -237,7 +254,8 @@ export function ActionSheet(props: {
   const { open, onClose, title, actions } = props;
   const panel = useModal(open, onClose);
   if (!open) return null;
-  return (
+  // Portaled to body so it stacks above pushed screens and the card sheet.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex flex-col justify-end">
       <button
         type="button"
@@ -276,7 +294,8 @@ export function ActionSheet(props: {
           Cancel
         </button>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -295,7 +314,7 @@ export function Chip({
       type="button"
       aria-pressed={on}
       onClick={onClick}
-      className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg border px-3 text-[0.8125rem] ${
+      className={`inline-flex min-h-11 items-center gap-1.5 rounded-lg border px-3 text-[0.8125rem] ${
         on ? 'border-ink bg-ink text-on-ink' : 'border-line-strong bg-surface text-fg-1'
       }`}
     >
