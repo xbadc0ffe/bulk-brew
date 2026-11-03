@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { Color } from '@bulk-brew/core';
+import { addToPool, emptyPool, type Color, type PoolEntry } from '@bulk-brew/core';
 import {
   CardImage,
   COLOR_ORDER,
@@ -9,7 +9,7 @@ import {
   poolRows,
   poolSummary,
   useImport,
-  type ColorFilter,
+  type ColorKey,
   type PoolSort,
 } from '@bulk-brew/ui';
 import { useAppState } from './app-context.ts';
@@ -26,8 +26,19 @@ const field =
 
 export function ImportScreen() {
   const { index, pool, settings } = useAppState();
-  const imp = useImport(index, pool.actions.add, settings.settings.includeUnsets);
-  const total = imp.parsed.lines.reduce((n, l) => n + l.qty, 0);
+  const target = useMemo(
+    () => ({
+      add: pool.actions.add,
+      replace: (entries: PoolEntry[]) =>
+        pool.actions.transform(() => addToPool(emptyPool(), entries)),
+    }),
+    [pool.actions],
+  );
+  const imp = useImport(index, target, {
+    includeUnsets: settings.settings.includeUnsets,
+    unlimitedBasics: settings.settings.unlimitedBasics,
+  });
+  const total = imp.totalCards;
 
   return (
     <div className="flex flex-col gap-3">
@@ -43,8 +54,8 @@ export function ImportScreen() {
         className="w-full rounded border border-zinc-300 bg-white p-3 font-mono text-base dark:border-zinc-700 dark:bg-zinc-900"
       />
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" className={primary} disabled={!imp.canAdd} onClick={imp.addToPool}>
-          Add to pool
+        <button type="button" className={primary} disabled={!imp.canResolve} onClick={imp.resolve}>
+          Check list
         </button>
         <label className={button}>
           Choose file
@@ -64,10 +75,13 @@ export function ImportScreen() {
           {imp.text && ` (${IMPORT_FORMAT_LABELS[imp.format]})`}
         </span>
       </div>
-      {imp.report && (
+      {imp.done && <p className={muted}>Added {imp.done.cards} cards to the pool.</p>}
+      {imp.preview && (
         <div className="rounded border border-zinc-200 p-3 text-sm dark:border-zinc-800">
-          <p>Added {imp.report.cardCount} cards to the pool.</p>
-          {imp.report.unresolved.map((u) => (
+          <button type="button" className={primary} onClick={imp.commit}>
+            Add {imp.preview.cards} cards to pool
+          </button>
+          {imp.preview.unresolved.map((u) => (
             <div key={u.line.line} className="mt-2 flex flex-wrap items-center gap-2">
               <code className="text-xs">{u.line.raw}</code>
               {u.suggestions.map((s) => (
@@ -75,7 +89,7 @@ export function ImportScreen() {
                   key={s}
                   type="button"
                   className={button}
-                  onClick={() => imp.acceptSuggestion(u, s)}
+                  onClick={() => imp.acceptSuggestion(u.line.line, s)}
                 >
                   Use {s}
                 </button>
@@ -92,10 +106,13 @@ export function PoolScreen() {
   const { index, pool, pack, settings, detail } = useAppState();
   const showArt = settings.settings.showArt;
   const [search, setSearch] = useState('');
-  const [color, setColor] = useState<ColorFilter>('all');
+  const [color, setColor] = useState<ColorKey | 'all'>('all');
   const [sort, setSort] = useState<PoolSort>('name');
   const rows = useMemo(
-    () => (index ? poolRows(pool.pool, index, { search, color, sort }) : []),
+    () =>
+      index
+        ? poolRows(pool.pool, index, { search, colors: color === 'all' ? [] : [color], sort })
+        : [],
     [index, pool.pool, search, color, sort],
   );
   const summary = useMemo(
@@ -116,7 +133,7 @@ export function PoolScreen() {
         {summary.distinct} distinct cards, {summary.cards} copies.
       </p>
       <div className="flex flex-wrap gap-1">
-        {(['all', ...COLOR_ORDER, 'C'] as ColorFilter[]).map((c) => (
+        {(['all', ...COLOR_ORDER, 'C'] as (ColorKey | 'all')[]).map((c) => (
           <button
             key={c}
             type="button"

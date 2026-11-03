@@ -11,7 +11,7 @@ export interface WindowedRows {
 
 /**
  * Renders only the rows near the viewport for long lists that scroll with the
- * page. The caller owns the ref to the element that wraps the rows and marks
+ * page or inside a scrolling pane. The caller owns the ref to the element that wraps the rows and marks
  * each real row with `data-row`. Row height is measured from the first
  * rendered row (the estimate is used until one exists) and re-measured
  * whenever `version` changes, for example on sort or filter. With few rows it
@@ -51,10 +51,11 @@ export function useWindowedRows(
       if (frame === 0) frame = requestAnimationFrame(measure);
     };
     schedule();
-    window.addEventListener('scroll', schedule, { passive: true });
+    // Capture so scrolling inside a pane (not just the page) re-measures too.
+    window.addEventListener('scroll', schedule, { passive: true, capture: true });
     window.addEventListener('resize', schedule);
     return () => {
-      window.removeEventListener('scroll', schedule);
+      window.removeEventListener('scroll', schedule, { capture: true });
       window.removeEventListener('resize', schedule);
       if (frame) cancelAnimationFrame(frame);
     };

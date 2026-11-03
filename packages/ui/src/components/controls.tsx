@@ -258,6 +258,7 @@ export function Dropdown(props: {
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        e.preventDefault();
         e.stopPropagation();
         setOpen(false);
         document.getElementById(buttonId)?.focus();

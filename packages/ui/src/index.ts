@@ -40,22 +40,38 @@ export {
   useImport,
   IMPORT_FORMAT_LABELS,
   type ImportFormat,
+  type ImportMode,
+  type ImportPreview,
   type ImportState,
+  type ImportTarget,
+  type OpenLine,
 } from './data/useImport.ts';
 export { useSettings, type SettingsState } from './data/useSettings.ts';
 export { useDecks, type DecksState } from './data/useDecks.ts';
 export { useBuildFlow, type BuildFlow, type BuildFlowInput } from './data/useBuildFlow.ts';
 export { useCardDetail, type CardDetailState, type OpenCard } from './data/useCardDetail.ts';
 export { useWindowedRows, type WindowedRows } from './data/useWindowedRows.ts';
+export { useMediaQuery } from './data/useMediaQuery.ts';
 export { applyBackup } from './data/backup.ts';
 export {
   poolRows,
   poolSummary,
+  cardTags,
+  colorKey,
+  filterCount,
+  tagOptions,
+  COLOR_KEYS,
+  EMPTY_FILTERS,
+  MANA_VALUES,
   POOL_SORTS,
-  type ColorFilter,
+  TYPE_KEYS,
+  type CardTag,
+  type ColorKey,
+  type PoolFilters,
   type PoolRow,
   type PoolSort,
   type PoolSummary,
+  type TypeKey,
 } from './data/poolView.ts';
 export { DeckView, type DeckViewProps } from './components/DeckView.tsx';
 export { CurveBars } from './components/CurveBars.tsx';

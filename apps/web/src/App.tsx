@@ -1,21 +1,15 @@
-import { useMemo, useState, type ComponentType } from 'react';
-import { CardDetail, ErrorBoundary, openKv } from '@bulk-brew/ui';
+import { useMemo, useState } from 'react';
+import { CardDetail, ErrorBoundary, openKv, poolSummary } from '@bulk-brew/ui';
 import { AppStateProvider } from './app-state.tsx';
 import { useAppState } from './app-context.ts';
+import { NavContext, type Nav, type PoolView, type ScreenId } from './nav.ts';
 import { ImportScreen, PoolScreen } from './screens.tsx';
+import { AnalysisScreen } from './screens/AnalysisScreen.tsx';
 import { BuildScreen } from './screens/BuildScreen.tsx';
 import { DecksScreen } from './screens/DecksScreen.tsx';
 import { SettingsScreen } from './screens/SettingsScreen.tsx';
 
-export type ScreenId = 'import' | 'pool' | 'build' | 'decks' | 'settings';
-
-const SCREENS: { id: ScreenId; label: string; component: ComponentType }[] = [
-  { id: 'import', label: 'Import', component: ImportScreen },
-  { id: 'pool', label: 'Pool', component: PoolScreen },
-  { id: 'build', label: 'Build', component: BuildScreen },
-  { id: 'decks', label: 'Decks', component: DecksScreen },
-  { id: 'settings', label: 'Settings', component: SettingsScreen },
-];
+export type { ScreenId } from './nav.ts';
 
 export function App() {
   const kv = useMemo(() => openKv(), []);
@@ -28,75 +22,159 @@ export function App() {
   );
 }
 
-/** The card detail panel on the right, when a card is open. */
-function DetailPanel() {
-  const { detail, index, config, settings, pool } = useAppState();
+interface NavItem {
+  id: string;
+  label: string;
+  screen: ScreenId;
+  poolView?: PoolView;
+  indent?: boolean;
+}
+
+const NAV: NavItem[] = [
+  { id: 'pool', label: 'Pool', screen: 'pool', poolView: 'cards' },
+  { id: 'import', label: 'Import', screen: 'import', indent: true },
+  { id: 'analysis', label: 'Analysis', screen: 'pool', poolView: 'analysis', indent: true },
+  { id: 'build', label: 'Build', screen: 'build' },
+  { id: 'decks', label: 'Decks', screen: 'decks' },
+  { id: 'settings', label: 'Settings', screen: 'settings' },
+];
+
+function activeItem(screen: ScreenId, poolView: PoolView): string {
+  if (screen === 'pool') return poolView === 'analysis' ? 'analysis' : 'pool';
+  return screen;
+}
+
+/** Card detail over the right edge, for cards opened outside the Pool screen. */
+function DetailOverlay() {
+  const { detail, index, config, settings, decks } = useAppState();
   const open = detail.current;
-  if (!open || !index) return null;
-  const card = index.get(open.cardId);
-  if (!card) return null;
-  const entry = pool.pool.entries[card.id];
+  const card = open && index ? index.get(open.cardId) : undefined;
+  if (!card || !index) return null;
+  const inDecks = decks.decks.filter((d) => d.cards.some((c) => c.cardId === card.id));
   return (
     <aside
-      className="sticky top-0 max-h-screen w-80 shrink-0 overflow-y-auto border-l border-zinc-200 p-4 dark:border-zinc-800"
+      className="fixed inset-y-0 right-0 z-40 w-[300px] max-w-full overflow-y-auto border-l border-line bg-surface p-[22px]"
       aria-label="Card detail"
     >
       <CardDetail
         card={card}
-        printing={open.printing ?? entry?.printing}
-        qty={entry?.qty}
+        printing={open?.printing}
         index={index}
         config={config}
         showArt={settings.settings.showArt}
+        inDecks={inDecks.map((d) => d.name)}
         onClose={detail.close}
       />
     </aside>
   );
 }
 
+function SidebarFooter() {
+  const { pack, pool, index } = useAppState();
+  const cards = useMemo(
+    () => (index ? poolSummary(pool.pool, index).cards : 0),
+    [index, pool.pool],
+  );
+  return (
+    <div className="mt-auto px-2.5 text-[11px] leading-[1.5] text-fg-2">
+      {pack.status === 'ready' && (
+        <>
+          <div>Card data {pack.index.version}</div>
+          <div>{cards.toLocaleString('en-US')} cards in pool</div>
+        </>
+      )}
+      {pack.status === 'loading' && <div>Loading card data</div>}
+      {pack.status === 'error' && <div>Card data failed: {pack.error}</div>}
+    </div>
+  );
+}
+
 /**
- * Desktop-first shell: a left navigation rail, a main pane, and a detail panel
- * on the right when a card is open. Placeholder layout; the design pass replaces it.
+ * Desktop shell: a left sidebar, a main pane, and the card detail on the
+ * right. Below 768px the sidebar folds into a top bar.
  */
 function Shell() {
-  const [screen, setScreen] = useState<ScreenId>('import');
-  const { pack, decks } = useAppState();
-  const current = SCREENS.find((s) => s.id === screen) ?? SCREENS[0]!;
-  const Screen = current.component;
+  const [screen, setScreen] = useState<ScreenId>('pool');
+  const [poolView, setPoolView] = useState<PoolView>('cards');
+  const { detail } = useAppState();
+  const nav: Nav = useMemo(
+    () => ({
+      screen,
+      poolView,
+      go(next, view) {
+        setScreen(next);
+        if (view) setPoolView(view);
+        else if (next === 'pool') setPoolView('cards');
+      },
+    }),
+    [screen, poolView],
+  );
+  const active = activeItem(screen, poolView);
+  const inPool = active === 'import' || active === 'analysis';
+
+  const Screen =
+    screen === 'import'
+      ? ImportScreen
+      : screen === 'pool'
+        ? poolView === 'analysis'
+          ? AnalysisScreen
+          : PoolScreen
+        : screen === 'build'
+          ? BuildScreen
+          : screen === 'decks'
+            ? DecksScreen
+            : SettingsScreen;
+
+  const item = (n: NavItem, compact: boolean) => {
+    const on = n.id === active;
+    const parent = n.id === 'pool' && inPool;
+    return (
+      <button
+        key={n.id}
+        type="button"
+        onClick={() => {
+          detail.close();
+          nav.go(n.screen, n.poolView);
+        }}
+        aria-current={on ? 'page' : undefined}
+        className={`rounded-md text-left text-[13px] whitespace-nowrap ${
+          compact ? 'px-2.5 py-1.5' : n.indent ? 'py-1.5 pr-2.5 pl-[22px]' : 'px-2.5 py-[7px]'
+        } ${
+          on
+            ? 'bg-ink text-on-ink'
+            : parent
+              ? 'font-medium text-ink hover:bg-surface'
+              : 'text-fg-1 hover:bg-surface hover:text-ink'
+        }`}
+      >
+        {n.label}
+      </button>
+    );
+  };
 
   return (
-    <div className="flex min-h-screen bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
-      <nav className="flex w-56 shrink-0 flex-col gap-1 border-r border-zinc-200 p-4 dark:border-zinc-800">
-        <div className="mb-4 text-lg font-semibold">Bulk Brew</div>
-        {SCREENS.map((s) => (
-          <button
-            key={s.id}
-            type="button"
-            onClick={() => setScreen(s.id)}
-            aria-current={s.id === screen ? 'page' : undefined}
-            className={`rounded px-3 py-2 text-left text-sm ${
-              s.id === screen
-                ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
-                : 'hover:bg-zinc-200 dark:hover:bg-zinc-800'
-            }`}
-          >
-            {s.label}
-            {s.id === 'decks' && decks.decks.length > 0 && (
-              <span className="ml-2 text-xs text-zinc-500">{decks.decks.length}</span>
-            )}
-          </button>
-        ))}
-        <div className="mt-auto text-xs text-zinc-500">
-          {pack.status === 'ready' && `Card data ${pack.index.version}`}
-          {pack.status === 'loading' && 'Loading card data'}
-          {pack.status === 'error' && `Card data failed: ${pack.error}`}
-        </div>
-      </nav>
-      <main className="min-w-0 flex-1 p-8">
-        <h1 className="mb-4 text-2xl font-semibold">{current.label}</h1>
-        <Screen />
-      </main>
-      <DetailPanel />
-    </div>
+    <NavContext.Provider value={nav}>
+      <div className="flex h-dvh flex-col bg-canvas text-ink md:flex-row">
+        <nav
+          aria-label="Main"
+          className="hidden w-[200px] shrink-0 flex-col gap-0.5 border-r border-line bg-surface-2 px-3 py-[18px] md:flex"
+        >
+          <div className="px-2.5 pt-1 pb-4 text-[15px] font-semibold">Bulk Brew</div>
+          {NAV.map((n) => item(n, false))}
+          <SidebarFooter />
+        </nav>
+        <nav
+          aria-label="Main"
+          className="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-line bg-surface-2 px-3 py-2 md:hidden"
+        >
+          <span className="mr-2 text-[15px] font-semibold whitespace-nowrap">Bulk Brew</span>
+          {NAV.map((n) => item(n, true))}
+        </nav>
+        <main className="min-h-0 min-w-0 flex-1 overflow-hidden">
+          <Screen />
+        </main>
+        {screen !== 'pool' && <DetailOverlay />}
+      </div>
+    </NavContext.Provider>
   );
 }
