@@ -1,10 +1,7 @@
 import { createContext, useContext } from 'react';
 import type { PoolFilters, PoolSort } from '@bulk-brew/ui';
 
-/**
- * Screens. Import is a subpage of the Bulk List (screen id `pool`) with no
- * sidebar item of its own; About sits under Settings.
- */
+/** Screens. Import is a subpage of the Bulk List (screen id `pool`) with no sidebar item. */
 export type ScreenId = 'import' | 'pool' | 'build' | 'decks' | 'settings' | 'about';
 
 export interface Nav {

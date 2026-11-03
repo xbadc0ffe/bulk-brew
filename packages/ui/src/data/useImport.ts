@@ -192,17 +192,27 @@ export function useImport(
     // Only import what the user sees: wait for the preview to catch up with the text.
     if (!preview || preview.cards === 0 || deferred !== text) return 0;
     add(toPoolEntries(preview.resolved));
-    // Unmatched lines stay in the box so they can be fixed and imported next.
-    const leftover = preview.unresolved.map((u) =>
-      parsed.format === 'decklist' ? u.line.raw : lineText(u.line, u.name),
-    );
+    // Unmatched and unreadable lines stay in the box so they can be fixed
+    // and imported next. An edited name is written back as edited.
+    const leftover = [
+      ...preview.unresolved.map((u) => ({
+        at: u.line.line,
+        text:
+          parsed.format === 'decklist' && u.name === u.line.name
+            ? u.line.raw
+            : lineText(u.line, u.name),
+      })),
+      ...parsed.skipped.map((l) => ({ at: l.line, text: l.raw })),
+    ]
+      .sort((a, b) => a.at - b.at)
+      .map((l) => l.text);
     setTextRaw(leftover.join('\n'));
     setFixed(new Map());
     setEdits(new Map());
     setSkipped(new Set());
     setDone({ cards: preview.cards, left: leftover.length });
     return preview.cards;
-  }, [preview, parsed.format, add, deferred, text]);
+  }, [preview, parsed.format, parsed.skipped, add, deferred, text]);
 
   return {
     text,

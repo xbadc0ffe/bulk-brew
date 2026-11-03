@@ -247,7 +247,7 @@ function PoolCards() {
             )
           }
         >
-          Export pool
+          Export list
         </button>
         <button
           type="button"
@@ -280,7 +280,7 @@ function PoolCards() {
             }
           }}
         >
-          Clear pool
+          Clear list
         </button>
       </div>
 
@@ -634,7 +634,7 @@ export function ImportScreen() {
                   const then = (fn: () => void) => {
                     fn();
                     setTimeout(() => {
-                      if (next) document.getElementById(`unresolved-${next.key}`)?.focus();
+                      if (next) document.getElementById(`unresolved-${next.line.line}`)?.focus();
                     }, 0);
                   };
                   const suggestion = imp.suggestionsFor(u.name)[0];
@@ -644,7 +644,7 @@ export function ImportScreen() {
                   };
                   return (
                     <li
-                      key={u.key}
+                      key={`${u.line.line}:${u.line.raw}`}
                       className="flex flex-col gap-1.5 border-b border-surface-2 px-3 py-2.5 last:border-b-0"
                     >
                       <div className="flex items-center gap-2.5">
@@ -652,7 +652,7 @@ export function ImportScreen() {
                           {u.line.qty}
                         </span>
                         <input
-                          id={`unresolved-${u.key}`}
+                          id={`unresolved-${u.line.line}`}
                           defaultValue={u.name}
                           aria-label={`Card name, line ${u.line.line}`}
                           enterKeyHint="done"

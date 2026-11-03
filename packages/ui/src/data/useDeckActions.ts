@@ -79,7 +79,7 @@ export function useDeckActions(input: {
               continue;
             }
             const short = poolShortfall(p, d, settings, index, config);
-            if (short > 0) return shortfallMessage(short);
+            if (short > 0) return shortfallMessage(short, 'merge');
             const r = commitDeck(p, d, settings, index, config, now);
             p = r.pool;
             out.push(r.deck);
@@ -94,14 +94,21 @@ export function useDeckActions(input: {
             return typeof r === 'string' ? p : r.pool;
           });
         const [ca, cb] = check.decks as [Deck, Deck];
+        // A merged deck either took all its basics or none. When only one
+        // packet took its basics, give those back now, so a later
+        // disassemble returns exactly what left the pool.
+        const tookBasics = [ca, cb].filter((d) => d.basicsTaken);
+        if (tookBasics.length === 1) {
+          const only = { ...tookBasics[0]!, cards: [] };
+          pool.actions.transform((p) => returnDeck(p, only, index, config, now));
+        }
         const merged: Deck = {
           ...pair.deck,
           id: newDeckId(`${now}:${a.id}+${b.id}`),
           createdAt: now,
           committed: true,
         };
-        // Basics go back on disassemble only if both packets took them.
-        if (ca.basicsTaken && cb.basicsTaken) merged.basicsTaken = true;
+        if (tookBasics.length === 2) merged.basicsTaken = true;
         else delete merged.basicsTaken;
         decks.remove(a.id);
         decks.remove(b.id);

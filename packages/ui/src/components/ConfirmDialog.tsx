@@ -31,6 +31,10 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
   useEffect(() => {
     if (!open) return;
     const before = document.activeElement as HTMLElement | null;
+    // The page behind is inert while the dialog is open: no tabbing or
+    // shortcuts reach it. The dialog itself is portaled outside #root.
+    const root = document.getElementById('root');
+    root?.setAttribute('inert', '');
     (props.focus === 'confirm' ? confirmRef : cancelRef).current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -42,7 +46,10 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
     document.addEventListener('keydown', onKey, true);
     return () => {
       document.removeEventListener('keydown', onKey, true);
-      if (before?.isConnected) before.focus({ preventScroll: true });
+      root?.removeAttribute('inert');
+      // Return focus unless the confirmed action removed or disabled that control.
+      const usable = before?.isConnected && !(before as HTMLButtonElement).disabled;
+      if (usable) before.focus({ preventScroll: true });
     };
   }, [open, props.focus]);
 

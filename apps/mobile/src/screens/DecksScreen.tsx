@@ -3,6 +3,7 @@ import { COLOR_LABELS, deckToDecklist, pairPackets, type Deck } from '@bulk-brew
 import {
   archetypeInfo,
   ConfirmDialog,
+  deckColors,
   DeckList,
   disassembleQuestion,
   landCount,
@@ -93,7 +94,11 @@ function DeckRows({ onOpen }: { onOpen(id: string): void }) {
               },
             ]}
           >
-            <Pip symbol={d.color} size={20} label={COLOR_LABELS[d.color]} />
+            <span className="flex shrink-0 -space-x-1">
+              {(index ? deckColors(d, index) : [d.color]).map((c) => (
+                <Pip key={c} symbol={c} size={20} label={COLOR_LABELS[c]} />
+              ))}
+            </span>
             <span className="flex min-w-0 flex-1 flex-col">
               <span className="truncate text-[0.9375rem] font-medium">{d.name}</span>
               <span className="truncate text-[0.75rem] text-fg-2">

@@ -28,6 +28,9 @@ export function poolShortfall(
   return short;
 }
 
-export function shortfallMessage(short: number): string {
-  return `${short} of this deck's cards ${short === 1 ? 'is' : 'are'} no longer in your bulk list, so it cannot be accepted. Build again to use what the list holds now.`;
+export function shortfallMessage(short: number, action: 'accept' | 'merge' = 'accept'): string {
+  const n = `${short} ${short === 1 ? 'card is' : 'cards are'}`;
+  return action === 'merge'
+    ? `${n} from the packets no longer in your bulk list, so they cannot be merged.`
+    : `${n} from this deck no longer in your bulk list, so it cannot be accepted. Build again to use what the list holds now.`;
 }

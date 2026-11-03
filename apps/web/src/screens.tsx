@@ -88,6 +88,17 @@ export function ImportScreen() {
   const fileInput = useRef<HTMLInputElement>(null);
   const preview = imp.preview;
 
+  const importButton = (
+    <button
+      type="button"
+      className={`${ui.primary} px-6 py-2.5 text-[14px]`}
+      disabled={!imp.canImport}
+      onClick={imp.commit}
+    >
+      {preview && preview.cards > 0 ? `Import ${plural(preview.cards, 'card')}` : 'Import'}
+    </button>
+  );
+
   const onDrop = (e: DragEvent) => {
     e.preventDefault();
     setDragging(false);
@@ -100,6 +111,7 @@ export function ImportScreen() {
       <header className="flex shrink-0 items-center gap-4 border-b border-line px-6 py-3">
         <BackButton label="Bulk List" onClick={() => nav.go('pool')} />
         <h1 className="text-[20px] font-semibold">Import</h1>
+        <span className="ml-auto lg:hidden">{importButton}</span>
       </header>
       <div className="grid min-h-0 flex-1 overflow-y-auto lg:grid-cols-2 lg:overflow-hidden">
         <section className="flex min-h-[520px] flex-col gap-3.5 border-line px-8 py-6 lg:min-h-0 lg:border-r">
@@ -155,15 +167,7 @@ export function ImportScreen() {
           aria-label="Live check"
           className="flex flex-col gap-4 px-8 py-6 lg:overflow-y-auto"
         >
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              className={`${ui.primary} px-6 py-2.5 text-[14px]`}
-              disabled={!imp.canImport}
-              onClick={imp.commit}
-            >
-              {preview && preview.cards > 0 ? `Import ${plural(preview.cards, 'card')}` : 'Import'}
-            </button>
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <p role="status" className="text-[13px] text-fg-1">
               {imp.done
                 ? `Added ${plural(imp.done.cards, 'card')} to your bulk list.${
@@ -173,6 +177,7 @@ export function ImportScreen() {
                   }`
                 : ''}
             </p>
+            <span className="ml-auto hidden lg:inline-flex">{importButton}</span>
           </div>
 
           {pack.status === 'loading' && (
@@ -227,12 +232,13 @@ export function ImportScreen() {
                       const then = (fn: () => void) => () => {
                         fn();
                         setTimeout(() => {
-                          if (next) document.getElementById(`unresolved-${next.key}`)?.focus();
+                          if (next)
+                            document.getElementById(`unresolved-${next.line.line}`)?.focus();
                         }, 0);
                       };
                       return (
                         <UnresolvedRow
-                          key={u.key}
+                          key={`${u.line.line}:${u.line.raw}`}
                           line={u}
                           suggestions={imp.suggestionsFor(u.name)}
                           onEdit={(name) => imp.editLine(u.key, name)}
@@ -295,7 +301,7 @@ function UnresolvedRow(props: {
       <span className="pt-1.5 font-mono text-[12px] text-fg-1 tabular-nums">{line.line.qty}</span>
       <div className="flex min-w-0 flex-col gap-1">
         <input
-          id={`unresolved-${line.key}`}
+          id={`unresolved-${line.line.line}`}
           defaultValue={line.name}
           aria-label={`Card name, line ${line.line.line}`}
           onBlur={(e) => {
@@ -449,7 +455,7 @@ function ManaValueFilter(props: {
         onChange={(e) => onChange(op, Number(e.target.value))}
         className={`${select} disabled:opacity-50`}
       >
-        {values.map((v) => (
+        {(values.includes(value) ? values : [...values, value].sort((a, b) => a - b)).map((v) => (
           <option key={v} value={v} className="bg-surface text-ink">
             {v}
           </option>
@@ -521,9 +527,10 @@ function BulkList() {
   const version = `${JSON.stringify(sort)}|${JSON.stringify(filters)}|${showArt}|${analyze}`;
   const win = useWindowedRows(rows.length, rowHeight, tbodyRef, version);
   // A new filter or sort starts at the top of the list.
+  const listKey = `${JSON.stringify(sort)}|${JSON.stringify(filters)}`;
   useEffect(() => {
     if (scroller.current) scroller.current.scrollTop = 0;
-  }, [version]);
+  }, [listKey]);
   const selectedId = detail.current?.cardId;
   const selectedIndex = rows.findIndex((r) => r.card.id === selectedId);
 
@@ -597,7 +604,9 @@ function BulkList() {
   // Roving focus: one row is in the tab order, the selected one when it is rendered.
   const focusId = visible.some((r) => r.card.id === selectedId) ? selectedId : visible[0]?.card.id;
   const today = new Date().toISOString().slice(0, 10);
-  const pickedCopies = [...picked].reduce((n, id) => n + (pool.pool.entries[id]?.qty ?? 0), 0);
+  // Picks hidden by the filters, or already removed, do not count and are not removed.
+  const pickedRows = rows.filter((r) => picked.has(r.card.id));
+  const pickedCopies = pickedRows.reduce((n, r) => n + r.entry.qty, 0);
   const shownColumns = COLUMNS.filter((c) => wide || !c.wideOnly);
   const columnCount = shownColumns.length + (selecting ? 1 : 0);
   const openRow = (cardId: string, printing: PrintingHint | undefined) => {
@@ -623,11 +632,13 @@ function BulkList() {
   };
 
   const removePicked = () => {
-    const ids = [...picked];
+    const ids = pickedRows.map((r) => r.card.id);
     pool.actions.transform((p) => ids.reduce((acc, id) => removeFromPool(acc, id), p));
-    if (selectedId && picked.has(selectedId)) detail.close();
+    if (selectedId && ids.includes(selectedId)) detail.close();
     setPicked(new Set());
     setConfirm(undefined);
+    // The Remove button is disabled now; land in the search box.
+    requestAnimationFrame(() => searchRef.current?.focus());
   };
 
   return (
@@ -693,9 +704,9 @@ function BulkList() {
                 values={facets.manaValues}
                 op={filters.mv.op}
                 value={
-                  facets.manaValues.includes(filters.mv.value)
-                    ? filters.mv.value
-                    : (facets.manaValues[0] ?? 0)
+                  filters.mv.op === 'any' && !facets.manaValues.includes(filters.mv.value)
+                    ? (facets.manaValues[0] ?? 0)
+                    : filters.mv.value
                 }
                 onChange={(op, value) => set('mv', { op, value })}
               />
@@ -759,8 +770,8 @@ function BulkList() {
             {selecting && (
               <div className="flex flex-wrap items-center gap-2 rounded-md bg-surface-2 px-3 py-2 text-[12.5px]">
                 <span className="mr-auto text-fg-1">
-                  {picked.size > 0
-                    ? `${plural(picked.size, 'card')} selected (${copies(pickedCopies)})`
+                  {pickedRows.length > 0
+                    ? `${plural(pickedRows.length, 'card')} selected (${copies(pickedCopies)})`
                     : 'Tick cards to select them.'}
                 </span>
                 <button
@@ -773,7 +784,7 @@ function BulkList() {
                 <button
                   type="button"
                   className={ui.small}
-                  disabled={picked.size === 0}
+                  disabled={pickedRows.length === 0}
                   onClick={() => setPicked(new Set())}
                 >
                   Clear selection
@@ -781,10 +792,10 @@ function BulkList() {
                 <button
                   type="button"
                   className={`${ui.primary} py-[5px] text-[12.5px]`}
-                  disabled={picked.size === 0}
+                  disabled={pickedRows.length === 0}
                   onClick={() => setConfirm('remove')}
                 >
-                  Remove{picked.size > 0 ? ` ${fmt(picked.size)}` : ''}
+                  Remove{pickedRows.length > 0 ? ` ${fmt(pickedRows.length)}` : ''}
                 </button>
               </div>
             )}
@@ -828,7 +839,7 @@ function BulkList() {
                       <input
                         type="checkbox"
                         aria-label="Select all shown"
-                        checked={rows.length > 0 && rows.every((r) => picked.has(r.card.id))}
+                        checked={rows.length > 0 && pickedRows.length === rows.length}
                         onChange={(e) =>
                           setPicked(
                             e.target.checked ? new Set(rows.map((r) => r.card.id)) : new Set(),
@@ -1032,8 +1043,8 @@ function BulkList() {
 
       <ConfirmDialog
         open={confirm === 'remove'}
-        title={`Remove ${plural(picked.size, 'card')}?`}
-        message={`This removes all ${copies(pickedCopies)} of the ${plural(picked.size, 'selected card')} from your bulk list.`}
+        title={`Remove ${plural(pickedRows.length, 'card')}?`}
+        message={`This removes all ${copies(pickedCopies)} of the ${plural(pickedRows.length, 'selected card')} from your bulk list.`}
         confirmLabel="Remove"
         onConfirm={removePicked}
         onCancel={() => setConfirm(undefined)}

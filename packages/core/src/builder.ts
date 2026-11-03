@@ -567,7 +567,7 @@ export function chooseArchetype(
   if (composition[0]) return byId.get(composition[0].archetype)!;
   const fallback =
     byId.get('midrange') ?? config.archetypes.archetypes.find((a) => a.kind === 'composition')!;
-  notes.push(`No archetype fits this pool well; built a ${fallback.label} deck anyway.`);
+  notes.push(`No archetype fits this bulk list well; built a ${fallback.label} deck anyway.`);
   return fallback;
 }
 
@@ -648,7 +648,7 @@ export function buildDeck(
     if (have < q.min) {
       const inPool = countCopies(cands, (c) => c.facts.roles.includes(roleId));
       notes.push(
-        `Wanted ${q.min} ${roleLabel(ctx, roleId).toLowerCase()}, the pool had ${inPool}.`,
+        `Wanted ${q.min} ${roleLabel(ctx, roleId).toLowerCase()}, the bulk list had ${inPool}.`,
       );
     }
   }

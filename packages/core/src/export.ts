@@ -2,7 +2,15 @@
 
 import type { BulkBrewConfig } from './config.ts';
 import type { CardIndex } from './pack.ts';
-import { COLOR_LABELS, type CardRecord, type CardType, type Deck, type DeckCard } from './types.ts';
+import {
+  COLOR_LABELS,
+  COLORS,
+  type CardRecord,
+  type CardType,
+  type Color,
+  type Deck,
+  type DeckCard,
+} from './types.ts';
 
 const GROUPS: { type: CardType; label: string }[] = [
   { type: 'creature', label: 'Creatures' },
@@ -60,7 +68,14 @@ export function deckToDecklist(deck: Deck, index: CardIndex, config?: BulkBrewCo
     counts.set('Lands', (counts.get('Lands') ?? 0) + basicCount);
   }
 
-  const out: string[] = [`// ${deck.name}`, `// ${deck.size} cards, ${COLOR_LABELS[deck.color]}`];
+  // Every color in the deck, so a merged two-packet deck names both.
+  const colors = new Set<Color>([deck.color]);
+  for (const [c, n] of Object.entries(deck.basics)) if ((n ?? 0) > 0) colors.add(c as Color);
+  for (const dc of deck.cards) for (const c of index.get(dc.cardId)?.identity ?? []) colors.add(c);
+  const colorText = COLORS.filter((c) => colors.has(c))
+    .map((c) => COLOR_LABELS[c])
+    .join(' and ');
+  const out: string[] = [`// ${deck.name}`, `// ${deck.size} cards, ${colorText}`];
   for (const g of [...GROUPS.map((x) => x.label), 'Other']) {
     const lines = groups.get(g);
     if (!lines?.length) continue;
