@@ -111,3 +111,19 @@ Image URLs come from `imageUrl()` and `printingImageUrl()` in `packages/core/src
 - A small design token set (colors, spacing, type) in each app's `index.css`.
 - Empty, loading, and error states for each screen.
 - Mana symbol treatment and the color palette for the five colors plus colorless.
+
+## What exists today
+
+A plain, functional interface already implements every screen above, so the design pass restyles working code rather than inventing flows. In both apps:
+
+- Import: paste or choose a file; decklists and ManaBox, Moxfield, and Deckbox CSV exports are detected automatically; a resolution report with suggestions.
+- Pool: color filters, search, sort (name, mana value, color, quantity), header counts, quantity buttons, export, clear. The web table only renders rows near the viewport for large pools.
+- Build: size, color with candidate counts, style list with viability notes, build, then the deck view with Accept, Try another style, Discard, Export, and Copy.
+- Deck view: cards grouped by type, mana symbols, optional "why each card is here", curve bars, land reasoning, roles, synergies, notes.
+- Decks: list, open, rename, export, delete with "return cards to the pool", pair two packets with Copy.
+- Settings: copy limits, basics, Un-sets, card art, backup export and restore, clear all data, card data version, About with the attribution notices.
+- Card detail: opened from any card row. Web shows a right-hand panel; phones show a full-screen sheet; tablets show a side panel. With art on, lists show small thumbnails and the detail shows the whole card.
+- Mobile shell: bottom tab bar on phones; from 768 px a side rail, and Build shows the form beside the result.
+- Web app: installable, works offline after the first load through a service worker.
+
+Shared pieces live in `packages/ui` (card detail, card image, deck view, curve bars, hooks). Screens live in `apps/web/src` and `apps/mobile/src`.

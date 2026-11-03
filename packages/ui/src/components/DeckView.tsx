@@ -7,10 +7,13 @@ import {
   type BuildExplanation,
   type BulkBrewConfig,
   type CardIndex,
+  type CardRecord,
   type Color,
   type Deck,
   type DeckCard,
+  type PrintingHint,
 } from '@bulk-brew/core';
+import { CardImage } from './CardImage.tsx';
 import { CurveBars } from './CurveBars.tsx';
 import { ManaCost } from '../ManaCost.tsx';
 
@@ -20,6 +23,10 @@ export interface DeckViewProps {
   config: BulkBrewConfig;
   /** Fresh builds offer Accept, Try another style, and Discard; saved decks offer rename, export, delete. */
   mode: 'fresh' | 'saved';
+  /** Show small card images next to each row. */
+  showArt?: boolean | undefined;
+  /** Open the card detail for a row. */
+  onOpenCard?: ((cardId: string, printing?: PrintingHint | undefined) => void) | undefined;
   onAccept?: (() => void) | undefined;
   onTryAnotherStyle?: (() => void) | undefined;
   onDiscard?: (() => void) | undefined;
@@ -65,13 +72,13 @@ export function DeckView(props: DeckViewProps) {
   );
 
   const groups = useMemo(() => {
-    const map = new Map<string, { card: DeckCard; name: string; cost: string | undefined }[]>();
+    const map = new Map<string, { card: DeckCard; rec: CardRecord; name: string }[]>();
     for (const dc of deck.cards) {
       const card = index.get(dc.cardId);
       if (!card) continue;
       const g = primaryGroup(card);
       if (!map.has(g)) map.set(g, []);
-      map.get(g)!.push({ card: dc, name: card.name, cost: card.manaCost });
+      map.get(g)!.push({ card: dc, rec: card, name: card.name });
     }
     for (const list of map.values()) list.sort((a, b) => a.name.localeCompare(b.name));
     return GROUP_ORDER.filter((g) => map.has(g)).map((g) => ({
@@ -141,6 +148,13 @@ export function DeckView(props: DeckViewProps) {
         <button type="button" className={button} onClick={() => setExportOpen((o) => !o)}>
           {exportOpen ? 'Hide export' : 'Export'}
         </button>
+        <button
+          type="button"
+          className={button}
+          onClick={() => void copy(deckToDecklist(deck, index, config))}
+        >
+          {copied ? 'Copied' : 'Copy'}
+        </button>
         {mode === 'saved' && props.onDelete && (
           <span className="flex items-center gap-2">
             <label className={`flex items-center gap-1 ${muted}`}>
@@ -165,20 +179,13 @@ export function DeckView(props: DeckViewProps) {
       </div>
 
       {exported !== undefined && (
-        <div className="flex flex-col gap-2">
-          <textarea
-            readOnly
-            value={exported}
-            rows={10}
-            onFocus={(e) => e.currentTarget.select()}
-            className="w-full rounded border border-zinc-300 bg-white p-3 font-mono text-xs dark:border-zinc-700 dark:bg-zinc-900"
-          />
-          <div>
-            <button type="button" className={button} onClick={() => void copy(exported)}>
-              {copied ? 'Copied' : 'Copy to clipboard'}
-            </button>
-          </div>
-        </div>
+        <textarea
+          readOnly
+          value={exported}
+          rows={10}
+          onFocus={(e) => e.currentTarget.select()}
+          className="w-full rounded border border-zinc-300 bg-white p-3 font-mono text-xs dark:border-zinc-700 dark:bg-zinc-900"
+        />
       )}
 
       <div className="grid gap-6 md:grid-cols-[2fr_1fr]">
@@ -192,8 +199,28 @@ export function DeckView(props: DeckViewProps) {
                 {g.rows.map((r) => (
                   <li key={r.card.cardId} className="flex items-center gap-2 py-0.5 text-sm">
                     <span className="w-5 text-right tabular-nums">{r.card.qty}</span>
-                    <span className="flex-1">{r.name}</span>
-                    <ManaCost cost={r.cost} />
+                    {props.showArt && (
+                      <button
+                        type="button"
+                        className="shrink-0"
+                        onClick={() => props.onOpenCard?.(r.card.cardId, r.card.printing)}
+                        aria-label={`Show ${r.name}`}
+                      >
+                        <CardImage card={r.rec} size="small" className="h-9 w-auto" />
+                      </button>
+                    )}
+                    {props.onOpenCard ? (
+                      <button
+                        type="button"
+                        className="flex-1 text-left hover:underline"
+                        onClick={() => props.onOpenCard?.(r.card.cardId, r.card.printing)}
+                      >
+                        {r.name}
+                      </button>
+                    ) : (
+                      <span className="flex-1">{r.name}</span>
+                    )}
+                    <ManaCost cost={r.rec.manaCost} />
                     {showWhy && r.card.why && (
                       <span className="w-40 text-right text-xs text-zinc-500">{r.card.why}</span>
                     )}

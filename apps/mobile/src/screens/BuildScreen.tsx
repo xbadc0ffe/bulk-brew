@@ -16,8 +16,8 @@ const SIZES: { size: DeckSize; label: string }[] = [
   { size: 20, label: '20 packet' },
 ];
 
-export function BuildScreen() {
-  const { index, config, pack, build: flow } = useAppState();
+function BuildForm() {
+  const { build: flow } = useAppState();
   const styleSection = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -27,25 +27,6 @@ export function BuildScreen() {
     section.scrollIntoView({ block: 'start' });
     section.querySelector<HTMLInputElement>('input[type=radio]')?.focus();
   }, [flow.styleFocusRequest, flow.result]);
-
-  if (pack.status === 'error') {
-    return <p className="text-sm text-amber-600">Card data failed to load: {pack.error}</p>;
-  }
-  if (pack.status !== 'ready' || !index) return <p className={muted}>Loading card data.</p>;
-
-  if (flow.result) {
-    return (
-      <DeckView
-        deck={flow.result.deck}
-        index={index}
-        config={config}
-        mode="fresh"
-        onAccept={flow.accept}
-        onTryAnotherStyle={flow.tryAnotherStyle}
-        onDiscard={flow.discard}
-      />
-    );
-  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -137,6 +118,41 @@ export function BuildScreen() {
       </button>
       {!flow.color && <p className={muted}>Pick a color first.</p>}
       {flow.error && <p className="text-sm text-amber-600">{flow.error}</p>}
+    </div>
+  );
+}
+
+export function BuildScreen() {
+  const { index, config, pack, build: flow, settings, detail } = useAppState();
+
+  if (pack.status === 'error') {
+    return <p className="text-sm text-amber-600">Card data failed to load: {pack.error}</p>;
+  }
+  if (pack.status !== 'ready' || !index) return <p className={muted}>Loading card data.</p>;
+
+  const result = flow.result ? (
+    <DeckView
+      deck={flow.result.deck}
+      index={index}
+      config={config}
+      mode="fresh"
+      showArt={settings.settings.showArt}
+      onOpenCard={detail.open}
+      onAccept={flow.accept}
+      onTryAnotherStyle={flow.tryAnotherStyle}
+      onDiscard={flow.discard}
+    />
+  ) : undefined;
+
+  // Phones show either the form or the result; tablets show both side by side.
+  return (
+    <div className="md:grid md:grid-cols-[minmax(16rem,1fr)_2fr] md:gap-6">
+      <div className={result ? 'hidden md:block' : ''}>
+        <BuildForm />
+      </div>
+      <div className={result ? '' : 'hidden md:block'}>
+        {result ?? <p className={muted}>Pick a size and a color, then build to see a deck here.</p>}
+      </div>
     </div>
   );
 }

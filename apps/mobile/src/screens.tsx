@@ -1,12 +1,16 @@
 import { useMemo, useState } from 'react';
 import type { Color } from '@bulk-brew/core';
 import {
+  CardImage,
   COLOR_ORDER,
+  IMPORT_FORMAT_LABELS,
   ManaCost,
+  POOL_SORTS,
   poolRows,
   poolSummary,
   useImport,
   type ColorFilter,
+  type PoolSort,
 } from '@bulk-brew/ui';
 import { useAppState } from './app-context.ts';
 
@@ -17,15 +21,20 @@ const button =
 const primary =
   'rounded bg-zinc-900 px-4 py-2 text-sm text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900';
 const muted = 'text-sm text-zinc-600 dark:text-zinc-400';
+const field =
+  'rounded border border-zinc-300 bg-white px-3 py-2 text-base dark:border-zinc-700 dark:bg-zinc-900';
 
 export function ImportScreen() {
-  const { index, pool } = useAppState();
-  const imp = useImport(index, pool.actions.add);
+  const { index, pool, settings } = useAppState();
+  const imp = useImport(index, pool.actions.add, settings.settings.includeUnsets);
   const total = imp.parsed.lines.reduce((n, l) => n + l.qty, 0);
 
   return (
     <div className="flex flex-col gap-3">
-      <p className={muted}>Paste a decklist or collection export.</p>
+      <p className={muted}>
+        Paste a decklist or a collection export, or choose a file. CSV exports from ManaBox,
+        Moxfield, and Deckbox work too.
+      </p>
       <textarea
         value={imp.text}
         onChange={(e) => imp.setText(e.target.value)}
@@ -33,12 +42,26 @@ export function ImportScreen() {
         placeholder={'4 Lightning Bolt (M10) 146\n2 Llanowar Elves\nForest x10'}
         className="w-full rounded border border-zinc-300 bg-white p-3 font-mono text-base dark:border-zinc-700 dark:bg-zinc-900"
       />
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <button type="button" className={primary} disabled={!imp.canAdd} onClick={imp.addToPool}>
           Add to pool
         </button>
+        <label className={button}>
+          Choose file
+          <input
+            type="file"
+            accept=".txt,.csv,.tsv,.dec,text/plain,text/csv"
+            className="sr-only"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void imp.loadFile(file);
+              e.target.value = '';
+            }}
+          />
+        </label>
         <span className={muted}>
           {imp.parsed.lines.length} lines, {total} cards
+          {imp.text && ` (${IMPORT_FORMAT_LABELS[imp.format]})`}
         </span>
       </div>
       {imp.report && (
@@ -66,12 +89,14 @@ export function ImportScreen() {
 }
 
 export function PoolScreen() {
-  const { index, pool, pack } = useAppState();
+  const { index, pool, pack, settings, detail } = useAppState();
+  const showArt = settings.settings.showArt;
   const [search, setSearch] = useState('');
   const [color, setColor] = useState<ColorFilter>('all');
+  const [sort, setSort] = useState<PoolSort>('name');
   const rows = useMemo(
-    () => (index ? poolRows(pool.pool, index, { search, color }) : []),
-    [index, pool.pool, search, color],
+    () => (index ? poolRows(pool.pool, index, { search, color, sort }) : []),
+    [index, pool.pool, search, color, sort],
   );
   const summary = useMemo(
     () => (index ? poolSummary(pool.pool, index) : undefined),
@@ -87,6 +112,9 @@ export function PoolScreen() {
 
   return (
     <div className="flex flex-col gap-3">
+      <p className={muted}>
+        {summary.distinct} distinct cards, {summary.cards} copies.
+      </p>
       <div className="flex flex-wrap gap-1">
         {(['all', ...COLOR_ORDER, 'C'] as ColorFilter[]).map((c) => (
           <button
@@ -104,21 +132,49 @@ export function PoolScreen() {
           </button>
         ))}
       </div>
-      <input
-        type="search"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search"
-        className="w-full rounded border border-zinc-300 bg-white px-3 py-2 text-base dark:border-zinc-700 dark:bg-zinc-900"
-      />
+      <div className="flex gap-2">
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search"
+          className={`min-w-0 flex-1 ${field}`}
+        />
+        <select
+          value={sort}
+          onChange={(e) => setSort(e.target.value as PoolSort)}
+          className={field}
+          aria-label="Sort"
+        >
+          {POOL_SORTS.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.label}
+            </option>
+          ))}
+        </select>
+      </div>
       <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">
         {rows.map(({ entry, card }) => (
           <li key={card.id} className="flex items-center gap-3 py-2">
-            <span className="w-6 text-right tabular-nums">{entry.qty}</span>
-            <span className="flex-1">
-              <span className="block">{card.name}</span>
-              <span className={`block text-xs ${muted}`}>{card.typeLine}</span>
-            </span>
+            <span className="w-6 shrink-0 text-right tabular-nums">{entry.qty}</span>
+            {showArt && (
+              <button
+                type="button"
+                className="shrink-0"
+                onClick={() => detail.open(card.id, entry.printing)}
+                aria-label={`Show ${card.name}`}
+              >
+                <CardImage card={card} size="small" className="h-11 w-auto" />
+              </button>
+            )}
+            <button
+              type="button"
+              className="min-w-0 flex-1 text-left"
+              onClick={() => detail.open(card.id, entry.printing)}
+            >
+              <span className="block truncate">{card.name}</span>
+              <span className={`block truncate text-xs ${muted}`}>{card.typeLine}</span>
+            </button>
             <ManaCost cost={card.manaCost} />
             <button
               type="button"
@@ -131,6 +187,7 @@ export function PoolScreen() {
           </li>
         ))}
       </ul>
+      {rows.length === 0 && <p className={muted}>No cards match.</p>}
       <button
         type="button"
         className={button}

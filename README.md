@@ -6,7 +6,7 @@ Paste in your bulk, pick a deck size and a color, and Bulk Brew builds the best 
 
 Everything runs on your device. There is no account, no server, and nothing you import ever leaves your browser or phone.
 
-**Status:** early development. The repo layout, core types, and decklist parser exist. The data pipeline, deck builder, and real interfaces are being built phase by phase; see [SPEC.md](SPEC.md) for the plan and the decisions behind it.
+**Status:** working v1. Import decklists or ManaBox, Moxfield, and Deckbox CSV exports, keep a pool, build 60, 40, or 20-card mono-color decks with an explanation, accept them to remove their cards from the pool, export or copy decklists, pair two packets, back everything up to a file, and browse card details with optional art. The web app works offline once loaded. Styling is a plain placeholder until the design pass; the iOS app is next. See [SPEC.md](SPEC.md) for the plan and the decisions behind it.
 
 ## How it works
 

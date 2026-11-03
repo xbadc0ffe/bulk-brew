@@ -1,13 +1,18 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { poolToDecklist, type Color } from '@bulk-brew/core';
 import {
+  CardImage,
   COLOR_NAMES,
   COLOR_ORDER,
+  IMPORT_FORMAT_LABELS,
   ManaCost,
+  POOL_SORTS,
   poolRows,
   poolSummary,
   useImport,
+  useWindowedRows,
   type ColorFilter,
+  type PoolSort,
 } from '@bulk-brew/ui';
 import { useAppState } from './app-context.ts';
 
@@ -18,18 +23,21 @@ const button =
 const primary =
   'rounded bg-zinc-900 px-3 py-1.5 text-sm text-white hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300';
 const muted = 'text-sm text-zinc-600 dark:text-zinc-400';
+const field =
+  'rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900';
 
 export function ImportScreen() {
-  const { index, pool, pack } = useAppState();
-  const imp = useImport(index, pool.actions.add);
+  const { index, pool, pack, settings } = useAppState();
+  const imp = useImport(index, pool.actions.add, settings.settings.includeUnsets);
   const total = imp.parsed.lines.reduce((n, l) => n + l.qty, 0);
 
   return (
     <div className="flex max-w-3xl flex-col gap-3">
       <p className={muted}>
-        Paste a decklist or collection export. Formats like <code>4 Lightning Bolt</code>,{' '}
-        <code>4x Lightning Bolt</code>, and <code>4 Lightning Bolt (M10) 146 *F*</code> all work.
-        Set codes are kept only to show the matching card art.
+        Paste a decklist or a collection export, or choose a file. Decklist lines like{' '}
+        <code>4 Lightning Bolt</code>, <code>4x Lightning Bolt</code>, and{' '}
+        <code>4 Lightning Bolt (M10) 146 *F*</code> work, and so do CSV exports from ManaBox,
+        Moxfield, and Deckbox. Set codes are kept only to show the matching card art.
       </p>
       <textarea
         value={imp.text}
@@ -38,10 +46,23 @@ export function ImportScreen() {
         placeholder={'4 Lightning Bolt (M10) 146\n2 Llanowar Elves\nForest x10'}
         className="w-full rounded border border-zinc-300 bg-white p-3 font-mono text-sm dark:border-zinc-700 dark:bg-zinc-900"
       />
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <button type="button" className={primary} disabled={!imp.canAdd} onClick={imp.addToPool}>
           Add to pool
         </button>
+        <label className={`${button} cursor-pointer`}>
+          Choose file
+          <input
+            type="file"
+            accept=".txt,.csv,.tsv,.dec,text/plain,text/csv"
+            className="sr-only"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void imp.loadFile(file);
+              e.target.value = '';
+            }}
+          />
+        </label>
         <button
           type="button"
           className={button}
@@ -52,7 +73,8 @@ export function ImportScreen() {
         </button>
         <span className={muted}>
           {imp.parsed.lines.length} lines, {total} cards
-          {imp.parsed.skipped.length > 0 && `, ${imp.parsed.skipped.length} unreadable`}
+          {imp.parsed.skipped.length > 0 && `, ${imp.parsed.skipped.length} skipped`}
+          {imp.text && ` (${IMPORT_FORMAT_LABELS[imp.format]})`}
           {pack.status === 'loading' && ' (card data still loading)'}
         </span>
       </div>
@@ -91,22 +113,31 @@ export function ImportScreen() {
 }
 
 export function PoolScreen() {
-  const { index, pool, pack } = useAppState();
+  const { index, pool, pack, settings, detail } = useAppState();
+  const showArt = settings.settings.showArt;
   const [search, setSearch] = useState('');
   const [color, setColor] = useState<ColorFilter>('all');
+  const [sort, setSort] = useState<PoolSort>('name');
   const [exported, setExported] = useState<string>();
 
   const rows = useMemo(
-    () => (index ? poolRows(pool.pool, index, { search, color }) : []),
-    [index, pool.pool, search, color],
+    () => (index ? poolRows(pool.pool, index, { search, color, sort }) : []),
+    [index, pool.pool, search, color, sort],
   );
   const summary = useMemo(
     () => (index ? poolSummary(pool.pool, index) : undefined),
     [index, pool.pool],
   );
+  // Rows share one height so the long list can render only what is on screen;
+  // the hook measures the real height and re-measures when the list changes.
+  const rowHeight = showArt ? 44 : 34;
+  const tbodyRef = useRef<HTMLTableSectionElement>(null);
+  const win = useWindowedRows(rows.length, rowHeight, tbodyRef, `${sort}|${color}|${search}`);
 
-  if (pack.status === 'loading' || !pool.loaded) return <p className={muted}>Loading.</p>;
-  if (pack.status === 'error' || !index) return <p className={muted}>Card data failed to load.</p>;
+  if (pack.status === 'error') {
+    return <p className="text-sm text-amber-600">Card data failed to load: {pack.error}</p>;
+  }
+  if (pack.status !== 'ready' || !index || !pool.loaded) return <p className={muted}>Loading.</p>;
   if (!summary || summary.distinct === 0) {
     return <p className={muted}>The pool is empty. Import some cards first.</p>;
   }
@@ -119,9 +150,14 @@ export function PoolScreen() {
     })),
     { id: 'C', label: `Colorless ${summary.byColor.C}` },
   ];
+  const visible = rows.slice(win.start, win.end);
+  const columns = showArt ? 6 : 5;
 
   return (
     <div className="flex max-w-4xl flex-col gap-3">
+      <p className={muted}>
+        {summary.distinct} distinct cards, {summary.cards} copies, {summary.byColor.M} multicolor.
+      </p>
       <div className="flex flex-wrap items-center gap-2">
         {filters.map((f) => (
           <button
@@ -134,9 +170,6 @@ export function PoolScreen() {
             {f.label}
           </button>
         ))}
-        <span className={muted}>
-          {summary.distinct} distinct, {summary.byColor.M} multicolor
-        </span>
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <input
@@ -144,8 +177,22 @@ export function PoolScreen() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search name or type"
-          className="w-64 rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+          className={`w-64 ${field}`}
         />
+        <label className={`flex items-center gap-2 ${muted}`}>
+          Sort
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as PoolSort)}
+            className={field}
+          >
+            {POOL_SORTS.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+        </label>
         <button
           type="button"
           className={button}
@@ -172,26 +219,59 @@ export function PoolScreen() {
           className="w-full rounded border border-zinc-300 bg-white p-3 font-mono text-xs dark:border-zinc-700 dark:bg-zinc-900"
         />
       )}
-      <table className="w-full text-sm">
+      <table className="w-full table-fixed text-sm">
         <thead className="text-left text-xs uppercase text-zinc-500">
           <tr>
-            <th className="py-1 pr-2">Qty</th>
+            <th className="w-10 py-1 pr-2">Qty</th>
+            {showArt && <th className="w-10 py-1 pr-2"></th>}
             <th className="py-1 pr-2">Name</th>
-            <th className="py-1 pr-2">Cost</th>
-            <th className="py-1 pr-2">Type</th>
-            <th className="py-1"></th>
+            <th className="w-32 py-1 pr-2">Cost</th>
+            <th className="w-40 py-1 pr-2">Type</th>
+            <th className="w-36 py-1"></th>
           </tr>
         </thead>
-        <tbody>
-          {rows.map(({ entry, card }) => (
-            <tr key={card.id} className="border-t border-zinc-200 dark:border-zinc-800">
-              <td className="py-1 pr-2 tabular-nums">{entry.qty}</td>
-              <td className="py-1 pr-2">{card.name}</td>
-              <td className="py-1 pr-2">
+        <tbody ref={tbodyRef}>
+          {win.topPad > 0 && (
+            <tr aria-hidden style={{ height: win.topPad }}>
+              <td colSpan={columns} />
+            </tr>
+          )}
+          {visible.map(({ entry, card }) => (
+            <tr
+              key={card.id}
+              data-row
+              className="border-t border-zinc-200 dark:border-zinc-800"
+              style={{ height: rowHeight }}
+            >
+              <td className="pr-2 tabular-nums">{entry.qty}</td>
+              {showArt && (
+                <td className="pr-2">
+                  <button
+                    type="button"
+                    onClick={() => detail.open(card.id, entry.printing)}
+                    aria-label={`Show ${card.name}`}
+                  >
+                    <CardImage card={card} size="small" className="h-9 w-auto" />
+                  </button>
+                </td>
+              )}
+              <td className="pr-2">
+                <button
+                  type="button"
+                  className="block w-full truncate text-left hover:underline"
+                  title={card.name}
+                  onClick={() => detail.open(card.id, entry.printing)}
+                >
+                  {card.name}
+                </button>
+              </td>
+              <td className="pr-2 whitespace-nowrap">
                 <ManaCost cost={card.manaCost} />
               </td>
-              <td className={`py-1 pr-2 ${muted}`}>{card.typeLine}</td>
-              <td className="py-1 text-right whitespace-nowrap">
+              <td className={`truncate pr-2 ${muted}`} title={card.typeLine}>
+                {card.typeLine}
+              </td>
+              <td className="text-right whitespace-nowrap">
                 <button
                   type="button"
                   className={button}
@@ -219,6 +299,11 @@ export function PoolScreen() {
               </td>
             </tr>
           ))}
+          {win.bottomPad > 0 && (
+            <tr aria-hidden style={{ height: win.bottomPad }}>
+              <td colSpan={columns} />
+            </tr>
+          )}
         </tbody>
       </table>
       {rows.length === 0 && <p className={muted}>No cards match.</p>}

@@ -1,19 +1,35 @@
 import { useCallback, useMemo, useState } from 'react';
 import {
-  parseDecklist,
+  parseImportText,
   resolveLines,
   toPoolEntries,
   type CardIndex,
+  type CsvFormat,
   type ImportReport,
   type ParseResult,
   type PoolEntry,
   type UnresolvedLine,
 } from '@bulk-brew/core';
+import { readFileText } from '../util/files.ts';
+
+export type ImportFormat = CsvFormat | 'decklist';
+
+export const IMPORT_FORMAT_LABELS: Record<ImportFormat, string> = {
+  decklist: 'decklist',
+  manabox: 'ManaBox CSV',
+  moxfield: 'Moxfield CSV',
+  deckbox: 'Deckbox CSV',
+  generic: 'CSV',
+};
 
 export interface ImportState {
   text: string;
   setText(text: string): void;
+  /** Read a chosen file into the text box. */
+  loadFile(file: File): Promise<void>;
   parsed: ParseResult;
+  /** Which parser handled the text. */
+  format: ImportFormat;
   /** Set after "Add to pool"; cleared when the text changes. */
   report: ImportReport | undefined;
   /** Parse, resolve, and add every resolved line to the pool. */
@@ -30,12 +46,19 @@ export function useImport(
 ): ImportState {
   const [text, setTextRaw] = useState('');
   const [report, setReport] = useState<ImportReport>();
-  const parsed = useMemo(() => parseDecklist(text), [text]);
+  const parsed = useMemo(() => parseImportText(text), [text]);
 
   const setText = useCallback((t: string) => {
     setTextRaw(t);
     setReport(undefined);
   }, []);
+
+  const loadFile = useCallback(
+    async (file: File) => {
+      setText(await readFileText(file));
+    },
+    [setText],
+  );
 
   const addToPool = useCallback(() => {
     if (!index) return;
@@ -67,7 +90,9 @@ export function useImport(
   return {
     text,
     setText,
+    loadFile,
     parsed,
+    format: parsed.format,
     report,
     addToPool,
     acceptSuggestion,

@@ -1,5 +1,19 @@
-import type { DeckSize } from '@bulk-brew/core';
-import { CONFIG_PROBLEMS } from '@bulk-brew/ui';
+import { useState } from 'react';
+import { configVersion, exportBackup, parseBackup, type DeckSize } from '@bulk-brew/core';
+import {
+  applyBackup,
+  backupFilename,
+  CONFIG_PROBLEMS,
+  downloadText,
+  FAN_CONTENT_NOTICE,
+  LICENSE_LINE,
+  readFileText,
+  REPO_URL,
+  SCRYFALL_NOTICE,
+  SCRYFALL_URL,
+  WIZARDS_NOTICE,
+} from '@bulk-brew/ui';
+import { version } from '../../package.json';
 import { useAppState } from '../app-context.ts';
 
 const muted = 'text-sm text-zinc-600 dark:text-zinc-400';
@@ -9,10 +23,47 @@ const button =
   'rounded border border-zinc-300 bg-white px-3 py-2 text-sm active:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900';
 
 export function SettingsScreen() {
-  const { pack, settings } = useAppState();
+  const { kv, pack, index, config, settings, pool, decks } = useAppState();
   const s = settings.settings;
   // Controls wait for the stored settings so an early edit cannot be overwritten.
-  const ready = settings.loaded;
+  const ready = settings.loaded && pool.loaded && decks.loaded;
+  const [message, setMessage] = useState<string>();
+
+  const exportNow = () => {
+    const now = new Date();
+    const json = exportBackup(
+      { pool: pool.pool, decks: decks.decks, settings: s, dataVersion: index?.version ?? '' },
+      now.toISOString(),
+    );
+    downloadText(backupFilename(now), json);
+    setMessage('Backup saved.');
+  };
+
+  const restore = async (file: File) => {
+    try {
+      const backup = parseBackup(await readFileText(file));
+      const cards = Object.values(backup.pool.entries).reduce((n, e) => n + e.qty, 0);
+      const when = backup.exportedAt.slice(0, 10);
+      if (
+        !window.confirm(
+          `Replace your pool, decks, and settings with the backup from ${when} (${cards} cards, ${backup.decks.length} decks)?`,
+        )
+      )
+        return;
+      await applyBackup(backup, { kv, pool, decks, settings });
+      setMessage(`Restored the backup from ${when}.`);
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  const clearAll = () => {
+    if (!window.confirm('Delete your pool, every saved deck, and your settings?')) return;
+    pool.actions.clear();
+    decks.replaceAll([]);
+    settings.reset();
+    setMessage('Everything was cleared.');
+  };
 
   return (
     <div className="flex flex-col gap-5 text-sm">
@@ -70,8 +121,38 @@ export function SettingsScreen() {
             checked={s.showArt}
             onChange={(e) => settings.update({ showArt: e.target.checked })}
           />
-          Show card art (coming with the card detail view)
+          Show card art (loads images from Scryfall as you browse)
         </label>
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h2 className="font-semibold">Backup</h2>
+        <p className={muted}>
+          One file holds your pool, saved decks, and settings. Restoring replaces all three.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" className={button} disabled={!ready} onClick={exportNow}>
+            Export backup
+          </button>
+          <label className={`${button} ${ready ? '' : 'opacity-50'}`}>
+            Restore backup
+            <input
+              type="file"
+              accept=".json,application/json"
+              className="sr-only"
+              disabled={!ready}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void restore(file);
+                e.target.value = '';
+              }}
+            />
+          </label>
+          <button type="button" className={button} disabled={!ready} onClick={clearAll}>
+            Clear all data
+          </button>
+        </div>
+        {message && <p className={muted}>{message}</p>}
       </section>
 
       <section className="flex flex-col gap-2">
@@ -98,10 +179,22 @@ export function SettingsScreen() {
       <section className="flex flex-col gap-2">
         <h2 className="font-semibold">About</h2>
         <p className={muted}>
-          Bulk Brew is unofficial Fan Content permitted under the Fan Content Policy. Not approved
-          or endorsed by Wizards. Portions of the materials used are property of Wizards of the
-          Coast. Card data and images come from Scryfall, which is not affiliated with this project.
-          Open source under the MIT License.
+          Bulk Brew {version}. Card data {index?.version ?? 'not loaded'}
+          {index ? `, ${index.size} cards` : ''}. Config {configVersion(config)}.
+        </p>
+        <p className={muted}>{FAN_CONTENT_NOTICE}</p>
+        <p className={muted}>{WIZARDS_NOTICE}</p>
+        <p className={muted}>
+          {SCRYFALL_NOTICE}{' '}
+          <a className="underline" href={SCRYFALL_URL} target="_blank" rel="noreferrer">
+            scryfall.com
+          </a>
+        </p>
+        <p className={muted}>
+          {LICENSE_LINE}{' '}
+          <a className="underline" href={REPO_URL} target="_blank" rel="noreferrer">
+            Source on GitHub
+          </a>
         </p>
         <button type="button" className={button} disabled={!ready} onClick={settings.reset}>
           Reset settings to defaults

@@ -4,6 +4,8 @@
 export interface KeyValueStore {
   get<T>(key: string): Promise<T | undefined>;
   set<T>(key: string, value: T): Promise<void>;
+  /** Write several keys so that either all or none land. */
+  setMany(entries: [key: string, value: unknown][]): Promise<void>;
   delete(key: string): Promise<void>;
 }
 
@@ -26,6 +28,14 @@ function request<T>(req: IDBRequest<T>): Promise<T> {
   });
 }
 
+function complete(tx: IDBTransaction): Promise<void> {
+  return new Promise((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error ?? new Error('indexedDB transaction failed'));
+    tx.onabort = () => reject(tx.error ?? new Error('indexedDB transaction aborted'));
+  });
+}
+
 class IndexedDbStore implements KeyValueStore {
   private db: Promise<IDBDatabase> | undefined;
 
@@ -44,6 +54,12 @@ class IndexedDbStore implements KeyValueStore {
     await request(store.put(value, key));
   }
 
+  async setMany(entries: [string, unknown][]): Promise<void> {
+    const store = await this.tx('readwrite');
+    for (const [key, value] of entries) store.put(value, key);
+    await complete(store.transaction);
+  }
+
   async delete(key: string): Promise<void> {
     const store = await this.tx('readwrite');
     await request(store.delete(key));
@@ -57,6 +73,9 @@ class MemoryStore implements KeyValueStore {
   }
   async set<T>(key: string, value: T): Promise<void> {
     this.map.set(key, value);
+  }
+  async setMany(entries: [string, unknown][]): Promise<void> {
+    for (const [key, value] of entries) this.map.set(key, value);
   }
   async delete(key: string): Promise<void> {
     this.map.delete(key);

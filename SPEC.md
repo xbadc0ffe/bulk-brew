@@ -200,7 +200,7 @@ npm workspaces monorepo, TypeScript throughout.
 | 4     | Guides and config v1: templates, roles, archetypes, synergy and land rules                | done   |
 | 5     | Archetype scan and builder v1: mono-color, all sizes, explanations, packet pairing        | done   |
 | 6     | Evaluation harness: test pools, rubric, results tracking                                  | next   |
-| 7     | Web app: full flow, art toggle, storage, offline, design pass applied                     |        |
+| 7     | Web app: full flow, card detail and art, backup, CSV import, offline, mobile layouts      | done   |
 | 8     | iOS app: Capacitor project, bundled data, over-the-air data updates, TestFlight           |        |
 | 9     | Later: two-color builds, batch balanced mode, quality score, offline image download       |        |
 

@@ -1,0 +1,11 @@
+{
+  "name": "Bulk Brew",
+  "short_name": "Bulk Brew",
+  "description": "Turn a pile of bulk Magic: The Gathering cards into playable mono-color decks.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#18181b",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

@@ -17,7 +17,7 @@ const SIZES: { size: DeckSize; label: string }[] = [
 ];
 
 export function BuildScreen() {
-  const { index, config, pack, build: flow } = useAppState();
+  const { index, config, pack, build: flow, settings, detail } = useAppState();
   const styleSection = useRef<HTMLElement>(null);
 
   // "Try another style" asks for the style list; scroll there once the form is back.
@@ -41,6 +41,8 @@ export function BuildScreen() {
         index={index}
         config={config}
         mode="fresh"
+        showArt={settings.settings.showArt}
+        onOpenCard={detail.open}
         onAccept={flow.accept}
         onTryAnotherStyle={flow.tryAnotherStyle}
         onDiscard={flow.discard}

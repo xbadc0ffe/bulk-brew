@@ -16,19 +16,31 @@ function archetypeLabel(config: ReturnType<typeof useAppState>['config'], id: st
 }
 
 export function DecksScreen() {
-  const { index, config, decks, pool, pack } = useAppState();
+  const { index, config, decks, pool, pack, settings, detail } = useAppState();
   const [openId, setOpenId] = useState<string>();
   const [pairA, setPairA] = useState<string>();
   const [pairB, setPairB] = useState<string>();
+  const [copied, setCopied] = useState(false);
 
   const open = decks.decks.find((d) => d.id === openId);
-  const packets = decks.decks.filter((d) => d.size === 20);
+  const packets = useMemo(() => decks.decks.filter((d) => d.size === 20), [decks.decks]);
   const pair = useMemo(() => {
     const a = packets.find((d) => d.id === pairA);
     const b = packets.find((d) => d.id === pairB);
     if (!a || !b || !index) return undefined;
     return pairPackets(a, b, index, config);
   }, [packets, pairA, pairB, index, config]);
+
+  const copyPair = async () => {
+    if (!pair?.ok) return;
+    try {
+      await navigator.clipboard.writeText(pair.text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setCopied(false);
+    }
+  };
 
   if (pack.status === 'error') {
     return <p className="text-sm text-amber-600">Card data failed to load: {pack.error}</p>;
@@ -50,6 +62,8 @@ export function DecksScreen() {
           index={index}
           config={config}
           mode="saved"
+          showArt={settings.settings.showArt}
+          onOpenCard={detail.open}
           onRename={(name) => decks.update({ ...open, name })}
           onDelete={(returnCards) => {
             if (returnCards && open.committed) {
@@ -129,6 +143,11 @@ export function DecksScreen() {
                 ))}
               </select>
             ))}
+            {pair?.ok && (
+              <button type="button" className={button} onClick={() => void copyPair()}>
+                {copied ? 'Copied' : 'Copy'}
+              </button>
+            )}
           </div>
           {pair && !pair.ok && <p className="text-sm text-amber-600">{pair.error}</p>}
           {pair?.ok && (
