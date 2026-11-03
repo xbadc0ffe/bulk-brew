@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { configVersion, exportBackup, parseBackup, type DeckSize } from '@bulk-brew/core';
 import {
+  APPEARANCE_MODES,
   applyBackup,
   backupFilename,
   CONFIG_PROBLEMS,
@@ -11,6 +12,8 @@ import {
   REPO_URL,
   SCRYFALL_NOTICE,
   SCRYFALL_URL,
+  Segmented,
+  THEME_COLORS,
   WIZARDS_NOTICE,
 } from '@bulk-brew/ui';
 import { version } from '../../package.json';
@@ -23,7 +26,7 @@ const button =
   'rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:bg-zinc-800';
 
 export function SettingsScreen() {
-  const { kv, pack, index, config, settings, pool, decks } = useAppState();
+  const { kv, pack, index, config, settings, pool, decks, appearance } = useAppState();
   const s = settings.settings;
   // Controls wait for the stored settings so an early edit cannot be overwritten.
   const ready = settings.loaded && pool.loaded && decks.loaded;
@@ -62,6 +65,7 @@ export function SettingsScreen() {
     pool.actions.clear();
     decks.replaceAll([]);
     settings.reset();
+    appearance.reset();
     setMessage('Everything was cleared.');
   };
 
@@ -125,6 +129,22 @@ export function SettingsScreen() {
           />
           Show card art (loads images from Scryfall as you browse)
         </label>
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h2 className="font-semibold">Appearance</h2>
+        <Segmented
+          label="Appearance"
+          options={APPEARANCE_MODES}
+          value={appearance.appearance.mode}
+          onChange={appearance.setMode}
+        />
+        <Segmented
+          label="Theme color"
+          options={THEME_COLORS}
+          value={appearance.appearance.theme}
+          onChange={appearance.setTheme}
+        />
       </section>
 
       <section className="flex flex-col gap-2">

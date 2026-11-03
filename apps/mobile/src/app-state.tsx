@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import {
   CONFIG,
+  useAppearance,
   useBuildFlow,
   useCardDetail,
   useDecks,
@@ -15,6 +16,7 @@ import { AppContext, type AppState } from './app-context.ts';
 const PACK_URL = 'data/cards.v1.json';
 
 export function AppStateProvider({ kv, children }: { kv: KeyValueStore; children: ReactNode }) {
+  const appearance = useAppearance();
   const pack = usePack(PACK_URL);
   const index = pack.status === 'ready' ? pack.index : undefined;
   const pool = usePool(kv);
@@ -24,6 +26,7 @@ export function AppStateProvider({ kv, children }: { kv: KeyValueStore; children
   const detail = useCardDetail();
   const value: AppState = {
     kv,
+    appearance,
     pack,
     index,
     config: CONFIG,

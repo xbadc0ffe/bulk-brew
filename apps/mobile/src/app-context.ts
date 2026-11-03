@@ -1,6 +1,7 @@
 import { createContext, useContext } from 'react';
 import type { BulkBrewConfig, CardIndex } from '@bulk-brew/core';
 import type {
+  AppearanceState,
   BuildFlow,
   CardDetailState,
   DecksState,
@@ -13,6 +14,8 @@ import type {
 export interface AppState {
   /** The store behind pool, decks, and settings; restore writes to it directly. */
   kv: KeyValueStore;
+  /** Light, dark, or system mode and the theme color. Device-local, not in backups. */
+  appearance: AppearanceState;
   pack: PackState;
   index: CardIndex | undefined;
   config: BulkBrewConfig;
