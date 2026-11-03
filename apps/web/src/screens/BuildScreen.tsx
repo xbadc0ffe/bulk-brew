@@ -1,174 +1,288 @@
-import { useEffect, useRef } from 'react';
-import { COLORS, COLOR_LABELS, type Color, type DeckSize, type ScanReport } from '@bulk-brew/core';
-import { DeckView } from '@bulk-brew/ui';
+import { COLORS, COLOR_LABELS, type DeckSize } from '@bulk-brew/core';
+import {
+  archetypeInfo,
+  archetypeViability,
+  buildableSizes,
+  Pip,
+  Segmented,
+  Stepper,
+  ui,
+  useStatus,
+  type ScansBySize,
+} from '@bulk-brew/ui';
 import { useAppState } from '../app-context.ts';
+import { PackGate } from '../screens.tsx';
+import { DeckLayout, ExportMenu } from './DeckLayout.tsx';
 
-const button =
-  'rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:bg-zinc-800';
-const primary =
-  'rounded bg-zinc-900 px-3 py-1.5 text-sm text-white hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300';
-const muted = 'text-sm text-zinc-600 dark:text-zinc-400';
-const selected = 'ring-2 ring-zinc-500';
-
-const SIZES: { size: DeckSize; label: string }[] = [
-  { size: 60, label: '60 cards' },
-  { size: 40, label: '40 cards' },
-  { size: 20, label: '20-card packet' },
+const SIZES: { id: DeckSize; label: string }[] = [
+  { id: 60, label: '60' },
+  { id: 40, label: '40' },
+  { id: 20, label: '20 Jumpstart' },
 ];
 
+/** One line per size, in the voice of the design's 60-card line. */
+function sizeLine(size: DeckSize, copies: number): string {
+  const c = `Up to ${copies} ${copies === 1 ? 'copy' : 'copies'} of a card.`;
+  if (size === 60) return `Casual constructed. ${c}`;
+  if (size === 40) return `Draft-style limited deck. ${c}`;
+  return `Jumpstart packet. Pair two for a 40-card game. ${c}`;
+}
+
 export function BuildScreen() {
-  const { index, config, pack, build: flow, settings, detail } = useAppState();
-  const styleSection = useRef<HTMLElement>(null);
+  return (
+    <PackGate>
+      <Build />
+    </PackGate>
+  );
+}
 
-  // "Try another style" asks for the style list; scroll there once the form is back.
-  useEffect(() => {
-    if (flow.styleFocusRequest === 0 || flow.result) return;
-    const section = styleSection.current;
-    if (!section) return;
-    section.scrollIntoView({ block: 'start' });
-    section.querySelector<HTMLInputElement>('input[type=radio]')?.focus();
-  }, [flow.styleFocusRequest, flow.result]);
+function Build() {
+  const { build: flow } = useAppState();
+  return flow.result ? <BuildResultView /> : <BuildForm />;
+}
 
-  if (pack.status === 'error') {
-    return <p className="text-sm text-amber-600">Card data failed to load: {pack.error}</p>;
-  }
-  if (pack.status !== 'ready' || !index) return <p className={muted}>Loading card data.</p>;
+function sizesText(scans: ScansBySize | undefined, color: (typeof COLORS)[number]): string {
+  if (!scans) return '';
+  const sizes = buildableSizes(scans, color);
+  return sizes.length ? sizes.join('/') : 'none';
+}
 
-  if (flow.result) {
-    return (
-      <DeckView
-        deck={flow.result.deck}
-        index={index}
-        config={config}
-        mode="fresh"
-        showArt={settings.settings.showArt}
-        onOpenCard={detail.open}
-        onAccept={flow.accept}
-        onTryAnotherStyle={flow.tryAnotherStyle}
-        onDiscard={flow.discard}
-      />
-    );
-  }
+function BuildForm() {
+  const { build: flow, scans, config } = useAppState();
+  const colorName = flow.color ? COLOR_LABELS[flow.color] : undefined;
+  const scan = flow.colorScan;
+  const styles = scan
+    ? scan.archetypes
+        .map((a) => ({ a, state: archetypeViability(a, scan) }))
+        .filter((x) => x.state !== 'none')
+        .sort((x, y) => (x.state === y.state ? 0 : x.state === 'viable' ? -1 : 1))
+    : [];
+  const label = flow.building
+    ? 'Building…'
+    : colorName
+      ? `Build ${flow.size}-card ${colorName.toLowerCase()} deck`
+      : `Build ${flow.size}-card deck`;
+  const sizes = flow.color && scans ? buildableSizes(scans, flow.color) : [];
 
   return (
-    <div className="flex max-w-3xl flex-col gap-5">
-      {flow.accepted && (
-        <p className="rounded border border-zinc-200 p-3 text-sm dark:border-zinc-800">
-          Saved "{flow.accepted.name}" and removed its cards from the pool. Build another from what
-          is left.
-        </p>
-      )}
+    <div className="flex h-full flex-col overflow-y-auto md:flex-row md:overflow-hidden">
+      <section className="flex shrink-0 flex-col gap-5 border-line bg-surface px-6 py-[22px] md:w-[400px] md:overflow-y-auto md:border-r">
+        <h1 className="text-[20px] font-semibold">Build</h1>
+        {flow.accepted && (
+          <p role="status" className={`${ui.error} leading-[1.5]`}>
+            Saved &quot;{flow.accepted.name}&quot; and removed its cards from the pool. Build
+            another from what is left.
+          </p>
+        )}
 
-      <section className="flex flex-col gap-2">
-        <h2 className="text-sm font-semibold">Size</h2>
-        <div className="flex flex-wrap gap-2">
-          {SIZES.map((s) => (
-            <button
-              key={s.size}
-              type="button"
-              className={`${button} ${flow.size === s.size ? selected : ''}`}
-              aria-pressed={flow.size === s.size}
-              onClick={() => flow.setSize(s.size)}
-            >
-              {s.label}
-            </button>
-          ))}
+        <div className="flex flex-col gap-2">
+          <h2 className={ui.sectionLabel}>Deck size</h2>
+          <Segmented
+            label="Deck size"
+            options={SIZES}
+            value={flow.size}
+            onChange={flow.setSize}
+            full
+          />
+          <p className="text-[12px] text-fg-2">{sizeLine(flow.size, flow.maxCopies)}</p>
         </div>
-      </section>
 
-      <section className="flex flex-col gap-2">
-        <h2 className="text-sm font-semibold">Color</h2>
-        <div className="flex flex-wrap gap-2">
-          {COLORS.map((c) => {
-            const scan = flow.scans?.[c];
-            return (
-              <button
-                key={c}
-                type="button"
-                className={`${button} ${flow.color === c ? selected : ''}`}
-                aria-pressed={flow.color === c}
-                disabled={!scan?.possible}
-                title={scan?.notes.join('; ')}
-                onClick={() => flow.setColor(c)}
-              >
-                {COLOR_LABELS[c]} <span className="text-zinc-500">{scan?.colored ?? 0}</span>
-              </button>
-            );
-          })}
-        </div>
-        <ColorNotes scans={flow.scans} />
-      </section>
-
-      {flow.colorScan && (
-        <section ref={styleSection} className="flex flex-col gap-2">
-          <h2 className="text-sm font-semibold">Style</h2>
-          <div className="flex flex-col gap-1">
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="radio"
-                name="style"
-                checked={flow.style === undefined}
-                onChange={() => flow.setStyle(undefined)}
-              />
-              Best fit
-            </label>
-            {flow.colorScan.archetypes.map((a) => (
-              <label
-                key={a.archetype}
-                className={`flex items-center gap-2 text-sm ${a.viable ? '' : 'text-zinc-500'}`}
-              >
-                <input
-                  type="radio"
-                  name="style"
-                  checked={flow.style === a.archetype}
-                  disabled={!a.viable}
-                  onChange={() => flow.setStyle(a.archetype)}
-                />
-                <span>{a.label}</span>
-                <span className="text-xs text-zinc-500">
-                  {a.kind === 'synergy'
-                    ? `${a.enablers.have} enablers, ${a.payoffs.have} payoffs`
-                    : `${a.enablers.have} spells`}
-                  {a.notes.length > 0 && `, ${a.notes.join('; ')}`}
-                </span>
-              </label>
-            ))}
+        <div className="flex flex-col gap-2">
+          <h2 className={ui.sectionLabel}>Color</h2>
+          <div role="radiogroup" aria-label="Color" className="grid grid-cols-5 gap-1.5">
+            {COLORS.map((c) => {
+              const s = flow.sizeScans?.[c];
+              const can = s?.possible ?? false;
+              const on = flow.color === c;
+              return (
+                <button
+                  key={c}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  disabled={!can}
+                  title={can ? undefined : s?.notes.join('; ')}
+                  onClick={() => flow.setColor(c)}
+                  className={`flex min-w-0 flex-col items-center gap-1 rounded-md border px-1 pt-2.5 pb-2 text-center ${
+                    on ? 'border-ink bg-surface' : 'border-line hover:bg-surface-2'
+                  } disabled:cursor-default disabled:opacity-55 disabled:hover:bg-transparent`}
+                >
+                  <Pip symbol={c} size={22} />
+                  <span className="text-[12px] font-medium">{COLOR_LABELS[c]}</span>
+                  <span className="text-[10.5px] leading-tight text-fg-2">
+                    {s?.candidates ?? 0} · {can ? sizesText(scans, c) : `no ${flow.size}`}
+                  </span>
+                </button>
+              );
+            })}
           </div>
-        </section>
-      )}
+        </div>
 
-      <div className="flex items-center gap-3">
-        <button type="button" className={primary} disabled={!flow.canBuild} onClick={flow.build}>
-          {flow.building ? 'Building' : 'Build'}
-        </button>
-        {!flow.color && <span className={muted}>Pick a color first.</span>}
-        {flow.error && <span className="text-sm text-amber-600">{flow.error}</span>}
+        <div className="flex flex-col gap-2">
+          <h2 className={ui.sectionLabel}>Style</h2>
+          {scan ? (
+            <div role="radiogroup" aria-label="Style" className="rounded-md border border-line">
+              <StyleRow
+                name="Best fit"
+                description="Let the builder pick the strongest style"
+                checked={flow.style === undefined}
+                onSelect={() => flow.setStyle(undefined)}
+              />
+              {styles.map(({ a, state }) => (
+                <StyleRow
+                  key={a.archetype}
+                  name={a.label}
+                  description={
+                    state === 'viable'
+                      ? archetypeInfo(config, a.archetype).description
+                      : capitalize(a.notes.join(', '))
+                  }
+                  state={state === 'viable' ? 'Viable' : 'Near miss'}
+                  disabled={state !== 'viable'}
+                  checked={flow.style === a.archetype}
+                  onSelect={() => flow.setStyle(a.archetype)}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="text-[12px] text-fg-2">Pick a color to see the styles it can build.</p>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-[13px] text-fg-1">Max copies per card</span>
+          <Stepper
+            label="Max copies per card"
+            value={flow.maxCopies}
+            min={1}
+            onChange={flow.setMaxCopies}
+          />
+        </div>
+
+        <div className="sticky bottom-0 -mx-6 -mb-[22px] mt-auto flex flex-col gap-2 border-t border-line bg-surface px-6 pt-3 pb-[22px]">
+          {flow.error && <p className="text-[13px] text-ink">{flow.error}</p>}
+          <button
+            type="button"
+            className={`${ui.primary} h-10 w-full text-[14px]`}
+            disabled={!flow.canBuild}
+            onClick={flow.build}
+          >
+            {label}
+          </button>
+        </div>
+      </section>
+
+      <div className="flex flex-1 flex-col items-center justify-center gap-1 p-8 text-center text-[13px] text-fg-2">
+        <p>Your deck appears here.</p>
+        <p>
+          {!colorName || !scan
+            ? 'Pick a size and a color to start.'
+            : sizes.length === 3
+              ? `${colorName} has ${scan.candidates} candidates and builds all three sizes.`
+              : sizes.length > 0
+                ? `${colorName} has ${scan.candidates} candidates and builds ${sizes.join(' and ')}.`
+                : `${colorName} has ${scan.candidates} candidates, not enough for a deck yet.`}
+        </p>
       </div>
     </div>
   );
 }
 
-/**
- * Explains the color buttons: counts are cards of each color, colorless cards
- * fit every color, and a disabled color says why so phone users see it too.
- */
-function ColorNotes({ scans }: { scans: Record<Color, ScanReport> | undefined }) {
-  if (!scans) return null;
-  const any = scans[COLORS[0]!];
-  const colorless = any ? any.candidates - any.colored : 0;
-  const blocked = COLORS.filter((c) => !scans[c].possible && scans[c].colored > 0);
+const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+function StyleRow(props: {
+  name: string;
+  description: string;
+  state?: string;
+  checked: boolean;
+  disabled?: boolean;
+  onSelect(): void;
+}) {
+  const { name, description, state, checked, disabled, onSelect } = props;
   return (
-    <div className={muted}>
-      <p>
-        Counts are spell copies of each color.
-        {colorless > 0 &&
-          ` ${colorless} colorless ${colorless === 1 ? 'copy fits' : 'copies fit'} every color.`}
-      </p>
-      {blocked.map((c) => (
-        <p key={c}>
-          {COLOR_LABELS[c]}: {scans[c].notes.join('; ')}
-        </p>
-      ))}
-    </div>
+    <label
+      className={`grid grid-cols-[16px_1fr_auto] items-center gap-2.5 border-b border-surface-2 px-3 py-[9px] last:border-b-0 has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-ink ${
+        disabled ? 'opacity-55' : 'cursor-pointer hover:bg-surface-2'
+      }`}
+    >
+      <input
+        type="radio"
+        name="style"
+        className="peer sr-only"
+        checked={checked}
+        disabled={disabled}
+        onChange={onSelect}
+      />
+      <span
+        aria-hidden
+        className={`size-3.5 rounded-full border-[1.5px] border-ink ${checked ? 'bg-ink shadow-[inset_0_0_0_2px_var(--surface)]' : ''}`}
+      />
+      <span className="flex min-w-0 flex-col">
+        <span className="text-[13px] font-medium">{name}</span>
+        <span className="text-[11.5px] text-fg-2">{description}</span>
+      </span>
+      <span className="text-[11px] text-fg-1">{state}</span>
+    </label>
+  );
+}
+
+function BuildResultView() {
+  const { build: flow, index } = useAppState();
+  const [status, setStatus] = useStatus();
+  const result = flow.result;
+  if (!result || !index) return null;
+  const deck = flow.saved ?? result.deck;
+  const lands = result.explanation.lands.count;
+  const rebuildTitle =
+    flow.otherStyles === 0 ? 'No other style is viable for this color and size.' : undefined;
+
+  return (
+    <DeckLayout
+      deck={deck}
+      meta={`${deck.size} cards · ${lands} lands · max ${flow.resultMaxCopies ?? flow.maxCopies} copies`}
+      badge="Still in pool"
+      after={
+        <button
+          type="button"
+          className={`${ui.link} text-[12px] text-fg-1`}
+          onClick={flow.editSettings}
+        >
+          Edit settings
+        </button>
+      }
+      status={status}
+      actions={
+        <>
+          <button
+            type="button"
+            className={`${ui.quiet} px-1 text-[13px]`}
+            onClick={flow.removeFromPool}
+          >
+            Remove from pool
+          </button>
+          <button
+            type="button"
+            className={ui.secondary}
+            disabled={flow.otherStyles === 0 || flow.building}
+            title={rebuildTitle}
+            onClick={flow.rebuild}
+          >
+            {flow.building ? 'Building…' : 'Rebuild'}
+          </button>
+          <ExportMenu deck={deck} onStatus={setStatus} />
+          <button
+            type="button"
+            className={ui.primary}
+            disabled={!!flow.saved}
+            onClick={() => {
+              flow.save();
+              setStatus('Saved to Decks. Its cards are still in the pool.');
+            }}
+          >
+            {flow.saved ? 'Saved' : 'Save deck'}
+          </button>
+        </>
+      }
+    />
   );
 }

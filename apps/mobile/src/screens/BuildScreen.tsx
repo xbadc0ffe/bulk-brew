@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import { COLORS, COLOR_LABELS, type Color, type DeckSize, type ScanReport } from '@bulk-brew/core';
 import { DeckView } from '@bulk-brew/ui';
 import { useAppState } from '../app-context.ts';
@@ -19,14 +19,6 @@ const SIZES: { size: DeckSize; label: string }[] = [
 function BuildForm() {
   const { build: flow } = useAppState();
   const styleSection = useRef<HTMLElement>(null);
-
-  useEffect(() => {
-    if (flow.styleFocusRequest === 0 || flow.result) return;
-    const section = styleSection.current;
-    if (!section) return;
-    section.scrollIntoView({ block: 'start' });
-    section.querySelector<HTMLInputElement>('input[type=radio]')?.focus();
-  }, [flow.styleFocusRequest, flow.result]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -57,7 +49,7 @@ function BuildForm() {
         <h2 className="text-sm font-semibold">Color</h2>
         <div className="flex flex-wrap gap-2">
           {COLORS.map((c) => {
-            const scan = flow.scans?.[c];
+            const scan = flow.sizeScans?.[c];
             return (
               <button
                 key={c}
@@ -72,7 +64,7 @@ function BuildForm() {
             );
           })}
         </div>
-        <ColorNotes scans={flow.scans} />
+        <ColorNotes scans={flow.sizeScans} />
       </section>
 
       {flow.colorScan && (
@@ -139,9 +131,9 @@ export function BuildScreen() {
       mode="fresh"
       showArt={settings.settings.showArt}
       onOpenCard={detail.open}
-      onAccept={flow.accept}
-      onTryAnotherStyle={flow.tryAnotherStyle}
-      onDiscard={flow.discard}
+      onAccept={flow.removeFromPool}
+      onTryAnotherStyle={flow.rebuild}
+      onDiscard={flow.editSettings}
     />
   ) : undefined;
 

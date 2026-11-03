@@ -216,22 +216,38 @@ export function ImportScreen() {
               <>
                 <h3 className={ui.sectionLabel}>Unresolved</h3>
                 <ul className={`${ui.box} flex flex-col`}>
-                  {preview.unresolved.map((u) => (
-                    <UnresolvedRow
-                      key={`${u.line.line}:${u.name}`}
-                      line={u}
-                      onEdit={(name) => imp.editLine(u.line.line, name)}
-                      onSuggestion={(name) => imp.acceptSuggestion(u.line.line, name)}
-                      onSkip={() => imp.skip(u.line.line)}
-                    />
-                  ))}
+                  {preview.unresolved.map((u, i) => {
+                    // After a row resolves or is skipped, focus the next one.
+                    const next = preview.unresolved[i + 1] ?? preview.unresolved[i - 1];
+                    const then = (fn: () => void) => () => {
+                      fn();
+                      setTimeout(() => {
+                        if (next) document.getElementById(`unresolved-${next.line.line}`)?.focus();
+                      }, 0);
+                    };
+                    return (
+                      <UnresolvedRow
+                        key={u.line.line}
+                        line={u}
+                        onEdit={(name) => imp.editLine(u.line.line, name)}
+                        onSuggestion={(name) =>
+                          then(() => imp.acceptSuggestion(u.line.line, name))()
+                        }
+                        onSkip={then(() => imp.skip(u.line.line))}
+                      />
+                    );
+                  })}
                 </ul>
               </>
             ) : (
               <p className={ui.note}>
-                {preview.cards > 0
-                  ? 'Every line matched a card.'
-                  : 'Nothing to add. Check the names or the format.'}
+                {preview.cards === 0
+                  ? preview.basics > 0
+                    ? 'Only basic lands, which are unlimited and not stored. Nothing to add.'
+                    : 'Nothing to add. Check the names or the format.'
+                  : preview.skipped > 0
+                    ? `Skipped ${plural(preview.skipped, 'line')}. Everything else matched.`
+                    : 'Every line matched a card.'}
               </p>
             )}
             <div className="mt-auto flex flex-wrap justify-end gap-2 pt-3">
@@ -289,9 +305,15 @@ function UnresolvedRow(props: {
       <span className="pt-1.5 font-mono text-[12px] text-fg-1 tabular-nums">{line.line.qty}</span>
       <div className="flex min-w-0 flex-col gap-1">
         <input
+          id={`unresolved-${line.line.line}`}
           defaultValue={line.name}
           aria-label={`Card name on line ${line.line.line}`}
-          onBlur={(e) => submit(e.currentTarget.value)}
+          onBlur={(e) => {
+            // Moving to this row's own buttons should not re-resolve under the pointer.
+            const row = e.currentTarget.closest('li');
+            if (row && e.relatedTarget instanceof Node && row.contains(e.relatedTarget)) return;
+            submit(e.currentTarget.value);
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Enter') submit(e.currentTarget.value);
           }}
@@ -426,6 +448,7 @@ function PoolLoaded() {
   const searchRef = useRef<HTMLInputElement>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const tbodyRef = useRef<HTMLTableSectionElement>(null);
+  const detailRef = useRef<HTMLElement>(null);
 
   const rows = useMemo(
     () => (index ? poolRows(pool.pool, index, { ...filters, sort, config }) : []),
@@ -453,13 +476,14 @@ function PoolLoaded() {
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement;
       const typing = el.closest('input, textarea, select, [contenteditable]') !== null;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
       if (e.key === '/' && !typing) {
         e.preventDefault();
         searchRef.current?.focus();
         return;
       }
-      if ((e.key !== 'ArrowDown' && e.key !== 'ArrowUp') || (typing && el !== searchRef.current))
-        return;
+      if ((e.key !== 'ArrowDown' && e.key !== 'ArrowUp') || e.shiftKey) return;
+      if (typing && el !== searchRef.current) return;
       if (el.closest('[data-menu]') || rows.length === 0) return;
       e.preventDefault();
       const next =
@@ -471,6 +495,14 @@ function PoolLoaded() {
             );
       const row = rows[next]!;
       detail.open(row.card.id, row.entry.printing);
+      // Focus follows the selection from a row, so Enter acts on the new card;
+      // from the search field it stays put so typing can continue.
+      if (el.closest('[data-row]') || el === document.body) {
+        const id = `pool-row-${row.card.id}`;
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() => document.getElementById(id)?.focus({ preventScroll: true })),
+        );
+      }
       const box = scroller.current;
       const body = tbodyRef.current;
       if (!box || !body) return;
@@ -506,6 +538,8 @@ function PoolLoaded() {
     : [];
   const filtered = filterCount(filters) > 0 || filters.search.trim() !== '';
   const visible = rows.slice(win.start, win.end);
+  // Roving focus: one row is in the tab order, the selected one when it is rendered.
+  const focusId = visible.some((r) => r.card.id === selectedId) ? selectedId : visible[0]?.card.id;
   const today = new Date().toISOString().slice(0, 10);
 
   const exportBackupNow = () => {
@@ -643,7 +677,6 @@ function PoolLoaded() {
                   <tr
                     key={card.id}
                     data-row
-                    aria-selected={on}
                     onClick={() => detail.open(card.id, e.printing)}
                     className={`cursor-pointer border-b border-surface-2 ${on ? 'bg-surface-2' : 'hover:bg-surface-2'}`}
                     style={{ height: rowHeight }}
@@ -662,12 +695,22 @@ function PoolLoaded() {
                           />
                         )}
                         <button
+                          id={`pool-row-${card.id}`}
                           type="button"
+                          aria-current={on ? 'true' : undefined}
+                          tabIndex={card.id === focusId ? 0 : -1}
                           className="min-w-0 truncate text-left font-medium"
                           title={card.name}
                           onClick={(ev) => {
                             ev.stopPropagation();
                             detail.open(card.id, e.printing);
+                          }}
+                          onKeyDown={(ev) => {
+                            if (ev.key !== 'Enter') return;
+                            // Enter opens the card and moves into its detail.
+                            ev.preventDefault();
+                            detail.open(card.id, e.printing);
+                            requestAnimationFrame(() => detailRef.current?.focus());
                           }}
                         >
                           {card.name}
@@ -745,19 +788,15 @@ function PoolLoaded() {
       </section>
 
       <aside
+        ref={detailRef}
+        tabIndex={-1}
         aria-label="Card detail"
         className={`${selected ? 'fixed inset-y-0 right-0 z-40 flex' : 'hidden'} w-[300px] max-w-full shrink-0 flex-col overflow-y-auto border-l border-line bg-surface p-[22px] lg:static lg:z-auto lg:flex lg:border-l-0`}
       >
         {selected ? (
           <>
-            <button
-              type="button"
-              className={`${ui.quiet} mb-2 self-end text-[12.5px] lg:hidden`}
-              onClick={detail.close}
-            >
-              Close
-            </button>
             <CardDetail
+              onClose={wide ? undefined : detail.close}
               card={selected}
               printing={detail.current?.printing ?? entry?.printing}
               qty={entry?.qty}

@@ -7,6 +7,7 @@ import {
   useDecks,
   usePack,
   usePool,
+  usePoolScans,
   useSettings,
   type KeyValueStore,
 } from '@bulk-brew/ui';
@@ -21,7 +22,15 @@ export function AppStateProvider({ kv, children }: { kv: KeyValueStore; children
   const pool = usePool(kv);
   const settings = useSettings(kv);
   const decks = useDecks(kv);
-  const build = useBuildFlow({ index, config: CONFIG, pool, settings: settings.settings, decks });
+  const scans = usePoolScans(index, pool.pool, CONFIG, settings.settings);
+  const build = useBuildFlow({
+    index,
+    config: CONFIG,
+    pool,
+    settings: settings.settings,
+    decks,
+    scans,
+  });
   const detail = useCardDetail();
   const value: AppState = {
     kv,
@@ -32,6 +41,7 @@ export function AppStateProvider({ kv, children }: { kv: KeyValueStore; children
     pool,
     settings,
     decks,
+    scans,
     build,
     detail,
   };

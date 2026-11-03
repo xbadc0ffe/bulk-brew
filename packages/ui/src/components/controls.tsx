@@ -172,20 +172,37 @@ export function ViabilityMark({
   );
 }
 
-/** Role coverage: label, track, and "have/want". */
+/**
+ * Role coverage: label, track, and "have/want". Lays out as three cells of
+ * the parent grid, so put several inside a RoleBars and the tracks line up.
+ */
 export function RoleBar({ label, have, want }: { label: string; have: number; want: number }) {
   const pct = want <= 0 ? (have > 0 ? 100 : 0) : Math.min(100, (have / want) * 100);
   return (
-    <div className="grid grid-cols-[80px_1fr_44px] items-center gap-2.5">
-      <span className="truncate text-fg-1" title={label}>
-        {label}
-      </span>
-      <span className="h-1.5 overflow-hidden rounded-[3px] bg-line">
+    <div className="contents">
+      <span className="text-fg-1">{label}</span>
+      <span
+        role="meter"
+        aria-label={label}
+        aria-valuemin={0}
+        aria-valuemax={Math.max(want, have)}
+        aria-valuenow={have}
+        className="h-1.5 overflow-hidden rounded-[3px] bg-line"
+      >
         <span className="block h-full bg-ink" style={{ width: `${pct}%` }} />
       </span>
       <span className="text-right font-mono text-[12px] tabular-nums">
         {have}/{want}
       </span>
+    </div>
+  );
+}
+
+/** The grid RoleBar rows sit in: label column sized to the longest label. */
+export function RoleBars({ children }: { children: ReactNode }) {
+  return (
+    <div className="grid grid-cols-[minmax(80px,max-content)_1fr_44px] items-center gap-x-2.5 gap-y-1.5">
+      {children}
     </div>
   );
 }

@@ -8,6 +8,7 @@ import type {
   KeyValueStore,
   PackState,
   PoolState,
+  ScansBySize,
   SettingsState,
 } from '@bulk-brew/ui';
 
@@ -23,6 +24,8 @@ export interface AppState {
   pool: PoolState;
   settings: SettingsState;
   decks: DecksState;
+  /** Archetype scans for every color and size, shared by Analysis and Build. */
+  scans: ScansBySize | undefined;
   /** Build screen state, kept here so it survives navigation. */
   build: BuildFlow;
   /** The card shown in the detail panel, openable from any screen. */

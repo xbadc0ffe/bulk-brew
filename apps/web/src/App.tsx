@@ -46,7 +46,7 @@ function activeItem(screen: ScreenId, poolView: PoolView): string {
 
 /** Card detail over the right edge, for cards opened outside the Pool screen. */
 function DetailOverlay() {
-  const { detail, index, config, settings, decks } = useAppState();
+  const { detail, index, config, settings, decks, pool } = useAppState();
   const open = detail.current;
   const card = open && index ? index.get(open.cardId) : undefined;
   if (!card || !index) return null;
@@ -62,6 +62,7 @@ function DetailOverlay() {
         index={index}
         config={config}
         showArt={settings.settings.showArt}
+        qty={pool.pool.entries[card.id]?.qty ?? 0}
         inDecks={inDecks.map((d) => d.name)}
         onClose={detail.close}
       />
@@ -173,7 +174,7 @@ function Shell() {
         <main className="min-h-0 min-w-0 flex-1 overflow-hidden">
           <Screen />
         </main>
-        {screen !== 'pool' && <DetailOverlay />}
+        {!(screen === 'pool' && poolView === 'cards') && <DetailOverlay />}
       </div>
     </NavContext.Provider>
   );

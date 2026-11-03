@@ -43,6 +43,8 @@ export interface ImportPreview {
   cards: number;
   /** Copies of basic lands left out because basics are unlimited. */
   basics: number;
+  /** Lines the user skipped. */
+  skipped: number;
 }
 
 export interface ImportState {
@@ -159,7 +161,8 @@ export function useImport(
       resolved.push(r);
     }
     resolved.sort((a, b) => a.line.line - b.line.line);
-    return { resolved, unresolved, cards, basics };
+    const skippedLines = report.unresolved.filter((u) => skipped.has(u.line.line)).length;
+    return { resolved, unresolved, cards, basics, skipped: skippedLines };
   }, [report, fixed, edits, skipped, unlimitedBasics]);
 
   const fix = useCallback((lineNo: number, card: CardRecord) => {

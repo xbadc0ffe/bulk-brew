@@ -76,7 +76,10 @@ export function CardDetail(props: CardDetailProps) {
   useEffect(() => {
     if (!escape) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !e.defaultPrevented) escape();
+      if (e.key !== 'Escape' || e.defaultPrevented) return;
+      // Escape in a text field belongs to the field (a search box clears itself).
+      if ((e.target as HTMLElement).closest?.('input, textarea, select')) return;
+      escape();
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
@@ -172,6 +175,7 @@ export function CardDetail(props: CardDetailProps) {
         </ul>
       )}
 
+      {qty !== undefined && !props.onQtyChange && <p className={t.small}>{qty} in your pool</p>}
       {qty !== undefined && props.onQtyChange && (
         <div className="flex items-center justify-between gap-3 border-t border-line pt-3.5">
           <span className={phone ? 'text-[0.9375rem] text-fg-1' : 'text-[13px] text-fg-1'}>
