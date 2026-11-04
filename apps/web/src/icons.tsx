@@ -35,32 +35,33 @@ function Stack({ x, y, w, h }: { x: number; y: number; w: number; h: number }) {
   );
 }
 
-/** A pile of cards seen from the side, like a stack of coins: one slab per card. */
-function Pile({ x, w, shifts }: { x: number; w: number; shifts: number[] }) {
-  const h = 3.4;
+/**
+ * A stack of cards lying flat, seen from an angle: the top card's face and,
+ * under it, one edge line per card below, like the Decks icon tipped back.
+ */
+function AngledStack({ x, base, cards }: { x: number; base: number; cards: number }) {
+  const w = 8.5;
+  const depth = 5;
+  const skew = 3.5;
+  const gap = 2.7;
+  const top = base - (cards - 1) * gap;
   return (
     <>
-      {shifts.map((dx, i) => (
-        <rect
-          key={i}
-          x={x + dx}
-          y={28.5 - (i + 1) * h}
-          width={w}
-          height={h}
-          rx={1.1}
-          fill="var(--icon-fill)"
-        />
+      {Array.from({ length: cards - 1 }, (_, k) => (
+        <path key={k} d={`M${x} ${top + k * gap} v${gap} h${w} l${skew} ${-depth} v${-gap}`} />
       ))}
+      <path d={`M${x} ${top} h${w} l${skew} ${-depth} h${-w} Z`} fill="var(--icon-fill)" />
     </>
   );
 }
 
-/** Bulk List: two uneven piles of cards seen from the side. */
+/** Bulk List: three stacks of cards, the tallest at the back. */
 export function StacksIcon({ size = 28 }: { size?: number }) {
   return (
     <Svg size={size}>
-      <Pile x={1.6} w={12.8} shifts={[0, 0.6, -0.4, 0.5]} />
-      <Pile x={17.4} w={12.8} shifts={[0, -0.5, 0.5, -0.3, 0.6, -0.4, 0.2]} />
+      <AngledStack x={10} base={20.5} cards={4} />
+      <AngledStack x={1.2} base={30} cards={2} />
+      <AngledStack x={18.8} base={30} cards={3} />
     </Svg>
   );
 }

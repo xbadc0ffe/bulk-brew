@@ -195,10 +195,16 @@ function Shell() {
           <div className="mt-auto flex flex-col items-center gap-1 pt-4 text-center">
             <span className="text-[13px] leading-tight font-semibold">Bulk Brew</span>
             <span className="text-[11px] leading-tight text-fg-2">Version {version}</span>
+            {/* The icon follows light and dark mode. */}
+            <img
+              src={`${import.meta.env.BASE_URL}icon-light.svg`}
+              alt=""
+              className="mt-1 size-[84px] shrink-0 rounded-xl dark:hidden"
+            />
             <img
               src={`${import.meta.env.BASE_URL}icon.svg`}
               alt=""
-              className="mt-1 size-[84px] shrink-0 rounded-xl"
+              className="mt-1 hidden size-[84px] shrink-0 rounded-xl dark:block"
             />
           </div>
         </nav>

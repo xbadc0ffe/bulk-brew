@@ -1,6 +1,6 @@
 /* global self, caches, fetch, URL, Response */
 // Bulk Brew service worker. Each build gets its own shell cache (index,
-// manifest, icon, and every emitted asset, so the app opens offline after a
+// manifest, both icons, and every emitted asset, so the app opens offline after a
 // single visit); the card data pack lives in one shared cache that is
 // refreshed in the background, so a deploy does not re-download it. Requests
 // to other origins (Scryfall images) are left alone.
@@ -13,7 +13,14 @@ const BASE = new URL('./', self.location.href).pathname;
 const INDEX = `${BASE}index.html`;
 // Replaced at build time by the Vite plugin in vite.config.ts.
 const ASSETS = /* @assets */ [];
-const SHELL = [BASE, INDEX, `${BASE}manifest.webmanifest`, `${BASE}icon.svg`, ...ASSETS];
+const SHELL = [
+  BASE,
+  INDEX,
+  `${BASE}manifest.webmanifest`,
+  `${BASE}icon.svg`,
+  `${BASE}icon-light.svg`,
+  ...ASSETS,
+];
 
 /** Store a response, ignoring quota and other storage failures. */
 function safePut(cache, request, response) {

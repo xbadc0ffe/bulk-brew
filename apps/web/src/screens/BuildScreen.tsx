@@ -34,13 +34,12 @@ const SIZES: { id: DeckSize; label: string }[] = [
   { id: 20, label: '20' },
 ];
 
-/** One line per size, in the voice of the design's 60-card line. */
-function sizeLine(size: DeckSize, copies: number): string {
-  const c = `Up to ${copies} ${copies === 1 ? 'copy' : 'copies'} of a card.`;
-  if (size === 100) return 'Commander. One commander plus 99 cards, one copy of each.';
-  if (size === 60) return `Casual constructed. ${c}`;
-  if (size === 40) return `Draft-style limited deck. ${c}`;
-  return `Jumpstart packet. Pair two for a 40-card game. ${c}`;
+/** One line per size. The copy limit has its own control below, so it is not repeated here. */
+function sizeLine(size: DeckSize): string {
+  if (size === 100) return 'Commander. One commander plus 99 cards.';
+  if (size === 60) return 'Casual constructed.';
+  if (size === 40) return 'Draft-style limited deck.';
+  return 'Jumpstart packet. Pair two for a 40-card game.';
 }
 
 export function BuildScreen() {
@@ -93,7 +92,7 @@ function BuildForm() {
             onChange={flow.setSize}
             full
           />
-          <p className="text-[12px] text-fg-2">{sizeLine(flow.size, flow.maxCopies)}</p>
+          <p className="text-[12px] text-fg-2">{sizeLine(flow.size)}</p>
         </div>
 
         <div className="flex items-center justify-between gap-3">

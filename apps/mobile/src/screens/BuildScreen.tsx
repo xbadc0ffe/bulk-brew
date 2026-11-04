@@ -25,11 +25,11 @@ const SIZES: { id: DeckSize; label: string }[] = [
   { id: 20, label: '20' },
 ];
 
-function sizeLine(size: DeckSize, copies: number): string {
-  const c = `Up to ${copies} ${copies === 1 ? 'copy' : 'copies'}.`;
-  if (size === 60) return `Casual constructed. ${c}`;
-  if (size === 40) return `Draft-style limited deck. ${c}`;
-  return `Jumpstart packet. Pair two for a 40-card game. ${c}`;
+/** One line per size; the copy limit has its own stepper. */
+function sizeLine(size: DeckSize): string {
+  if (size === 60) return 'Casual constructed.';
+  if (size === 40) return 'Draft-style limited deck.';
+  return 'Jumpstart packet. Pair two for a 40-card game.';
 }
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -89,7 +89,7 @@ function BuildForm() {
             onChange={flow.setSize}
             variant="phone"
           />
-          <p className="text-[0.75rem] text-fg-2">{sizeLine(flow.size, flow.maxCopies)}</p>
+          <p className="text-[0.75rem] text-fg-2">{sizeLine(flow.size)}</p>
         </section>
 
         <div className="flex items-center justify-between gap-3">

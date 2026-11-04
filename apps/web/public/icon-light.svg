@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Bulk Brew">
+  <rect x="4" y="4" width="504" height="504" rx="92" fill="#f4f4f5" stroke="#d4d4d8" stroke-width="8"/>
+  <path d="M208 96h96v24h-16v72l92 160a40 40 0 0 1-35 60H167a40 40 0 0 1-35-60l92-160v-72h-16z" fill="none" stroke="#27272a" stroke-width="28" stroke-linejoin="round"/>
+  <path d="M183 300h146l48 84a12 12 0 0 1-10 18H145a12 12 0 0 1-10-18z" fill="#27272a"/>
+  <circle cx="232" cy="236" r="14" fill="#27272a"/>
+  <circle cx="276" cy="196" r="10" fill="#27272a"/>
+  <circle cx="262" cy="264" r="8" fill="#27272a"/>
+</svg>

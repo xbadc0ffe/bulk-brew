@@ -58,6 +58,10 @@ function apply(a: Appearance): void {
   root.dataset.theme = a.theme;
   // The pre-paint script sets this inline, so it has to follow here too.
   root.style.colorScheme = dark ? 'dark' : 'light';
+  // A page whose icon link names a light and a dark file shows the one for the mode.
+  const icon = document.querySelector<HTMLLinkElement>('link[rel="icon"][data-dark]');
+  const href = icon?.dataset[dark ? 'dark' : 'light'];
+  if (icon && href) icon.href = href;
 }
 
 export interface AppearanceState {

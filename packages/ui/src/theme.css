@@ -1,8 +1,8 @@
 /* Bulk Brew theme tokens, shared by the web and mobile apps.
    <html data-mode="light|dark" data-theme="grey|W|U|B|R|G">. Default: grey, light.
    Values started from docs/design_handoff_bulk_brew_ui/tokens.css. Since then the
-   light themes got darker ink and tinted surfaces, and the dark themes darker
-   backgrounds and lighter ink. --rail is the sidebar. */
+   light themes got darker ink and lighter surfaces, and the dark themes much
+   darker backgrounds and lighter ink. --rail is the sidebar. */
 
 @custom-variant dark (&:where([data-mode='dark'], [data-mode='dark'] *));
 
@@ -19,7 +19,7 @@
   --neutral: oklch(0.5 0 0);
   --on-solid: oklch(0.99 0 0);
   --bg: oklch(0.955 0 0);
-  --surface: oklch(0.985 0 0);
+  --surface: oklch(0.993 0 0);
   --surface2: oklch(0.925 0 0);
   --rail: var(--surface2);
   --border: oklch(0.87 0 0);
@@ -43,7 +43,7 @@
 }
 [data-theme='W'] {
   --bg: oklch(0.955 0.035 88);
-  --surface: oklch(0.978 0.03 88);
+  --surface: oklch(0.992 0.012 88);
   --surface2: oklch(0.925 0.042 88);
   --border: oklch(0.87 0.039 88);
   --border2: oklch(0.78 0.035 88);
@@ -56,7 +56,7 @@
 }
 [data-theme='U'] {
   --bg: oklch(0.955 0.045 240);
-  --surface: oklch(0.978 0.035 240);
+  --surface: oklch(0.992 0.012 240);
   --surface2: oklch(0.925 0.054 240);
   --border: oklch(0.87 0.05 240);
   --border2: oklch(0.78 0.045 240);
@@ -69,7 +69,7 @@
 }
 [data-theme='B'] {
   --bg: oklch(0.955 0.03 300);
-  --surface: oklch(0.978 0.025 300);
+  --surface: oklch(0.992 0.01 300);
   --surface2: oklch(0.925 0.036 300);
   --border: oklch(0.87 0.033 300);
   --border2: oklch(0.78 0.03 300);
@@ -82,7 +82,7 @@
 }
 [data-theme='R'] {
   --bg: oklch(0.955 0.05 30);
-  --surface: oklch(0.978 0.038 30);
+  --surface: oklch(0.992 0.013 30);
   --surface2: oklch(0.925 0.06 30);
   --border: oklch(0.87 0.055 30);
   --border2: oklch(0.78 0.05 30);
@@ -95,7 +95,7 @@
 }
 [data-theme='G'] {
   --bg: oklch(0.955 0.045 150);
-  --surface: oklch(0.978 0.035 150);
+  --surface: oklch(0.992 0.012 150);
   --surface2: oklch(0.925 0.054 150);
   --border: oklch(0.87 0.05 150);
   --border2: oklch(0.78 0.045 150);
@@ -117,10 +117,10 @@
   --stop-soft: oklch(0.32 0.07 27);
   --stop-soft-fg: oklch(0.88 0.07 27);
   --neutral: oklch(0.46 0 0);
-  --bg: oklch(0.16 0 0);
+  --bg: oklch(0.11 0 0);
   --surface: oklch(0.285 0 0);
   --surface2: oklch(0.33 0 0);
-  --rail: oklch(0.2 0 0);
+  --rail: oklch(0.14 0 0);
   --border: oklch(0.39 0 0);
   --border2: oklch(0.48 0 0);
   --ink: oklch(0.9 0 0);
@@ -141,10 +141,10 @@
   --pip-g-fg: oklch(0.16 0.04 150);
 }
 [data-mode='dark'][data-theme='W'] {
-  --bg: oklch(0.16 0.03 88);
+  --bg: oklch(0.11 0.02 88);
   --surface: oklch(0.285 0.045 88);
   --surface2: oklch(0.33 0.05 88);
-  --rail: oklch(0.2 0.035 88);
+  --rail: oklch(0.14 0.025 88);
   --border: oklch(0.39 0.045 88);
   --border2: oklch(0.48 0.045 88);
   --ink: oklch(0.9 0.07 88);
@@ -155,10 +155,10 @@
   --bar: oklch(0.66 0.056 88);
 }
 [data-mode='dark'][data-theme='U'] {
-  --bg: oklch(0.16 0.05 240);
+  --bg: oklch(0.11 0.035 240);
   --surface: oklch(0.285 0.07 240);
   --surface2: oklch(0.33 0.077 240);
-  --rail: oklch(0.2 0.06 240);
+  --rail: oklch(0.14 0.045 240);
   --border: oklch(0.39 0.07 240);
   --border2: oklch(0.48 0.07 240);
   --ink: oklch(0.9 0.09 240);
@@ -169,10 +169,10 @@
   --bar: oklch(0.66 0.098 240);
 }
 [data-mode='dark'][data-theme='B'] {
-  --bg: oklch(0.16 0.035 300);
+  --bg: oklch(0.11 0.025 300);
   --surface: oklch(0.285 0.05 300);
   --surface2: oklch(0.33 0.055 300);
-  --rail: oklch(0.2 0.04 300);
+  --rail: oklch(0.14 0.03 300);
   --border: oklch(0.39 0.05 300);
   --border2: oklch(0.48 0.05 300);
   --ink: oklch(0.89 0.07 300);
@@ -183,10 +183,10 @@
   --bar: oklch(0.66 0.063 300);
 }
 [data-mode='dark'][data-theme='R'] {
-  --bg: oklch(0.16 0.05 30);
+  --bg: oklch(0.11 0.035 30);
   --surface: oklch(0.285 0.08 30);
   --surface2: oklch(0.33 0.088 30);
-  --rail: oklch(0.2 0.06 30);
+  --rail: oklch(0.14 0.045 30);
   --border: oklch(0.39 0.08 30);
   --border2: oklch(0.48 0.08 30);
   --ink: oklch(0.89 0.09 30);
@@ -197,10 +197,10 @@
   --bar: oklch(0.66 0.112 30);
 }
 [data-mode='dark'][data-theme='G'] {
-  --bg: oklch(0.16 0.045 150);
+  --bg: oklch(0.11 0.03 150);
   --surface: oklch(0.285 0.07 150);
   --surface2: oklch(0.33 0.077 150);
-  --rail: oklch(0.2 0.055 150);
+  --rail: oklch(0.14 0.04 150);
   --border: oklch(0.39 0.07 150);
   --border2: oklch(0.48 0.07 150);
   --ink: oklch(0.9 0.1 150);
