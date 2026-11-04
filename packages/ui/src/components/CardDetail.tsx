@@ -182,7 +182,8 @@ export function CardDetail(props: CardDetailProps) {
           printing={printing}
           size="normal"
           variant={variant}
-          className={`mx-auto w-full rounded-[12px] ${phone ? 'max-w-xs' : 'max-w-[256px]'}`}
+          frameClassName={`mx-auto w-full rounded-[12px] ${phone ? 'max-w-xs' : 'max-w-[256px]'}`}
+          className="block w-full rounded-[12px]"
         />
       )}
 

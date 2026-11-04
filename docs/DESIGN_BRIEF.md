@@ -114,7 +114,7 @@ Image URLs come from `imageUrl()` and `printingImageUrl()` in `packages/core/src
 
 ## Constraints
 
-- Card art is off by default and everything must work as text. Art, when on, loads from Scryfall on demand and must be shown whole: no cropping, recoloring, or overlays on the card image. Art crops, if ever used, need the artist name beside them.
+- Card art is off by default and everything must work as text. Art, when on, loads from Scryfall on demand and must be shown whole and unchanged: no cropping, recoloring, or marks drawn into it. The only thing laid over a card is the small turn-over button on a two-sided card's right edge, away from the artist credit and copyright line. Clicking the art in the card detail opens it full screen. Art crops, if ever used, need the artist name beside them.
 - No user data leaves the device. There is no sign-in and no sync.
 - Pools can hold thousands of cards; lists must stay fast.
 - Color is never the only signal; pair it with mana symbols or labels. Meet contrast guidelines in both themes. Mobile tap targets are at least 44 points and text respects the system text size.
@@ -132,7 +132,7 @@ Image URLs come from `imageUrl()` and `printingImageUrl()` in `packages/core/src
 A plain, functional interface already implements every screen above, so the design pass restyles working code rather than inventing flows. In both apps:
 
 - Import: paste or choose a file; decklists and ManaBox, Moxfield, and Deckbox CSV exports are detected automatically; a resolution report with suggestions.
-- Pool: color filters, type, subtype, mana value, and tag filters, search, sort (name, mana value, color, quantity), header counts, quantity buttons, Select to remove cards. Card art of a two-sided card has a turn-over button beside it. Tags show as bubbles; the web table only renders rows near the viewport for large pools.
+- Pool: color filters, type, subtype, mana value, and tag filters, search, sort (name, mana value, color, quantity), header counts, quantity buttons, Select to remove cards. Card art opens full screen on click; a two-sided card has a turn-over button over the art's right edge. Tags show as bubbles; the web table only renders rows near the viewport for large pools.
 - Build (desktop): settings beside ranked deck options; an option opens the deck view with Accept, Back, and Export. Phones: size, colors, archetype list, Build, then the deck view.
 - Deck view: cards grouped by type, mana symbols, optional "why each card is here", curve bars, land reasoning, roles, synergies, notes.
 - Decks: list, open, rename by clicking the name, export, Remove (Delete or Disassemble), pair two packets with Copy.

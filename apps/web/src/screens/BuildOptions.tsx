@@ -142,8 +142,11 @@ function CommanderCard({ card, full = false }: { card: CardRecord; full?: boolea
     <CardArt
       card={card}
       size="normal"
-      className="aspect-[63/88] w-full rounded-[4.75%/3.4%] object-contain"
+      frameClassName="w-full rounded-[4.75%/3.4%]"
+      className="block aspect-[63/88] w-full rounded-[4.75%/3.4%] object-contain"
       fallback={text}
+      // A commander tile picks the commander on click; the picked one's pane can enlarge it.
+      zoom={full}
     />
   );
 }

@@ -1,4 +1,5 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import {
   hasBackImage,
   imageUrl,
@@ -8,6 +9,7 @@ import {
   type ImageSize,
   type PrintingHint,
 } from '@bulk-brew/core';
+import { useModal } from './useModal.ts';
 import type { Variant } from './controls.tsx';
 
 export interface CardImageProps {
@@ -81,41 +83,151 @@ function FlipIcon({ size }: { size: number }) {
   );
 }
 
+type ArtProps = Omit<CardImageProps, 'face'> & {
+  variant?: Variant;
+  /** Classes for the box around the image, which the buttons sit in. */
+  frameClassName?: string;
+  /** Whether clicking the image shows it full screen. */
+  zoom?: boolean;
+};
+
+/** The round turn-over button, laid over the right edge of the art, halfway down. */
+function FlipButton(props: {
+  card: CardRecord;
+  back: boolean;
+  /** Phone-sized, or on the full-screen card. */
+  big: boolean;
+  onFlip(): void;
+}) {
+  const { card, back, big, onFlip } = props;
+  const other = card.faces?.[back ? 0 : 1]?.name;
+  return (
+    <button
+      type="button"
+      aria-label={other ? `Turn over to ${other}` : 'Turn the card over'}
+      title="Turn over"
+      onClick={onFlip}
+      className={`absolute top-1/2 right-2 z-10 grid -translate-y-1/2 place-items-center rounded-full border border-line-strong bg-surface/90 text-ink shadow-md hover:bg-surface ${big ? 'size-11' : 'size-8'}`}
+    >
+      <FlipIcon size={big ? 18 : 16} />
+    </button>
+  );
+}
+
 /**
- * A card's image, and for a card printed on both sides a button that turns
- * it over. The button sits beside the image, halfway down, so nothing is
- * ever drawn over the card. A newly shown card starts face up.
+ * A card's image. Once it shows, clicking it opens it full screen, and a
+ * card printed on both sides gets a button over the art's right edge that
+ * turns it over (the image itself is never changed). A newly shown card
+ * starts face up.
  */
-export function CardArt(props: Omit<CardImageProps, 'face'> & { variant?: Variant }) {
-  const { variant = 'desktop', ...image } = props;
+export function CardArt(props: ArtProps) {
+  const { variant = 'desktop', frameClassName = '', zoom = true, ...image } = props;
   const { card } = image;
   // Which card this state belongs to; another card starts face up with no image seen yet.
   const [side, setSide] = useState({ id: card.id, back: false, loaded: false });
+  const [full, setFull] = useState(false);
   if (side.id !== card.id) setSide({ id: card.id, back: false, loaded: false });
-  const back = side.id === card.id && side.back;
-  const art = (
-    <CardImage
-      {...image}
-      face={back ? 'back' : 'front'}
-      onLoad={() => setSide((s) => (s.id === card.id && !s.loaded ? { ...s, loaded: true } : s))}
-    />
-  );
-  // Without an image there is nothing to turn over; the text shows both faces.
-  if (!hasBackImage(card) || !(side.id === card.id && side.loaded)) return art;
-  const other = card.faces?.[back ? 0 : 1]?.name;
+  const mine = side.id === card.id;
+  const back = mine && side.back;
+  // Without an image there is nothing to enlarge or turn over; the text shows both faces.
+  const loaded = mine && side.loaded;
+  const flip = () => setSide((s) => ({ ...s, back: !back }));
   const phone = variant === 'phone';
+  const name = card.faces?.[back ? 1 : 0]?.name ?? card.name;
   return (
-    <div className="flex items-center gap-2">
-      <div className="min-w-0 flex-1">{art}</div>
+    <>
+      <div className={`relative ${frameClassName}`}>
+        <CardImage
+          {...image}
+          face={back ? 'back' : 'front'}
+          onLoad={() =>
+            setSide((s) => (s.id === card.id && !s.loaded ? { ...s, loaded: true } : s))
+          }
+        />
+        {zoom && loaded && (
+          <button
+            type="button"
+            aria-label={`Show ${name} full screen`}
+            onClick={() => setFull(true)}
+            className="absolute inset-0 cursor-zoom-in rounded-[inherit]"
+          />
+        )}
+        {loaded && hasBackImage(card) && (
+          <FlipButton card={card} back={back} big={phone} onFlip={flip} />
+        )}
+      </div>
+      {full && (
+        <CardViewer
+          card={card}
+          printing={image.printing}
+          back={back}
+          onFlip={flip}
+          onClose={() => setFull(false)}
+          phone={phone}
+        />
+      )}
+    </>
+  );
+}
+
+/**
+ * The card as large as the window allows, over a dark backdrop. Escape, the
+ * close button, or a click outside the card closes it.
+ */
+function CardViewer(props: {
+  card: CardRecord;
+  printing: PrintingHint | undefined;
+  back: boolean;
+  onFlip(): void;
+  onClose(): void;
+  phone: boolean;
+}) {
+  const { card, printing, back, onFlip, onClose, phone } = props;
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const cancel = useModal(true, onClose, closeRef);
+  const face = back ? 'back' : 'front';
+  const name = card.faces?.[back ? 1 : 0]?.name ?? card.name;
+  // Tall enough to fill the window's height, unless the width runs out first.
+  const fit = 'h-[min(calc(100dvh_-_2rem),calc((100vw_-_2rem)*88/63))] w-auto rounded-[4.75%/3.4%]';
+  return createPortal(
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${name}, full screen`}
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/85 p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) cancel.current();
+      }}
+    >
+      <div className="relative">
+        <CardImage
+          card={card}
+          printing={printing}
+          size="large"
+          face={face}
+          className={`block ${fit}`}
+          fallback={
+            <CardImage
+              card={card}
+              printing={printing}
+              size="normal"
+              face={face}
+              className={`block ${fit}`}
+            />
+          }
+        />
+        {hasBackImage(card) && <FlipButton card={card} back={back} big onFlip={onFlip} />}
+      </div>
       <button
+        ref={closeRef}
         type="button"
-        aria-label={other ? `Turn over to ${other}` : 'Turn the card over'}
-        title="Turn over"
-        onClick={() => setSide((s) => ({ ...s, back: !back }))}
-        className={`relative z-10 grid shrink-0 place-items-center rounded-full border border-line-strong bg-surface text-ink hover:bg-surface-2 ${phone ? 'size-11' : 'size-8'}`}
+        aria-label="Close full screen"
+        onClick={() => cancel.current()}
+        className={`absolute top-3 right-3 grid place-items-center rounded-full bg-white/15 text-white hover:bg-white/25 ${phone ? 'size-11 text-[20px]' : 'size-9 text-[18px]'}`}
       >
-        <FlipIcon size={phone ? 18 : 16} />
+        ✕
       </button>
-    </div>
+    </div>,
+    document.body,
   );
 }

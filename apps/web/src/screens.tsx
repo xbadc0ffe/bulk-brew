@@ -570,7 +570,7 @@ function BulkList() {
       }
       if ((e.key !== 'ArrowDown' && e.key !== 'ArrowUp') || e.shiftKey) return;
       if (typing && el !== searchRef.current) return;
-      if (el.closest('[data-menu], [role=alertdialog]') || rows.length === 0) return;
+      if (el.closest('[data-menu], [role=alertdialog], [role=dialog]') || rows.length === 0) return;
       e.preventDefault();
       const next =
         selectedIndex < 0
