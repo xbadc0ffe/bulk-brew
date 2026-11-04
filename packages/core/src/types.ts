@@ -20,6 +20,18 @@ export const COLOR_LABELS: Record<Color, string> = {
   G: 'Green',
 };
 
+/** Card rarity. Scryfall's special and bonus rarities are stored as rare. */
+export type Rarity = 'common' | 'uncommon' | 'rare' | 'mythic';
+
+export const RARITIES: readonly Rarity[] = ['common', 'uncommon', 'rare', 'mythic'];
+
+export const RARITY_LABELS: Record<Rarity, string> = {
+  common: 'Common',
+  uncommon: 'Uncommon',
+  rare: 'Rare',
+  mythic: 'Mythic',
+};
+
 /** A color a permanent can produce; 'C' is colorless. */
 export type ManaColor = Color | 'C';
 
@@ -89,6 +101,11 @@ export interface CardRecord {
   gameChanger?: true;
   /** Scryfall's popularity rank among Commander decks; 1 is the most played. Absent when unranked. */
   rank?: number;
+  /**
+   * Rarity of the printing Scryfall chose as the card's default. Other
+   * printings may differ. Absent in schema 1 packs.
+   */
+  rarity?: Rarity;
   /** Function and synergy tags: Scryfall Tagger slugs plus the local overlay. */
   tags: string[];
   faces?: CardFace[];
@@ -170,6 +187,8 @@ export interface Settings {
   unlimitedBasics: boolean;
   includeUnsets: boolean;
   showArt: boolean;
+  /** Rarities the builder may use. Absent means all; basic lands are never filtered. */
+  rarities?: Rarity[];
 }
 
 export interface BuildRequest {

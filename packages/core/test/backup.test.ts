@@ -47,6 +47,14 @@ describe('backup', () => {
     expect(back.dataVersion).toBe('2026-01-01');
   });
 
+  it('keeps only known rarities and drops an empty or unusable list', () => {
+    const parse = (rarities: unknown) =>
+      parseBackup(JSON.stringify({ ...base, settings: { maxCopies: {}, rarities } })).settings;
+    expect(parse(['rare', 'bogus', 'common']).rarities).toEqual(['common', 'rare']);
+    expect('rarities' in parse([])).toBe(false);
+    expect('rarities' in parse('rare')).toBe(false);
+  });
+
   it('rejects files that are not backups', () => {
     expect(() => parseBackup('not json')).toThrow(/valid JSON/);
     expect(() => parseBackup('[]')).toThrow(/object/);

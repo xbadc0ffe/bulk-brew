@@ -14,7 +14,7 @@ import {
 import { useAppState } from '../app-context.ts';
 import { useNav } from '../nav.ts';
 
-const SIZE_HEADS: Record<number, string> = { 60: '60 cards', 40: '40 cards', 20: '20 Jumpstart' };
+const SIZE_HEADS: Record<number, string> = { 60: '60 cards', 40: '40 cards', 20: '20 cards' };
 const fmt = (n: number) => n.toLocaleString('en-US');
 
 /** What the pool can build, for one color at all three sizes. Shown under the Bulk List. */

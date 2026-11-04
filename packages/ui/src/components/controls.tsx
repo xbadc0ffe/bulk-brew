@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { RARITIES, RARITY_LABELS, type Rarity } from '@bulk-brew/core';
 import { curveBuckets, viabilityLabel, type Viability } from '../data/analysis.ts';
 
 export type Variant = 'desktop' | 'phone';
@@ -330,23 +331,74 @@ export function MenuItem({ children, onSelect }: { children: ReactNode; onSelect
   );
 }
 
+/**
+ * A drop-down with a checkbox per rarity. At least one stays checked, since
+ * building from no rarities can only fail.
+ */
+export function RarityPicker(props: {
+  value: readonly Rarity[];
+  onChange(next: Rarity[]): void;
+  buttonClassName: string;
+  align?: 'left' | 'right';
+}) {
+  const { value, onChange, buttonClassName, align = 'right' } = props;
+  const on = new Set(value);
+  const missing = RARITIES.filter((r) => !on.has(r));
+  const summary =
+    missing.length === 0
+      ? 'All rarities'
+      : missing.length === 1
+        ? `All but ${RARITY_LABELS[missing[0]!]}`
+        : RARITIES.filter((r) => on.has(r))
+            .map((r) => RARITY_LABELS[r])
+            .join(', ');
+  return (
+    <Dropdown
+      label={`${summary} ▾`}
+      ariaLabel={`Rarities: ${summary}`}
+      buttonClassName={buttonClassName}
+      align={align}
+    >
+      {() =>
+        RARITIES.map((r) => (
+          <MenuCheck
+            key={r}
+            checked={on.has(r)}
+            disabled={on.has(r) && value.length === 1}
+            onToggle={() => {
+              const next = RARITIES.filter((x) => (x === r ? !on.has(x) : on.has(x)));
+              if (next.length > 0) onChange(next);
+            }}
+          >
+            {RARITY_LABELS[r]}
+          </MenuCheck>
+        ))
+      }
+    </Dropdown>
+  );
+}
+
 /** A menu entry that toggles; the menu stays open. */
 export function MenuCheck({
   children,
   checked,
   onToggle,
+  disabled = false,
 }: {
   children: ReactNode;
   checked: boolean;
   onToggle(): void;
+  /** Shown but not toggleable, such as the last checked entry of a set that cannot be empty. */
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       role="menuitemcheckbox"
       aria-checked={checked}
-      onClick={onToggle}
-      className="flex items-center gap-2 rounded px-2.5 py-1.5 text-left text-[13px] whitespace-nowrap text-ink hover:bg-surface-2"
+      aria-disabled={disabled || undefined}
+      onClick={disabled ? undefined : onToggle}
+      className={`flex items-center gap-2 rounded px-2.5 py-1.5 text-left text-[13px] whitespace-nowrap text-ink ${disabled ? 'cursor-default opacity-60' : 'hover:bg-surface-2'}`}
     >
       <span
         aria-hidden

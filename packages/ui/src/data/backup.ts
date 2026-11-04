@@ -1,4 +1,4 @@
-import type { Backup } from '@bulk-brew/core';
+import { RARITIES, type Backup } from '@bulk-brew/core';
 import { STORAGE_KEYS } from '../storage/keys.ts';
 import type { KeyValueStore } from '../storage/kv.ts';
 import type { DecksState } from './useDecks.ts';
@@ -21,5 +21,8 @@ export async function applyBackup(
   ]);
   state.pool.actions.transform(() => backup.pool);
   state.decks.replaceAll(backup.decks);
-  state.settings.update(backup.settings);
+  state.settings.update({
+    ...backup.settings,
+    rarities: backup.settings.rarities ?? [...RARITIES],
+  });
 }

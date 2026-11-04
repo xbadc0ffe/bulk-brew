@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isPlayable, isUnset, parseTypes, toCardRecord } from '../src/transform.ts';
+import { isPlayable, isUnset, parseTypes, rarityOf, toCardRecord } from '../src/transform.ts';
 import type { ScryfallCard } from '../src/scryfall.ts';
 
 /** Copy of a card without the given keys, since Scryfall omits absent fields. */
@@ -222,5 +222,16 @@ describe('toCardRecord', () => {
     expect(flagged).toMatchObject({ commanderLegality: 'banned', gameChanger: true, rank: 42 });
     const unreleased = toCardRecord({ ...base, legalities: { commander: 'not_legal' } }, []);
     expect(unreleased.commanderLegality).toBe('not_legal');
+  });
+});
+
+describe('rarityOf', () => {
+  it('keeps the four rarities and stores special and bonus as rare', () => {
+    expect(rarityOf('common')).toBe('common');
+    expect(rarityOf('mythic')).toBe('mythic');
+    expect(rarityOf('special')).toBe('rare');
+    expect(rarityOf('bonus')).toBe('rare');
+    expect(rarityOf(undefined)).toBeUndefined();
+    expect(toCardRecord({ ...base, rarity: 'uncommon' }, []).rarity).toBe('uncommon');
   });
 });

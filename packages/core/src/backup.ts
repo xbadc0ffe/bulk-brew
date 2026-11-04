@@ -1,7 +1,7 @@
 // One-file backup of everything the app stores: pool, decks, settings.
 // The core has no clock, so the caller passes the export time.
 
-import { COLORS, type Deck, type Pool, type Settings } from './types.ts';
+import { COLORS, RARITIES, type Deck, type Pool, type Settings } from './types.ts';
 
 export const BACKUP_SCHEMA = 1;
 
@@ -100,6 +100,13 @@ export function parseBackup(json: string): Backup {
 
   const settings = data.settings;
   if (!isRecord(settings) || !isRecord(settings.maxCopies)) fail('settings are missing');
+  if ('rarities' in settings) {
+    const known = Array.isArray(settings.rarities)
+      ? RARITIES.filter((r) => (settings.rarities as unknown[]).includes(r))
+      : [];
+    if (known.length > 0) settings.rarities = known;
+    else delete settings.rarities;
+  }
 
   return {
     schema: BACKUP_SCHEMA,

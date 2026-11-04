@@ -298,7 +298,7 @@ describe('best fit', () => {
     const note = r.explanation.notes.find((n) => n.startsWith('Compared '));
     expect(note).toBeDefined();
     const kept = Number(/\((\d+\.\d) of 100\)/.exec(note!)![1]);
-    const others = [...note!.split('Others:')[1]!.matchAll(/ (\d+\.\d)(?=,|\.$)/g)].map((m) =>
+    const others = [...note!.split('Next:')[1]!.matchAll(/ (\d+\.\d)(?=,|\.$)/g)].map((m) =>
       Number(m[1]),
     );
     expect(others.length).toBeGreaterThan(0);
@@ -349,5 +349,61 @@ describe('copy guidelines', () => {
     for (const c of roomy.deck.cards.filter((c) => c.cardId.startsWith('legend-'))) {
       expect(c.qty).toBeLessThanOrEqual(2);
     }
+  });
+});
+
+describe('rarity filter', () => {
+  it('leaves out unchecked rarities but never basics or cards with no known rarity', () => {
+    const rare = {
+      ...PACK.cards.find((c) => c.id === 'w-creature-2-0')!,
+      id: 'r1',
+      name: 'Rare One',
+      rarity: 'rare' as const,
+    };
+    const common = { ...rare, id: 'c1', name: 'Common One', rarity: 'common' as const };
+    const unknown = { ...rare, id: 'x1', name: 'Unknown One' };
+    delete (unknown as { rarity?: string }).rarity;
+    const plains = PACK.cards.find((c) => c.name === 'Plains')!;
+    const pack = {
+      ...PACK,
+      cards: [...PACK.cards, rare, common, unknown],
+      cardCount: PACK.cards.length + 3,
+    };
+    const idx = new CardIndex(pack);
+    const entries = Object.fromEntries(
+      [rare, common, unknown, plains].map((c) => [c.id, { cardId: c.id, qty: 4 }]),
+    );
+    const tracked = { ...SETTINGS, unlimitedBasics: false, rarities: ['common' as const] };
+    const ids = listCandidates({ entries, updatedAt: 't' }, idx, CONFIG, tracked, 'W', 60).map(
+      (c) => c.facts.card.id,
+    );
+    expect(ids).toContain('c1');
+    expect(ids).toContain('x1');
+    expect(ids).toContain(plains.id);
+    expect(ids).not.toContain('r1');
+    const all = listCandidates({ entries, updatedAt: 't' }, idx, CONFIG, SETTINGS, 'W', 60);
+    expect(all.map((c) => c.facts.card.id)).toContain('r1');
+  });
+});
+
+describe('legendary lands', () => {
+  it('play at most two copies of a legendary land while basics cover the rest', () => {
+    const castle = {
+      ...PACK.cards.find((c) => c.id === 'w-good-land')!,
+      id: 'legend-land',
+      name: 'Legendary Meadow',
+      typeLine: 'Legendary Land',
+    };
+    const pack = { ...PACK, cards: [...PACK.cards, castle], cardCount: PACK.cards.length + 1 };
+    const pool = bigPool();
+    pool.entries['legend-land'] = { cardId: 'legend-land', qty: 4 };
+    const r = buildDeck(
+      { size: 60, color: 'W', settings: SETTINGS, id: 't', createdAt: 't' },
+      pool,
+      new CardIndex(pack),
+      CONFIG,
+    );
+    const land = r.deck.cards.find((c) => c.cardId === 'legend-land');
+    expect(land?.qty).toBe(2);
   });
 });

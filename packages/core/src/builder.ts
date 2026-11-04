@@ -250,14 +250,15 @@ function remaining(state: State, cand: Candidate): number {
  * copy guidelines, so a narrow pool still fills every slot. Hard limits
  * (pool copies, the copy limit setting) always hold.
  */
-type Relax = 'none' | 'types' | 'all';
+type Relax = 'none' | 'types' | 'copies' | 'all';
 
 function canAdd(state: State, ctx: Ctx, cand: Candidate, t: Tally, relax: Relax = 'none'): boolean {
   if (remaining(state, cand) <= 0) return false;
   if (t.total >= state.slots) return false;
-  if (relax !== 'all' && (state.chosen.get(cand.facts.card.id)?.qty ?? 0) >= cand.preferred)
+  const bendCopies = relax === 'copies' || relax === 'all';
+  if (!bendCopies && (state.chosen.get(cand.facts.card.id)?.qty ?? 0) >= cand.preferred)
     return false;
-  if (relax !== 'none') return true;
+  if (relax === 'types' || relax === 'all') return true;
   const f = cand.facts;
   if (f.creature && t.creatures + 1 > Math.ceil(ctx.typeMix.creatureMax * state.slots))
     return false;
@@ -393,17 +394,22 @@ function describeWhy(cand: Candidate, ctx: Ctx): string {
 function fillRoles(state: State, ctx: Ctx, level: 'min' | 'target', kind: PickKind): void {
   for (const roleId of Object.keys(ctx.quotas)) {
     const want = ctx.quotas[roleId]![level];
-    for (;;) {
-      const have = tally(state, ctx).roles.get(roleId) ?? 0;
-      if (have >= want) break;
-      const ok = pickBest(
-        state,
-        ctx,
-        (c) => c.facts.roles.includes(roleId),
-        roleLabel(ctx, roleId),
-        kind,
-      );
-      if (!ok) break;
+    // Minimums may bend the copy guidelines, since the scan counted every copy the settings allow.
+    const passes: Relax[] = level === 'min' ? ['none', 'copies'] : ['none'];
+    for (const relax of passes) {
+      for (;;) {
+        const have = tally(state, ctx).roles.get(roleId) ?? 0;
+        if (have >= want) break;
+        const ok = pickBest(
+          state,
+          ctx,
+          (c) => c.facts.roles.includes(roleId),
+          roleLabel(ctx, roleId),
+          kind,
+          relax,
+        );
+        if (!ok) break;
+      }
     }
   }
 }
@@ -423,16 +429,24 @@ function fillTheme(state: State, ctx: Ctx): void {
   const strong = (c: Candidate) => c.facts.strength >= bar;
   const isEnabler = (c: Candidate) => c.facts.enablerOf.includes(a.id);
   const isPayoff = (c: Candidate) => c.facts.payoffOf.includes(a.id);
-  for (const pick of [(c: Candidate) => isPayoff(c) && strong(c), isPayoff]) {
+  // Last, bend the copy guidelines: the scan counted every copy the settings allow.
+  const passes: [(c: Candidate) => boolean, Relax][] = [
+    [strong, 'none'],
+    [() => true, 'none'],
+    [() => true, 'copies'],
+  ];
+  for (const [ok, relax] of passes) {
+    const pick = (c: Candidate) => isPayoff(c) && ok(c);
     while (
       count(isPayoff) < want.payoffs &&
-      pickBest(state, ctx, pick, `${a.label} payoff`, 'theme')
+      pickBest(state, ctx, pick, `${a.label} payoff`, 'theme', relax)
     );
   }
-  for (const pick of [(c: Candidate) => isEnabler(c) && strong(c), isEnabler]) {
+  for (const [ok, relax] of passes) {
+    const pick = (c: Candidate) => isEnabler(c) && ok(c);
     while (
       count(isEnabler) < want.enablers &&
-      pickBest(state, ctx, pick, `${a.label} enabler`, 'theme')
+      pickBest(state, ctx, pick, `${a.label} enabler`, 'theme', relax)
     );
   }
 }
@@ -814,19 +828,30 @@ export function buildDeck(
   }
   if (!best) throw firstError;
   if (tried.length > 1) {
-    const others = tried
-      .filter((at) => at !== best)
-      .map((at) => `${at.archetype.label} ${at.score.total.toFixed(1)}`)
-      .join(', ');
+    const rest = tried.filter((at) => at !== best).sort((a, b) => b.score.total - a.score.total);
+    const shown = rest
+      .slice(0, 3)
+      .map((at) => `${at.archetype.label} ${at.score.total.toFixed(1)}`);
+    if (rest.length > 3) shown.push(`${rest.length - 3} more`);
     notes.push(
-      `Compared ${tried.length} styles and kept the strongest, ${best.archetype.label} (${best.score.total.toFixed(1)} of 100). Others: ${others}.`,
+      `Compared ${tried.length} styles and kept the strongest, ${best.archetype.label} (${best.score.total.toFixed(1)} of 100). Next: ${shown.join(', ')}.`,
     );
   }
   const { archetype, ctx, state, lands, plan, mana, score } = best;
   notes.push(...best.notes, ...mana.notes);
-  for (const { cand, qty } of [...state.chosen.values()].sort((a, b) =>
-    a.cand.facts.card.name < b.cand.facts.card.name ? -1 : 1,
-  )) {
+  const picks = [
+    ...[...state.chosen.values()].map(({ cand, qty }) => ({ cand, qty })),
+    ...mana.nonbasics.map((p) => ({ cand: p.candidate, qty: p.qty })),
+  ].sort((a, b) =>
+    a.cand.facts.card.name < b.cand.facts.card.name
+      ? -1
+      : a.cand.facts.card.name > b.cand.facts.card.name
+        ? 1
+        : a.cand.facts.card.id < b.cand.facts.card.id
+          ? -1
+          : 1,
+  );
+  for (const { cand, qty } of picks) {
     if (qty > cand.preferred) {
       notes.push(
         `Played ${qty} copies of ${cand.facts.card.name}, more than the usual ${cand.preferred}, because the bulk list ran out of other cards.`,

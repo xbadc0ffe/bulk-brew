@@ -60,6 +60,7 @@ Defaults live in `config/settings.defaults.json`.
 
 - Max copies per card, per deck size (60: 4, 40: 4, 20: 2), set on the Build form under the deck size. 100 is always singleton.
 - Unlimited basics (on), set on the Build form.
+- Rarities the builder may use (all four by default), set on the Build form. Basic lands and cards with no known rarity are never filtered out.
 - Include Un-set and acorn cards (off).
 - Show card art (off on first launch, remembered).
 - Appearance: light, dark, or system, and a theme color (grey or one of the five colors). This is a device preference kept in `localStorage` so it applies before first paint; it is not part of `Settings` and not in backups.
@@ -93,7 +94,7 @@ Name resolution handles full multi-face names ("A // B"), front-face-only names,
 
 The shipped database is one compact JSON file, gzip-compressed by the host. Shape: `DataPack` in `packages/core/src/types.ts`. Per card: oracle id, name, layout, mana cost, mana value, type line, oracle text, colors, color identity, keywords, power, toughness, loyalty, produced mana, normalized types, derived `entersTapped` and `unset` flags, tags, faces, and the default printing's image id. The 2026-11-02 pack holds 34,168 cards: 23 MB raw, 5.4 MB compressed.
 
-Schema 2 (phase 9) adds, from the same Scryfall oracle file: Commander legality (banned or not legal), the Game Changer flag, and Scryfall's popularity rank, one signal in the card strength score. The core reads schema 1 and 2 during the move, treating the new fields as absent in schema 1. Decks record `CardIndex.dataVersion`, the pack date plus the schema from 2 on, so packs of different schemas never share a data version.
+Schema 2 (phase 9) adds, from the same Scryfall oracle file: Commander legality (banned or not legal), the Game Changer flag, Scryfall's popularity rank (one signal in the card strength score), and the rarity of the card's default printing (special and bonus stored as rare). Rarity belongs to a printing, so a card reprinted at another rarity uses its default printing's rarity. The core reads schema 1 and 2 during the move, treating the new fields as absent in schema 1. Decks record `CardIndex.dataVersion`, the pack date plus the schema from 2 on, so packs of different schemas never share a data version.
 
 The pack is served under one fixed name, `data/cards.json`, and the service worker answers from its cache first. So every release of the core must read the previous schema as well as the current one: a returning user may load the old cached pack once before the new one arrives.
 
@@ -181,7 +182,7 @@ A deck with cards grouped by type, basics by color, and a `BuildExplanation`: ar
 
 The Build page has settings on the left and deck options on the right.
 
-- **Settings**: deck size (100, 60, 40, 20), colors (one or more), max copies per card under the size, rarities under that (a drop-down with a checkbox for common, uncommon, rare, and mythic, all on by default), unlimited basics under that, primary style, and secondary style. Both styles are drop-downs that default to best fit and show viable and near-miss labels as the Style choice does today. The secondary style unlocks once a primary style is picked and lists only styles that can be supported alongside it.
+- **Settings**: deck size (100, 60, 40, 20); under it max copies per card, rarities (a drop-down with a checkbox for common, uncommon, rare, and mythic, all on by default), and unlimited basics; then colors (one or more), primary style, and secondary style. Both styles are drop-downs that default to best fit and show viable and near-miss labels as the Style choice does today. The secondary style unlocks once a primary style is picked and lists only styles that can be supported alongside it.
 - **Options**: larger cards on the right, one per deck option, with the deck's colors, styles, a strength rating, and a short summary (curve, creature and spell counts, mana notes). Ranked by fit to the request first, then by deck score.
 - **Fit**: options stay inside the request but need not use all of it. Every option uses only picked colors (any non-empty subset). A picked primary style is required: every option honors it, and when no deck can, the right side says that no decks meet the settings and offers a Clear settings button (inline, not a popup). The secondary style is best effort, and an option that could not meet it is marked as such. An option that uses everything picked ranks above an equally strong one that drops something. Styles and colors that were not picked never appear.
 - **Generation**: options are ideas, each built from the full pool, so one option's cards stay available to the next. They build one at a time in a background worker and appear as they finish, re-sorted by rank, with a progress indicator while work remains. The count is capped in config, and an option that shares most of its cards with a stronger one is dropped. Opening an option pauses the work; returning resumes it. Settings and finished options survive moving between screens.

@@ -1,6 +1,6 @@
 // Scryfall card object in, CardRecord out. Also decides what is playable.
 
-import type { CardFace, CardRecord, CardType, Color, ManaColor } from '@bulk-brew/core';
+import type { CardFace, CardRecord, CardType, Color, ManaColor, Rarity } from '@bulk-brew/core';
 import type { ScryfallCard, ScryfallFace } from './scryfall.ts';
 
 /** Layouts that are not cards you can put in a deck. */
@@ -74,6 +74,13 @@ export function parseTypes(typeLine: string): CardType[] {
     }
   }
   return out;
+}
+
+/** Scryfall's special (timeshifted and similar) and bonus rarities sit above uncommon; store them as rare. */
+export function rarityOf(r: string | undefined): Rarity | undefined {
+  if (r === 'common' || r === 'uncommon' || r === 'rare' || r === 'mythic') return r;
+  if (r === 'special' || r === 'bonus') return 'rare';
+  return undefined;
 }
 
 const ENTERS_TAPPED = /\benters (the battlefield )?tapped\b/i;
@@ -156,6 +163,8 @@ export function toCardRecord(card: ScryfallCard, tags: string[]): CardRecord {
   if (commander === 'banned' || commander === 'not_legal') rec.commanderLegality = commander;
   if (card.game_changer) rec.gameChanger = true;
   if (typeof card.edhrec_rank === 'number' && card.edhrec_rank > 0) rec.rank = card.edhrec_rank;
+  const rarity = rarityOf(card.rarity);
+  if (rarity) rec.rarity = rarity;
   if (faces.length > 0) rec.faces = faces.map((f) => faceOf(f, colors));
   return rec;
 }

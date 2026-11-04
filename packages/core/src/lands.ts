@@ -167,23 +167,26 @@ export function chooseManaBase(
   const nonbasics: LandPick[] = [];
   let taken = 0;
   let colorless = 0;
-  const take = (minScore: number, limit: number) => {
+  const take = (minScore: number, limit: number, copies: 'preferred' | 'available') => {
     for (const s of scored) {
       if (s.score < minScore) continue;
       // The fallback must still add mana: skip lands that produce nothing.
       if ((s.candidate.facts.card.produces ?? []).length === 0) continue;
-      if (nonbasics.some((n) => n.candidate === s.candidate)) continue;
-      let qty = 0;
-      while (qty < s.candidate.available && taken < limit && taken < count) {
+      const already = nonbasics.find((n) => n.candidate === s.candidate);
+      const cap = copies === 'preferred' ? s.candidate.preferred : s.candidate.available;
+      let qty = already?.qty ?? 0;
+      const before = qty;
+      while (qty < cap && taken < limit && taken < count) {
         if (s.colorlessOnly && colorless >= maxColorless) break;
         qty++;
         taken++;
         if (s.colorlessOnly) colorless++;
       }
-      if (qty > 0) nonbasics.push({ candidate: s.candidate, qty, why: s.why });
+      if (already) already.qty = qty;
+      else if (qty > before) nonbasics.push({ candidate: s.candidate, qty, why: s.why });
     }
   };
-  take(rules.minScore, maxNonbasics);
+  take(rules.minScore, maxNonbasics, 'preferred');
 
   let basics = count - taken;
   if (!settings.unlimitedBasics) {
@@ -193,7 +196,7 @@ export function chooseManaBase(
     if (basicsInPool < basics) {
       notes.push(`only ${basicsInPool} ${basicName} in the pool; adding more nonbasics`);
       // Fill the gap with lower-scored nonbasics before giving up.
-      take(-Infinity, count);
+      take(-Infinity, count, 'available');
       basics = Math.min(basicsInPool, count - taken);
       if (taken + basics < count) {
         throw new ManaBaseError(

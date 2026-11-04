@@ -187,6 +187,11 @@ try {
   await click('^60$');
   // The color tile reads "W White 754 · 60/40/20".
   await click('White\\d');
+  // Open the rarity drop-down so the form screenshot shows it, then close it.
+  await click('^All rarities');
+  await waitForText(/Mythic/, 5000);
+  await shot('3-build-form');
+  await click('^All rarities');
   await click('^Build 60-card white deck$');
   log('deck', oneLine(await waitForText(/Accept/, 30000), 160));
   await shot('3-deck');

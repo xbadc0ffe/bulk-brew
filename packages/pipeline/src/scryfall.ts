@@ -38,6 +38,7 @@ export interface ScryfallCard {
   oversized?: boolean;
   game_changer?: boolean;
   edhrec_rank?: number;
+  rarity?: string;
 }
 
 export interface TaggerTagging {

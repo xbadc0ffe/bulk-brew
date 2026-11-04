@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { COLORS, COLOR_LABELS, type DeckSize } from '@bulk-brew/core';
+import { COLORS, COLOR_LABELS, RARITIES, type DeckSize } from '@bulk-brew/core';
 import {
   archetypeInfo,
   archetypeViability,
   buildableSizes,
   ConfirmDialog,
   Pip,
+  RarityPicker,
   Segmented,
   Stepper,
   scanShortfall,
@@ -21,7 +22,7 @@ import { DeckLayout, ExportMenu } from './DeckLayout.tsx';
 const SIZES: { id: DeckSize; label: string }[] = [
   { id: 60, label: '60' },
   { id: 40, label: '40' },
-  { id: 20, label: '20 Jumpstart' },
+  { id: 20, label: '20' },
 ];
 
 /** One line per size, in the voice of the design's 60-card line. */
@@ -52,7 +53,9 @@ function sizesText(scans: ScansBySize | undefined, color: (typeof COLORS)[number
 }
 
 function BuildForm() {
-  const { build: flow, scans, config, settings } = useAppState();
+  const { build: flow, scans, config, settings, index } = useAppState();
+  // Schema 1 packs carry no rarity, so the filter cannot act until the data is refreshed.
+  const rarityKnown = (index?.pack.schema ?? 2) >= 2;
   const colorName = flow.color ? COLOR_LABELS[flow.color] : undefined;
   const scan = flow.colorScan;
   const styles = scan
@@ -92,6 +95,51 @@ function BuildForm() {
           />
           <p className="text-[12px] text-fg-2">{sizeLine(flow.size, flow.maxCopies)}</p>
         </div>
+
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-[13px] text-fg-1">Max copies per card</span>
+          <Stepper
+            max={99}
+            label="Max copies per card"
+            value={flow.maxCopies}
+            min={1}
+            onChange={flow.setMaxCopies}
+          />
+        </div>
+
+        <div className="flex items-center justify-between gap-3">
+          <span className="flex flex-col">
+            <span className="text-[13px] text-fg-1">Rarities</span>
+            <span className="text-[11.5px] text-fg-2">
+              {rarityKnown
+                ? 'Unchecked rarities stay out of builds'
+                : 'Takes effect with the next card data update'}
+            </span>
+          </span>
+          <RarityPicker
+            value={settings.settings.rarities ?? RARITIES}
+            onChange={(rarities) => {
+              settings.update({ rarities });
+              flow.reject();
+            }}
+            buttonClassName={`${ui.secondary} whitespace-nowrap`}
+          />
+        </div>
+
+        <label className="flex items-center justify-between gap-3">
+          <span className="flex flex-col">
+            <span className="text-[13px] text-fg-1">Unlimited basic lands</span>
+            <span className="text-[11.5px] text-fg-2">
+              Add basics freely instead of using the ones in your bulk list
+            </span>
+          </span>
+          <Toggle
+            label="Unlimited basic lands"
+            checked={settings.settings.unlimitedBasics}
+            disabled={!settings.loaded}
+            onChange={(v) => settings.update({ unlimitedBasics: v })}
+          />
+        </label>
 
         <div className="flex flex-col gap-2">
           <h2 className={ui.sectionLabel}>Color</h2>
@@ -160,32 +208,6 @@ function BuildForm() {
           ) : (
             <p className="text-[12px] text-fg-2">Pick a color to see the styles it can build.</p>
           )}
-        </div>
-
-        <label className="flex items-center justify-between gap-3">
-          <span className="flex flex-col">
-            <span className="text-[13px] text-fg-1">Unlimited basic lands</span>
-            <span className="text-[11.5px] text-fg-2">
-              Add basics freely instead of using the ones in your bulk list
-            </span>
-          </span>
-          <Toggle
-            label="Unlimited basic lands"
-            checked={settings.settings.unlimitedBasics}
-            disabled={!settings.loaded}
-            onChange={(v) => settings.update({ unlimitedBasics: v })}
-          />
-        </label>
-
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-[13px] text-fg-1">Max copies per card</span>
-          <Stepper
-            max={99}
-            label="Max copies per card"
-            value={flow.maxCopies}
-            min={1}
-            onChange={flow.setMaxCopies}
-          />
         </div>
 
         <div className="sticky bottom-0 -mx-6 -mb-[22px] mt-auto flex flex-col gap-2 border-t border-line bg-surface px-6 pt-3 pb-[22px]">

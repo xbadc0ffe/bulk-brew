@@ -146,7 +146,7 @@ export function maxCopiesFor(settings: Settings, config: BulkBrewConfig, size: D
 }
 
 /** Preferred copies of one card: the deck limit, lowered for legendary and expensive cards. */
-export function copyLimit(
+export function preferredCopies(
   card: CardRecord,
   limit: number,
   caps: { legendary: number; expensiveMv: number; expensive: number },
@@ -176,6 +176,7 @@ export function listCandidates(
 ): Candidate[] {
   const limit = maxCopiesFor(settings, config, size);
   const caps = templateFor(config, size).copyCaps;
+  const rarities = settings.rarities?.length ? new Set(settings.rarities) : undefined;
   const out: Candidate[] = [];
   const ids = Object.keys(pool.entries).sort();
   for (const id of ids) {
@@ -189,8 +190,12 @@ export function listCandidates(
     if (hasColorlessPip(card)) continue;
     const facts = factsFor(index, config, card);
     if (facts.basic && settings.unlimitedBasics) continue;
+    // Cards with no known rarity (schema 1 packs) stay in, so the filter never empties a pool by accident.
+    if (rarities && !facts.basic && card.rarity && !rarities.has(card.rarity)) continue;
     const available = facts.basic ? entry.qty : Math.min(entry.qty, limit);
-    const preferred = facts.basic ? available : Math.min(available, copyLimit(card, limit, caps));
+    const preferred = facts.basic
+      ? available
+      : Math.min(available, preferredCopies(card, limit, caps));
     const cand: Candidate = { facts, available, preferred };
     if (entry.printing) cand.printing = entry.printing;
     out.push(cand);

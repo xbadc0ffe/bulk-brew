@@ -15,6 +15,7 @@ export {
   Dropdown,
   MenuItem,
   MenuCheck,
+  RarityPicker,
   type Variant,
   type SegmentOption,
 } from './components/controls.tsx';

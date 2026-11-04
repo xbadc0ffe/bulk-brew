@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { COLORS, COLOR_LABELS, type DeckSize } from '@bulk-brew/core';
+import { COLORS, COLOR_LABELS, RARITIES, type DeckSize } from '@bulk-brew/core';
 import {
   archetypeInfo,
   archetypeViability,
@@ -7,6 +7,7 @@ import {
   ConfirmDialog,
   phone,
   Pip,
+  RarityPicker,
   scanShortfall,
   Segmented,
   Stepper,
@@ -21,7 +22,7 @@ import { DeckScreen } from './DeckView.tsx';
 const SIZES: { id: DeckSize; label: string }[] = [
   { id: 60, label: '60' },
   { id: 40, label: '40' },
-  { id: 20, label: '20 Jumpstart' },
+  { id: 20, label: '20' },
 ];
 
 function sizeLine(size: DeckSize, copies: number): string {
@@ -47,7 +48,9 @@ export function BuildScreen() {
 }
 
 function BuildForm() {
-  const { build: flow, scans, config, settings } = useAppState();
+  const { build: flow, scans, config, settings, index } = useAppState();
+  // Schema 1 packs carry no rarity, so the filter cannot act until the data is refreshed.
+  const rarityKnown = (index?.pack.schema ?? 2) >= 2;
   const scan = flow.colorScan;
   const colorName = flow.color ? COLOR_LABELS[flow.color] : undefined;
   const styles = scan
@@ -81,6 +84,52 @@ function BuildForm() {
           />
           <p className="text-[0.75rem] text-fg-2">{sizeLine(flow.size, flow.maxCopies)}</p>
         </section>
+
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-[0.875rem] text-fg-1">Max copies per card</span>
+          <Stepper
+            max={99}
+            label="Max copies per card"
+            value={flow.maxCopies}
+            min={1}
+            onChange={flow.setMaxCopies}
+            variant="phone"
+          />
+        </div>
+
+        <div className="flex items-center justify-between gap-3">
+          <span className="flex flex-col">
+            <span className="text-[0.875rem] text-fg-1">Rarities</span>
+            <span className="text-[0.75rem] text-fg-2">
+              {rarityKnown
+                ? 'Unchecked rarities stay out of builds'
+                : 'Takes effect with the next card data update'}
+            </span>
+          </span>
+          <RarityPicker
+            value={settings.settings.rarities ?? RARITIES}
+            onChange={(rarities) => {
+              settings.update({ rarities });
+              flow.reject();
+            }}
+            buttonClassName="rounded-lg border border-line-strong bg-surface px-3 py-2 text-[0.875rem] whitespace-nowrap text-ink active:bg-surface-2"
+          />
+        </div>
+
+        <div className={phone.group}>
+          <ToggleRow
+            label="Unlimited basic lands"
+            hint="Add basics freely instead of using the ones in your bulk list"
+          >
+            <Toggle
+              label="Unlimited basic lands"
+              checked={settings.settings.unlimitedBasics}
+              disabled={!settings.loaded}
+              onChange={(v) => settings.update({ unlimitedBasics: v })}
+              variant="phone"
+            />
+          </ToggleRow>
+        </div>
 
         <section className="flex flex-col gap-2">
           <h2 className={phone.groupLabel}>Color</h2>
@@ -121,33 +170,6 @@ function BuildForm() {
             </p>
           )}
         </section>
-
-        <div className={phone.group}>
-          <ToggleRow
-            label="Unlimited basic lands"
-            hint="Add basics freely instead of using the ones in your bulk list"
-          >
-            <Toggle
-              label="Unlimited basic lands"
-              checked={settings.settings.unlimitedBasics}
-              disabled={!settings.loaded}
-              onChange={(v) => settings.update({ unlimitedBasics: v })}
-              variant="phone"
-            />
-          </ToggleRow>
-        </div>
-
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-[0.875rem] text-fg-1">Max copies per card</span>
-          <Stepper
-            max={99}
-            label="Max copies per card"
-            value={flow.maxCopies}
-            min={1}
-            onChange={flow.setMaxCopies}
-            variant="phone"
-          />
-        </div>
 
         <section className="flex flex-col gap-2">
           <h2 className={phone.groupLabel}>Style</h2>

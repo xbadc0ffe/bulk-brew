@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { copyLimit } from '../src/candidates.ts';
+import { preferredCopies } from '../src/candidates.ts';
 import { cardStrength, coloredPips } from '../src/strength.ts';
 import type { CardRecord } from '../src/types.ts';
 import { CONFIG } from './config.test.ts';
@@ -96,18 +96,18 @@ describe('cardStrength', () => {
   });
 });
 
-describe('copyLimit', () => {
+describe('preferredCopies', () => {
   const caps = { legendary: 2, expensiveMv: 6, expensive: 2 };
   it('caps legendary and expensive cards below the deck limit', () => {
-    expect(copyLimit(vanilla, 4, caps)).toBe(4);
+    expect(preferredCopies(vanilla, 4, caps)).toBe(4);
     expect(
-      copyLimit(
+      preferredCopies(
         card({ ...vanilla, id: 'l', name: 'L', typeLine: 'Legendary Creature — Human' }),
         4,
         caps,
       ),
     ).toBe(2);
-    expect(copyLimit(card({ ...vanilla, id: 'x', name: 'X', mv: 6 }), 4, caps)).toBe(2);
-    expect(copyLimit(card({ ...vanilla, id: 'y', name: 'Y', mv: 7 }), 1, caps)).toBe(1);
+    expect(preferredCopies(card({ ...vanilla, id: 'x', name: 'X', mv: 6 }), 4, caps)).toBe(2);
+    expect(preferredCopies(card({ ...vanilla, id: 'y', name: 'Y', mv: 7 }), 1, caps)).toBe(1);
   });
 });
