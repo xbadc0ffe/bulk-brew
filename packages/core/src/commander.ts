@@ -25,10 +25,20 @@ export interface CommanderCandidate {
   score: number;
   /** Styles the commander itself enables or rewards that the pool can build. */
   styles: { id: string; label: string }[];
+  /** The styles it rewards (a payoff for them), tribes included; the rest of `styles` it only feeds. */
+  leads: { id: string; label: string }[];
   /** Plain-language reasons for the tier. */
   reasons: string[];
   /** Nonland cards in the pool that fit the commander's colors. */
   depth: number;
+  /** Whether those cards are enough for the 99. */
+  enough: boolean;
+  /** Mana value of the commander. */
+  mv: number;
+  /** Lands in the pool that make two or more of its colors. */
+  fixers: number;
+  /** Whether those lands are enough for its color count (always true under three colors). */
+  fixed: boolean;
 }
 
 /** Nonbasic lands in the pool that make two or more of the colors directly or by fetching. */
@@ -126,8 +136,13 @@ export function commanderCandidates(
       tier,
       score: Math.round(score * 100) / 100,
       styles,
+      leads,
       reasons,
       depth,
+      enough,
+      mv: card.mv,
+      fixers,
+      fixed,
     });
   }
   // On a big pool most commanders clear the bar; keep "top" to the best quarter of them.

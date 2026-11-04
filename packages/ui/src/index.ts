@@ -133,6 +133,7 @@ export {
   type DeckRow,
 } from './data/deckGroups.ts';
 export { CardImage, type CardImageProps } from './components/CardImage.tsx';
+export { TextCard } from './components/TextCard.tsx';
 export { CardDetail, type CardDetailProps } from './components/CardDetail.tsx';
 export { ErrorBoundary } from './components/ErrorBoundary.tsx';
 export { STORAGE_KEYS } from './storage/keys.ts';

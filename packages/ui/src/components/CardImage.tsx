@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import {
   imageUrl,
   printingImageUrl,
@@ -13,13 +13,21 @@ export interface CardImageProps {
   printing?: PrintingHint | undefined;
   size?: ImageSize;
   className?: string;
+  /** Shown instead when no image loads. */
+  fallback?: ReactNode;
 }
 
 /**
  * A Scryfall card image, always shown whole. Sources are tried in order and
  * failures are remembered per URL, so a missing printing degrades quietly.
  */
-export function CardImage({ card, printing, size = 'normal', className }: CardImageProps) {
+export function CardImage({
+  card,
+  printing,
+  size = 'normal',
+  className,
+  fallback = null,
+}: CardImageProps) {
   const [failed, setFailed] = useState<Record<string, true>>({});
   const sources = useMemo(() => {
     const list: string[] = [];
@@ -28,7 +36,7 @@ export function CardImage({ card, printing, size = 'normal', className }: CardIm
     return list;
   }, [card, printing, size]);
   const src = sources.find((s) => !failed[s]);
-  if (!src) return null;
+  if (!src) return <>{fallback}</>;
   return (
     <img
       src={src}

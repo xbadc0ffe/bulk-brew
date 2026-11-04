@@ -2,12 +2,15 @@ import {
   COLOR_LABELS,
   colorsLabel,
   normalizeColors,
+  type CardRecord,
+  type CommanderCandidate,
   type CommanderTier,
   type DeckOption,
 } from '@bulk-brew/core';
 import { useMemo, type ReactNode } from 'react';
 import {
   archetypeInfo,
+  CardImage,
   ColorBreakdown,
   CurveChart,
   deckColorShares,
@@ -15,20 +18,34 @@ import {
   Pip,
   RoleBar,
   RoleBars,
+  TextCard,
   TypeBreakdown,
   ui,
   type DeckOptions,
 } from '@bulk-brew/ui';
 import { useAppState } from '../app-context.ts';
 
-/** The right side of the Build page: ranked deck options, built as you watch. */
+/**
+ * The right side of the Build page: ranked deck options, built as you watch.
+ * In Commander the list of commanders comes first, and the picked one stays
+ * in a pane beside its options.
+ */
 export function OptionsPanel(props: { options: DeckOptions; onClear(): void }) {
-  const { options, onClear } = props;
   const { build: flow } = useAppState();
-
   if (flow.size === 100 && !flow.commander) return <CommanderList />;
-  const header = flow.size === 100 && flow.commander ? <CommanderHeader /> : null;
+  if (flow.size !== 100) return <OptionsBody {...props} />;
+  return (
+    <div className="flex min-w-0 flex-col md:min-h-0 md:flex-1 md:flex-row">
+      <div className="flex min-w-0 flex-1 flex-col md:min-h-0">
+        <OptionsBody {...props} />
+      </div>
+      <CommanderPane />
+    </div>
+  );
+}
 
+function OptionsBody({ options, onClear }: { options: DeckOptions; onClear(): void }) {
+  const { build: flow } = useAppState();
   if (flow.colors.length === 0) {
     return (
       <Centered>
@@ -39,7 +56,7 @@ export function OptionsPanel(props: { options: DeckOptions; onClear(): void }) {
   }
   if (options.primaryUnavailable) {
     return (
-      <Centered header={header}>
+      <Centered>
         <p className="text-ink">No decks meet these settings.</p>
         <p>None of the picked colors can build the picked primary archetype.</p>
         <button type="button" className={`${ui.secondary} mt-2`} onClick={onClear}>
@@ -50,7 +67,7 @@ export function OptionsPanel(props: { options: DeckOptions; onClear(): void }) {
   }
   if (options.error) {
     return (
-      <Centered header={header}>
+      <Centered>
         <p className="text-ink">Building deck options failed.</p>
         <p>{options.error}</p>
       </Centered>
@@ -58,7 +75,7 @@ export function OptionsPanel(props: { options: DeckOptions; onClear(): void }) {
   }
   if (!options.working && options.options.length === 0) {
     return (
-      <Centered header={header}>
+      <Centered>
         <p className="text-ink">No decks meet these settings.</p>
         <p>{options.failure ?? 'The picked colors do not have enough cards for this deck size.'}</p>
         <button type="button" className={`${ui.secondary} mt-2`} onClick={onClear}>
@@ -70,7 +87,6 @@ export function OptionsPanel(props: { options: DeckOptions; onClear(): void }) {
 
   return (
     <div className="flex flex-col md:min-h-0 md:flex-1">
-      {header}
       <div className="flex items-center justify-between gap-3 border-b border-line px-6 py-3">
         <h2 id="options-title" tabIndex={-1} className="text-[15px] font-semibold">
           Deck options
@@ -86,7 +102,7 @@ export function OptionsPanel(props: { options: DeckOptions; onClear(): void }) {
           {options.working ? '' : `${options.options.length} deck options ready.`}
         </span>
       </div>
-      <ul className="grid auto-rows-min grid-cols-[repeat(auto-fill,minmax(min(340px,100%),1fr))] gap-4 p-6 md:min-h-0 md:flex-1 md:overflow-y-auto">
+      <ul className="grid auto-rows-min grid-cols-[repeat(auto-fill,minmax(min(335px,100%),1fr))] gap-4 p-6 md:min-h-0 md:flex-1 md:overflow-y-auto">
         {options.options.map((o) => (
           <li key={o.key}>
             <OptionCard option={o} onOpen={() => flow.open(o.result)} />
@@ -97,13 +113,10 @@ export function OptionsPanel(props: { options: DeckOptions; onClear(): void }) {
   );
 }
 
-function Centered({ children, header }: { children: React.ReactNode; header?: React.ReactNode }) {
+function Centered({ children }: { children: ReactNode }) {
   return (
-    <div className="flex flex-1 flex-col">
-      {header}
-      <div className="flex flex-1 flex-col items-center justify-center gap-1 p-8 text-center text-[13px] text-fg-2">
-        {children}
-      </div>
+    <div className="flex flex-1 flex-col items-center justify-center gap-1 p-8 text-center text-[13px] text-fg-2">
+      {children}
     </div>
   );
 }
@@ -114,11 +127,84 @@ const TIER_LABELS: Record<CommanderTier, string> = {
   possible: 'Possible commanders',
 };
 
+/** The card itself: its image when card art is on, else its text laid out like a card. */
+function CommanderCard({ card, full = false }: { card: CardRecord; full?: boolean }) {
+  const { settings } = useAppState();
+  const text = <TextCard card={card} full={full} />;
+  if (!settings.settings.showArt) return text;
+  return (
+    <CardImage
+      card={card}
+      size="normal"
+      className="aspect-[63/88] w-full rounded-[4.75%/3.4%] object-contain"
+      fallback={text}
+    />
+  );
+}
+
+/** One labeled part of a commander's details. */
+function Detail({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className={ui.sectionLabel}>{label}</span>
+      <div className="text-[12.5px] leading-[1.45] text-fg-1">{children}</div>
+    </div>
+  );
+}
+
+/** What kind of deck a commander leads, in short sections. */
+function CommanderDetails({ c }: { c: CommanderCandidate }) {
+  const leads = new Set(c.leads.map((s) => s.id));
+  const feeds = c.styles.filter((s) => !leads.has(s.id));
+  return (
+    <div className="flex flex-col gap-3">
+      <Detail label="Deck it leads">
+        {c.leads.length > 0 || feeds.length > 0 ? (
+          <div className="flex flex-col gap-1.5">
+            {c.leads.length > 0 && (
+              <Chips lead="Rewards" items={c.leads.map((s) => s.label)} strong />
+            )}
+            {feeds.length > 0 && <Chips lead="Helps" items={feeds.map((s) => s.label)} />}
+          </div>
+        ) : (
+          'No archetype of its own; options use whatever your cards build best.'
+        )}
+      </Detail>
+      <Detail label="Your bulk list">
+        {c.depth} cards in its colors{c.enough ? '' : ', not enough for the 99'}
+      </Detail>
+      <Detail label="Mana">
+        {c.colors.length} {c.colors.length === 1 ? 'color' : 'colors'}, costs {c.mv}
+        {c.mv > 5 && ', slow to cast'}
+        {c.colors.length >= 3 &&
+          `. ${c.fixers} ${c.fixers === 1 ? 'land makes' : 'lands make'} two or more of its colors${c.fixed ? '' : ', fewer than it wants'}`}
+        .
+      </Detail>
+    </div>
+  );
+}
+
+function Chips({ lead, items, strong }: { lead: string; items: string[]; strong?: boolean }) {
+  return (
+    <span className="flex flex-wrap items-center gap-1.5">
+      <span className="text-[12px] text-fg-2">{lead}</span>
+      {items.map((label) => (
+        <span
+          key={label}
+          className={`rounded-full px-2 py-[2px] text-[12px] ${strong ? 'border border-line-strong bg-surface font-medium text-ink' : 'bg-surface-2 text-fg-1'}`}
+        >
+          {label}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 /** Commanders in the bulk list, best first, grouped by tier. Picking one starts the options. */
 function CommanderList() {
-  const { build: flow, commanders } = useAppState();
+  const { build: flow, commanders, index, settings } = useAppState();
   const list = commanders.list;
-  if (!list) {
+  if (!list || !index) {
     return (
       <Centered>
         <Spinner />
@@ -150,30 +236,31 @@ function CommanderList() {
           {list.length} in your bulk list, most promising first
         </p>
       </div>
-      <div className="flex flex-col gap-5 p-6 md:min-h-0 md:flex-1 md:overflow-y-auto">
+      <div className="flex flex-col gap-6 p-6 md:min-h-0 md:flex-1 md:overflow-y-auto">
         {tiers.map((tier) => (
-          <section key={tier} className="flex flex-col gap-2">
+          <section key={tier} className="flex flex-col gap-3">
             <h3 className={ui.sectionLabel}>{TIER_LABELS[tier]}</h3>
-            <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2">
+            <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(275px,100%),1fr))] gap-4">
               {list
                 .filter((c) => c.tier === tier)
-                .map((c) => (
-                  <li key={c.id}>
-                    <button
-                      type="button"
-                      onClick={() => flow.setCommander(c.id)}
-                      className="flex w-full flex-col gap-1 rounded-lg border border-line bg-surface p-3 text-left hover:border-line-strong hover:bg-surface-2"
-                    >
-                      <span className="flex items-center gap-1">
-                        {c.colors.map((col) => (
-                          <Pip key={col} symbol={col} size={16} />
-                        ))}
-                        <span className="ml-1 text-[13.5px] font-semibold">{c.name}</span>
-                      </span>
-                      <span className="text-[12px] text-fg-2">{c.reasons.join('; ')}</span>
-                    </button>
-                  </li>
-                ))}
+                .map((c) => {
+                  const card = index.get(c.id);
+                  if (!card) return null;
+                  return (
+                    <li key={c.id}>
+                      <button
+                        type="button"
+                        onClick={() => flow.setCommander(c.id)}
+                        className="flex h-full w-full flex-col gap-3.5 rounded-xl border border-line bg-surface p-3 text-left hover:border-line-strong hover:bg-surface-2"
+                      >
+                        {/* The image carries the name visually; keep it in the text for search and screen readers. */}
+                        {settings.settings.showArt && <span className="sr-only">{c.name}</span>}
+                        <CommanderCard card={card} />
+                        <CommanderDetails c={c} />
+                      </button>
+                    </li>
+                  );
+                })}
             </ul>
           </section>
         ))}
@@ -182,35 +269,38 @@ function CommanderList() {
   );
 }
 
-/** The picked commander above its deck options, with a way back to the list. */
-function CommanderHeader() {
-  const { build: flow, index } = useAppState();
+/** The picked commander beside its deck options, with its details and a way back to the list. */
+function CommanderPane() {
+  const { build: flow, index, commanders } = useAppState();
   const card = flow.commander && index ? index.get(flow.commander) : undefined;
   if (!card) return null;
+  const candidate = commanders.list?.find((c) => c.id === card.id);
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-line bg-surface px-6 py-3">
-      <span className="flex min-w-0 items-center gap-2">
-        <span className="flex items-center gap-1">
+    <aside
+      aria-label="Commander"
+      className="order-first flex shrink-0 flex-col gap-4 border-b border-line bg-surface p-4 md:order-none md:w-[300px] md:overflow-y-auto md:border-b-0 md:border-l"
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="flex items-center gap-1.5">
+          <span className={ui.sectionLabel}>Commander</span>
           {normalizeColors(card.identity).map((c) => (
-            <Pip key={c} symbol={c} size={18} />
+            <Pip key={c} symbol={c} size={16} label={COLOR_LABELS[c]} />
           ))}
         </span>
-        <span className="flex min-w-0 flex-col">
-          <span className="text-[11px] text-fg-2">Commander</span>
-          <span className="truncate text-[14px] font-semibold">{card.name}</span>
-        </span>
-      </span>
-      <button
-        type="button"
-        className={ui.secondary}
-        onClick={() => {
-          flow.setCommander(undefined);
-          requestAnimationFrame(() => document.getElementById('options-title')?.focus());
-        }}
-      >
-        Change commander
-      </button>
-    </div>
+        <button
+          type="button"
+          className={ui.small}
+          onClick={() => {
+            flow.setCommander(undefined);
+            requestAnimationFrame(() => document.getElementById('options-title')?.focus());
+          }}
+        >
+          Change
+        </button>
+      </div>
+      <CommanderCard card={card} full />
+      {candidate && <CommanderDetails c={candidate} />}
+    </aside>
   );
 }
 
