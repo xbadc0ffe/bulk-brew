@@ -11,7 +11,8 @@ Versioned data files that hold every judgment call the builder makes. Logic live
 | `archetypes.json`        | Synergy archetypes (enablers, payoffs, minimums) and composition archetypes (aggro, midrange, control).              | present |
 | `synergy-rules.json`     | Enabler and payoff matcher pairs with weights.                                                                       | present |
 | `land-rules.json`        | Basic land names, nonbasic scoring, colorless land caps, modal land faces.                                           | present |
-| `builder-weights.json`   | Objective weights, tiebreak order, local search limits.                                                              | present |
+| `builder-weights.json`   | Objective weights, tiebreak order, local search limits, deck score weights, best fit candidate counts.               | present |
+| `card-strength.json`     | Card strength score weights: popularity, stats, keywords, effects, removal quality, cost, pips.                      | present |
 | `tag-overlay.json`       | Local tag fixes and gap-fills applied on top of Scryfall Tagger tags at pipeline time.                               | present |
 | `display-tags.json`      | Short tags shown on cards and offered as filters ("Removal", "Draw", "+1/+1"), from roles, styles, and tags.         | present |
 

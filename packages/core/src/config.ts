@@ -131,6 +131,11 @@ export interface DeckTemplate {
   typeMix: TypeMix;
   roles: Record<string, RoleQuota>;
   maxCopies: number;
+  /**
+   * Lower copy limits for cards that are bad in multiples: legendary cards
+   * (the legend rule) and cards costing expensiveMv or more (clunky draws).
+   */
+  copyCaps: { legendary: number; expensiveMv: number; expensive: number };
   tolerances: {
     /** Cards per curve bucket that count as "on target". */
     curve: number;
@@ -224,12 +229,57 @@ export interface BuilderWeightsConfig {
     roleShortfall: number;
     synergyDensity: number;
     themeHit: number;
+    /** Per strength point per copy, so swaps prefer stronger cards when the shape allows. */
+    cardStrength: number;
   };
-  tiebreaks: ('themeTagHits' | 'statsPerMana' | 'lowerMv' | 'name')[];
+  tiebreaks: ('themeTagHits' | 'strength' | 'statsPerMana' | 'lowerMv' | 'name')[];
   localSearch: {
     maxPasses: number;
     maxSwapsPerPass: number;
   };
+  /** Weights of the deck score parts and how each part is scaled. */
+  deckScore: {
+    weights: { strength: number; roles: number; curve: number; typeMix: number; synergy: number };
+    /** Average card strength mapped to 0 and 1. */
+    strengthRange: [number, number];
+    /** Curve or type-mix misses, as a share of spell slots, that score zero. */
+    shapeSlack: number;
+    /** Weighted synergy pairs per spell that score one. */
+    synergyReference: number;
+  };
+  /** How many viable archetypes best fit builds and compares. */
+  bestFit: { synergyCandidates: number; compositionCandidates: number };
+}
+
+export interface StrengthEffect {
+  label: string;
+  value: number;
+  match: Matcher;
+}
+
+/** Weights for the card strength score; see packages/core/src/strength.ts. */
+export interface CardStrengthConfig {
+  version: string;
+  base: number;
+  min: number;
+  max: number;
+  /** Popularity: 1 minus rank over maxRank, times weight; unranked cards get the unranked share. */
+  rank: { weight: number; maxRank: number; unranked: number };
+  /** Creature stats against expectedPerMv times mana value (at least expectedMin). */
+  body: { expectedPerMv: number; expectedMin: number; perPoint: number; min: number; max: number };
+  /** Creature keyword values, summed and capped. */
+  keywords: Record<string, number>;
+  keywordCap: number;
+  effects: StrengthEffect[];
+  effectCap: number;
+  instantSpeed: number;
+  /** Noncreature spells: perMv times (pivotMv minus mana value), clamped. */
+  cheapSpell: { pivotMv: number; perMv: number; min: number; max: number };
+  /** Per colored pip beyond the first. */
+  extraPipPenalty: number;
+  planeswalker: number;
+  /** Theme cards below this strength do not count toward a theme's viability. */
+  themeMinStrength: number;
 }
 
 export interface BulkBrewConfig {
@@ -240,6 +290,7 @@ export interface BulkBrewConfig {
   synergyRules: SynergyRulesConfig;
   landRules: LandRulesConfig;
   builderWeights: BuilderWeightsConfig;
+  cardStrength: CardStrengthConfig;
 }
 
 /** File name in config/ for each bundle key. */
@@ -251,6 +302,7 @@ export const CONFIG_FILES: Record<keyof BulkBrewConfig, string> = {
   synergyRules: 'synergy-rules.json',
   landRules: 'land-rules.json',
   builderWeights: 'builder-weights.json',
+  cardStrength: 'card-strength.json',
 };
 
 /** One string a deck records so a rebuild can be traced to the config that made it. */
@@ -263,6 +315,7 @@ export function configVersion(c: BulkBrewConfig): string {
     `s${c.synergyRules.version}`,
     `l${c.landRules.version}`,
     `w${c.builderWeights.version}`,
+    `k${c.cardStrength.version}`,
   ].join('.');
 }
 
@@ -311,6 +364,7 @@ export function collectTagReferences(c: BulkBrewConfig): Set<string> {
     take(s.enabler);
     take(s.payoff);
   }
+  for (const e of c.cardStrength.effects) take(e.match);
   for (const t of DERIVED_TAGS) out.add(t);
   return out;
 }
@@ -490,6 +544,11 @@ export function validateConfig(c: BulkBrewConfig): string[] {
     }
     checkQuotas(`${w}.roles`, t.roles, roleIds, problems);
     if (!isNum(t.maxCopies) || t.maxCopies < 1) problems.push(`${w}: maxCopies must be at least 1`);
+    const cc = t.copyCaps;
+    if (!cc || !isNum(cc.legendary) || !isNum(cc.expensiveMv) || !isNum(cc.expensive))
+      problems.push(`${w}.copyCaps: legendary, expensiveMv, and expensive must be numbers`);
+    else if (cc.legendary < 1 || cc.expensive < 1)
+      problems.push(`${w}.copyCaps: limits must be at least 1`);
     if (!t.tolerances || !isNum(t.tolerances.curve) || !isNum(t.tolerances.typeMix)) {
       problems.push(`${w}.tolerances: curve and typeMix must be numbers`);
     }
@@ -585,12 +644,13 @@ export function validateConfig(c: BulkBrewConfig): string[] {
     'roleShortfall',
     'synergyDensity',
     'themeHit',
+    'cardStrength',
   ] as const) {
     const v = bw.objective?.[k];
     if (!isNum(v) || v < 0)
       problems.push(`builderWeights.objective.${k}: must be a non-negative number`);
   }
-  const tiebreaks = new Set(['themeTagHits', 'statsPerMana', 'lowerMv', 'name']);
+  const tiebreaks = new Set(['themeTagHits', 'strength', 'statsPerMana', 'lowerMv', 'name']);
   if (!Array.isArray(bw.tiebreaks) || bw.tiebreaks.length === 0)
     problems.push('builderWeights.tiebreaks: must be a non-empty list');
   else
@@ -603,6 +663,83 @@ export function validateConfig(c: BulkBrewConfig): string[] {
   ) {
     problems.push('builderWeights.localSearch: maxPasses and maxSwapsPerPass must be numbers');
   }
+
+  const ds = bw.deckScore;
+  for (const k of ['strength', 'roles', 'curve', 'typeMix', 'synergy'] as const) {
+    const v = ds?.weights?.[k];
+    if (!isNum(v) || v < 0)
+      problems.push(`builderWeights.deckScore.weights.${k}: must be a non-negative number`);
+  }
+  const weightSum = Object.values(ds?.weights ?? {}).reduce<number>(
+    (s, v) => s + (isNum(v) ? v : 0),
+    0,
+  );
+  if (weightSum <= 0) problems.push('builderWeights.deckScore.weights: must not all be zero');
+  if (
+    !Array.isArray(ds?.strengthRange) ||
+    ds.strengthRange.length !== 2 ||
+    !ds.strengthRange.every(isNum) ||
+    ds.strengthRange[0] >= ds.strengthRange[1]
+  )
+    problems.push('builderWeights.deckScore.strengthRange: needs two increasing numbers');
+  if (!isNum(ds?.shapeSlack) || ds.shapeSlack <= 0)
+    problems.push('builderWeights.deckScore.shapeSlack: must be a positive number');
+  if (!isNum(ds?.synergyReference) || ds.synergyReference <= 0)
+    problems.push('builderWeights.deckScore.synergyReference: must be a positive number');
+  const bf = bw.bestFit;
+  const count = (v: unknown) => isNum(v) && Number.isInteger(v) && v >= 0;
+  if (
+    !count(bf?.synergyCandidates) ||
+    !count(bf?.compositionCandidates) ||
+    bf.synergyCandidates + bf.compositionCandidates < 1
+  )
+    problems.push(
+      'builderWeights.bestFit: synergyCandidates and compositionCandidates must be whole numbers, at least one in total',
+    );
+
+  const cs = c.cardStrength;
+  for (const k of [
+    'base',
+    'min',
+    'max',
+    'keywordCap',
+    'effectCap',
+    'instantSpeed',
+    'extraPipPenalty',
+    'planeswalker',
+    'themeMinStrength',
+  ] as const) {
+    if (!isNum(cs[k])) problems.push(`cardStrength.${k}: must be a number`);
+  }
+  if (isNum(cs.min) && isNum(cs.max) && cs.min >= cs.max)
+    problems.push('cardStrength: min must be below max');
+  const numbersIn = (where: string, o: Record<string, unknown> | undefined, keys: string[]) => {
+    for (const k of keys)
+      if (!isNum(o?.[k])) problems.push(`cardStrength.${where}.${k}: must be a number`);
+  };
+  numbersIn('rank', cs.rank, ['weight', 'maxRank', 'unranked']);
+  if (isNum(cs.rank?.maxRank) && cs.rank.maxRank <= 0)
+    problems.push('cardStrength.rank.maxRank: must be positive');
+  numbersIn('body', cs.body, ['expectedPerMv', 'expectedMin', 'perPoint', 'min', 'max']);
+  numbersIn('cheapSpell', cs.cheapSpell, ['pivotMv', 'perMv', 'min', 'max']);
+  for (const [where, o] of [
+    ['body', cs.body],
+    ['cheapSpell', cs.cheapSpell],
+  ] as const)
+    if (isNum(o?.min) && isNum(o?.max) && o.min > o.max)
+      problems.push(`cardStrength.${where}: min must not be above max`);
+  if (!cs.keywords || typeof cs.keywords !== 'object' || Array.isArray(cs.keywords))
+    problems.push('cardStrength.keywords: must be an object of keyword values');
+  else
+    for (const [k, v] of Object.entries(cs.keywords))
+      if (!isNum(v)) problems.push(`cardStrength.keywords.${k}: must be a number`);
+  if (!Array.isArray(cs.effects)) problems.push('cardStrength.effects: must be a list');
+  else
+    cs.effects.forEach((e, i) => {
+      if (!e.label) problems.push(`cardStrength.effects[${i}]: label missing`);
+      if (!isNum(e.value)) problems.push(`cardStrength.effects[${i}].value: must be a number`);
+      checkMatcher(`cardStrength.effects[${i}].match`, e.match, problems);
+    });
 
   return problems;
 }

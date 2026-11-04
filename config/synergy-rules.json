@@ -1,5 +1,5 @@
 {
-  "version": "1",
+  "version": "2",
   "rules": [
     {
       "id": "tokens-pump",
@@ -183,16 +183,8 @@
       "note": "Evasive creatures plus anthems and evasion granters.",
       "enabler": [{ "derived": "evasiveCreature" }],
       "payoff": [
-        {
-          "anyTags": [
-            "anthem",
-            "keyword-anthem",
-            "power-boost-to-all",
-            "gives-evasion",
-            "gives-flying",
-            "synergy-flying"
-          ]
-        }
+        { "anyTags": ["synergy-flying"] },
+        { "anyTags": ["anthem", "keyword-anthem"], "excludeTypes": ["instant", "sorcery"] }
       ],
       "weight": 0.8
     },

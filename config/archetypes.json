@@ -1,5 +1,5 @@
 {
-  "version": "1",
+  "version": "2",
   "archetypes": [
     {
       "kind": "composition",
@@ -305,16 +305,8 @@
       "curveProfile": "aggro",
       "enablers": [{ "derived": "evasiveCreature" }],
       "payoffs": [
-        {
-          "anyTags": [
-            "anthem",
-            "keyword-anthem",
-            "power-boost-to-all",
-            "gives-evasion",
-            "gives-flying",
-            "synergy-flying"
-          ]
-        }
+        { "anyTags": ["synergy-flying"] },
+        { "anyTags": ["anthem", "keyword-anthem"], "excludeTypes": ["instant", "sorcery"] }
       ],
       "minimums": {
         "60": { "enablers": 10, "payoffs": 3 },
@@ -328,7 +320,7 @@
       "id": "bigCreatures",
       "label": "Ramp into big creatures",
       "description": "Cheap mana sources that power out large threats early.",
-      "curveProfile": "midrange",
+      "curveProfile": "ramp",
       "enablers": [{ "derived": "cheapManaSource" }],
       "payoffs": [{ "derived": "finisher" }],
       "minimums": {

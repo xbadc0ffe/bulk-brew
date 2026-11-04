@@ -32,8 +32,10 @@ Minimums are enabler and payoff counts the pool must hold for the theme to be vi
 | lifegain     | Life gain, lifelink                                | Lifegain-matters, Pridemate effects                                                     | 8,3 / 5,2 / 3,1 (white, black, green)     |
 | artifacts    | Artifacts and artifact token makers                | Artifact synergy, artifact count, affinity                                              | 10,4 / 6,2 / 3,1                          |
 | auras        | Auras and equipment                                | Aura and equipment synergy, heroic, enchantment engines, hexproof creatures             | 8,4 / 5,2 / 3,1                           |
-| flyers       | Evasive creatures (derived)                        | Anthems, evasion granters, flying synergy                                               | 10,3 / 7,2 / 4,1                          |
+| flyers       | Evasive creatures (derived)                        | Lasting anthems and cards that reward flyers                                            | 10,3 / 7,2 / 4,1                          |
 | bigCreatures | Cheap mana sources (derived)                       | Finishers (derived)                                                                     | 6,5 / 4,3 / 2,2                           |
+
+A theme card counts toward these minimums only when its card strength is at least 3 (see [Card strength](card-strength.md)). The scan uses that rule to decide whether a theme is viable, and the theme pass uses it to fill the minimums; weaker theme cards can still join the deck through the other passes. Ramp into big creatures uses the two-peaked ramp curve.
 
 Notes from the tag scan:
 
@@ -41,6 +43,7 @@ Notes from the tag scan:
 - Tagger has no tag for "whenever a creature you control dies" alone. The aristocrats payoff uses `death-trigger` minus `death-trigger-self`, plus `blood-artist-ability`, which catches Zulaport Cutthroat even though it also triggers on itself.
 - Prowess creatures are found by keyword because the tag for it covers only a handful of cards.
 - Auras and equipment have no reliable tag, so the enabler is the type line.
+- Flyers payoffs leave out combat tricks that grant flying and one-turn team pumps: those help any creature deck and made Flyers look deep in every white pool.
 
 ## Synergy rules
 

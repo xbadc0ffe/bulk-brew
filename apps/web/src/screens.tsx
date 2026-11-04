@@ -624,7 +624,7 @@ function BulkList() {
           pool: pool.pool,
           decks: decks.decks,
           settings: settings.settings,
-          dataVersion: index.version,
+          dataVersion: index.dataVersion,
         },
         now.toISOString(),
       ),

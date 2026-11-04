@@ -19,8 +19,20 @@ import {
   type SynergyArchetype,
   type TypeMix,
 } from './config.ts';
-import { listCandidates, maxCopiesFor, type Candidate } from './candidates.ts';
-import { chooseManaBase, ManaBaseError, planLandCount, type SpellCopies } from './lands.ts';
+import {
+  copyLimit,
+  listCandidates,
+  maxCopiesFor,
+  type Candidate,
+  type CardFacts,
+} from './candidates.ts';
+import {
+  chooseManaBase,
+  ManaBaseError,
+  planLandCount,
+  type ManaBase,
+  type SpellCopies,
+} from './lands.ts';
 import type { CardIndex } from './pack.ts';
 import {
   countCopies,
@@ -35,6 +47,7 @@ import {
   type BuildRequest,
   type BuildResult,
   type Deck,
+  type DeckScore,
   type DeckCard,
   type Pool,
   type ScanReport,
@@ -122,14 +135,16 @@ interface Tally {
   ruleEnablers: Map<string, number>;
   rulePayoffs: Map<string, number>;
   themeHits: number;
+  /** Sum of card strength over every copy. */
+  strength: number;
 }
 
 function bump(map: Map<string, number>, key: string, by: number): void {
   map.set(key, (map.get(key) ?? 0) + by);
 }
 
-function tally(state: State, ctx: Ctx): Tally {
-  const t: Tally = {
+function emptyTally(): Tally {
+  return {
     total: 0,
     curve: [0, 0, 0, 0, 0, 0, 0, 0],
     creatures: 0,
@@ -139,23 +154,47 @@ function tally(state: State, ctx: Ctx): Tally {
     ruleEnablers: new Map(),
     rulePayoffs: new Map(),
     themeHits: 0,
+    strength: 0,
   };
-  const themeId = ctx.archetype.kind === 'synergy' ? ctx.archetype.id : undefined;
-  for (const { cand, qty } of state.chosen.values()) {
-    const f = cand.facts;
-    t.total += qty;
-    t.curve[f.bucket]! += qty;
-    if (f.creature) t.creatures += qty;
-    if (f.instantOrSorcery) t.instSorc += qty;
-    if (f.noncreaturePermanent) t.ncPerm += qty;
-    for (const r of f.roles) bump(t.roles, r, qty);
-    for (const r of f.ruleEnabler) bump(t.ruleEnablers, r, qty);
-    for (const r of f.rulePayoff) bump(t.rulePayoffs, r, qty);
-    if (themeId && (f.enablerOf.includes(themeId) || f.payoffOf.includes(themeId))) {
-      t.themeHits += qty;
-    }
+}
+
+function themeIdOf(ctx: Ctx): string | undefined {
+  return ctx.archetype.kind === 'synergy' ? ctx.archetype.id : undefined;
+}
+
+function addToTally(t: Tally, f: CardFacts, qty: number, themeId: string | undefined): void {
+  t.total += qty;
+  t.curve[f.bucket]! += qty;
+  if (f.creature) t.creatures += qty;
+  if (f.instantOrSorcery) t.instSorc += qty;
+  if (f.noncreaturePermanent) t.ncPerm += qty;
+  t.strength += f.strength * qty;
+  for (const r of f.roles) bump(t.roles, r, qty);
+  for (const r of f.ruleEnabler) bump(t.ruleEnablers, r, qty);
+  for (const r of f.rulePayoff) bump(t.rulePayoffs, r, qty);
+  if (themeId && (f.enablerOf.includes(themeId) || f.payoffOf.includes(themeId))) {
+    t.themeHits += qty;
   }
+}
+
+function tally(state: State, ctx: Ctx): Tally {
+  const t = emptyTally();
+  const themeId = themeIdOf(ctx);
+  for (const { cand, qty } of state.chosen.values()) addToTally(t, cand.facts, qty, themeId);
   return t;
+}
+
+/** A copy of a tally with one more copy of a card. */
+function tallyWith(t: Tally, f: CardFacts, themeId: string | undefined): Tally {
+  const n: Tally = {
+    ...t,
+    curve: t.curve.slice(),
+    roles: new Map(t.roles),
+    ruleEnablers: new Map(t.ruleEnablers),
+    rulePayoffs: new Map(t.rulePayoffs),
+  };
+  addToTally(n, f, 1, themeId);
+  return n;
 }
 
 /** Curve targets per bucket 1 through 7 for a slot count, rounded so they sum to the slots. */
@@ -175,9 +214,11 @@ export function curveTargets(shape: number[], slots: number): number[] {
 }
 
 function objective(state: State, ctx: Ctx): number {
-  const t = tally(state, ctx);
+  return objectiveOf(tally(state, ctx), state.slots, ctx);
+}
+
+function objectiveOf(t: Tally, slots: number, ctx: Ctx): number {
   const w = ctx.weights.objective;
-  const slots = state.slots;
   let s = 0;
   const targets = curveTargets(ctx.curveShape, slots);
   for (let b = 1; b <= 7; b++) {
@@ -201,6 +242,7 @@ function objective(state: State, ctx: Ctx): number {
     s += w.synergyDensity * ctx.synergyScale * rule.weight * Math.min(e, p);
   }
   s += w.themeHit * t.themeHits;
+  s += w.cardStrength * t.strength;
   return s;
 }
 
@@ -275,6 +317,9 @@ export function compareCandidates(
     switch (key) {
       case 'themeTagHits':
         d = themeHits(a) - themeHits(b);
+        break;
+      case 'strength':
+        d = a.facts.strength - b.facts.strength;
         break;
       case 'statsPerMana':
         d = statsPerMana(a) - statsPerMana(b);
@@ -374,8 +419,9 @@ function fillTheme(state: State, ctx: Ctx): void {
     for (const { cand, qty } of state.chosen.values()) if (pick(cand)) n += qty;
     return n;
   };
-  const isEnabler = (c: Candidate) => c.facts.enablerOf.includes(a.id);
-  const isPayoff = (c: Candidate) => c.facts.payoffOf.includes(a.id);
+  const bar = ctx.config.cardStrength.themeMinStrength;
+  const isEnabler = (c: Candidate) => c.facts.enablerOf.includes(a.id) && c.facts.strength >= bar;
+  const isPayoff = (c: Candidate) => c.facts.payoffOf.includes(a.id) && c.facts.strength >= bar;
   while (
     count(isPayoff) < want.payoffs &&
     pickBest(state, ctx, isPayoff, `${a.label} payoff`, 'theme')
@@ -496,6 +542,7 @@ function refitLands(state: State, ctx: Ctx, lands: number, size: number): number
 
 function localSearch(state: State, ctx: Ctx): number {
   const { maxPasses, maxSwapsPerPass } = ctx.weights.localSearch;
+  const themeId = themeIdOf(ctx);
   let accepted = 0;
   for (let pass = 0; pass < maxPasses; pass++) {
     let improved = false;
@@ -508,54 +555,116 @@ function localSearch(state: State, ctx: Ctx): number {
       if (!out) continue;
       const outWhy = out.why;
       const outCand = out.cand;
+      let outKind: PickKind | undefined;
+      let base: Tally | undefined;
+      let swapped = false;
       for (const cand of ctx.spells) {
         const inId = cand.facts.card.id;
         if (inId === outId || remaining(state, cand) <= 0) continue;
-        const removed = removeOne(state, outId);
-        const outKind = removed?.kind ?? 'swap';
-        if (!canAdd(state, ctx, cand, tally(state, ctx))) {
-          addOne(state, outCand, outWhy, outKind);
-          continue;
+        if (!base) {
+          outKind = removeOne(state, outId)?.kind ?? 'swap';
+          base = tally(state, ctx);
         }
-        addOne(state, cand, describeWhy(cand, ctx), 'swap');
-        const val = objective(state, ctx);
+        if (!canAdd(state, ctx, cand, base)) continue;
+        const val = objectiveOf(tallyWith(base, cand.facts, themeId), state.slots, ctx);
         if (val > best + 1e-9) {
+          addOne(state, cand, describeWhy(cand, ctx), 'swap');
           best = val;
           swaps++;
           accepted++;
           improved = true;
+          swapped = true;
           break;
         }
-        removeOne(state, inId);
-        addOne(state, outCand, outWhy, outKind);
       }
+      // No better swap: the outgoing copy goes back, at the end of the pick order as before.
+      if (base && !swapped) addOne(state, outCand, outWhy, outKind!);
     }
     if (!improved) break;
   }
   return accepted;
 }
 
-/** Choose the archetype: the requested style when viable, else the best the scan found. */
-export function chooseArchetype(
-  scan: ScanReport,
-  config: BulkBrewConfig,
-  style: string | undefined,
-  notes: string[],
-): Archetype {
-  const byId = new Map(config.archetypes.archetypes.map((a) => [a.id, a]));
-  if (style) {
-    const report = scan.archetypes.find((r) => r.archetype === style);
-    const a = byId.get(style);
-    if (report?.viable && a) return a;
-    const why = report?.notes.join('; ') ?? 'unknown style';
-    notes.push(
-      `Style "${a?.label ?? style}" is not viable here (${why}); picked the best fit instead.`,
-    );
+function clamp01(n: number): number {
+  return Math.min(1, Math.max(0, n));
+}
+
+/** Deck score: card strength, role coverage, curve, type mix, and synergy, each 0 to 1. */
+function scoreDeck(state: State, ctx: Ctx): DeckScore {
+  const t = tally(state, ctx);
+  const cfg = ctx.weights.deckScore;
+  const slots = Math.max(1, state.slots);
+  const spells = Math.max(1, t.total);
+  const [lo, hi] = cfg.strengthRange;
+  const strength = clamp01((t.strength / spells - lo) / (hi - lo));
+
+  let roleSum = 0;
+  let roleCount = 0;
+  for (const [roleId, q] of Object.entries(ctx.quotas)) {
+    if (q.target <= 0) continue;
+    roleSum += Math.min(1, (t.roles.get(roleId) ?? 0) / q.target);
+    roleCount++;
   }
+  const roles = roleCount > 0 ? roleSum / roleCount : 1;
+
+  const slack = cfg.shapeSlack * slots;
+  const targets = curveTargets(ctx.curveShape, slots);
+  let curveDev = 0;
+  for (let b = 1; b <= 7; b++) {
+    const have = t.curve[b]! + (b === 1 ? t.curve[0]! : 0);
+    curveDev += Math.max(0, Math.abs(have - targets[b]!) - ctx.template.tolerances.curve);
+  }
+  const curve = clamp01(1 - curveDev / slack);
+
+  const tol = ctx.template.tolerances.typeMix * slots;
+  const tm = ctx.typeMix;
+  const typeDev =
+    Math.max(0, tm.creatureMin * slots - t.creatures - tol) +
+    Math.max(0, t.creatures - tm.creatureMax * slots - tol) +
+    Math.max(0, tm.instantSorceryMin * slots - t.instSorc - tol) +
+    Math.max(0, t.ncPerm - tm.noncreaturePermanentMax * slots - tol);
+  const typeMix = clamp01(1 - typeDev / slack);
+
+  let pairs = 0;
+  for (const rule of ctx.config.synergyRules.rules) {
+    const e = t.ruleEnablers.get(rule.id) ?? 0;
+    const p = t.rulePayoffs.get(rule.id) ?? 0;
+    pairs += rule.weight * Math.min(e, p);
+  }
+  const synergy = clamp01(pairs / spells / cfg.synergyReference);
+
+  const w = cfg.weights;
+  const sumW = w.strength + w.roles + w.curve + w.typeMix + w.synergy;
+  const weighted =
+    w.strength * strength +
+    w.roles * roles +
+    w.curve * curve +
+    w.typeMix * typeMix +
+    w.synergy * synergy;
+  const r3 = (n: number) => Math.round(n * 1000) / 1000;
+  return {
+    total: Math.round((1000 * weighted) / sumW) / 10,
+    strength: r3(strength),
+    roles: r3(roles),
+    curve: r3(curve),
+    typeMix: r3(typeMix),
+    synergy: r3(synergy),
+  };
+}
+
+/**
+ * Archetypes to try for best fit: the viable synergy themes with the largest
+ * scan margins, then the viable composition shapes. The margin says how deep
+ * a theme runs in the pool, not how good its deck is, so each is built and
+ * the deck score decides.
+ */
+export function bestFitCandidates(scan: ScanReport, config: BulkBrewConfig): Archetype[] {
+  const byId = new Map(config.archetypes.archetypes.map((a) => [a.id, a]));
+  const bf = config.builderWeights.bestFit;
   const synergy = scan.archetypes
     .filter((r) => r.kind === 'synergy' && r.viable)
-    .sort((a, b) => b.margin - a.margin || (a.archetype < b.archetype ? -1 : 1));
-  if (synergy[0]) return byId.get(synergy[0].archetype)!;
+    .sort((a, b) => b.margin - a.margin || (a.archetype < b.archetype ? -1 : 1))
+    .slice(0, bf.synergyCandidates);
   const composition = scan.archetypes
     .filter((r) => r.kind === 'composition' && r.viable)
     .sort(
@@ -563,37 +672,33 @@ export function chooseArchetype(
         b.margin - a.margin ||
         (a.archetype === 'midrange' ? -1 : b.archetype === 'midrange' ? 1 : 0) ||
         (a.archetype < b.archetype ? -1 : 1),
-    );
-  if (composition[0]) return byId.get(composition[0].archetype)!;
-  const fallback =
-    byId.get('midrange') ?? config.archetypes.archetypes.find((a) => a.kind === 'composition')!;
-  notes.push(`No archetype fits this bulk list well; built a ${fallback.label} deck anyway.`);
-  return fallback;
+    )
+    .slice(0, bf.compositionCandidates);
+  return [...synergy, ...composition].map((r) => byId.get(r.archetype)!);
 }
 
-/**
- * Build one deck. Throws BuildError with a plain-language message when the
- * pool cannot make a deck of the requested size and color.
- */
-export function buildDeck(
-  request: BuildRequest,
-  pool: Pool,
-  index: CardIndex,
-  config: BulkBrewConfig,
-): BuildResult {
-  const { size, color, settings } = request;
-  const template = templateFor(config, size);
-  const cands = listCandidates(pool, index, config, settings, color, size);
-  const scan = scanCandidates(cands, config, settings, size, color);
-  const colorLabel = COLOR_LABELS[color];
-  if (!scan.possible) {
-    throw new BuildError(
-      `Not enough ${colorLabel} cards for a ${size}-card deck: ${scan.notes.join('; ')}.`,
-    );
-  }
+/** One complete spell build for one archetype, before the mana base is picked. */
+interface Attempt {
+  archetype: Archetype;
+  ctx: Ctx;
+  state: State;
+  lands: number;
+  plan: ReturnType<typeof planLandCount>;
+  mana: ManaBase;
+  score: DeckScore;
+  notes: string[];
+}
 
-  const notes: string[] = [];
-  const archetype = chooseArchetype(scan, config, request.style, notes);
+function attempt(
+  archetype: Archetype,
+  template: DeckTemplate,
+  cands: Candidate[],
+  config: BulkBrewConfig,
+  request: BuildRequest,
+  index: CardIndex,
+  colorLabel: string,
+): Attempt {
+  const { size, color, settings } = request;
   const ctx: Ctx = {
     config,
     template,
@@ -606,6 +711,7 @@ export function buildDeck(
     roleLabels: new Map(config.roles.roles.map((r) => [r.id, r.label])),
     spells: cands.filter((c) => c.facts.spell),
   };
+  const notes: string[] = [];
 
   let lands = template.baseLands;
   const state: State = { slots: size - lands, chosen: new Map(), order: [] };
@@ -632,15 +738,85 @@ export function buildDeck(
     plan = planLandCount(template, spellCopies(state), config.landRules.mdfc);
     notes.push(`Ran out of fitting spells; added ${short} extra land${short === 1 ? '' : 's'}.`);
   }
-
-  let mana;
+  let mana: ManaBase;
   try {
     mana = chooseManaBase(lands, cands, color, config, settings, size, index);
   } catch (err) {
     if (err instanceof ManaBaseError) throw new BuildError(err.message);
     throw err;
   }
-  notes.push(...mana.notes);
+  return { archetype, ctx, state, lands, plan, mana, score: scoreDeck(state, ctx), notes };
+}
+
+/**
+ * Build one deck. Throws BuildError with a plain-language message when the
+ * pool cannot make a deck of the requested size and color.
+ */
+export function buildDeck(
+  request: BuildRequest,
+  pool: Pool,
+  index: CardIndex,
+  config: BulkBrewConfig,
+): BuildResult {
+  const { size, color, settings } = request;
+  const template = templateFor(config, size);
+  const cands = listCandidates(pool, index, config, settings, color, size);
+  const scan = scanCandidates(cands, config, settings, size, color);
+  const colorLabel = COLOR_LABELS[color];
+  if (!scan.possible) {
+    throw new BuildError(
+      `Not enough ${colorLabel} cards for a ${size}-card deck: ${scan.notes.join('; ')}.`,
+    );
+  }
+
+  const notes: string[] = [];
+  const byId = new Map(config.archetypes.archetypes.map((a) => [a.id, a]));
+  let tryList: Archetype[] = [];
+  if (request.style) {
+    const report = scan.archetypes.find((r) => r.archetype === request.style);
+    const a = byId.get(request.style);
+    if (report?.viable && a) tryList = [a];
+    else {
+      const why = report?.notes.join('; ') ?? 'unknown style';
+      notes.push(
+        `Style "${a?.label ?? request.style}" is not viable here (${why}); picked the best fit instead.`,
+      );
+    }
+  }
+  if (tryList.length === 0) tryList = bestFitCandidates(scan, config);
+  if (tryList.length === 0) {
+    const fallback =
+      byId.get('midrange') ?? config.archetypes.archetypes.find((a) => a.kind === 'composition')!;
+    notes.push(`No archetype fits this bulk list well; built a ${fallback.label} deck anyway.`);
+    tryList = [fallback];
+  }
+
+  // Ties keep the earlier candidate: themes come first, so a theme beats a plain shape it ties.
+  let best: Attempt | undefined;
+  let firstError: unknown;
+  const tried: Attempt[] = [];
+  for (const a of tryList) {
+    try {
+      const at = attempt(a, template, cands, config, request, index, colorLabel);
+      tried.push(at);
+      if (!best || at.score.total > best.score.total) best = at;
+    } catch (err) {
+      if (!(err instanceof BuildError)) throw err;
+      firstError ??= err;
+    }
+  }
+  if (!best) throw firstError;
+  if (tried.length > 1) {
+    const others = tried
+      .filter((at) => at !== best)
+      .map((at) => `${at.archetype.label} ${at.score.total.toFixed(1)}`)
+      .join(', ');
+    notes.push(
+      `Compared ${tried.length} styles and kept the strongest, ${best.archetype.label} (${best.score.total.toFixed(1)} of 100). Others: ${others}.`,
+    );
+  }
+  const { archetype, ctx, state, lands, plan, mana, score } = best;
+  notes.push(...best.notes, ...mana.notes);
 
   const t = tally(state, ctx);
   for (const [roleId, q] of Object.entries(ctx.quotas)) {
@@ -677,7 +853,8 @@ export function buildDeck(
     const card = index.get(dc.cardId)!;
     if (!card.identity.every((c) => c === color))
       throw new Error(`builder chose off-color ${card.name}`);
-    if (dc.qty > limit) throw new Error(`builder exceeded the copy limit on ${card.name}`);
+    if (dc.qty > copyLimit(card, limit, template.copyCaps))
+      throw new Error(`builder exceeded the copy limit on ${card.name}`);
   }
   if (lands < template.landFormula.min || lands > template.landFormula.max) {
     throw new Error(`builder picked ${lands} lands, outside the template range`);
@@ -715,6 +892,7 @@ export function buildDeck(
     },
     synergies,
     notes,
+    score,
   };
 
   const deck: Deck = {
@@ -728,7 +906,7 @@ export function buildDeck(
     committed: false,
     createdAt: request.createdAt ?? '',
     configVersion: configVersion(config),
-    dataVersion: index.version,
+    dataVersion: index.dataVersion,
     explanation,
   };
   return { deck, explanation };

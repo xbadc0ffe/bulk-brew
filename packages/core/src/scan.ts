@@ -79,6 +79,7 @@ function plural(n: number, word: string): string {
 
 function reportSynergy(
   a: SynergyArchetype,
+  config: BulkBrewConfig,
   cands: Candidate[],
   template: DeckTemplate,
   color: Color,
@@ -86,15 +87,23 @@ function reportSynergy(
 ): ArchetypeReport {
   const key = String(template.size) as SizeKey;
   const want = a.minimums[key];
-  const enablers = countCopies(cands, (c) => c.facts.enablerOf.includes(a.id));
-  const payoffs = countCopies(cands, (c) => c.facts.payoffOf.includes(a.id));
+  // Theme cards too weak to play on their own do not make a theme viable.
+  const bar = config.cardStrength.themeMinStrength;
+  const enablers = countCopies(
+    cands,
+    (c) => c.facts.enablerOf.includes(a.id) && c.facts.strength >= bar,
+  );
+  const payoffs = countCopies(
+    cands,
+    (c) => c.facts.payoffOf.includes(a.id) && c.facts.strength >= bar,
+  );
   const notes: string[] = [];
   const colorOk = !a.colors || a.colors.includes(color);
   if (!colorOk) notes.push(`${a.label} does not work in this color`);
   if (enablers < want.enablers)
-    notes.push(`needs ${plural(want.enablers - enablers, `more ${a.label} enabler`)}`);
+    notes.push(`needs ${plural(want.enablers - enablers, `more playable ${a.label} enabler`)}`);
   if (payoffs < want.payoffs)
-    notes.push(`needs ${plural(want.payoffs - payoffs, `more ${a.label} payoff`)}`);
+    notes.push(`needs ${plural(want.payoffs - payoffs, `more playable ${a.label} payoff`)}`);
   const margin = Math.min(ratio(enablers, want.enablers), ratio(payoffs, want.payoffs)) - 1;
   return {
     archetype: a.id,
@@ -189,7 +198,7 @@ export function scanCandidates(
   const possible = !notes.some((n) => n.startsWith('needs '));
   const archetypes = config.archetypes.archetypes.map((a) =>
     a.kind === 'synergy'
-      ? reportSynergy(a, cands, template, color, possible)
+      ? reportSynergy(a, config, cands, template, color, possible)
       : reportComposition(a, cands, config, template, spells, spellSlots, possible),
   );
   return {

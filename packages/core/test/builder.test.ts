@@ -67,7 +67,7 @@ describe('scanPool', () => {
     expect(thin.archetypes.every((a) => !a.viable)).toBe(true);
     const lifegain = big.archetypes.find((a) => a.archetype === 'lifegain')!;
     expect(lifegain.viable).toBe(false);
-    expect(lifegain.notes.join(' ')).toMatch(/needs \d+ more Lifegain/);
+    expect(lifegain.notes.join(' ')).toMatch(/needs \d+ more playable Lifegain/);
   });
 
   it('is empty for a color the pool lacks', () => {
@@ -285,5 +285,30 @@ describe('export', () => {
     expect(pairPackets(w, w, index, CONFIG)).toMatchObject({ ok: false });
     const sixty = build(60).deck;
     expect(pairPackets(w, sixty, index, CONFIG)).toMatchObject({ ok: false });
+  });
+});
+
+describe('best fit', () => {
+  it('scores every deck and picks the highest score among the archetypes it tried', () => {
+    const r = build(60);
+    const score = r.explanation.score;
+    expect(score).toBeDefined();
+    expect(score!.total).toBeGreaterThan(0);
+    expect(score!.total).toBeLessThanOrEqual(100);
+    const note = r.explanation.notes.find((n) => n.startsWith('Compared '));
+    expect(note).toBeDefined();
+    const kept = Number(/\((\d+\.\d) of 100\)/.exec(note!)![1]);
+    const others = [...note!.split('Others:')[1]!.matchAll(/ (\d+\.\d)(?=,|\.$)/g)].map((m) =>
+      Number(m[1]),
+    );
+    expect(others.length).toBeGreaterThan(0);
+    expect(kept).toBe(score!.total);
+    for (const o of others) expect(kept).toBeGreaterThanOrEqual(o);
+  });
+
+  it('builds only the requested style when it is viable', () => {
+    const r = build(60, 'tokens');
+    expect(r.deck.archetype).toBe('tokens');
+    expect(r.explanation.notes.some((n) => n.startsWith('Compared '))).toBe(false);
   });
 });

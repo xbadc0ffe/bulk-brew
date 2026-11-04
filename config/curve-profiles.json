@@ -1,11 +1,11 @@
 {
-  "version": "1",
+  "version": "2",
   "profiles": [
     {
       "id": "aggro",
       "label": "Aggro",
       "description": "Cheap creatures and tricks. Most spells cost one to three.",
-      "shape": [0.2, 0.33, 0.25, 0.14, 0.06, 0.02, 0.0]
+      "shape": [0.22, 0.36, 0.28, 0.09, 0.04, 0.01, 0.0]
     },
     {
       "id": "midrange",
@@ -24,6 +24,12 @@
       "label": "Jumpstart packet",
       "description": "Low and tight so two packets together still curve out on eight lands each.",
       "shape": [0.14, 0.3, 0.28, 0.17, 0.08, 0.03, 0.0]
+    },
+    {
+      "id": "ramp",
+      "label": "Ramp",
+      "description": "Cheap mana sources early, then a second peak of big threats at five and six.",
+      "shape": [0.06, 0.28, 0.18, 0.14, 0.17, 0.11, 0.06]
     }
   ]
 }

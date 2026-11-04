@@ -75,7 +75,6 @@ Ranked. The current phase is at the top. Finished phases are removed, not struck
 
 - Batch balanced mode: several decks of similar strength from one pool.
 - Download images for the pool for full offline use.
-- `docs/guides/mana-base.md` names an outside analyst; restate in our own words.
 
 ## Open questions
 

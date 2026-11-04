@@ -36,8 +36,17 @@ export class CardIndex {
     return this.pack.cards.length;
   }
 
+  /** The Scryfall bulk data date, for display. */
   get version(): string {
     return this.pack.version;
+  }
+
+  /**
+   * What decks record as their data version. Schema 2 adds fields that change
+   * builds, so a schema 2 pack of the same date is different data.
+   */
+  get dataVersion(): string {
+    return this.pack.schema === 1 ? this.pack.version : `${this.pack.version}.s${this.pack.schema}`;
   }
 
   get(id: string): CardRecord | undefined {

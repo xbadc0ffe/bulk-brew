@@ -13,6 +13,7 @@ export * from './matchers.ts';
 export * from './candidates.ts';
 export * from './scan.ts';
 export * from './lands.ts';
+export * from './strength.ts';
 export * from './builder.ts';
 export * from './decks.ts';
 export * from './export.ts';

@@ -188,6 +188,19 @@ export interface RoleCount {
   want: number;
 }
 
+/** How good a built deck looks: each part from 0 to 1, the total from 0 to 100. */
+export interface DeckScore {
+  total: number;
+  /** Average card strength, scaled between the config's strength range. */
+  strength: number;
+  /** Share of role targets met. */
+  roles: number;
+  curve: number;
+  typeMix: number;
+  /** Weighted enabler and payoff pairs per spell against the config reference. */
+  synergy: number;
+}
+
 /** Why the builder made the deck it made. Also the builder's debugging output. */
 export interface BuildExplanation {
   archetype: string;
@@ -206,6 +219,8 @@ export interface BuildExplanation {
   };
   synergies: string[];
   notes: string[];
+  /** Absent on decks built before deck scores existed. */
+  score?: DeckScore;
 }
 
 export interface BuildResult {

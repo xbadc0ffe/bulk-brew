@@ -16,6 +16,7 @@ import {
   type ManaSourceKind,
 } from './matchers.ts';
 import type { CardIndex } from './pack.ts';
+import { cardStrength } from './strength.ts';
 import type { CardRecord, Color, DeckSize, Pool, PrintingHint, Settings } from './types.ts';
 
 export interface CardFacts {
@@ -46,6 +47,8 @@ export interface CardFacts {
   toughness: number;
   /** Curve bucket 0 through 7 (7 is seven or more). Lands get -1. */
   bucket: number;
+  /** Card strength score from config/card-strength.json. */
+  strength: number;
 }
 
 export interface Candidate {
@@ -112,6 +115,7 @@ export function computeFacts(card: CardRecord, config: BulkBrewConfig): CardFact
     power: numeric(card.power),
     toughness: numeric(card.toughness),
     bucket: land && !mdfcLand ? -1 : bucketOf(card.mv),
+    strength: cardStrength(card, config.cardStrength).score,
   };
   const source = manaSourceKind(card);
   if (source) facts.manaSource = source;
@@ -136,6 +140,18 @@ export function maxCopiesFor(settings: Settings, config: BulkBrewConfig, size: D
   return templateFor(config, size).maxCopies;
 }
 
+/** Copy limit for one card: the deck limit, lowered for legendary and expensive cards. */
+export function copyLimit(
+  card: CardRecord,
+  limit: number,
+  caps: { legendary: number; expensiveMv: number; expensive: number },
+): number {
+  let n = limit;
+  if (/^Legendary\b/.test(card.typeLine)) n = Math.min(n, caps.legendary);
+  if (card.mv >= caps.expensiveMv) n = Math.min(n, caps.expensive);
+  return n;
+}
+
 export function fitsColor(card: CardRecord, color: Color): boolean {
   return card.identity.every((c) => c === color);
 }
@@ -154,6 +170,7 @@ export function listCandidates(
   size: DeckSize,
 ): Candidate[] {
   const limit = maxCopiesFor(settings, config, size);
+  const caps = templateFor(config, size).copyCaps;
   const out: Candidate[] = [];
   const ids = Object.keys(pool.entries).sort();
   for (const id of ids) {
@@ -167,7 +184,7 @@ export function listCandidates(
     if (hasColorlessPip(card)) continue;
     const facts = factsFor(index, config, card);
     if (facts.basic && settings.unlimitedBasics) continue;
-    const available = facts.basic ? entry.qty : Math.min(entry.qty, limit);
+    const available = facts.basic ? entry.qty : Math.min(entry.qty, copyLimit(card, limit, caps));
     const cand: Candidate = { facts, available };
     if (entry.printing) cand.printing = entry.printing;
     out.push(cand);

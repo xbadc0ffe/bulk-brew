@@ -4,7 +4,7 @@ How many lands a deck runs and which nonbasics make the cut. Feeds the `landForm
 
 ## The land formula
 
-A fixed land count is wrong for half the decks. A deck full of two-drops floods on 24 lands; a deck of five-drops with no ramp stumbles on 22. The formula starts from a base, moves with the average mana value of the spells, and gives credit for cheap mana sources, in the spirit of Frank Karsten's regression analyses:
+A fixed land count is wrong for half the decks. A deck full of two-drops floods on 24 lands; a deck of five-drops with no ramp stumbles on 22. The formula starts from a base, moves with the average mana value of the spells, and gives credit for cheap mana sources, fitted to how land counts scale with curve in practice:
 
 ```
 lands = round(clamp(base + slope * (averageMv - referenceMv) - credits, min, max))

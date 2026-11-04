@@ -16,6 +16,7 @@ import archetypes from '../../../../config/archetypes.json';
 import synergyRules from '../../../../config/synergy-rules.json';
 import landRules from '../../../../config/land-rules.json';
 import builderWeights from '../../../../config/builder-weights.json';
+import cardStrength from '../../../../config/card-strength.json';
 import settingsDefaults from '../../../../config/settings.defaults.json';
 import displayTags from '../../../../config/display-tags.json';
 
@@ -27,6 +28,7 @@ export const CONFIG: BulkBrewConfig = {
   synergyRules,
   landRules,
   builderWeights,
+  cardStrength,
 } as unknown as BulkBrewConfig;
 
 /** The short tags shown on cards and offered as filters. Never read by the builder. */

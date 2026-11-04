@@ -18,12 +18,13 @@ Each profile is the share of nonland spells at mana value 1, 2, 3, 4, 5, 6, and 
 
 | Profile   | 1    | 2    | 3    | 4    | 5    | 6    | 7+   | Used by                             |
 | --------- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ----------------------------------- |
-| aggro     | 0.20 | 0.33 | 0.25 | 0.14 | 0.06 | 0.02 | 0.00 | Aggro, spells matter, auras, flyers |
+| aggro     | 0.22 | 0.36 | 0.28 | 0.09 | 0.04 | 0.01 | 0.00 | Aggro, spells matter, auras, flyers |
 | midrange  | 0.08 | 0.25 | 0.27 | 0.20 | 0.12 | 0.05 | 0.03 | Midrange and most synergy themes    |
 | control   | 0.06 | 0.20 | 0.24 | 0.20 | 0.14 | 0.09 | 0.07 | Control                             |
 | jumpstart | 0.14 | 0.30 | 0.28 | 0.17 | 0.08 | 0.03 | 0.00 | Every 20-card packet                |
+| ramp      | 0.06 | 0.28 | 0.18 | 0.14 | 0.17 | 0.11 | 0.06 | Ramp into big creatures             |
 
-Why these shapes: a two-drop is the most important slot in any deck, so every profile peaks at two or three. Aggro front-loads because it wants to spend all its mana every turn from turn one. Control shifts weight to four and above because it plans to survive to the late game and win with fewer, bigger cards. Zero-cost spells count in the one slot. The tolerance of one card per bucket (`tolerances.curve`) means the builder does not chase exact counts.
+Why these shapes: a two-drop is the most important slot in any deck, so every profile peaks at two or three. Aggro front-loads because it wants to spend all its mana every turn from turn one, and keeps only about one spell in seven at four or more: its noncreature spells should clear blockers, pump, or protect rather than wait in hand. Ramp has two peaks: cheap mana sources at two, then the threats they power out at five and six, with a thin middle. Control shifts weight to four and above because it plans to survive to the late game and win with fewer, bigger cards. Zero-cost spells count in the one slot. The tolerance of one card per bucket (`tolerances.curve`) means the builder does not chase exact counts.
 
 ## Type mix
 
@@ -54,4 +55,8 @@ A sweeper role exists but only control asks for it. Evasive threat is defined fo
 
 ## How the builder weighs it
 
-`builder-weights.json` says what matters when choices conflict: a missing role minimum costs twice what a curve bucket miss costs, synergy density is worth one and a half times a curve miss, and a plain theme hit a third. Ties break on theme tag hits, then creature stats per mana, then lower mana value, then name, so the same pool always gives the same deck.
+`builder-weights.json` says what matters when choices conflict: a missing role minimum costs twice what a curve bucket miss costs, synergy density is worth one and a half times a curve miss, and a plain theme hit a third. Each copy also adds 0.3 per point of card strength (see [Card strength](card-strength.md)), so swaps prefer stronger cards when the shape allows. Ties break on theme tag hits, then card strength, then lower mana value, then name, so the same pool always gives the same deck.
+
+## Copy limits
+
+The deck limit (4 for 60 and 40, 2 for 20) is lowered for cards that are bad in multiples: legendary cards at most 2, because a second copy on the battlefield is dead, and cards costing six or more at most 2, because several in an opening hand sit uncast. Both live in `copyCaps` per template.

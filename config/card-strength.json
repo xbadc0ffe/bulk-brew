@@ -1,0 +1,236 @@
+{
+  "version": "1",
+  "base": 3,
+  "min": 0,
+  "max": 10,
+  "rank": {
+    "weight": 2,
+    "maxRank": 33000,
+    "unranked": 0.2
+  },
+  "body": {
+    "expectedPerMv": 2,
+    "expectedMin": 2,
+    "perPoint": 0.35,
+    "min": -2,
+    "max": 2
+  },
+  "keywords": {
+    "Flying": 1,
+    "Double strike": 1.2,
+    "Indestructible": 0.9,
+    "Deathtouch": 0.8,
+    "Hexproof": 0.7,
+    "First strike": 0.5,
+    "Lifelink": 0.5,
+    "Menace": 0.5,
+    "Haste": 0.5,
+    "Ward": 0.4,
+    "Flash": 0.4,
+    "Vigilance": 0.3,
+    "Trample": 0.3,
+    "Prowess": 0.3,
+    "Reach": 0.2,
+    "Defender": -1
+  },
+  "keywordCap": 2,
+  "effects": [
+    {
+      "label": "removal",
+      "value": 2,
+      "match": [
+        {
+          "anyTags": ["removal-creature", "removal-planeswalker"],
+          "excludeTags": ["sweeper"]
+        }
+      ]
+    },
+    {
+      "label": "sweeper",
+      "value": 2,
+      "match": [
+        {
+          "allTags": ["sweeper", "removal-creature"]
+        }
+      ]
+    },
+    {
+      "label": "exile removal",
+      "value": 0.4,
+      "match": [
+        {
+          "allTags": ["removal-creature", "removal-exile"]
+        }
+      ]
+    },
+    {
+      "label": "removal that hits any nonland permanent",
+      "value": 0.5,
+      "match": [
+        {
+          "anyTags": ["removal-nonland", "removal-permanent"]
+        }
+      ]
+    },
+    {
+      "label": "removal only for attackers or blockers",
+      "value": -0.8,
+      "match": [
+        {
+          "allTags": ["removal-creature"],
+          "anyTags": ["hate-attacker", "hate-blocker"]
+        }
+      ]
+    },
+    {
+      "label": "artifact or enchantment removal",
+      "value": 1,
+      "match": [
+        {
+          "anyTags": ["removal-artifact", "removal-enchantment"],
+          "excludeTags": ["removal-creature"]
+        }
+      ]
+    },
+    {
+      "label": "counterspell",
+      "value": 1.2,
+      "match": [
+        {
+          "anyTags": ["counterspell"]
+        }
+      ]
+    },
+    {
+      "label": "repeatable card advantage",
+      "value": 1.5,
+      "match": [
+        {
+          "anyTags": ["draw-engine", "repeatable-card-advantage"]
+        }
+      ]
+    },
+    {
+      "label": "card draw",
+      "value": 1,
+      "match": [
+        {
+          "anyTags": ["burst-draw", "pure-draw"],
+          "excludeTags": ["cantrip", "draw-engine", "repeatable-card-advantage"]
+        }
+      ]
+    },
+    {
+      "label": "cantrip or looting",
+      "value": 0.4,
+      "match": [
+        {
+          "anyTags": ["cantrip", "loot", "rummage"],
+          "excludeTags": ["draw-engine", "repeatable-card-advantage", "burst-draw"]
+        }
+      ]
+    },
+    {
+      "label": "repeatable creature tokens",
+      "value": 1.2,
+      "match": [
+        {
+          "anyTags": ["repeatable-creature-tokens"]
+        }
+      ]
+    },
+    {
+      "label": "several bodies",
+      "value": 0.7,
+      "match": [
+        {
+          "anyTags": ["multiple-bodies"],
+          "excludeTags": ["repeatable-creature-tokens"]
+        }
+      ]
+    },
+    {
+      "label": "mana source",
+      "value": 0.8,
+      "match": [
+        {
+          "anyTags": ["mana-dork", "mana-rock"]
+        },
+        {
+          "anyTags": ["tutor-land-to-battlefield"]
+        }
+      ]
+    },
+    {
+      "label": "anthem",
+      "value": 1,
+      "match": [
+        {
+          "anyTags": ["anthem", "keyword-anthem"],
+          "excludeTypes": ["instant", "sorcery"]
+        }
+      ]
+    },
+    {
+      "label": "repeatable +1/+1 counters",
+      "value": 0.6,
+      "match": [
+        {
+          "anyTags": ["repeatable-pp-counters", "gives-pp-counters-to-all"]
+        }
+      ]
+    },
+    {
+      "label": "recursion",
+      "value": 0.7,
+      "match": [
+        {
+          "anyTags": ["recursion-creature", "reanimate-creature"]
+        }
+      ]
+    },
+    {
+      "label": "protection",
+      "value": 0.3,
+      "match": [
+        {
+          "anyTags": ["protects-creature"]
+        }
+      ]
+    },
+    {
+      "label": "drawback",
+      "value": -0.4,
+      "match": [
+        {
+          "anyTags": ["drawback"]
+        }
+      ]
+    },
+    {
+      "label": "aura or equipment that only adds stats or keywords",
+      "value": -0.8,
+      "match": [
+        {
+          "anyTags": [
+            "vanilla-aura",
+            "french-vanilla-aura",
+            "vanilla-equipment",
+            "french-vanilla-equipment"
+          ]
+        }
+      ]
+    }
+  ],
+  "effectCap": 3.5,
+  "instantSpeed": 0.3,
+  "cheapSpell": {
+    "pivotMv": 3,
+    "perMv": 0.3,
+    "min": -1,
+    "max": 0.6
+  },
+  "extraPipPenalty": 0.2,
+  "planeswalker": 1.5,
+  "themeMinStrength": 3
+}

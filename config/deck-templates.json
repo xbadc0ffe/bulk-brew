@@ -1,5 +1,5 @@
 {
-  "version": "1",
+  "version": "2",
   "templates": {
     "60": {
       "size": 60,
@@ -36,6 +36,7 @@
         "earlyCreature": { "min": 4, "target": 8 }
       },
       "maxCopies": 4,
+      "copyCaps": { "legendary": 2, "expensiveMv": 6, "expensive": 2 },
       "tolerances": { "curve": 1, "typeMix": 0.05 }
     },
     "40": {
@@ -73,6 +74,7 @@
         "earlyCreature": { "min": 3, "target": 6 }
       },
       "maxCopies": 4,
+      "copyCaps": { "legendary": 2, "expensiveMv": 6, "expensive": 2 },
       "tolerances": { "curve": 1, "typeMix": 0.05 }
     },
     "20": {
@@ -110,6 +112,7 @@
         "earlyCreature": { "min": 2, "target": 4 }
       },
       "maxCopies": 2,
+      "copyCaps": { "legendary": 2, "expensiveMv": 6, "expensive": 2 },
       "tolerances": { "curve": 1, "typeMix": 0.08 }
     }
   }

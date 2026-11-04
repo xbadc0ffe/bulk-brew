@@ -12,6 +12,7 @@ import {
   factsFor,
   isFillerPick,
   manaCostsOf,
+  copyLimit,
   maxCopiesFor,
   templateFor,
   type BulkBrewConfig,
@@ -60,6 +61,10 @@ export interface DeckMetrics {
   synergyDensity: number;
   /** Copies picked as filler, or for the curve without filling a role (see isFillerPick). */
   filler: number;
+  /** Average card strength over spell copies. */
+  strength: number;
+  /** The builder's deck score, 0 to 100. */
+  score: number;
   castable: boolean;
   /** Names of spells whose pips cannot be paid with basics of the deck color. */
   offenders: string[];
@@ -116,6 +121,7 @@ export function deckMetrics(
   let instSorc = 0;
   let ncPerm = 0;
   let filler = 0;
+  let strengthTotal = 0;
   let copyLimitOk = true;
   let colorLegal = true;
   const curve = [0, 0, 0, 0, 0, 0, 0, 0];
@@ -129,12 +135,13 @@ export function deckMetrics(
     const card = index.get(dc.cardId);
     if (!card) continue;
     total += dc.qty;
-    if (dc.qty > limit) copyLimitOk = false;
+    if (dc.qty > copyLimit(card, limit, template.copyCaps)) copyLimitOk = false;
     if (!card.identity.every((c) => c === deck.color)) colorLegal = false;
     const f = factsFor(index, config, card);
     if (f.spell) {
       spells += dc.qty;
       mvTotal += card.mv * dc.qty;
+      strengthTotal += f.strength * dc.qty;
       curve[f.bucket]! += dc.qty;
       if (f.creature) creatures += dc.qty;
       if (f.instantOrSorcery) instSorc += dc.qty;
@@ -219,6 +226,8 @@ export function deckMetrics(
     synergyPairs,
     synergyDensity: round(spells > 0 ? weighted / spells : 0),
     filler,
+    strength: round(spells > 0 ? strengthTotal / spells : 0, 2),
+    score: deck.explanation?.score?.total ?? 0,
     castable: offenders.length === 0,
     offenders,
   };

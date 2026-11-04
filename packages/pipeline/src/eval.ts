@@ -67,6 +67,9 @@ export interface Summary {
   rolesBelowMin: number;
   synergyDensity: number;
   filler: number;
+  /** Absent in results recorded before strength existed. */
+  strength?: number;
+  score?: number;
   uncastable: number;
   sizeErrors: number;
   ms: number;
@@ -131,6 +134,9 @@ function summarize(runs: DeckRun[], skips: Skip[]): Summary {
     rolesBelowMin: avg((m) => m.rolesBelowMin),
     synergyDensity: avg((m) => m.synergyDensity),
     filler: avg((m) => m.filler),
+    ...(built.every((r) => r.metrics!.strength !== undefined)
+      ? { strength: avg((m) => m.strength), score: avg((m) => m.score) }
+      : {}),
     uncastable: built.filter((r) => !r.metrics!.castable).length,
     sizeErrors: built.filter((r) => hasSizeError(r.metrics!)).length,
     ms: n === 0 ? 0 : Math.round(built.reduce((s, r) => s + r.ms, 0) / n),
@@ -147,12 +153,12 @@ function loadPool(file: string, index: CardIndex): { pool: Pool; unresolved: num
 }
 
 function row(name: string, s: Summary): string {
-  return `| ${name} | ${s.decks} | ${s.failures} | ${s.skipped} | ${s.lands} | ${s.averageMv} | ${s.curveDeviation} | ${s.rolesBelowMin} | ${s.synergyDensity} | ${s.filler} | ${s.uncastable} | ${s.sizeErrors} | ${s.ms} |`;
+  return `| ${name} | ${s.decks} | ${s.failures} | ${s.skipped} | ${s.lands} | ${s.averageMv} | ${s.curveDeviation} | ${s.rolesBelowMin} | ${s.synergyDensity} | ${s.filler} | ${s.strength ?? '-'} | ${s.score ?? '-'} | ${s.uncastable} | ${s.sizeErrors} | ${s.ms} |`;
 }
 
 const HEADER = [
-  '| rows | decks | fail | skip | lands | avg mv | curve dev | roles < min | synergy | filler | uncastable | size errors | ms |',
-  '| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |',
+  '| rows | decks | fail | skip | lands | avg mv | curve dev | roles < min | synergy | filler | strength | score | uncastable | size errors | ms |',
+  '| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |',
 ].join('\n');
 
 /** Latest earlier full run with the same styles flag, by runAt. */
@@ -218,6 +224,10 @@ function printDeltas(previous: Results, current: Results): void {
     console.log(deltaLine('roles < min', before.rolesBelowMin, after.rolesBelowMin, 'lower'));
     console.log(deltaLine('synergy', before.synergyDensity, after.synergyDensity, 'higher'));
     console.log(deltaLine('filler', before.filler, after.filler, 'lower'));
+    if (before.strength !== undefined && after.strength !== undefined) {
+      console.log(deltaLine('card strength', before.strength, after.strength, 'higher'));
+      console.log(deltaLine('deck score', before.score ?? 0, after.score ?? 0, 'higher'));
+    }
     // Timings vary with the machine, so they are shown without a verdict.
     console.log(deltaLine('build ms', before.ms, after.ms, 'none'));
   }
@@ -341,7 +351,7 @@ function main(): number {
     runAt,
     sha,
     dirty,
-    dataVersion: pack.version,
+    dataVersion: index.dataVersion,
     configVersion: configVersion(config),
     styles,
     poolFilter,

@@ -93,7 +93,9 @@ Name resolution handles full multi-face names ("A // B"), front-face-only names,
 
 The shipped database is one compact JSON file, gzip-compressed by the host. Shape: `DataPack` in `packages/core/src/types.ts`. Per card: oracle id, name, layout, mana cost, mana value, type line, oracle text, colors, color identity, keywords, power, toughness, loyalty, produced mana, normalized types, derived `entersTapped` and `unset` flags, tags, faces, and the default printing's image id. The 2026-11-02 pack holds 34,168 cards: 23 MB raw, 5.4 MB compressed.
 
-Schema 2 (phase 9) adds, from the same Scryfall oracle file: Commander legality (banned or not legal), the Game Changer flag, and Scryfall's popularity rank, one signal in the card strength score. The core reads schema 1 and 2 during the move, treating the new fields as absent in schema 1.
+Schema 2 (phase 9) adds, from the same Scryfall oracle file: Commander legality (banned or not legal), the Game Changer flag, and Scryfall's popularity rank, one signal in the card strength score. The core reads schema 1 and 2 during the move, treating the new fields as absent in schema 1. Decks record `CardIndex.dataVersion`, the pack date plus the schema from 2 on, so packs of different schemas never share a data version.
+
+The pack is served under one fixed name, `data/cards.json`, and the service worker answers from its cache first. So every release of the core must read the previous schema as well as the current one: a returning user may load the old cached pack once before the new one arrives.
 
 JSON was chosen over SQLite because the data is small, loads with one fetch, needs no WebAssembly on the web, and decodes natively in Swift if the iOS app ever goes native.
 
@@ -139,7 +141,7 @@ Versioned data files in `config/`, typed and validated by `packages/core/src/con
 
 Scan the pool and report, per color and per deck size, which archetypes are viable, with enabler and payoff counts (synergy archetypes) or role and curve counts (composition archetypes), plus how close near-misses are. The builder uses the scan as its seed step and the Build screen shows it to guide the style choice.
 
-A deck is possible when the pool has enough spells for the slots and at least half of those slots can be cards of the deck color (`MIN_COLORED_SHARE`); colorless cards fit every color but cannot make a color's deck on their own. Cards with a {C} pip are excluded, since basics cannot pay for them. The Build screen shows colored counts on the color buttons and the reason a color is unavailable.
+A deck is possible when the pool has enough spells for the slots and at least half of those slots can be cards of the deck color (`MIN_COLORED_SHARE`); colorless cards fit every color but cannot make a color's deck on their own. Cards with a {C} pip are excluded, since basics cannot pay for them. Theme cards below the card strength bar (`themeMinStrength`) do not count toward a theme's minimums, and the theme pass fills its minimums from the same cards, so a theme is only viable when it has enough cards worth playing. The Build screen shows colored counts on the color buttons and the reason a color is unavailable.
 
 ## Builder
 
@@ -149,7 +151,7 @@ Pool, deck size, colors, optional primary and secondary style, commander (100 on
 
 ### Steps
 
-1. **Candidates**: pool cards that fit the colors (see Colors), honoring the Un-set setting and copy limits, and excluding cards with a {C} pip.
+1. **Candidates**: pool cards that fit the colors (see Colors), honoring the Un-set setting and copy limits, and excluding cards with a {C} pip. Copy limits drop to 2 for legendary cards and cards costing six or more (`copyCaps` per template).
 2. **Archetype**: the preferred style if viable. Best fit (phase 9) builds the few most promising viable archetypes by scan margin and keeps the one whose finished deck scores highest; the scan margin alone measures how deep a theme is, not how strong its deck is.
 3. **Reserve lands**: start from the template's base land count so the spell count is known.
 4. **Fill spells** in passes with per-type caps so no category floods the deck: role minimums, theme enablers and payoffs to their minimums, role targets, type mix minimums, curve fill toward the profile, then filler. The last filler pass ignores type caps so a creature-only pool still fills the deck.
