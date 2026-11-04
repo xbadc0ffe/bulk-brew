@@ -5,7 +5,7 @@ import {
   clampView,
   panView,
   pinchView,
-  UNZOOMED,
+  START_VIEW,
   ZOOM_MAX,
   ZOOM_MIN,
   ZOOM_STEP,
@@ -168,7 +168,7 @@ function CardViewer(props: {
   const stageRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const cancel = useModal(true, onClose, closeRef);
-  const [view, setView] = useState<ZoomView>(UNZOOMED);
+  const [view, setView] = useState<ZoomView>(START_VIEW);
   // Button and key zooms ease in; the wheel, pinches, and drags follow the hand directly.
   const [smooth, setSmooth] = useState(false);
   const pointers = useRef(new Map<number, Point>());
@@ -202,7 +202,7 @@ function CardViewer(props: {
       setSmooth(true);
       setView((v) =>
         factor === undefined
-          ? UNZOOMED
+          ? START_VIEW
           : zoomAround(v, factor, { x: 0, y: 0 }, boxOf(frameRef.current)),
       );
     };
@@ -222,7 +222,7 @@ function CardViewer(props: {
   };
   const reset = () => {
     setSmooth(true);
-    setView(UNZOOMED);
+    setView(START_VIEW);
   };
 
   const down = (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -254,10 +254,9 @@ function CardViewer(props: {
       const { last, from } = drag.current;
       drag.current = { last: p, from };
       if (distance(p, from) > 5) moved.current = true;
-      if (view.scale > 1) {
-        setSmooth(false);
-        setView((v) => panView(v, p.x - last.x, p.y - last.y, box));
-      }
+      // The edges keep a card that fits the window where it is.
+      setSmooth(false);
+      setView((v) => panView(v, p.x - last.x, p.y - last.y, box));
     }
   };
   const up = (e: ReactPointerEvent<HTMLDivElement>) => {

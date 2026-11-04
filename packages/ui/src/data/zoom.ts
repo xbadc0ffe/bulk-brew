@@ -1,6 +1,7 @@
-// Zoom and pan for the full-screen card. Points are measured from the
-// center of the view, where the image sits at 100%; the image is moved by
-// (x, y) and then scaled about its own center.
+// Zoom and pan for the full-screen card. 100% is the size that fills the
+// window's height. Points are measured from the center of the view, where
+// the image sits unmoved; the image is moved by (x, y) and then scaled about
+// its own center.
 
 export interface ZoomView {
   scale: number;
@@ -21,13 +22,14 @@ export interface ZoomBox {
   viewHeight: number;
 }
 
-export const ZOOM_MIN = 1;
+export const ZOOM_MIN = 0.5;
 /** Scryfall's largest image is about 670 by 930 pixels, so more than this only blurs. */
 export const ZOOM_MAX = 4;
 /** One press of the zoom buttons. */
 export const ZOOM_STEP = 1.25;
 
-export const UNZOOMED: ZoomView = { scale: 1, x: 0, y: 0 };
+/** Where a full-screen card opens and where Reset returns; 100% is more than most want. */
+export const START_VIEW: ZoomView = { scale: 0.75, x: 0, y: 0 };
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 
