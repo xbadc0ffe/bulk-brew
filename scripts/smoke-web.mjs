@@ -1,15 +1,18 @@
 #!/usr/bin/env node
 // End-to-end smoke test of the web app in a headless Chromium browser (Edge
 // or Chrome) over the DevTools protocol. Drives the main loop a person uses:
-// load, paste a list, import it, open the Bulk List, build a 60-card deck, leave
-// and come back, accept it (which removes its cards), confirm the list
-// shrank, and see the deck on Decks.
+// load, paste a list, import it, open the Bulk List, open the strongest deck
+// option, leave and come back, accept it (which removes its cards), confirm
+// the list shrank, and see the deck on Decks.
 //
 // Usage: node scripts/smoke-web.mjs [appUrl] [poolFile] [outDir]
 //   appUrl   default http://localhost:4173/ (a `vite preview` of the web build)
 //   poolFile default eval/pools/white-bulk.txt
 //   outDir   default .smoke/ (screenshots and a throwaway browser profile)
 // Set BULK_BREW_BROWSER to a browser executable to override the search.
+// SMOKE_COLORS (such as "White,Blue"), SMOKE_STYLE, and SMOKE_SECONDARY pick
+// other choices; SMOKE_SIZE=100 with SMOKE_COMMANDER (part of a name) runs
+// Commander.
 
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';

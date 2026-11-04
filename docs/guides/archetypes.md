@@ -55,7 +55,7 @@ A deck can add a secondary style to its primary one. The primary style still set
 
 - **A second theme** needs half its usual minimums (`builderWeights.secondary.minimumShare`). Its cards fill after the primary theme's, count half as much toward theme hits (`themeHitShare`), and the swaps may not take it below those minimums.
 - **A shape** (aggro, midrange, control) can follow a themed primary where the shape itself is viable. Its curve, type mix, and role targets go over the primary's (20-card packets keep the packet curve), so "Tokens with Aggro" is a low, creature-heavy tokens deck. Two shapes do not combine.
-- **A tribe** is a creature type with at least 8, 5, or 3 members (60, 40, 20 cards, changelings counting for every type) and 2, 1, or 1 cards that reward the type (Tagger `typal-<type>` tags). A type with no such cards is not offered. Tribes are secondary only: bulk holds plenty of bodies of the common types but few cards that reward them, so a tribe works best layered on a real theme.
+- **A tribe** is a creature type with at least 14, 8, 5, or 3 members (100, 60, 40, 20 cards, changelings counting for every type) and 2, 2, 1, or 1 cards that reward the type (Tagger `typal-<type>` tags). A type with no such cards is not offered. Tribes are secondary only: bulk holds plenty of bodies of the common types but few cards that reward them, so a tribe works best layered on a real theme.
 
 The scan lists secondary choices for each primary, with near misses that show what is missing. A deck that could not reach its secondary minimums says so in its notes, and on the Build page the option is marked.
 

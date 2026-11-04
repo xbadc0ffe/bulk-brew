@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Bulk Brew: bulk Magic cards in, playable mono-color 60/40/20-card decks out. Web app and iOS app on one TypeScript core. Open source, MIT.
+Bulk Brew: bulk Magic cards in, playable decks out: 60, 40, and 20 cards in one to five colors, and 100-card Commander. Web app and iOS app on one TypeScript core. Open source, MIT.
 
 ## Authority
 
@@ -72,7 +72,7 @@ npx -w @bulk-brew/web vite preview --port 4173 --strictPort   # in the backgroun
 npm run smoke                                                  # or: npm run smoke -- https://xbadc0ffe.github.io/bulk-brew/
 ```
 
-The smoke test imports `eval/pools/white-bulk.txt`, builds, accepts the deck, and checks the Bulk List and Decks screens. Screenshots land in `.smoke/` (gitignored).
+The smoke test imports `eval/pools/white-bulk.txt`, opens the strongest deck option, accepts it, and checks the Bulk List and Decks screens. Environment variables pick other paths: `SMOKE_COLORS=White,Blue`, `SMOKE_STYLE` and `SMOKE_SECONDARY` for the style drop-downs, and `SMOKE_SIZE=100` with `SMOKE_COMMANDER=<part of a name>` for Commander. Screenshots land in `.smoke/` (gitignored).
 
 ## Environment notes
 

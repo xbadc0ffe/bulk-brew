@@ -205,7 +205,7 @@ A 20-card packet includes its lands (about 8) and is built so that any two packe
 - Fixed test pools in `eval/pools/`, each exercising something specific.
 - A written rubric in `eval/rubric.md`: curve, type mix, role coverage, synergy, mana base, playability.
 - `npm run eval` builds every pool at every size and color the scan allows, plus best fit under the two most promising commanders of each pool (`--commanders <n>` changes the count), scores the decks with automatic metrics (size and copy invariants, land count against the formula clamp, curve deviation, type mix, role coverage, synergy density, filler, castability, build time), writes `eval/results/<date>-<sha>.json`, prints a summary per pool and per size, and shows per-size deltas against the previous full run. It exits 1 on any build failure or broken invariant. `npm run eval:pools` regenerates the synthetic pools from a fixed seed. An on-demand GitHub Actions workflow runs the same suite.
-- Committed baselines in `eval/results/` are full best-fit runs: `2026-11-03-fe5b028.json` (schema 1 pack, margin-based best fit) and `2026-11-04-74cbcae.json` (schema 2 pack, card strength and best fit by building). Compare new runs with the latest.
+- Committed baselines in `eval/results/` are full best-fit runs, one for each change that moved the numbers: `2026-11-03-fe5b028.json` (schema 1 pack, margin-based best fit), `2026-11-04-74cbcae.json` (schema 2 pack, card strength and best fit by building), then one per phase after that. The latest, `2026-11-04-4e1817a.json`, adds the Commander runs. Compare new runs with the latest.
 - Claude reviews decks against the rubric as a development aid, not as ground truth. The user calibrates on a sample.
 
 ## Architecture
