@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import type { BulkBrewConfig, CardIndex, CardRecord, PrintingHint } from '@bulk-brew/core';
 import { CardImage } from './CardImage.tsx';
 import { Stepper, type Variant } from './controls.tsx';
-import { ManaCost } from '../ManaCost.tsx';
+import { ManaCost, SymbolText } from '../ManaCost.tsx';
 import { DISPLAY_TAGS } from '../data/config.ts';
 import { cardTags, majorTags, typeParts } from '../data/poolView.ts';
 import { phone as phoneStyles, ui } from '../styles.ts';
@@ -74,7 +74,9 @@ function FaceBlock({ face, phone }: { face: FaceLike; phone: boolean }) {
           className={`flex flex-col gap-1.5 border-t border-line px-3.5 py-2.5 ${size.body} leading-[1.55]`}
         >
           {face.text.split('\n').map((p, i) => (
-            <p key={i}>{p}</p>
+            <p key={i}>
+              <SymbolText text={p} />
+            </p>
           ))}
         </div>
       )}

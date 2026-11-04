@@ -58,6 +58,7 @@ npm run dev              # web app on 5173
 npm run dev:mobile       # mobile app on 5174
 npm run data:fetch       # Scryfall bulk files into data/raw/ (at most daily)
 npm run data:build       # rebuild the card data pack from data/raw/
+npm run symbols:fetch    # Scryfall symbol images into packages/ui/src/symbols (only when new symbols appear)
 npm run config:check     # validate config/ and print role and archetype match counts
 npm run demo:build -- <pool.txt> <W|U|B|R|G> [60|40|20] [style]
 npm run eval             # score decks from every pool in eval/pools; exits 1 on failures

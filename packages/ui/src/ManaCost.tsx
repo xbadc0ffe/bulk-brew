@@ -1,6 +1,10 @@
-const SYMBOL = /\{([^}]+)\}/g;
+import { Fragment } from 'react';
+import { symbolName, symbolUrl } from './symbols.ts';
 
-export type PipSize = 14 | 15 | 16 | 18 | 20 | 22 | 24;
+const SYMBOL = /\{([^}]+)\}/g;
+const SPLIT = /(\{[^}]+\})/;
+
+export type PipSize = 14 | 15 | 16 | 18 | 20 | 22 | 24 | 28 | 32;
 
 const SIZE: Record<PipSize, string> = {
   14: 'h-[14px] min-w-[14px] text-[8px]',
@@ -10,20 +14,13 @@ const SIZE: Record<PipSize, string> = {
   20: 'h-5 min-w-5 text-[10.5px]',
   22: 'h-[22px] min-w-[22px] text-[11px]',
   24: 'h-6 min-w-6 text-[11px]',
-};
-
-const FILL: Record<string, string> = {
-  W: 'bg-pip-w text-pip-w-fg',
-  U: 'bg-pip-u text-pip-u-fg',
-  B: 'bg-pip-b text-pip-b-fg',
-  R: 'bg-pip-r text-pip-r-fg',
-  G: 'bg-pip-g text-pip-g-fg',
+  28: 'h-7 min-w-7 text-[12px]',
+  32: 'h-8 min-w-8 text-[13px]',
 };
 
 /**
- * One mana symbol: a lettered circle, so color is never the only signal.
- * Generic, colorless, and the undesigned hybrid and Phyrexian symbols use the
- * neutral fill; longer symbols widen into a pill.
+ * One symbol, drawn with Scryfall's image. A symbol Scryfall does not have
+ * falls back to a lettered circle.
  */
 export function Pip({
   symbol,
@@ -35,12 +32,23 @@ export function Pip({
   /** Accessible name when the pip stands alone; otherwise it is hidden from screen readers. */
   label?: string | undefined;
 }) {
-  const fill = FILL[symbol] ?? 'bg-surface-2 text-fg-1';
-  const wide = symbol.length > 2 ? 'px-[3px]' : '';
+  const url = symbolUrl(symbol);
+  if (url) {
+    return (
+      <img
+        src={url}
+        alt={label ?? ''}
+        aria-hidden={label ? undefined : true}
+        draggable={false}
+        style={{ height: size }}
+        className="inline-block w-auto shrink-0 select-none"
+      />
+    );
+  }
   return (
     <span
       {...(label ? { role: 'img', 'aria-label': label } : { 'aria-hidden': true })}
-      className={`inline-flex shrink-0 items-center justify-center rounded-full border border-fg-3 leading-none font-bold ${SIZE[size]} ${fill} ${wide}`}
+      className={`inline-flex shrink-0 items-center justify-center rounded-full border border-fg-3 bg-surface-2 px-[3px] leading-none font-bold text-fg-1 ${SIZE[size]}`}
     >
       {symbol}
     </span>
@@ -52,10 +60,36 @@ export function ManaCost({ cost, size = 16 }: { cost: string | undefined; size?:
   if (!cost) return null;
   const symbols = Array.from(cost.matchAll(SYMBOL), (m) => m[1] ?? '');
   return (
-    <span role="img" className="inline-flex items-center gap-[3px]" aria-label={cost}>
+    <span
+      role="img"
+      className="inline-flex items-center gap-[2px]"
+      aria-label={symbols.map(symbolName).join(', ')}
+    >
       {symbols.map((s, i) => (
         <Pip key={i} symbol={s} size={size} />
       ))}
     </span>
+  );
+}
+
+/** Rules text with each {X} drawn as its symbol, sized to the text. */
+export function SymbolText({ text }: { text: string }) {
+  return (
+    <>
+      {text.split(SPLIT).map((part, i) => {
+        const m = /^\{([^}]+)\}$/.exec(part);
+        const url = m ? symbolUrl(m[1]!) : undefined;
+        if (!m || !url) return <Fragment key={i}>{part}</Fragment>;
+        return (
+          <img
+            key={i}
+            src={url}
+            alt={symbolName(m[1]!)}
+            draggable={false}
+            className="mx-px inline-block h-[0.95em] w-auto align-[-0.12em] select-none"
+          />
+        );
+      })}
+    </>
   );
 }

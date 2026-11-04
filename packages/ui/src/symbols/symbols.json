@@ -1,0 +1,338 @@
+{
+  "0": {
+    "file": "0.svg",
+    "name": "zero mana"
+  },
+  "1": {
+    "file": "1.svg",
+    "name": "one generic mana"
+  },
+  "2": {
+    "file": "2.svg",
+    "name": "two generic mana"
+  },
+  "3": {
+    "file": "3.svg",
+    "name": "three generic mana"
+  },
+  "4": {
+    "file": "4.svg",
+    "name": "four generic mana"
+  },
+  "5": {
+    "file": "5.svg",
+    "name": "five generic mana"
+  },
+  "6": {
+    "file": "6.svg",
+    "name": "six generic mana"
+  },
+  "7": {
+    "file": "7.svg",
+    "name": "seven generic mana"
+  },
+  "8": {
+    "file": "8.svg",
+    "name": "eight generic mana"
+  },
+  "9": {
+    "file": "9.svg",
+    "name": "nine generic mana"
+  },
+  "10": {
+    "file": "10.svg",
+    "name": "ten generic mana"
+  },
+  "11": {
+    "file": "11.svg",
+    "name": "eleven generic mana"
+  },
+  "12": {
+    "file": "12.svg",
+    "name": "twelve generic mana"
+  },
+  "13": {
+    "file": "13.svg",
+    "name": "thirteen generic mana"
+  },
+  "14": {
+    "file": "14.svg",
+    "name": "fourteen generic mana"
+  },
+  "15": {
+    "file": "15.svg",
+    "name": "fifteen generic mana"
+  },
+  "16": {
+    "file": "16.svg",
+    "name": "sixteen generic mana"
+  },
+  "17": {
+    "file": "17.svg",
+    "name": "seventeen generic mana"
+  },
+  "18": {
+    "file": "18.svg",
+    "name": "eighteen generic mana"
+  },
+  "19": {
+    "file": "19.svg",
+    "name": "nineteen generic mana"
+  },
+  "20": {
+    "file": "20.svg",
+    "name": "twenty generic mana"
+  },
+  "100": {
+    "file": "100.svg",
+    "name": "one hundred generic mana"
+  },
+  "1000000": {
+    "file": "1000000.svg",
+    "name": "one million generic mana"
+  },
+  "T": {
+    "file": "T.svg",
+    "name": "tap this permanent"
+  },
+  "Q": {
+    "file": "Q.svg",
+    "name": "untap this permanent"
+  },
+  "E": {
+    "file": "E.svg",
+    "name": "an energy counter"
+  },
+  "P": {
+    "file": "P.svg",
+    "name": "modal budget pawprint"
+  },
+  "PW": {
+    "file": "PW.svg",
+    "name": "planeswalker"
+  },
+  "CHAOS": {
+    "file": "CHAOS.svg",
+    "name": "chaos"
+  },
+  "A": {
+    "file": "A.svg",
+    "name": "an acorn counter"
+  },
+  "TK": {
+    "file": "TK.svg",
+    "name": "a ticket counter"
+  },
+  "X": {
+    "file": "X.svg",
+    "name": "X generic mana"
+  },
+  "Y": {
+    "file": "Y.svg",
+    "name": "Y generic mana"
+  },
+  "Z": {
+    "file": "Z.svg",
+    "name": "Z generic mana"
+  },
+  "½": {
+    "file": "HALF.svg",
+    "name": "one-half generic mana"
+  },
+  "∞": {
+    "file": "INFINITY.svg",
+    "name": "infinite generic mana"
+  },
+  "W/U": {
+    "file": "WU.svg",
+    "name": "one white or blue mana"
+  },
+  "W/B": {
+    "file": "WB.svg",
+    "name": "one white or black mana"
+  },
+  "B/R": {
+    "file": "BR.svg",
+    "name": "one black or red mana"
+  },
+  "B/G": {
+    "file": "BG.svg",
+    "name": "one black or green mana"
+  },
+  "U/B": {
+    "file": "UB.svg",
+    "name": "one blue or black mana"
+  },
+  "U/R": {
+    "file": "UR.svg",
+    "name": "one blue or red mana"
+  },
+  "R/G": {
+    "file": "RG.svg",
+    "name": "one red or green mana"
+  },
+  "R/W": {
+    "file": "RW.svg",
+    "name": "one red or white mana"
+  },
+  "G/W": {
+    "file": "GW.svg",
+    "name": "one green or white mana"
+  },
+  "G/U": {
+    "file": "GU.svg",
+    "name": "one green or blue mana"
+  },
+  "B/G/P": {
+    "file": "BGP.svg",
+    "name": "one black mana, one green mana, or 2 life"
+  },
+  "B/R/P": {
+    "file": "BRP.svg",
+    "name": "one black mana, one red mana, or 2 life"
+  },
+  "G/U/P": {
+    "file": "GUP.svg",
+    "name": "one green mana, one blue mana, or 2 life"
+  },
+  "G/W/P": {
+    "file": "GWP.svg",
+    "name": "one green mana, one white mana, or 2 life"
+  },
+  "R/G/P": {
+    "file": "RGP.svg",
+    "name": "one red mana, one green mana, or 2 life"
+  },
+  "R/W/P": {
+    "file": "RWP.svg",
+    "name": "one red mana, one white mana, or 2 life"
+  },
+  "U/B/P": {
+    "file": "UBP.svg",
+    "name": "one blue mana, one black mana, or 2 life"
+  },
+  "U/R/P": {
+    "file": "URP.svg",
+    "name": "one blue mana, one red mana, or 2 life"
+  },
+  "W/B/P": {
+    "file": "WBP.svg",
+    "name": "one white mana, one black mana, or 2 life"
+  },
+  "W/U/P": {
+    "file": "WUP.svg",
+    "name": "one white mana, one blue mana, or 2 life"
+  },
+  "C/W": {
+    "file": "CW.svg",
+    "name": "one colorless mana or one white mana"
+  },
+  "C/U": {
+    "file": "CU.svg",
+    "name": "one colorless mana or one blue mana"
+  },
+  "C/B": {
+    "file": "CB.svg",
+    "name": "one colorless mana or one black mana"
+  },
+  "C/R": {
+    "file": "CR.svg",
+    "name": "one colorless mana or one red mana"
+  },
+  "C/G": {
+    "file": "CG.svg",
+    "name": "one colorless mana or one green mana"
+  },
+  "2/W": {
+    "file": "2W.svg",
+    "name": "two generic mana or one white mana"
+  },
+  "2/U": {
+    "file": "2U.svg",
+    "name": "two generic mana or one blue mana"
+  },
+  "2/B": {
+    "file": "2B.svg",
+    "name": "two generic mana or one black mana"
+  },
+  "2/R": {
+    "file": "2R.svg",
+    "name": "two generic mana or one red mana"
+  },
+  "2/G": {
+    "file": "2G.svg",
+    "name": "two generic mana or one green mana"
+  },
+  "H": {
+    "file": "H.svg",
+    "name": "one colored mana or two life"
+  },
+  "W/P": {
+    "file": "WP.svg",
+    "name": "one white mana or two life"
+  },
+  "U/P": {
+    "file": "UP.svg",
+    "name": "one blue mana or two life"
+  },
+  "B/P": {
+    "file": "BP.svg",
+    "name": "one black mana or two life"
+  },
+  "R/P": {
+    "file": "RP.svg",
+    "name": "one red mana or two life"
+  },
+  "G/P": {
+    "file": "GP.svg",
+    "name": "one green mana or two life"
+  },
+  "C/P": {
+    "file": "CP.svg",
+    "name": "one colorless mana or two life"
+  },
+  "HW": {
+    "file": "HW.svg",
+    "name": "one-half white mana"
+  },
+  "HR": {
+    "file": "HR.svg",
+    "name": "one-half red mana"
+  },
+  "W": {
+    "file": "W.svg",
+    "name": "one white mana"
+  },
+  "U": {
+    "file": "U.svg",
+    "name": "one blue mana"
+  },
+  "B": {
+    "file": "B.svg",
+    "name": "one black mana"
+  },
+  "R": {
+    "file": "R.svg",
+    "name": "one red mana"
+  },
+  "G": {
+    "file": "G.svg",
+    "name": "one green mana"
+  },
+  "C": {
+    "file": "C.svg",
+    "name": "one colorless mana"
+  },
+  "S": {
+    "file": "S.svg",
+    "name": "one snow mana"
+  },
+  "L": {
+    "file": "L.svg",
+    "name": "one mana from a legendary source"
+  },
+  "D": {
+    "file": "D.svg",
+    "name": "one potential land drop"
+  }
+}

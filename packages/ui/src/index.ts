@@ -1,7 +1,8 @@
 // Shared pieces for both apps: presentational components, data hooks, and
 // the key-value store they persist to. No app-specific layout lives here.
 
-export { ManaCost, Pip, type PipSize } from './ManaCost.tsx';
+export { ManaCost, Pip, SymbolText, type PipSize } from './ManaCost.tsx';
+export { symbolName, symbolUrl } from './symbols.ts';
 export { ui, phone } from './styles.ts';
 export {
   Segmented,

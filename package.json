@@ -26,6 +26,7 @@
     "data:fetch": "node scripts/fetch-scryfall-bulk.mjs",
     "data:build": "node packages/pipeline/src/cli.ts",
     "data:pull": "node scripts/pull-data-pack.mjs",
+    "symbols:fetch": "node scripts/fetch-symbols.mjs",
     "config:check": "node packages/pipeline/src/check-config.ts",
     "demo:build": "node packages/pipeline/src/demo-build.ts",
     "eval": "node packages/pipeline/src/eval.ts",
