@@ -88,6 +88,40 @@ export function hasColorlessPip(card: CardRecord): boolean {
   return manaCostsOf(card).some((cost) => /\{C\}/i.test(cost));
 }
 
+/** Subtypes of other card types that can sit beside creature types on one type line. */
+const NOT_CREATURE_TYPES = new Set([
+  'Aura',
+  'Background',
+  'Case',
+  'Class',
+  'Clue',
+  'Equipment',
+  'Food',
+  'Room',
+  'Saga',
+  'Shrine',
+  'Treasure',
+  'Vehicle',
+]);
+
+/** Creature types on the front face of a creature or kindred card. */
+export function creatureTypes(card: CardRecord): string[] {
+  if (!card.types.includes('creature') && !card.types.includes('kindred')) return [];
+  const front = card.typeLine.split('//')[0] ?? '';
+  const sub = front.split('—')[1];
+  return sub
+    ? sub
+        .trim()
+        .split(/\s+/)
+        .filter((t) => !NOT_CREATURE_TYPES.has(t))
+    : [];
+}
+
+/** A card counts toward a tribe when it has the type, or is a changeling (every type). */
+export function inTribe(card: CardRecord, type: string): boolean {
+  return card.keywords.includes('Changeling') || creatureTypes(card).includes(type);
+}
+
 /** Cards whose mana or effect depends on a commander do nothing outside Commander. */
 export function needsCommander(card: CardRecord): boolean {
   let text = card.text.replace(/\([^)]*\)/g, '');

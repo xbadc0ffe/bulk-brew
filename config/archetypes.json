@@ -1,5 +1,5 @@
 {
-  "version": "2",
+  "version": "3",
   "archetypes": [
     {
       "kind": "composition",
@@ -314,6 +314,75 @@
         "20": { "enablers": 4, "payoffs": 1 }
       },
       "synergyWeight": 0.8
+    },
+    {
+      "kind": "synergy",
+      "id": "burn",
+      "label": "Burn",
+      "description": "Damage spells that can hit the opponent, with cards that reward casting spells.",
+      "curveProfile": "aggro",
+      "enablers": [{ "anyTags": ["burn-player", "burn-any"], "excludeTypes": ["land"] }],
+      "payoffs": [
+        { "anyTags": ["synergy-instant", "synergy-sorcery", "prowess-like", "magecraft"] },
+        { "anyKeywords": ["Prowess"] }
+      ],
+      "minimums": {
+        "60": { "enablers": 10, "payoffs": 2 },
+        "40": { "enablers": 7, "payoffs": 1 },
+        "20": { "enablers": 4, "payoffs": 1 }
+      },
+      "synergyWeight": 1.0,
+      "colors": ["R", "B"]
+    },
+    {
+      "kind": "synergy",
+      "id": "landfall",
+      "label": "Landfall",
+      "description": "Extra land drops and land fetching, with cards that trigger as lands enter.",
+      "curveProfile": "midrange",
+      "enablers": [{ "anyTags": ["tutor-land-to-battlefield", "extra-land", "land-ramp"] }],
+      "payoffs": [{ "anyTags": ["landfall"] }],
+      "minimums": {
+        "60": { "enablers": 6, "payoffs": 5 },
+        "40": { "enablers": 4, "payoffs": 3 },
+        "20": { "enablers": 2, "payoffs": 2 }
+      },
+      "synergyWeight": 1.0
+    },
+    {
+      "kind": "synergy",
+      "id": "mill",
+      "label": "Mill",
+      "description": "Put the opponent's library into their graveyard until they run out of cards.",
+      "curveProfile": "control",
+      "enablers": [{ "anyTags": ["mill-opponent"] }],
+      "payoffs": [{ "anyTags": ["synergy-mill"] }],
+      "minimums": {
+        "60": { "enablers": 12, "payoffs": 1 },
+        "40": { "enablers": 8, "payoffs": 1 },
+        "20": { "enablers": 5, "payoffs": 1 }
+      },
+      "synergyWeight": 1.0,
+      "colors": ["U", "B"]
+    },
+    {
+      "kind": "synergy",
+      "id": "enchantments",
+      "label": "Enchantments",
+      "description": "Many enchantments, with cards that grow or draw as enchantments enter.",
+      "curveProfile": "midrange",
+      "enablers": [{ "types": ["enchantment"] }],
+      "payoffs": [
+        {
+          "anyTags": ["synergy-enchantment", "enchantment-engine", "synergy-enchantment-creature"]
+        }
+      ],
+      "minimums": {
+        "60": { "enablers": 10, "payoffs": 3 },
+        "40": { "enablers": 6, "payoffs": 2 },
+        "20": { "enablers": 3, "payoffs": 1 }
+      },
+      "synergyWeight": 1.0
     },
     {
       "kind": "synergy",

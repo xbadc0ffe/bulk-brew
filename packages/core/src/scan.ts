@@ -13,6 +13,7 @@ import {
 } from './config.ts';
 import { listCandidates, type Candidate } from './candidates.ts';
 import { colorsLabel, normalizeColors } from './colors.ts';
+import { creatureTypes } from './matchers.ts';
 import type { CardIndex } from './pack.ts';
 import {
   COLOR_LABELS,
@@ -23,6 +24,7 @@ import {
   type Pool,
   type ScanReport,
   type Settings,
+  type TribeReport,
 } from './types.ts';
 
 type SizeKey = '60' | '40' | '20';
@@ -208,6 +210,7 @@ export function scanCandidates(
     notes.push(`needs ${template.landFormula.min - lands} more lands (basics are tracked)`);
   }
   const possible = !notes.some((n) => n.startsWith('needs '));
+  const tribes = tribesOf(cands);
   const archetypes = config.archetypes.archetypes.map((a) =>
     a.kind === 'synergy'
       ? reportSynergy(a, config, cands, template, colors, possible)
@@ -224,8 +227,123 @@ export function scanCandidates(
     spellSlots,
     possible,
     archetypes,
+    tribes,
     notes,
   };
+}
+
+/** Creature types with at least three member copies, most members first. */
+export function tribesOf(cands: Candidate[]): TribeReport[] {
+  const members = new Map<string, number>();
+  let changelings = 0;
+  for (const c of cands) {
+    if (!c.facts.spell) continue;
+    if (c.facts.card.keywords.includes('Changeling')) {
+      changelings += c.available;
+      continue;
+    }
+    for (const t of creatureTypes(c.facts.card))
+      members.set(t, (members.get(t) ?? 0) + c.available);
+  }
+  const out: TribeReport[] = [];
+  for (const [type, n] of members) {
+    if (n + changelings < 3) continue;
+    const tag = `typal-${type.toLowerCase()}`;
+    const payoffs = countCopies(cands, (c) => c.facts.card.tags.includes(tag));
+    out.push({ type, members: n + changelings, payoffs });
+  }
+  // Tribes with cards that reward them first, then by size.
+  return out
+    .sort(
+      (a, b) =>
+        Number(b.payoffs > 0) - Number(a.payoffs > 0) ||
+        b.members - a.members ||
+        (a.type < b.type ? -1 : 1),
+    )
+    .slice(0, 15);
+}
+
+export interface SecondaryChoice {
+  /** Archetype id, or "tribal:<Type>". */
+  id: string;
+  label: string;
+  kind: 'synergy' | 'composition' | 'tribal';
+  state: 'viable' | 'near';
+  /** What a near miss lacks, in plain words. */
+  note: string;
+}
+
+/** Display name of a secondary style id. */
+export function secondaryLabel(config: BulkBrewConfig, id: string): string {
+  if (id.startsWith('tribal:')) return `${id.slice(7)} tribe`;
+  return config.archetypes.archetypes.find((a) => a.id === id)?.label ?? id;
+}
+
+/**
+ * Secondary styles that can go with a primary style in one scan: other
+ * themes reaching a share of their minimums, the plain shapes under a
+ * themed primary, and tribes with enough members and type payoffs. Two
+ * shapes do not combine.
+ */
+export function secondaryChoices(
+  scan: ScanReport,
+  config: BulkBrewConfig,
+  primaryId: string,
+): SecondaryChoice[] {
+  if (!scan.possible) return [];
+  const primary = config.archetypes.archetypes.find((a) => a.id === primaryId);
+  if (!primary) return [];
+  const sec = config.builderWeights.secondary;
+  const key = String(scan.size) as SizeKey;
+  const out: SecondaryChoice[] = [];
+  const judge = (short: number) =>
+    short <= 0 ? 'viable' : short <= sec.nearMiss ? 'near' : undefined;
+  for (const a of config.archetypes.archetypes) {
+    if (a.id === primaryId) continue;
+    if (a.kind === 'composition') {
+      // A shape only follows a themed primary, and only where the shape itself can be built.
+      if (primary.kind !== 'synergy') continue;
+      const report = scan.archetypes.find((r) => r.archetype === a.id);
+      if (report?.viable)
+        out.push({ id: a.id, label: a.label, kind: 'composition', state: 'viable', note: '' });
+      continue;
+    }
+    const report = scan.archetypes.find((r) => r.archetype === a.id);
+    if (!report) continue;
+    if (a.colors && !scan.colors.some((c) => a.colors!.includes(c))) continue;
+    const wantE = Math.ceil(a.minimums[key].enablers * sec.minimumShare);
+    const wantP = Math.ceil(a.minimums[key].payoffs * sec.minimumShare);
+    const shortE = Math.max(0, wantE - report.enablers.have);
+    const shortP = Math.max(0, wantP - report.payoffs.have);
+    const state = judge(shortE + shortP);
+    if (!state) continue;
+    const note = [
+      shortE > 0 ? `needs ${shortE} more ${a.label} enabler${shortE === 1 ? '' : 's'}` : '',
+      shortP > 0 ? `needs ${shortP} more ${a.label} payoff${shortP === 1 ? '' : 's'}` : '',
+    ]
+      .filter(Boolean)
+      .join(', ');
+    out.push({ id: a.id, label: a.label, kind: 'synergy', state, note });
+  }
+  const want = sec.tribal[key];
+  for (const t of scan.tribes ?? []) {
+    // A type with no cards that reward it is just a crowd of bodies, not a tribe.
+    if (t.payoffs === 0) continue;
+    const shortE = Math.max(0, want.enablers - t.members);
+    const shortP = Math.max(0, want.payoffs - t.payoffs);
+    const state = judge(shortE + shortP);
+    if (!state) continue;
+    const note = [
+      shortE > 0 ? `needs ${shortE} more ${t.type} creature${shortE === 1 ? '' : 's'}` : '',
+      shortP > 0
+        ? `needs ${shortP} more card${shortP === 1 ? '' : 's'} that reward${shortP === 1 ? 's' : ''} the ${t.type} tribe`
+        : '',
+    ]
+      .filter(Boolean)
+      .join(', ');
+    out.push({ id: `tribal:${t.type}`, label: `${t.type} tribe`, kind: 'tribal', state, note });
+  }
+  return out;
 }
 
 export function scanPool(

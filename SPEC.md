@@ -247,8 +247,8 @@ npm workspaces monorepo, TypeScript throughout.
 | 9     | Deck strength: data pack schema 2, card strength and deck scores, best fit by building, guide-based config pass | done                              |
 | 10    | Colors: one to five colors, castability candidates, pip-based mana bases, fixing, saved deck migration          | done                              |
 | 11    | Build page: settings left, ranked deck options right, background worker, state kept                             | done                              |
-| 12    | Styles: primary and secondary styles, tribal as a secondary style, new styles                                   | next                              |
-| 13    | Commander: 100-card singleton, commander candidates and tiers, commander-anchored builds                        |                                   |
+| 12    | Styles: primary and secondary styles, tribal as a secondary style, new styles                                   | done                              |
+| 13    | Commander: 100-card singleton, commander candidates and tiers, commander-anchored builds                        | next                              |
 | Later | Batch balanced mode, offline image download                                                                     |                                   |
 
 ## Decisions
@@ -268,8 +268,7 @@ Resolved questions, kept so they are not reopened by accident.
 - Colors: one to five colors in every size; mono stays the strongest mode; more colors are allowed even though they build worse. Packet pairing stays.
 - Deckbuilding guidance from outside material is restated in our own words in `docs/guides/` and config, with no source names in the repo.
 - Game Changers are not filtered out.
-- Tribal is a secondary style, not a primary one.
-- A secondary style needs a primary style.
+- Tribal is a secondary style, not a primary one. A secondary style needs a primary style; a second theme needs half its minimums, a shape can only follow a themed primary, and a tribe needs members and type payoffs (`builderWeights.secondary`).
 - Name: Bulk Brew, repo `bulk-brew`. An unrelated dormant repo shares the name; not a concern.
 - Result actions: Accept (with a confirmation), Reject, and Export. A short-lived Save deck and Remove from pool pair from the design pass was dropped after owner review; decks saved without accepting show "Not accepted" and can still be accepted.
 - Short display tags live in `config/display-tags.json`, matched with the same matcher format as roles plus role and style references. They are for showing and filtering only; the builder never reads them, so they are not part of the config version a deck records.

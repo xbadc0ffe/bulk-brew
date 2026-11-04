@@ -34,6 +34,10 @@ Minimums are enabler and payoff counts the pool must hold for the theme to be vi
 | auras        | Auras and equipment                                | Aura and equipment synergy, heroic, enchantment engines, hexproof creatures             | 8,4 / 5,2 / 3,1                           |
 | flyers       | Evasive creatures (derived)                        | Lasting anthems and cards that reward flyers                                            | 10,3 / 7,2 / 4,1                          |
 | bigCreatures | Cheap mana sources (derived)                       | Finishers (derived)                                                                     | 6,5 / 4,3 / 2,2                           |
+| burn         | Burn that can hit a player                         | Spell-cast payoffs and prowess                                                          | 10,2 / 7,1 / 4,1 (red, black)             |
+| landfall     | Land fetching, extra land drops, land ramp         | Landfall cards                                                                          | 6,5 / 4,3 / 2,2                           |
+| mill         | Cards that mill the opponent                       | Cards that reward milling                                                               | 12,1 / 8,1 / 5,1 (blue, black)            |
+| enchantments | Enchantments                                       | Enchantment payoffs and engines                                                         | 10,3 / 6,2 / 3,1                          |
 
 Every theme card counts toward viability. Theme cards with a card strength of at least 3 (see [Card strength](card-strength.md)) count toward the scan margin that ranks themes, and the theme pass fills its minimums from them first, using weaker theme cards only when it runs out. Ramp into big creatures uses the two-peaked ramp curve.
 
@@ -44,6 +48,16 @@ Notes from the tag scan:
 - Prowess creatures are found by keyword because the tag for it covers only a handful of cards.
 - Auras and equipment have no reliable tag, so the enabler is the type line.
 - Flyers payoffs leave out combat tricks that grant flying and one-turn team pumps: those help any creature deck and made Flyers look deep in every white pool.
+
+## Secondary styles
+
+A deck can add a secondary style to its primary one. The primary style still sets the theme and, for a themed primary, the shape; the secondary adds to it:
+
+- **A second theme** needs half its usual minimums (`builderWeights.secondary.minimumShare`). Its cards fill after the primary theme's, count half as much toward theme hits (`themeHitShare`), and the swaps may not take it below those minimums.
+- **A shape** (aggro, midrange, control) can follow a themed primary where the shape itself is viable. Its curve, type mix, and role targets go over the primary's (20-card packets keep the packet curve), so "Tokens with Aggro" is a low, creature-heavy tokens deck. Two shapes do not combine.
+- **A tribe** is a creature type with at least 8, 5, or 3 members (60, 40, 20 cards, changelings counting for every type) and 2, 1, or 1 cards that reward the type (Tagger `typal-<type>` tags). A type with no such cards is not offered. Tribes are secondary only: bulk holds plenty of bodies of the common types but few cards that reward them, so a tribe works best layered on a real theme.
+
+The scan lists secondary choices for each primary, with near misses that show what is missing. A deck that could not reach its secondary minimums says so in its notes, and on the Build page the option is marked.
 
 ## Synergy rules
 

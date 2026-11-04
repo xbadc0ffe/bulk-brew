@@ -2,12 +2,6 @@
 
 Ranked. The current phase is at the top. Finished phases are removed, not struck through.
 
-## Phase 12: Styles
-
-- Primary and secondary styles; secondary viability given the primary.
-- Tribal as a secondary style, one per creature type with enough payoffs (changelings count).
-- New styles the data supports: burn, landfall, mill, enchantments; blink needs a way to detect enter-the-battlefield value.
-
 ## Phase 13: Commander
 
 - 100-card singleton template, commander candidates and tiers, commander-anchored builds, commander list and header on the Build page.
@@ -47,6 +41,8 @@ Ranked. The current phase is at the top. Finished phases are removed, not struck
 
 ## Owner review follow-ups
 
+- Mobile: secondary style picker (phones build with the primary style only).
+- Tribes: multi-word creature types such as "Time Lord" split into two words; Blink as a style needs a way to detect enter-the-battlefield value.
 - Mobile parity for the deck options list on the Build page (phones still build one deck).
 - Deck options build on the main thread, one per tick; move to a Web Worker if phones stutter.
 - Mobile parity for the web-only changes of the owner review: column sorting, the Analyze split, multi-select removal, and the deck details expand.

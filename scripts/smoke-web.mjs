@@ -192,6 +192,15 @@ try {
   await click('^All rarities');
   await waitForText(/Mythic/, 5000);
   await click('^All rarities');
+  // SMOKE_STYLE and SMOKE_SECONDARY pick styles from the drop-downs, such as "Tokens" and "Aggro".
+  if (process.env.SMOKE_STYLE) {
+    await click('^Best fit');
+    await click(`^${process.env.SMOKE_STYLE}`);
+    if (process.env.SMOKE_SECONDARY) {
+      await click('^None');
+      await click(`^${process.env.SMOKE_SECONDARY}`);
+    }
+  }
   // Options build in the background; wait for them to finish, then open the strongest.
   log('options', oneLine(await waitForText(/options?, strongest first/, 60000), 160));
   await shot('3-build-options');

@@ -103,11 +103,13 @@ function OptionCard({ option, onOpen }: { option: DeckOption; onOpen(): void }) 
   const missing = flow.colors.filter((c) => !colors.includes(c));
   const synergy = explanation.synergies[0];
   const stretched = explanation.notes.find((n) => n.includes('is stretched'));
+  const secondary = explanation.secondary;
+  const title = `${colorsLabel(colors)} ${style.label}${secondary ? ` with ${secondary.label}` : ''}`;
   return (
     <button
       type="button"
       onClick={onOpen}
-      aria-label={`${colorsLabel(colors)} ${style.label}, strength ${score}${missing.length > 0 ? `, leaves out ${missing.map((c) => COLOR_LABELS[c].toLowerCase()).join(' and ')}` : ''}${stretched ? ', mana is stretched' : ''}`}
+      aria-label={`${title}, strength ${score}${secondary && !secondary.met ? `, ${secondary.label} not fully met` : ''}${missing.length > 0 ? `, leaves out ${missing.map((c) => COLOR_LABELS[c].toLowerCase()).join(' and ')}` : ''}${stretched ? ', mana is stretched' : ''}`}
       className="flex w-full flex-col gap-3 rounded-lg border border-line bg-surface p-4 text-left hover:border-line-strong hover:bg-surface-2"
     >
       <span className="flex items-start justify-between gap-3">
@@ -117,9 +119,7 @@ function OptionCard({ option, onOpen }: { option: DeckOption; onOpen(): void }) 
               <Pip key={c} symbol={c} size={18} />
             ))}
           </span>
-          <span className="text-[15px] font-semibold">
-            {colorsLabel(colors)} {style.label}
-          </span>
+          <span className="text-[15px] font-semibold">{title}</span>
           <span className="text-[12px] text-fg-2">{style.description}</span>
         </span>
         <span className="flex shrink-0 flex-col items-end">
@@ -141,6 +141,9 @@ function OptionCard({ option, onOpen }: { option: DeckOption; onOpen(): void }) 
           </span>
         )}
         {stretched && <span className={ui.tag}>Mana is stretched</span>}
+        {secondary && !secondary.met && (
+          <span className={ui.tag}>{secondary.label} not fully met</span>
+        )}
       </span>
       {synergy && <span className="text-[12px] text-fg-1">{synergy}</span>}
     </button>

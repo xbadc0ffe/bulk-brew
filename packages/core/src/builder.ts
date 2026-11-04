@@ -20,6 +20,7 @@ import {
   type TypeMix,
 } from './config.ts';
 import { listCandidates, maxCopiesFor, type Candidate, type CardFacts } from './candidates.ts';
+import { inTribe } from './matchers.ts';
 import {
   chooseManaBase,
   ManaBaseError,
@@ -44,6 +45,7 @@ import {
   effectiveQuotas,
   effectiveTypeMix,
   scanCandidates,
+  secondaryLabel,
 } from './scan.ts';
 import {
   type BuildExplanation,
@@ -52,6 +54,7 @@ import {
   type Color,
   type Deck,
   type DeckScore,
+  type DeckSize,
   type DeckCard,
   type Pool,
   type ScanReport,
@@ -132,6 +135,91 @@ interface Ctx {
   plan: ColorPlan;
   /** Card strength points taken off spells that strain the mana base (multi-color only). */
   penalty: Map<string, number>;
+  secondary: SecondaryTheme | undefined;
+  /** Theme weight per card id: primary enabler and payoff count 1 each, secondary ones a share. */
+  themeValue: Map<string, number>;
+  /** Theme membership per card id, as THEME_* bits. */
+  themeFlags: Map<string, number>;
+  /** Theme minimums the swaps must not drop below: primary, then secondary. */
+  themeWant: { pe: number; pp: number; se: number; sp: number };
+}
+
+const THEME_PE = 1;
+const THEME_PP = 2;
+const THEME_SE = 4;
+const THEME_SP = 8;
+
+/** A secondary style resolved against the primary: a second theme, a shape, or a tribe. */
+interface SecondaryTheme {
+  id: string;
+  label: string;
+  kind: 'synergy' | 'composition' | 'tribal';
+  /** The shape archetype whose curve, type mix, and roles replace the primary's. */
+  shape?: Archetype;
+  isEnabler(c: Candidate): boolean;
+  isPayoff(c: Candidate): boolean;
+  want: { enablers: number; payoffs: number };
+}
+
+/**
+ * Resolve a secondary style id for a primary archetype. A second theme needs
+ * a share of its minimums; a shape only goes under a themed primary; a tribe
+ * needs members and type payoffs. Returns a note when the id cannot apply.
+ */
+function resolveSecondary(
+  id: string | undefined,
+  primary: Archetype,
+  config: BulkBrewConfig,
+  size: DeckSize,
+): { theme?: SecondaryTheme; note?: string } {
+  if (!id) return {};
+  const sec = config.builderWeights.secondary;
+  const key = String(size) as '60' | '40' | '20';
+  if (id.startsWith('tribal:')) {
+    const type = id.slice(7);
+    const tag = `typal-${type.toLowerCase()}`;
+    return {
+      theme: {
+        id,
+        label: secondaryLabel(config, id),
+        kind: 'tribal',
+        isEnabler: (c) => inTribe(c.facts.card, type),
+        isPayoff: (c) => c.facts.card.tags.includes(tag),
+        want: sec.tribal[key],
+      },
+    };
+  }
+  const a = config.archetypes.archetypes.find((x) => x.id === id);
+  if (!a || a.id === primary.id)
+    return { note: `Ignored the secondary style ${secondaryLabel(config, id)}.` };
+  if (a.kind === 'composition') {
+    if (primary.kind === 'composition')
+      return { note: `${a.label} cannot be a secondary style under ${primary.label}.` };
+    return {
+      theme: {
+        id,
+        label: a.label,
+        kind: 'composition',
+        shape: a,
+        isEnabler: () => false,
+        isPayoff: () => false,
+        want: { enablers: 0, payoffs: 0 },
+      },
+    };
+  }
+  return {
+    theme: {
+      id,
+      label: a.label,
+      kind: 'synergy',
+      isEnabler: (c) => c.facts.enablerOf.includes(a.id),
+      isPayoff: (c) => c.facts.payoffOf.includes(a.id),
+      want: {
+        enablers: Math.ceil(a.minimums[key].enablers * sec.minimumShare),
+        payoffs: Math.ceil(a.minimums[key].payoffs * sec.minimumShare),
+      },
+    },
+  };
 }
 
 interface Tally {
@@ -148,6 +236,11 @@ interface Tally {
   strength: number;
   /** Sum of cast penalties over every copy. */
   castPen: number;
+  /** Copies of primary and secondary theme enablers and payoffs. */
+  pe: number;
+  pp: number;
+  se: number;
+  sp: number;
 }
 
 function bump(map: Map<string, number>, key: string, by: number): void {
@@ -167,21 +260,26 @@ function emptyTally(): Tally {
     themeHits: 0,
     strength: 0,
     castPen: 0,
+    pe: 0,
+    pp: 0,
+    se: 0,
+    sp: 0,
   };
-}
-
-function themeIdOf(ctx: Ctx): string | undefined {
-  return ctx.archetype.kind === 'synergy' ? ctx.archetype.id : undefined;
 }
 
 function addToTally(
   t: Tally,
   f: CardFacts,
   qty: number,
-  themeId: string | undefined,
+  theme: number,
   pen: number,
+  flags: number,
 ): void {
   t.total += qty;
+  if (flags & THEME_PE) t.pe += qty;
+  if (flags & THEME_PP) t.pp += qty;
+  if (flags & THEME_SE) t.se += qty;
+  if (flags & THEME_SP) t.sp += qty;
   t.castPen += pen * qty;
   t.curve[f.bucket]! += qty;
   if (f.creature) t.creatures += qty;
@@ -191,16 +289,22 @@ function addToTally(
   for (const r of f.roles) bump(t.roles, r, qty);
   for (const r of f.ruleEnabler) bump(t.ruleEnablers, r, qty);
   for (const r of f.rulePayoff) bump(t.rulePayoffs, r, qty);
-  if (themeId && (f.enablerOf.includes(themeId) || f.payoffOf.includes(themeId))) {
-    t.themeHits += qty;
-  }
+  t.themeHits += theme * qty;
 }
 
 function tally(state: State, ctx: Ctx): Tally {
   const t = emptyTally();
-  const themeId = themeIdOf(ctx);
-  for (const { cand, qty } of state.chosen.values())
-    addToTally(t, cand.facts, qty, themeId, ctx.penalty.get(cand.facts.card.id) ?? 0);
+  for (const { cand, qty } of state.chosen.values()) {
+    const id = cand.facts.card.id;
+    addToTally(
+      t,
+      cand.facts,
+      qty,
+      ctx.themeValue.get(id) ?? 0,
+      ctx.penalty.get(id) ?? 0,
+      ctx.themeFlags.get(id) ?? 0,
+    );
+  }
   return t;
 }
 
@@ -317,9 +421,7 @@ function removeOne(state: State, id: string): Pick | undefined {
 }
 
 function themeHitsOf(cand: Candidate, ctx: Ctx): number {
-  if (ctx.archetype.kind !== 'synergy') return 0;
-  const id = ctx.archetype.id;
-  return (cand.facts.enablerOf.includes(id) ? 1 : 0) + (cand.facts.payoffOf.includes(id) ? 1 : 0);
+  return ctx.themeValue.get(cand.facts.card.id) ?? 0;
 }
 
 export function statsPerMana(cand: Candidate): number {
@@ -419,6 +521,11 @@ function describeWhy(cand: Candidate, ctx: Ctx): string {
   if (ctx.archetype.kind === 'synergy') {
     if (cand.facts.payoffOf.includes(ctx.archetype.id)) return `${ctx.archetype.label} payoff`;
     if (cand.facts.enablerOf.includes(ctx.archetype.id)) return `${ctx.archetype.label} enabler`;
+  }
+  const sec = ctx.secondary;
+  if (sec && sec.kind !== 'composition') {
+    if (sec.isPayoff(cand)) return `${sec.label} payoff`;
+    if (sec.isEnabler(cand)) return sec.kind === 'tribal' ? sec.label : `${sec.label} enabler`;
   }
   return FILLER_WHY;
 }
@@ -553,6 +660,39 @@ function fillAny(state: State, ctx: Ctx): void {
   }
 }
 
+/** The secondary theme or tribe to its minimums, strong cards first, as the primary theme does. */
+function fillSecondary(state: State, ctx: Ctx): void {
+  const sec = ctx.secondary;
+  if (!sec || sec.kind === 'composition') return;
+  const count = (pick: (c: Candidate) => boolean) => {
+    let n = 0;
+    for (const { cand, qty } of state.chosen.values()) if (pick(cand)) n += qty;
+    return n;
+  };
+  const bar = ctx.config.cardStrength.themeMinStrength;
+  const passes: [(c: Candidate) => boolean, Relax][] = [
+    [(c) => c.facts.strength >= bar, 'none'],
+    [() => true, 'none'],
+    [() => true, 'copies'],
+  ];
+  const payoffWhy = `${sec.label} payoff`;
+  const enablerWhy = sec.kind === 'tribal' ? sec.label : `${sec.label} enabler`;
+  for (const [ok, relax] of passes) {
+    const pick = (c: Candidate) => sec.isPayoff(c) && ok(c);
+    while (
+      count(sec.isPayoff) < sec.want.payoffs &&
+      pickBest(state, ctx, pick, payoffWhy, 'theme', relax)
+    );
+  }
+  for (const [ok, relax] of passes) {
+    const pick = (c: Candidate) => sec.isEnabler(c) && ok(c);
+    while (
+      count(sec.isEnabler) < sec.want.enablers &&
+      pickBest(state, ctx, pick, enablerWhy, 'theme', relax)
+    );
+  }
+}
+
 /** Every color of a multi-color deck gets at least its minimum of spells of that color. */
 function fillColorMinimums(state: State, ctx: Ctx): void {
   if (ctx.plan.colors.length < 2) return;
@@ -572,6 +712,7 @@ function fillColorMinimums(state: State, ctx: Ctx): void {
 function fillAll(state: State, ctx: Ctx): void {
   fillRoles(state, ctx, 'min', 'roleMin');
   fillTheme(state, ctx);
+  fillSecondary(state, ctx);
   fillColorMinimums(state, ctx);
   fillRoles(state, ctx, 'target', 'roleTarget');
   fillTypeMinimums(state, ctx);
@@ -613,7 +754,6 @@ function refitLands(state: State, ctx: Ctx, lands: number, size: number): number
 
 function localSearch(state: State, ctx: Ctx): number {
   const { maxPasses, maxSwapsPerPass } = ctx.weights.localSearch;
-  const themeId = themeIdOf(ctx);
   let accepted = 0;
   for (let pass = 0; pass < maxPasses; pass++) {
     let improved = false;
@@ -637,11 +777,20 @@ function localSearch(state: State, ctx: Ctx): number {
           base = tally(state, ctx);
         }
         if (!canAdd(state, ctx, cand, base)) continue;
+        // A swap may not take the secondary style below the minimums its fill reached.
+        const outFlags = ctx.themeFlags.get(outId) ?? 0;
+        const inFlags = ctx.themeFlags.get(cand.facts.card.id) ?? 0;
+        const tw = ctx.themeWant;
+        const drops = (bit: number, have: number, want: number) =>
+          (outFlags & bit) !== 0 && (inFlags & bit) === 0 && have + 1 >= want && have < want;
+        if (drops(THEME_SE, base.se, tw.se) || drops(THEME_SP, base.sp, tw.sp)) continue;
         // Score the swap by adding the copy to the tally and taking it back out.
         const pen = ctx.penalty.get(cand.facts.card.id) ?? 0;
-        addToTally(base, cand.facts, 1, themeId, pen);
+        const theme = ctx.themeValue.get(cand.facts.card.id) ?? 0;
+        const flags = ctx.themeFlags.get(cand.facts.card.id) ?? 0;
+        addToTally(base, cand.facts, 1, theme, pen, flags);
         const val = objectiveOf(base, state.slots, ctx);
-        addToTally(base, cand.facts, -1, themeId, pen);
+        addToTally(base, cand.facts, -1, theme, pen, flags);
         if (val > best + 1e-9) {
           addOne(state, cand, describeWhy(cand, ctx), 'swap');
           best = val;
@@ -872,21 +1021,67 @@ function attempt(
   colorLabel: string,
   plan: ColorPlan,
   penalty: Map<string, number>,
+  secondary: SecondaryTheme | undefined,
 ): Attempt {
   const { size, settings } = request;
+  // A shape as secondary style sets the curve, type mix, and roles under a themed primary.
+  const shape = secondary?.shape;
+  const key = String(size) as '60' | '40' | '20';
+  const spells = cands.filter((c) => c.facts.spell);
+  const themeValue = new Map<string, number>();
+  const themeFlags = new Map<string, number>();
+  const share = config.builderWeights.secondary.themeHitShare;
+  for (const c of spells) {
+    const prim = archetype.kind === 'synergy';
+    const sec = secondary && secondary.kind !== 'composition';
+    const flags =
+      (prim && c.facts.enablerOf.includes(archetype.id) ? THEME_PE : 0) |
+      (prim && c.facts.payoffOf.includes(archetype.id) ? THEME_PP : 0) |
+      (sec && secondary.isEnabler(c) ? THEME_SE : 0) |
+      (sec && secondary.isPayoff(c) ? THEME_SP : 0);
+    if (flags) themeFlags.set(c.facts.card.id, flags);
+    let v = 0;
+    if (archetype.kind === 'synergy') {
+      v +=
+        (c.facts.enablerOf.includes(archetype.id) ? 1 : 0) +
+        (c.facts.payoffOf.includes(archetype.id) ? 1 : 0);
+    }
+    if (secondary && secondary.kind !== 'composition') {
+      v += share * ((secondary.isEnabler(c) ? 1 : 0) + (secondary.isPayoff(c) ? 1 : 0));
+    }
+    if (v > 0) themeValue.set(c.facts.card.id, v);
+  }
   const ctx: Ctx = {
     config,
     template,
     archetype,
-    quotas: effectiveQuotas(template, archetype),
-    typeMix: effectiveTypeMix(template, archetype),
-    curveShape: curveProfileFor(config, effectiveCurveProfile(template, archetype)).shape,
+    quotas: shape
+      ? { ...effectiveQuotas(template, archetype), ...(shape.roleOverrides?.[key] ?? {}) }
+      : effectiveQuotas(template, archetype),
+    typeMix: shape
+      ? { ...effectiveTypeMix(template, archetype), ...(shape.typeMixOverrides ?? {}) }
+      : effectiveTypeMix(template, archetype),
+    curveShape: curveProfileFor(
+      config,
+      shape && template.size !== 20
+        ? shape.curveProfile
+        : effectiveCurveProfile(template, archetype),
+    ).shape,
     weights: config.builderWeights,
     synergyScale: archetype.kind === 'synergy' ? archetype.synergyWeight : 1,
     roleLabels: new Map(config.roles.roles.map((r) => [r.id, r.label])),
-    spells: cands.filter((c) => c.facts.spell),
+    spells,
     plan,
     penalty,
+    secondary,
+    themeValue,
+    themeFlags,
+    themeWant: {
+      pe: archetype.kind === 'synergy' ? archetype.minimums[key].enablers : 0,
+      pp: archetype.kind === 'synergy' ? archetype.minimums[key].payoffs : 0,
+      se: secondary?.want.enablers ?? 0,
+      sp: secondary?.want.payoffs ?? 0,
+    },
   };
   const notes: string[] = [];
 
@@ -960,11 +1155,14 @@ export function buildDeck(
   const notes: string[] = [];
   const byId = new Map(config.archetypes.archetypes.map((a) => [a.id, a]));
   let tryList: Archetype[] = [];
+  let styleBuilt = false;
   if (request.style) {
     const report = scan.archetypes.find((r) => r.archetype === request.style);
     const a = byId.get(request.style);
-    if (report?.viable && a) tryList = [a];
-    else {
+    if (report?.viable && a) {
+      tryList = [a];
+      styleBuilt = true;
+    } else {
       const why = report?.notes.join('; ') ?? 'unknown style';
       notes.push(
         `Style "${a?.label ?? request.style}" is not viable here (${why}); picked the best fit instead.`,
@@ -982,12 +1180,17 @@ export function buildDeck(
   const colorPlanned = colorPlan(cands, colors, config);
   const penalty = castPenalties(cands, colorPlanned, config);
 
+  // A secondary style only means something next to a picked primary style.
+  if (request.secondary && !request.style)
+    notes.push('A secondary style needs a primary style; built the best fit without it.');
+
   // Ties keep the earlier candidate: themes come first, so a theme beats a plain shape it ties.
   let best: Attempt | undefined;
   let firstError: unknown;
   const tried: Attempt[] = [];
   for (const a of tryList) {
     try {
+      const resolved = styleBuilt ? resolveSecondary(request.secondary, a, config, size) : {};
       const at = attempt(
         a,
         template,
@@ -998,7 +1201,9 @@ export function buildDeck(
         colorLabel,
         colorPlanned,
         penalty,
+        resolved.theme,
       );
+      if (resolved.note) at.notes.unshift(resolved.note);
       tried.push(at);
       if (!best || at.score.total > best.score.total) best = at;
     } catch (err) {
@@ -1018,6 +1223,30 @@ export function buildDeck(
     );
   }
   const { archetype, ctx, state, lands, plan, mana, score } = best;
+  // Whether the deck holds the secondary style's minimums.
+  let secondaryInfo: BuildExplanation['secondary'];
+  const sec = ctx.secondary;
+  if (sec) {
+    let enablers = 0;
+    let payoffs = 0;
+    for (const { cand, qty } of state.chosen.values()) {
+      if (sec.isEnabler(cand)) enablers += qty;
+      if (sec.isPayoff(cand)) payoffs += qty;
+    }
+    const met = enablers >= sec.want.enablers && payoffs >= sec.want.payoffs;
+    secondaryInfo = { id: sec.id, label: sec.label, met };
+    if (!met) {
+      const short = [
+        enablers < sec.want.enablers
+          ? `${enablers} of ${sec.want.enablers} ${sec.kind === 'tribal' ? 'tribe members' : 'enablers'}`
+          : '',
+        payoffs < sec.want.payoffs ? `${payoffs} of ${sec.want.payoffs} payoffs` : '',
+      ]
+        .filter(Boolean)
+        .join(' and ');
+      notes.push(`Could not fully fit the secondary style ${sec.label}: ${short}.`);
+    }
+  }
   notes.push(...best.notes, ...mana.notes);
   const picks = [
     ...[...state.chosen.values()].map(({ cand, qty }) => ({ cand, qty })),
@@ -1103,6 +1332,7 @@ export function buildDeck(
 
   const explanation: BuildExplanation = {
     archetype: archetype.id,
+    ...(secondaryInfo ? { secondary: secondaryInfo } : {}),
     curve: t.curve,
     roles,
     lands: {
@@ -1119,11 +1349,12 @@ export function buildDeck(
 
   const deck: Deck = {
     id: request.id ?? '',
-    name: `${colorLabel} ${archetype.label} ${size}`,
+    name: `${colorLabel} ${archetype.label}${secondaryInfo ? ` with ${secondaryInfo.label}` : ''} ${size}`,
     size,
     color: colorPlanned.main,
     ...(colors.length > 1 ? { colors: colorPlanned.colors } : {}),
     archetype: archetype.id,
+    ...(secondaryInfo ? { secondary: secondaryInfo.id } : {}),
     cards,
     basics: Object.fromEntries(Object.entries(mana.basics).filter(([, q]) => (q ?? 0) > 0)),
     committed: false,

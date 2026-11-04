@@ -1,5 +1,5 @@
 {
-  "version": "6",
+  "version": "7",
   "objective": {
     "curveDeviation": 1.0,
     "typeMixDeviation": 1.0,
@@ -34,6 +34,16 @@
     "secondaryBonus": 3,
     "duplicateShare": 0.6,
     "maxPerStyle": 2
+  },
+  "secondary": {
+    "minimumShare": 0.5,
+    "themeHitShare": 0.5,
+    "nearMiss": 3,
+    "tribal": {
+      "60": { "enablers": 8, "payoffs": 2 },
+      "40": { "enablers": 5, "payoffs": 1 },
+      "20": { "enablers": 3, "payoffs": 1 }
+    }
   },
   "castability": {
     "secondaryPip": 0.25,

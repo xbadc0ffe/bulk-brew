@@ -273,6 +273,17 @@ export interface BuilderWeightsConfig {
   };
   /** How many viable archetypes best fit builds and compares. */
   bestFit: { synergyCandidates: number; compositionCandidates: number };
+  /** Secondary styles: a second theme at a share of its minimums, a shape, or a tribe. */
+  secondary: {
+    /** Share of a synergy style's minimums a secondary style must reach. */
+    minimumShare: number;
+    /** Weight of a secondary theme card against a primary theme card. */
+    themeHitShare: number;
+    /** Cards short, in total, that still show a secondary style as a near miss. */
+    nearMiss: number;
+    /** Tribe members and type payoffs a tribal secondary style needs, per size. */
+    tribal: Record<SizeKey, { enablers: number; payoffs: number }>;
+  };
   /** Deck options on the Build page. */
   buildOptions: {
     /** Most builds planned for one set of settings. */
@@ -748,6 +759,22 @@ export function validateConfig(c: BulkBrewConfig): string[] {
     problems.push(
       'builderWeights.bestFit: synergyCandidates and compositionCandidates must be whole numbers, at least one in total',
     );
+
+  const sec = bw.secondary;
+  for (const k of ['minimumShare', 'themeHitShare'] as const) {
+    if (!isNum(sec?.[k]) || sec[k] < 0 || sec[k] > 1)
+      problems.push(`builderWeights.secondary.${k}: must be between 0 and 1`);
+  }
+  if (!isNum(sec?.nearMiss) || sec.nearMiss < 0)
+    problems.push('builderWeights.secondary.nearMiss: must be a non-negative number');
+  for (const key of ['60', '40', '20'] as const) {
+    const t = sec?.tribal?.[key];
+    const whole = (v: unknown) => isNum(v) && Number.isInteger(v) && v >= 0;
+    if (!t || !whole(t.enablers) || !whole(t.payoffs))
+      problems.push(
+        `builderWeights.secondary.tribal.${key}: enablers and payoffs must be whole numbers`,
+      );
+  }
 
   const bo = bw.buildOptions;
   for (const k of ['maxBuilds', 'maxOptions', 'maxPerStyle'] as const) {

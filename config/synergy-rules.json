@@ -1,5 +1,5 @@
 {
-  "version": "2",
+  "version": "3",
   "rules": [
     {
       "id": "tokens-pump",
@@ -187,6 +187,20 @@
         { "anyTags": ["anthem", "keyword-anthem"], "excludeTypes": ["instant", "sorcery"] }
       ],
       "weight": 0.8
+    },
+    {
+      "id": "landfall",
+      "note": "Extra land drops and fetching plus landfall payoffs.",
+      "enabler": [{ "anyTags": ["tutor-land-to-battlefield", "extra-land", "land-ramp"] }],
+      "payoff": [{ "anyTags": ["landfall"] }],
+      "weight": 1.0
+    },
+    {
+      "id": "mill",
+      "note": "Cards that mill the opponent plus cards that reward milling.",
+      "enabler": [{ "anyTags": ["mill-opponent"] }],
+      "payoff": [{ "anyTags": ["synergy-mill"] }],
+      "weight": 1.0
     },
     {
       "id": "ramp-finishers",

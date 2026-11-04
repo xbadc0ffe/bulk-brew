@@ -125,6 +125,7 @@ export function buildOption(
       size: req.size,
       colors: plan.colors,
       style: plan.style,
+      ...(req.secondary ? { secondary: req.secondary } : {}),
       settings: req.settings,
       id: plan.key,
       createdAt: '',
@@ -180,7 +181,10 @@ export function addOption(
   const picked = normalizeColors(req.colors);
   const deckColors = result.deck.colors ?? [result.deck.color];
   const allColors = deckColors.length === picked.length;
-  const rank = (result.explanation.score?.total ?? 0) + (allColors ? cfg.allColorsBonus : 0);
+  const rank =
+    (result.explanation.score?.total ?? 0) +
+    (allColors ? cfg.allColorsBonus : 0) +
+    (result.explanation.secondary?.met ? cfg.secondaryBonus : 0);
   const option: DeckOption = { key, result, rank, allColors };
   const byRank = (a: DeckOption, b: DeckOption) =>
     b.rank - a.rank || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0);

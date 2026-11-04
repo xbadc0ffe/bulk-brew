@@ -170,6 +170,8 @@ export interface Deck {
   /** Every deck color, main first, when the deck has more than one. */
   colors?: Color[];
   archetype: string;
+  /** Secondary style id, when one was asked for (see BuildRequest.secondary). */
+  secondary?: string;
   /** Spells and nonbasic lands. */
   cards: DeckCard[];
   /** Basic land counts by color. */
@@ -200,6 +202,11 @@ export interface BuildRequest {
   colors: Color[];
   /** Preferred archetype id. Used when viable, otherwise the strongest viable one. */
   style?: string;
+  /**
+   * Secondary style, used only with a style: another archetype id, or
+   * "tribal:<Type>" for a creature type such as "tribal:Bird".
+   */
+  secondary?: string;
   settings: Settings;
   /** Deck id and timestamp come from the caller so the core stays free of clocks and randomness. */
   id?: string;
@@ -229,6 +236,8 @@ export interface DeckScore {
 /** Why the builder made the deck it made. Also the builder's debugging output. */
 export interface BuildExplanation {
   archetype: string;
+  /** The secondary style asked for, and whether the deck reached its minimums. */
+  secondary?: { id: string; label: string; met: boolean };
   /**
    * Spell count per mana value, index 0 through 7 (7 means seven or more).
    * Curve profiles cover 1 through 7-plus; zero-cost spells are compared
@@ -286,5 +295,14 @@ export interface ScanReport {
   /** Whether a deck of this size can be built at all. */
   possible: boolean;
   archetypes: ArchetypeReport[];
+  /** Creature types with at least a few members: members (changelings included) and type payoffs. */
+  tribes?: TribeReport[];
   notes: string[];
+}
+
+/** A creature type in the pool, for tribal secondary styles. */
+export interface TribeReport {
+  type: string;
+  members: number;
+  payoffs: number;
 }

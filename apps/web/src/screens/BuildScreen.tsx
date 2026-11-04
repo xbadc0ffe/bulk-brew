@@ -4,6 +4,8 @@ import {
   COLOR_LABELS,
   colorsLabel,
   RARITIES,
+  secondaryChoices,
+  secondaryLabel,
   type DeckSize,
   type ScanReport,
 } from '@bulk-brew/core';
@@ -188,7 +190,14 @@ function BuildForm() {
           />
           <h2 className={`${ui.sectionLabel} mt-2`}>Secondary style</h2>
           {flow.style ? (
-            <p className="text-[12px] text-fg-2">Secondary styles arrive with the next update.</p>
+            <StylePicker
+              label="Secondary style"
+              value={flow.secondary}
+              emptyLabel="None"
+              emptyDescription="Build around the primary style alone"
+              choices={secondaryStyleChoices(config, options.scans, flow.style)}
+              onChange={flow.setSecondary}
+            />
           ) : (
             <p className="text-[12px] text-fg-2">Pick a primary style first.</p>
           )}
@@ -247,6 +256,33 @@ function styleChoices(
   return out.sort((x, y) => (x.state === y.state ? 0 : x.state === 'viable' ? -1 : 1));
 }
 
+/** Secondary styles for the primary, with the best viability any color subset reaches. */
+function secondaryStyleChoices(
+  config: ReturnType<typeof useAppState>['config'],
+  scans: ReadonlyMap<string, ScanReport>,
+  primary: string,
+): StyleChoice[] {
+  const best = new Map<string, StyleChoice>();
+  for (const scan of scans.values()) {
+    for (const c of secondaryChoices(scan, config, primary)) {
+      const have = best.get(c.id);
+      if (have?.state === 'viable') continue;
+      if (c.state === 'viable' || !have) {
+        const description =
+          c.state === 'viable'
+            ? c.kind === 'tribal'
+              ? `More ${c.id.slice(7)} creatures and the cards that reward them`
+              : (config.archetypes.archetypes.find((a) => a.id === c.id)?.description ?? '')
+            : capitalize(c.note);
+        best.set(c.id, { id: c.id, label: c.label, description, state: c.state });
+      }
+    }
+  }
+  return [...best.values()].sort((x, y) =>
+    x.state === y.state ? 0 : x.state === 'viable' ? -1 : 1,
+  );
+}
+
 function StylePicker(props: {
   label: string;
   value: string | undefined;
@@ -260,8 +296,8 @@ function StylePicker(props: {
   const { config } = useAppState();
   // A picked style stays shown even when the current colors cannot build it.
   const current = choices.find((c) => c.id === value);
-  const picked = value ? config.archetypes.archetypes.find((a) => a.id === value) : undefined;
-  const shown = current?.label ?? (picked ? `${picked.label} (not available)` : emptyLabel);
+  const shown =
+    current?.label ?? (value ? `${secondaryLabel(config, value)} (not available)` : emptyLabel);
   if (disabled) {
     return (
       <button
