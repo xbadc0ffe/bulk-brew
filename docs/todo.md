@@ -50,6 +50,7 @@ Ranked. The current phase is at the top. Finished phases are removed, not struck
 - Eval: add a metric for decks that miss their own theme minimums, so a regression like the one fixed in local search shows up.
 - Deck options build on the main thread, one per tick; move to a Web Worker if phones stutter. The Analyze pane's worker (`bestDecks.worker.ts` with `poolPack`) is the model.
 - Mobile parity for the web-only changes of the owner review: column sorting, the Analyze split, multi-select removal, and the deck details expand.
+- Mobile parity for Settings export and restore by part (bulk list, decks, or both; JSON or TXT); phones still export and restore everything.
 - Mobile parity for the rebuilt Analyze pane (recommended decks from the worker, color pie, mana value chart, by-color tables); phones still show the per-color archetype table from `analysisRows`.
 - Tune `config/display-tags.json` after use; Blink and -1/-1 match few cards, Artifacts and Graveyard match many.
 

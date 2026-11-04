@@ -133,11 +133,11 @@ describe('poolStats', () => {
       byColor: { B: 2, W: 0 },
     });
     expect(stats.creatureTypes.map(row)).toEqual([
-      ['Human', { W: 4 }, 4],
-      ['Soldier', { W: 4 }, 4],
+      // The changeling counts under the types it prints.
+      ['Human', { W: 5 }, 5],
+      ['Soldier', { W: 5 }, 5],
       ['Elf', { W: 1, M: 2 }, 3],
     ]);
-    expect(stats.changelings).toBe(1);
     expect(stats.subtypes.map(row)).toEqual([['Equipment', { C: 3 }, 3]]);
   });
 

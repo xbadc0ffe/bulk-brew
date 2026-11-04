@@ -3,6 +3,7 @@ import { exportBackup, parseBackup, type DeckSize } from '@bulk-brew/core';
 import {
   APPEARANCE_MODES,
   applyBackup,
+  restoreQuestion,
   backupFilename,
   downloadText,
   phone,
@@ -56,14 +57,8 @@ export function SettingsScreen() {
   const restore = async (file: File) => {
     try {
       const backup = parseBackup(await readFileText(file));
-      const cards = Object.values(backup.pool.entries).reduce((n, e) => n + e.qty, 0);
       const when = backup.exportedAt.slice(0, 10);
-      if (
-        !window.confirm(
-          `Replace your bulk list, decks, and settings with the backup from ${when} (${cards} cards, ${backup.decks.length} decks)?`,
-        )
-      )
-        return;
+      if (!window.confirm(restoreQuestion(backup))) return;
       await applyBackup(backup, { kv, pool, decks, settings });
       // A build made from the old pool no longer fits.
       build.reset();

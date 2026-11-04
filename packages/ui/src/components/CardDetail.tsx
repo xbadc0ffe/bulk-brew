@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import type { BulkBrewConfig, CardIndex, CardRecord, PrintingHint } from '@bulk-brew/core';
-import { CardImage } from './CardImage.tsx';
+import { CardArt } from './CardImage.tsx';
 import { Stepper, type Variant } from './controls.tsx';
 import { ManaCost, SymbolText } from '../ManaCost.tsx';
 import { DISPLAY_TAGS } from '../data/config.ts';
@@ -177,10 +177,11 @@ export function CardDetail(props: CardDetailProps) {
       )}
 
       {showArt && (
-        <CardImage
+        <CardArt
           card={card}
           printing={printing}
           size="normal"
+          variant={variant}
           className={`mx-auto w-full rounded-[12px] ${phone ? 'max-w-xs' : 'max-w-[256px]'}`}
         />
       )}

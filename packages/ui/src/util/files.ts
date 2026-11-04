@@ -21,3 +21,16 @@ export function readFileText(file: File): Promise<string> {
 export function backupFilename(now: Date): string {
   return `bulk-brew-backup-${now.toISOString().slice(0, 10)}.json`;
 }
+
+/** Name for a Settings export: the bulk list, the decks, or both (a backup). */
+export function exportFilename(now: Date, what: 'list' | 'decks' | 'both', ext: 'json' | 'txt') {
+  const name =
+    what === 'list'
+      ? 'bulk-list'
+      : what === 'decks'
+        ? 'decks'
+        : ext === 'json'
+          ? 'backup'
+          : 'bulk-list-and-decks';
+  return `bulk-brew-${name}-${now.toISOString().slice(0, 10)}.${ext}`;
+}

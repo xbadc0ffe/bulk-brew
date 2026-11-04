@@ -1,13 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent, type ReactNode } from 'react';
-import { exportBackup, poolToDecklist, removeFromPool, type PrintingHint } from '@bulk-brew/core';
+import { removeFromPool, type PrintingHint } from '@bulk-brew/core';
 import {
-  backupFilename,
   CardDetail,
   CardImage,
   COLOR_KEYS,
   ConfirmDialog,
   DISPLAY_TAGS,
-  downloadText,
   Dropdown,
   EMPTY_FILTERS,
   filterCount,
@@ -513,7 +511,7 @@ export function PoolScreen() {
 }
 
 function BulkList() {
-  const { index, pool, settings, detail, config, decks, build } = useAppState();
+  const { index, pool, settings, detail, config, decks } = useAppState();
   const nav = useNav();
   const {
     poolFilters: filters,
@@ -526,7 +524,7 @@ function BulkList() {
   const showArt = settings.settings.showArt;
   const [selecting, setSelecting] = useState(false);
   const [picked, setPicked] = useState<Set<string>>(new Set());
-  const [confirm, setConfirm] = useState<'remove' | 'clear'>();
+  const [confirm, setConfirm] = useState<'remove'>();
   const searchRef = useRef<HTMLInputElement>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const tbodyRef = useRef<HTMLTableSectionElement>(null);
@@ -628,7 +626,6 @@ function BulkList() {
   const visible = rows.slice(win.start, win.end);
   // Roving focus: one row is in the tab order, the selected one when it is rendered.
   const focusId = visible.some((r) => r.card.id === selectedId) ? selectedId : visible[0]?.card.id;
-  const today = new Date().toISOString().slice(0, 10);
   // Picks hidden by the filters, or already removed, do not count and are not removed.
   const pickedRows = rows.filter((r) => picked.has(r.card.id));
   const pickedCopies = pickedRows.reduce((n, r) => n + r.entry.qty, 0);
@@ -638,22 +635,6 @@ function BulkList() {
     // Clicking the open card again closes the detail.
     if (cardId === selectedId) detail.close();
     else detail.open(cardId, printing);
-  };
-
-  const exportBackupNow = () => {
-    const now = new Date();
-    downloadText(
-      backupFilename(now),
-      exportBackup(
-        {
-          pool: pool.pool,
-          decks: decks.decks,
-          settings: settings.settings,
-          dataVersion: index.dataVersion,
-        },
-        now.toISOString(),
-      ),
-    );
   };
 
   const removePicked = () => {
@@ -1000,31 +981,10 @@ function BulkList() {
             )}
           </div>
 
-          <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-6 py-2 text-[12px] text-fg-2">
-            <span>
-              {filtered
-                ? `Showing ${fmt(rows.length)} of ${fmt(summary.distinct)} unique`
-                : `Showing all ${fmt(summary.distinct)} unique`}
-            </span>
-            <span className="flex items-center gap-1.5">
-              <button
-                type="button"
-                className="hover:text-ink"
-                onClick={() =>
-                  downloadText(`bulk-brew-list-${today}.txt`, poolToDecklist(pool.pool, index))
-                }
-              >
-                Export list
-              </button>
-              ·
-              <button type="button" className="hover:text-ink" onClick={exportBackupNow}>
-                Backup
-              </button>
-              ·
-              <button type="button" className="hover:text-ink" onClick={() => setConfirm('clear')}>
-                Clear list
-              </button>
-            </span>
+          <footer className="border-t border-line px-6 py-2 text-[12px] text-fg-2">
+            {filtered
+              ? `Showing ${fmt(rows.length)} of ${fmt(summary.distinct)} unique`
+              : `Showing all ${fmt(summary.distinct)} unique`}
           </footer>
         </section>
 
@@ -1074,19 +1034,6 @@ function BulkList() {
         message={`This removes all ${copies(pickedCopies)} of the ${plural(pickedRows.length, 'selected card')} from your bulk list.`}
         confirmLabel="Remove"
         onConfirm={removePicked}
-        onCancel={() => setConfirm(undefined)}
-      />
-      <ConfirmDialog
-        open={confirm === 'clear'}
-        title="Clear your bulk list?"
-        message="This removes every card from your bulk list. Saved decks stay."
-        confirmLabel="Clear list"
-        onConfirm={() => {
-          detail.close();
-          pool.actions.clear();
-          build.reset();
-          setConfirm(undefined);
-        }}
         onCancel={() => setConfirm(undefined)}
       />
     </div>

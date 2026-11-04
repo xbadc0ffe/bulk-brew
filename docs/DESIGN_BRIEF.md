@@ -47,8 +47,8 @@ Both apps support light and dark mode. No external fonts, CDNs, or trackers; eve
 - A list (or grid when art is on) of cards with quantity, name, mana cost, type, and color. Thousands of rows are normal, so the list must be virtualized and searchable.
 - Filters: color, type, mana value, text search. Sort by name, mana value, color, quantity.
 - Card detail: image when art is on, oracle text, type line, tags in plain language ("removal", "makes tokens"). Edit quantity, remove.
-- Actions: clear pool (confirm), export pool as text, backup.
-- Analyze (web): a blue button with a soft glow opens a pane under the list. Recommended decks for Commander, 60, 40, and 20 (five each, name and colors only, found by a background search that keeps going while the pane is open, with a max colors per deck choice); picking one opens it on the Build page. Then a color pie with a legend (and a closed disclosure counting multicolor cards in each of their colors), spells by color and mana value with color rows that chart picked colors as bars, and shaded by-color tables for card types, roles, creature types, and subtypes.
+- Actions: Select to remove several cards. Export, backup, and clearing live on Settings.
+- Analyze (web): a blue button with a soft glow opens a pane under the list. Recommended decks for Commander, 60, 40, and 20 (five each, name and colors only, found by a background search that keeps going while the pane is open, with a max colors per deck choice under the heading); picking one opens it on the Build page. Then a color pie with a legend and a second pie counting multicolor cards in each of their colors, spells by color and mana value with color rows that chart picked colors as bars, and shaded by-color tables for card types, roles, creature types, and subtypes.
 - Empty state that leads to Import.
 
 ### Build
@@ -86,7 +86,7 @@ The same view serves a fresh build and a saved deck.
 
 - Include Un-set cards. Show card art. Copy limits and basics are set on Build. Labels are bold; the detail line under them is not. Switches are large without making rows taller.
 - Card data: version date, and on mobile a "check for card updates" action with progress and result.
-- Your data: export everything (pool, decks, settings) as a file; restore from a file; reset settings to defaults; a red Clear all data (confirm).
+- Your data: Export asks Mass export (Bulk list, Decks, Both, Cancel), then JSON or TXT; Restore from backup asks Bulk list, Decks, or Both, then the file; reset settings to defaults; a red Clear all data (confirm).
 - About: app version, the Fan Content and Scryfall notices from `ATTRIBUTION.md`, license, link to the repo.
 
 ## Flows
@@ -132,11 +132,11 @@ Image URLs come from `imageUrl()` and `printingImageUrl()` in `packages/core/src
 A plain, functional interface already implements every screen above, so the design pass restyles working code rather than inventing flows. In both apps:
 
 - Import: paste or choose a file; decklists and ManaBox, Moxfield, and Deckbox CSV exports are detected automatically; a resolution report with suggestions.
-- Pool: color filters, type, subtype, mana value, and tag filters, search, sort (name, mana value, color, quantity), header counts, quantity buttons, export, clear. Tags show as bubbles; the web table only renders rows near the viewport for large pools.
+- Pool: color filters, type, subtype, mana value, and tag filters, search, sort (name, mana value, color, quantity), header counts, quantity buttons, Select to remove cards. Card art of a two-sided card has a turn-over button beside it. Tags show as bubbles; the web table only renders rows near the viewport for large pools.
 - Build (desktop): settings beside ranked deck options; an option opens the deck view with Accept, Back, and Export. Phones: size, colors, archetype list, Build, then the deck view.
 - Deck view: cards grouped by type, mana symbols, optional "why each card is here", curve bars, land reasoning, roles, synergies, notes.
 - Decks: list, open, rename by clicking the name, export, Remove (Delete or Disassemble), pair two packets with Copy.
-- Settings: Un-sets, card art, appearance, backup export and restore, reset settings, clear all data, card data version, About with the attribution notices.
+- Settings: Un-sets, card art, appearance, export (bulk list, decks, or both, as JSON or TXT) and restore (bulk list, decks, or both), reset settings, clear all data, card data version, About with the attribution notices.
 - Card detail: opened from any card row. Web shows a right-hand panel; phones show a full-screen sheet; tablets show a side panel. With art on, lists show small thumbnails and the detail shows the whole card.
 - Mobile shell: bottom tab bar on phones; from 768 px a side rail, and Build shows the form beside the result.
 - Web app: installable, works offline after the first load through a service worker.

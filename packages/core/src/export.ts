@@ -2,6 +2,7 @@
 
 import type { BulkBrewConfig } from './config.ts';
 import type { CardIndex } from './pack.ts';
+import { poolToDecklist } from './pool.ts';
 import {
   COLOR_LABELS,
   COLORS,
@@ -10,6 +11,7 @@ import {
   type Color,
   type Deck,
   type DeckCard,
+  type Pool,
 } from './types.ts';
 
 const GROUPS: { type: CardType; label: string }[] = [
@@ -82,6 +84,25 @@ export function deckToDecklist(deck: Deck, index: CardIndex, config?: BulkBrewCo
     out.push('', `// ${g} (${counts.get(g) ?? 0})`, ...lines);
   }
   return out.join('\n') + '\n';
+}
+
+/**
+ * The bulk list and decks as plain text: the bulk list first under its own
+ * heading, then each deck as its decklist. Headings are comment lines, so
+ * the text imports back as a card list.
+ */
+export function collectionText(
+  parts: { pool?: Pool; decks?: readonly Deck[] },
+  index: CardIndex,
+  config?: BulkBrewConfig,
+): string {
+  const out: string[] = [];
+  if (parts.pool) {
+    const cards = Object.values(parts.pool.entries).reduce((n, e) => n + e.qty, 0);
+    out.push(`// Bulk list (${cards} cards)\n${poolToDecklist(parts.pool, index)}`);
+  }
+  for (const deck of parts.decks ?? []) out.push(deckToDecklist(deck, index, config).trimEnd());
+  return out.join('\n\n') + '\n';
 }
 
 const DEFAULT_BASICS = {

@@ -1,5 +1,6 @@
-// One-file backup of everything the app stores: pool, decks, settings.
-// The core has no clock, so the caller passes the export time.
+// One-file backup of what the app stores: pool, decks, and settings, or any
+// of them (a file can hold just the bulk list or just the decks). The core
+// has no clock, so the caller passes the export time.
 
 import { COLORS, RARITIES, type Deck, type Pool, type Settings } from './types.ts';
 
@@ -11,15 +12,16 @@ export interface Backup {
   exportedAt: string;
   /** Data pack version the pool and decks were resolved against. */
   dataVersion: string;
-  pool: Pool;
-  decks: Deck[];
-  settings: Settings;
+  /** Each part is there when it was exported; a full backup has all three. */
+  pool?: Pool;
+  decks?: Deck[];
+  settings?: Settings;
 }
 
 export interface BackupParts {
-  pool: Pool;
-  decks: Deck[];
-  settings: Settings;
+  pool?: Pool;
+  decks?: Deck[];
+  settings?: Settings;
   dataVersion: string;
 }
 
@@ -29,9 +31,9 @@ export function exportBackup(parts: BackupParts, exportedAt: string): string {
     app: 'bulk-brew',
     exportedAt,
     dataVersion: parts.dataVersion,
-    pool: parts.pool,
-    decks: parts.decks,
-    settings: parts.settings,
+    ...(parts.pool ? { pool: parts.pool } : {}),
+    ...(parts.decks ? { decks: parts.decks } : {}),
+    ...(parts.settings ? { settings: parts.settings } : {}),
   };
   return JSON.stringify(backup, null, 2);
 }
@@ -67,18 +69,21 @@ export function parseBackup(json: string): Backup {
   if (data.schema !== BACKUP_SCHEMA) fail(`schema ${String(data.schema)} is not supported`);
   if (data.app !== 'bulk-brew') fail('it was made by a different app');
   if (typeof data.exportedAt !== 'string') fail('missing export time');
+  const { pool, decks, settings } = data;
+  if (pool === undefined && decks === undefined && settings === undefined)
+    fail('it holds no bulk list, decks, or settings');
 
-  const pool = data.pool;
-  if (!isRecord(pool) || !isRecord(pool.entries)) fail('pool is missing');
-  for (const [id, entry] of Object.entries(pool.entries)) {
-    if (!isRecord(entry) || entry.cardId !== id) fail(`pool entry ${id} is malformed`);
-    if (!isCount(entry.qty)) fail(`pool entry ${id} has no quantity`);
-    checkPrinting(entry.printing, `pool entry ${id}`);
+  if (pool !== undefined) {
+    if (!isRecord(pool) || !isRecord(pool.entries)) fail('the bulk list is malformed');
+    for (const [id, entry] of Object.entries(pool.entries)) {
+      if (!isRecord(entry) || entry.cardId !== id) fail(`pool entry ${id} is malformed`);
+      if (!isCount(entry.qty)) fail(`pool entry ${id} has no quantity`);
+      checkPrinting(entry.printing, `pool entry ${id}`);
+    }
   }
 
-  const decks = data.decks;
-  if (!Array.isArray(decks)) fail('decks are missing');
-  for (const deck of decks) {
+  if (decks !== undefined && !Array.isArray(decks)) fail('the deck list is malformed');
+  for (const deck of decks ?? []) {
     if (!isRecord(deck) || typeof deck.id !== 'string' || typeof deck.name !== 'string')
       fail('a deck has no id or name');
     const where = `deck "${deck.name}"`;
@@ -103,14 +108,15 @@ export function parseBackup(json: string): Backup {
     }
   }
 
-  const settings = data.settings;
-  if (!isRecord(settings) || !isRecord(settings.maxCopies)) fail('settings are missing');
-  if ('rarities' in settings) {
-    const known = Array.isArray(settings.rarities)
-      ? RARITIES.filter((r) => (settings.rarities as unknown[]).includes(r))
-      : [];
-    if (known.length > 0) settings.rarities = known;
-    else delete settings.rarities;
+  if (settings !== undefined) {
+    if (!isRecord(settings) || !isRecord(settings.maxCopies)) fail('the settings are malformed');
+    if ('rarities' in settings) {
+      const known = Array.isArray(settings.rarities)
+        ? RARITIES.filter((r) => (settings.rarities as unknown[]).includes(r))
+        : [];
+      if (known.length > 0) settings.rarities = known;
+      else delete settings.rarities;
+    }
   }
 
   return {
@@ -118,11 +124,15 @@ export function parseBackup(json: string): Backup {
     app: 'bulk-brew',
     exportedAt: data.exportedAt,
     dataVersion: typeof data.dataVersion === 'string' ? data.dataVersion : '',
-    pool: {
-      entries: pool.entries as Pool['entries'],
-      updatedAt: typeof pool.updatedAt === 'string' ? pool.updatedAt : data.exportedAt,
-    },
-    decks: decks as Deck[],
-    settings: settings as unknown as Settings,
+    ...(isRecord(pool) && isRecord(pool.entries)
+      ? {
+          pool: {
+            entries: pool.entries as Pool['entries'],
+            updatedAt: typeof pool.updatedAt === 'string' ? pool.updatedAt : data.exportedAt,
+          },
+        }
+      : {}),
+    ...(Array.isArray(decks) ? { decks: decks as Deck[] } : {}),
+    ...(isRecord(settings) ? { settings: settings as unknown as Settings } : {}),
   };
 }

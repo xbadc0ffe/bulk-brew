@@ -8,6 +8,9 @@ import {
   removeFromPool,
   setPoolQty,
 } from '../src/pool.ts';
+import { parseDecklist } from '../src/decklist.ts';
+import { collectionText } from '../src/export.ts';
+import type { Deck } from '../src/types.ts';
 import { PACK } from './fixtures.ts';
 
 const index = new CardIndex(PACK);
@@ -58,5 +61,33 @@ describe('pool operations', () => {
       T,
     );
     expect(poolToDecklist(pool, index)).toBe('3 Forest\n4 Lightning Bolt (M10) 146');
+  });
+
+  it('exports the bulk list and decks as text that reads back as a card list', () => {
+    const pool = addToPool(emptyPool(T), [{ cardId: 'bolt', qty: 4 }], T);
+    const deck: Deck = {
+      id: 'd',
+      name: 'Red Burn 20',
+      size: 20,
+      color: 'R',
+      archetype: 'aggro',
+      cards: [{ cardId: 'bolt', qty: 2 }],
+      basics: { R: 8 },
+      committed: false,
+      createdAt: T,
+      configVersion: 'x',
+      dataVersion: 'x',
+    };
+    const text = collectionText({ pool, decks: [deck] }, index);
+    expect(text.startsWith('// Bulk list (4 cards)\n4 Lightning Bolt\n\n// Red Burn 20')).toBe(
+      true,
+    );
+    // Headings are comments, so every other line is a card.
+    expect(parseDecklist(text).lines.map((l) => [l.qty, l.name])).toEqual([
+      [4, 'Lightning Bolt'],
+      [2, 'Lightning Bolt'],
+      [8, 'Mountain'],
+    ]);
+    expect(collectionText({ decks: [] }, index)).toBe('\n');
   });
 });

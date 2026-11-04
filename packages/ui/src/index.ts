@@ -68,7 +68,7 @@ export {
 } from './data/useAppearance.ts';
 export { COLOR_NAMES, COLOR_ORDER } from './colors.ts';
 export * from './attribution.ts';
-export { downloadText, readFileText, backupFilename } from './util/files.ts';
+export { downloadText, readFileText, backupFilename, exportFilename } from './util/files.ts';
 export { openKv, type KeyValueStore } from './storage/kv.ts';
 export { CONFIG, CONFIG_PROBLEMS, DEFAULT_SETTINGS, DISPLAY_TAGS } from './data/config.ts';
 export { usePack, type PackState } from './data/usePack.ts';
@@ -92,7 +92,7 @@ export { useMediaQuery } from './data/useMediaQuery.ts';
 export { useStatus } from './data/useStatus.ts';
 export { poolShortfall, shortfallMessage } from './data/poolCheck.ts';
 export { useDeckActions, disassembleQuestion, type DeckActions } from './data/useDeckActions.ts';
-export { applyBackup } from './data/backup.ts';
+export { applyBackup, restoreQuestion, type RestoreParts } from './data/backup.ts';
 export {
   poolRows,
   poolSummary,
@@ -152,7 +152,7 @@ export {
   type DeckGroup,
   type DeckRow,
 } from './data/deckGroups.ts';
-export { CardImage, type CardImageProps } from './components/CardImage.tsx';
+export { CardArt, CardImage, type CardImageProps } from './components/CardImage.tsx';
 export { TextCard } from './components/TextCard.tsx';
 export { CardDetail, type CardDetailProps } from './components/CardDetail.tsx';
 export { ErrorBoundary } from './components/ErrorBoundary.tsx';

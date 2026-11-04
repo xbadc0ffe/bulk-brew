@@ -44,7 +44,7 @@ const SIZE_LINES: Record<DeckSize, string> = {
   40: 'Draft-style limited',
   20: 'Jumpstart packet',
 };
-/** Creature types and subtypes listed before the rest are summed up. */
+/** Creature types and subtypes listed before a note says there are more. */
 const ROWS_SHOWN = 12;
 const LIST = new Intl.ListFormat('en', { type: 'conjunction' });
 
@@ -93,17 +93,12 @@ export function AnalysisPanel() {
       <div className="grid grid-cols-[repeat(auto-fit,minmax(min(460px,100%),1fr))] gap-4">
         <Panel title="Colors">
           <ColorPie counts={stats.colors} keys={STAT_COLORS} />
-          <details className="group border-t border-line pt-3">
-            <summary className="flex cursor-pointer list-none items-center gap-1.5 text-[12.5px] font-semibold text-fg-1 hover:text-ink [&::-webkit-details-marker]:hidden">
-              <span aria-hidden className="inline-block transition-transform group-open:rotate-90">
-                ›
-              </span>
+          <div className="flex flex-col gap-3 border-t border-line pt-3">
+            <h4 className="text-[12.5px] font-semibold text-fg-1">
               Multicolor cards in each of their colors
-            </summary>
-            <div className="pt-3">
-              <ColorPie counts={stats.eachColor} keys={STAT_COLORS} />
-            </div>
-          </details>
+            </h4>
+            <ColorPie counts={stats.eachColor} keys={STAT_COLORS} />
+          </div>
         </Panel>
         <ManaValuePanel stats={stats} />
         <Panel title="Card types">
@@ -125,6 +120,7 @@ export function AnalysisPanel() {
           ) : (
             <p className={ui.note}>No cards fill a role yet.</p>
           )}
+          {stats.roles.length > 0 && <Footnote>* not all roles presented here</Footnote>}
         </Panel>
         <Panel title="Creature types">
           <LongTable
@@ -133,16 +129,9 @@ export function AnalysisPanel() {
             columns={columns(spellKeys)}
             rows={stats.creatureTypes}
             toRows={byColor(spellKeys)}
-            what="types"
+            more="* not all creature types presented"
             empty="No creatures yet."
           />
-          {stats.changelings > 0 && (
-            <p className="text-[12px] text-fg-2">
-              {stats.changelings === 1
-                ? 'Plus 1 changeling, which counts as every type.'
-                : `Plus ${fmt(stats.changelings)} changelings, which count as every type.`}
-            </p>
-          )}
         </Panel>
         <Panel title="Subtypes">
           <LongTable
@@ -151,7 +140,7 @@ export function AnalysisPanel() {
             columns={columns(spellKeys)}
             rows={stats.subtypes}
             toRows={byColor(spellKeys)}
-            what="subtypes"
+            more="* not all subtypes presented"
             empty="No Auras, Equipment, Vehicles, or other subtypes."
           />
         </Panel>
@@ -188,19 +177,24 @@ function ColorHead({ id }: { id: ColorKey }) {
   return <Pip symbol={id} size={15} label={COLOR_KEY_LABELS[id]} />;
 }
 
-/** The first rows of a long by-color list, the rest summed up in one line. */
+/** A small note under a table. */
+function Footnote({ children }: { children: ReactNode }) {
+  return <p className="text-[11.5px] text-fg-2">{children}</p>;
+}
+
+/** The first rows of a long by-color list, with a note when there are more. */
 function LongTable(props: {
   caption: string;
   rowHead: string;
   columns: HeatColumn[];
   rows: ColorRow[];
   toRows(rows: ColorRow[]): HeatRow[];
-  what: string;
+  /** The note shown when rows are left out. */
+  more: string;
   empty: string;
 }) {
-  const { caption, rowHead, columns, rows, toRows, what, empty } = props;
+  const { caption, rowHead, columns, rows, toRows, more, empty } = props;
   if (rows.length === 0) return <p className={ui.note}>{empty}</p>;
-  const rest = rows.slice(ROWS_SHOWN);
   return (
     <>
       <HeatTable
@@ -209,12 +203,7 @@ function LongTable(props: {
         columns={columns}
         rows={toRows(rows.slice(0, ROWS_SHOWN))}
       />
-      {rest.length > 0 && (
-        <p className="text-[12px] text-fg-2">
-          And {fmt(rest.length)} more {what}, {fmt(rest.reduce((n, r) => n + r.total, 0))} copies in
-          all.
-        </p>
-      )}
+      {rows.length > ROWS_SHOWN && <Footnote>{more}</Footnote>}
     </>
   );
 }
@@ -273,7 +262,7 @@ function RecommendedDecks() {
   const { sizes, built, working, error } = bestDecks;
   return (
     <section aria-labelledby="best-decks-title" className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+      <div className="flex flex-col items-start gap-2">
         <h3 id="best-decks-title" className="flex items-center gap-2 text-[14px] font-semibold">
           Recommended decks
           {working && <Spinner />}

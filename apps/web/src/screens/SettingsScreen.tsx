@@ -1,10 +1,12 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { exportBackup, parseBackup } from '@bulk-brew/core';
+import { collectionText, exportBackup, parseBackup } from '@bulk-brew/core';
 import {
   APPEARANCE_MODES,
   applyBackup,
-  backupFilename,
+  ChoiceDialog,
+  restoreQuestion,
   downloadText,
+  exportFilename,
   readFileText,
   Segmented,
   THEME_COLORS,
@@ -23,6 +25,14 @@ const SWATCH: Record<ThemeColor, string> = {
   R: 'oklch(0.72 0.06 25)',
   G: 'oklch(0.68 0.06 150)',
 };
+
+/** What an export or restore covers. */
+type Part = 'list' | 'decks' | 'both';
+
+const PART_LABELS: Record<Part, string> = { list: 'Bulk list', decks: 'Decks', both: 'Both' };
+
+const plural = (n: number, word: string) =>
+  `${n.toLocaleString('en-US')} ${word}${n === 1 ? '' : 's'}`;
 
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -57,38 +67,84 @@ function Row({
 }
 
 export function SettingsScreen() {
-  const { kv, index, settings, pool, decks, appearance, build } = useAppState();
+  const { kv, index, config, settings, pool, decks, appearance, build } = useAppState();
   const s = settings.settings;
   // Controls wait for the stored settings so an early edit cannot be overwritten.
   const ready = settings.loaded && pool.loaded && decks.loaded;
   const [message, setMessage] = useState<string>();
   const restoreInput = useRef<HTMLInputElement>(null);
+  /** The open export question: what to export, then which format. */
+  const [exporting, setExporting] = useState<'what' | Part>();
+  const [restoreAsk, setRestoreAsk] = useState(false);
+  /** What the file about to be picked should restore. */
+  const [restoring, setRestoring] = useState<Part>('both');
 
-  const exportNow = () => {
+  const pickRestore = (what: Part) => {
+    setRestoreAsk(false);
+    setRestoring(what);
+    // Still inside the click, so the browser lets the file picker open.
+    restoreInput.current?.click();
+  };
+
+  const exportNow = (what: Part, format: 'json' | 'txt') => {
+    setExporting(undefined);
     const now = new Date();
-    const json = exportBackup(
-      { pool: pool.pool, decks: decks.decks, settings: s, dataVersion: index?.version ?? '' },
-      now.toISOString(),
+    const withList = what !== 'decks';
+    const withDecks = what !== 'list';
+    if (format === 'json') {
+      // Both is a full backup, settings included, as before.
+      const json = exportBackup(
+        {
+          ...(withList ? { pool: pool.pool } : {}),
+          ...(withDecks ? { decks: decks.decks } : {}),
+          ...(what === 'both' ? { settings: s } : {}),
+          dataVersion: index?.version ?? '',
+        },
+        now.toISOString(),
+      );
+      downloadText(exportFilename(now, what, 'json'), json);
+    } else {
+      if (!index) {
+        setMessage('The card data is still loading. Try the text export again in a moment.');
+        return;
+      }
+      const text = collectionText(
+        {
+          ...(withList ? { pool: pool.pool } : {}),
+          ...(withDecks ? { decks: decks.decks } : {}),
+        },
+        index,
+        config,
+      );
+      downloadText(exportFilename(now, what, 'txt'), text);
+    }
+    setMessage(
+      `${what === 'both' ? 'Bulk list and decks' : PART_LABELS[what]} downloaded as ${format.toUpperCase()}.`,
     );
-    downloadText(backupFilename(now), json);
-    setMessage('Backup downloaded.');
   };
 
   const restore = async (file: File) => {
+    const what = restoring;
     try {
       const backup = parseBackup(await readFileText(file));
-      const cards = Object.values(backup.pool.entries).reduce((n, e) => n + e.qty, 0);
       const when = backup.exportedAt.slice(0, 10);
-      if (
-        !window.confirm(
-          `Replace your bulk list, decks, and settings with the backup from ${when} (${cards} cards, ${backup.decks.length} decks)?`,
-        )
-      )
+      const wantList = what !== 'decks';
+      const wantDecks = what !== 'list';
+      if ((wantList && !backup.pool) || (wantDecks && !backup.decks)) {
+        const has = backup.pool ? 'a bulk list' : backup.decks ? 'decks' : 'settings';
+        setMessage(
+          `That file holds only ${has}, so there is no ${wantList && !backup.pool ? 'bulk list' : 'deck list'} to restore.`,
+        );
         return;
-      await applyBackup(backup, { kv, pool, decks, settings });
-      // A build made from the old pool no longer fits.
+      }
+      const parts = { pool: wantList, decks: wantDecks, settings: what === 'both' };
+      if (!window.confirm(restoreQuestion(backup, parts))) return;
+      await applyBackup(backup, { kv, pool, decks, settings }, parts);
+      // A build or a saved-deck note from before the restore no longer fits.
       build.reset();
-      setMessage(`Restored the backup from ${when}.`);
+      setMessage(
+        `Restored ${what === 'both' ? 'the backup' : PART_LABELS[what].toLowerCase()} from ${when}.`,
+      );
     } catch (err) {
       setMessage(`Restore failed: ${err instanceof Error ? err.message : String(err)}`);
     }
@@ -163,19 +219,24 @@ export function SettingsScreen() {
 
         <div className="flex flex-col gap-5">
           <Group title="Your data">
-            <Row label="Export backup" hint="Bulk list, decks, and settings as one file">
-              <button type="button" className={ui.small} disabled={!ready} onClick={exportNow}>
-                Export
-              </button>
-            </Row>
-            <Row label="Restore from backup" hint="Replaces your bulk list, decks, and settings">
+            <Row label="Export" hint="Your bulk list, decks, or both, as JSON or text">
               <button
                 type="button"
                 className={ui.small}
                 disabled={!ready}
-                onClick={() => restoreInput.current?.click()}
+                onClick={() => setExporting('what')}
               >
-                Choose file
+                Export
+              </button>
+            </Row>
+            <Row label="Restore from backup" hint="Replaces your bulk list, decks, or both">
+              <button
+                type="button"
+                className={ui.small}
+                disabled={!ready}
+                onClick={() => setRestoreAsk(true)}
+              >
+                Restore
               </button>
               <input
                 ref={restoreInput}
@@ -217,6 +278,79 @@ export function SettingsScreen() {
           </p>
         </div>
       </div>
+
+      <ChoiceDialog
+        open={exporting === 'what'}
+        title="Mass export"
+        message="What do you want to export?"
+        choices={[
+          ...(['list', 'decks', 'both'] as const).map((p) => ({
+            label: PART_LABELS[p],
+            detail:
+              p === 'list'
+                ? plural(
+                    Object.values(pool.pool.entries).reduce((n, e) => n + e.qty, 0),
+                    'card',
+                  )
+                : p === 'decks'
+                  ? plural(decks.decks.length, 'saved deck')
+                  : 'Bulk list and decks in one file',
+            tone: 'go-soft' as const,
+            onSelect: () => setExporting(p),
+          })),
+          { label: 'Cancel', tone: 'stop-soft', onSelect: () => setExporting(undefined) },
+        ]}
+        onCancel={() => setExporting(undefined)}
+      />
+      <ChoiceDialog
+        open={exporting !== undefined && exporting !== 'what'}
+        title="Export as"
+        message="Which kind of file?"
+        choices={[
+          {
+            label: 'JSON',
+            detail: 'Restore it later from Settings',
+            tone: 'go-soft',
+            onSelect: () => exportNow(exporting as Part, 'json'),
+          },
+          {
+            label: 'TXT',
+            detail: 'A card list to read, share, or import',
+            tone: 'go-soft',
+            onSelect: () => exportNow(exporting as Part, 'txt'),
+          },
+          { label: 'Cancel', tone: 'stop-soft', onSelect: () => setExporting(undefined) },
+        ]}
+        onCancel={() => setExporting(undefined)}
+      />
+      <ChoiceDialog
+        open={restoreAsk}
+        title="Restore from backup"
+        message="What do you want to restore? You pick the backup file next."
+        choices={[
+          {
+            label: PART_LABELS.list,
+            detail: 'Replaces your bulk list; decks stay',
+            tone: 'go-soft',
+            onSelect: () => pickRestore('list'),
+          },
+          {
+            label: PART_LABELS.decks,
+            detail: 'Replaces your decks; the bulk list stays',
+            tone: 'go-soft',
+            onSelect: () => pickRestore('decks'),
+          },
+          {
+            label: PART_LABELS.both,
+            detail: 'Replaces both, and your settings if the file has them',
+            tone: 'go-soft',
+            onSelect: () => pickRestore('both'),
+          },
+          { label: 'Cancel', tone: 'stop-soft', onSelect: () => setRestoreAsk(false) },
+        ]}
+        focus={3}
+        onCancel={() => setRestoreAsk(false)}
+      />
     </div>
   );
 }

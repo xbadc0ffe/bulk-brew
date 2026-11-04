@@ -38,9 +38,8 @@ export interface PoolStats {
   types: ColorRow[];
   /** The builder's roles, in config order; roles no card fills are left out. */
   roles: ColorRow[];
-  /** Creature types, most copies first. Changelings are counted apart. */
+  /** Creature types as printed, most copies first. */
   creatureTypes: ColorRow[];
-  changelings: number;
   /** Subtypes of other spells and permanents, such as Aura, Equipment, and Vehicle, most first. */
   subtypes: ColorRow[];
 }
@@ -93,7 +92,6 @@ export function poolStats(pool: Pool, index: CardIndex, config: BulkBrewConfig):
   const roles = new Tally();
   const tribes = new Tally();
   const subtypes = new Tally();
-  let changelings = 0;
 
   for (const entry of Object.values(pool.entries)) {
     const card = index.get(entry.cardId);
@@ -109,8 +107,7 @@ export function poolStats(pool: Pool, index: CardIndex, config: BulkBrewConfig):
 
     curve[key][Math.min(6, Math.max(0, Math.floor(card.mv)))]! += n;
     for (const id of factsFor(index, config, card).roles) roles.add(id, key, n);
-    if (card.keywords.includes('Changeling')) changelings += n;
-    else for (const t of creatureTypes(card)) tribes.add(t, key, n);
+    for (const t of creatureTypes(card)) tribes.add(t, key, n);
     for (const s of otherSubtypesOf(card)) subtypes.add(s, key, n);
   }
 
@@ -127,7 +124,6 @@ export function poolStats(pool: Pool, index: CardIndex, config: BulkBrewConfig):
     types: TYPE_GROUPS.flatMap((g) => types.get(g) ?? []),
     roles: roleRows,
     creatureTypes: tribes.byTotal(),
-    changelings,
     subtypes: subtypes.byTotal(),
   };
 }

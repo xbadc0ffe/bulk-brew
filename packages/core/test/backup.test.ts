@@ -47,9 +47,24 @@ describe('backup', () => {
     expect(back.dataVersion).toBe('2026-01-01');
   });
 
+  it('exports and reads back any of the parts alone', () => {
+    const pool = addToPool(emptyPool(T), [{ cardId: 'bolt', qty: 4 }], T);
+    const onlyPool = parseBackup(exportBackup({ pool, dataVersion: 'v' }, T));
+    expect(onlyPool.pool).toEqual(pool);
+    expect('decks' in onlyPool || 'settings' in onlyPool).toBe(false);
+    const onlyDecks = parseBackup(exportBackup({ decks: [deck], dataVersion: 'v' }, T));
+    expect(onlyDecks.decks).toEqual([deck]);
+    expect('pool' in onlyDecks).toBe(false);
+    // A deck list may be empty; that still counts as the decks part.
+    expect(parseBackup(exportBackup({ decks: [], dataVersion: 'v' }, T)).decks).toEqual([]);
+    expect(() =>
+      parseBackup(JSON.stringify({ schema: 1, app: 'bulk-brew', exportedAt: T })),
+    ).toThrow(/no bulk list, decks, or settings/);
+  });
+
   it('keeps only known rarities and drops an empty or unusable list', () => {
     const parse = (rarities: unknown) =>
-      parseBackup(JSON.stringify({ ...base, settings: { maxCopies: {}, rarities } })).settings;
+      parseBackup(JSON.stringify({ ...base, settings: { maxCopies: {}, rarities } })).settings!;
     expect(parse(['rare', 'bogus', 'common']).rarities).toEqual(['common', 'rare']);
     expect('rarities' in parse([])).toBe(false);
     expect('rarities' in parse('rare')).toBe(false);
@@ -74,8 +89,12 @@ describe('backup', () => {
       parseBackup(entry({ cardId: 'x', qty: 1, printing: { set: 'm10', collectorNumber: 146 } })),
     ).toThrow(/collector number/);
     expect(
-      parseBackup(entry({ cardId: 'x', qty: 1, printing: { set: 'm10' } })).pool.entries['x']?.qty,
+      parseBackup(entry({ cardId: 'x', qty: 1, printing: { set: 'm10' } })).pool?.entries['x']?.qty,
     ).toBe(1);
+    expect(() => parseBackup(JSON.stringify({ ...base, pool: { entries: 3 } }))).toThrow(
+      /malformed/,
+    );
+    expect(() => parseBackup(JSON.stringify({ ...base, decks: {} }))).toThrow(/malformed/);
   });
 
   it('rejects malformed decks, cards, and basics', () => {

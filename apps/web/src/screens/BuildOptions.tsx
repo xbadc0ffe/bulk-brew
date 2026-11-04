@@ -10,7 +10,7 @@ import {
 import { useMemo, type ReactNode } from 'react';
 import {
   archetypeInfo,
-  CardImage,
+  CardArt,
   ColorBreakdown,
   CurveChart,
   deckColorShares,
@@ -139,7 +139,7 @@ function CommanderCard({ card, full = false }: { card: CardRecord; full?: boolea
   const text = <TextCard card={card} full={full} />;
   if (!settings.settings.showArt) return text;
   return (
-    <CardImage
+    <CardArt
       card={card}
       size="normal"
       className="aspect-[63/88] w-full rounded-[4.75%/3.4%] object-contain"
