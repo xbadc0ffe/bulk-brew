@@ -2,15 +2,6 @@
 
 Ranked. The current phase is at the top. Finished phases are removed, not struck through.
 
-## Phase 9: Deck strength
-
-- Data pack schema 2: Commander legality, Game Changer flag, popularity rank. Core reads schema 1 and 2; the refresh workflow publishes the first schema 2 pack.
-- Card strength score from card data, weights in config. Replaces stats per mana as the main tiebreak and joins the objective.
-- Deck score (strength, roles, curve, synergy) in the explanation and eval.
-- Best fit builds the few most promising archetypes and keeps the highest deck score.
-- Config pass from the distilled guidance: at most 2 copies of legendary or 6-plus mana cards, less top end for aggro, Flyers payoffs without tricks and one-turn pumps, theme cards must be playable alone to count toward a theme, removal ranked by breadth.
-- Eval before and after; commit the new baseline.
-
 ## Phase 10: Colors
 
 - Color sets through the request, scan, deck, explanation, and saved decks (migrate stored decks and backups from one color).
@@ -41,6 +32,10 @@ Ranked. The current phase is at the top. Finished phases are removed, not struck
 
 ## Builder follow-ups
 
+- Calibrate the deck score with the owner on a sample of decks: styles land within a few points of each other, and composition shapes win best fit about half the time because they pick strong cards freely while themes trade strength for synergy (`deckScore.weights` in builder-weights.json).
+- Best fit builds five decks per request; a 60-card build averages about 100 ms on desktop and runs on the main thread until phase 11 moves building to a worker.
+- Role and type-mix parts of the deck score are full in every bulk pool, so they do not separate decks; consider dropping or rescaling them.
+- The first schema 2 pack goes live with the next weekly data refresh (or a manual run of the Refresh card data workflow); until then the live site builds without the popularity signal.
 - Cheap-heavy pools overshoot the low end of the curve: eval bulk-black 60 has 9 one-drops against a target of 3 (curve deviation 7), because role and theme passes pick cheap cards before the curve pass runs. Consider curve-aware ordering inside the role and theme passes.
 - `MIN_COLORED_SHARE` in scan.ts (half the spell slots must be the deck color) is a constant; move it to deck-templates.json if it ever needs tuning per size.
 - 60-card decks average 6.7 filler copies in the baseline (filler now includes curve picks that fill no role); the next config pass should look at roles for cheap creatures.
