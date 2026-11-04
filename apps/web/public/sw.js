@@ -68,7 +68,12 @@ async function cacheFirst(request) {
 async function networkFirst(request, fallbackKey) {
   const cache = await caches.open(BUILD_CACHE);
   try {
-    const response = await fetch(request);
+    // GitHub Pages lets browsers reuse the page for 10 minutes; revalidate so a
+    // deploy shows on the next load. A navigate request cannot be re-made with
+    // options, so fetch by URL.
+    let response = await fetch(request.url, { cache: 'no-cache', credentials: 'same-origin' });
+    // A followed redirect cannot answer a navigation; let the browser handle it as before.
+    if (response.redirected) response = await fetch(request);
     if (response.ok) await safePut(cache, fallbackKey, response.clone());
     return response;
   } catch {
