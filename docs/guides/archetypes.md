@@ -35,7 +35,7 @@ Minimums are enabler and payoff counts the pool must hold for the theme to be vi
 | flyers       | Evasive creatures (derived)                        | Lasting anthems and cards that reward flyers                                            | 10,3 / 7,2 / 4,1                          |
 | bigCreatures | Cheap mana sources (derived)                       | Finishers (derived)                                                                     | 6,5 / 4,3 / 2,2                           |
 
-A theme card counts toward these minimums only when its card strength is at least 3 (see [Card strength](card-strength.md)). The scan uses that rule to decide whether a theme is viable, and the theme pass uses it to fill the minimums; weaker theme cards can still join the deck through the other passes. Ramp into big creatures uses the two-peaked ramp curve.
+Every theme card counts toward viability. Theme cards with a card strength of at least 3 (see [Card strength](card-strength.md)) count toward the scan margin that ranks themes, and the theme pass fills its minimums from them first, using weaker theme cards only when it runs out. Ramp into big creatures uses the two-peaked ramp curve.
 
 Notes from the tag scan:
 

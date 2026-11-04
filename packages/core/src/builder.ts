@@ -19,13 +19,7 @@ import {
   type SynergyArchetype,
   type TypeMix,
 } from './config.ts';
-import {
-  copyLimit,
-  listCandidates,
-  maxCopiesFor,
-  type Candidate,
-  type CardFacts,
-} from './candidates.ts';
+import { listCandidates, maxCopiesFor, type Candidate, type CardFacts } from './candidates.ts';
 import {
   chooseManaBase,
   ManaBaseError,
@@ -251,14 +245,19 @@ function remaining(state: State, cand: Candidate): number {
 }
 
 /**
- * Type caps apply during the shaped passes. The final filler pass ignores
- * them so a creature-only pool still fills every slot; the objective keeps
- * penalizing the type mix so swaps can repair it when the pool allows.
+ * How far a pass may bend the guidelines. Shaped passes keep the type caps and
+ * the preferred copy counts; the filler passes drop the type caps, then the
+ * copy guidelines, so a narrow pool still fills every slot. Hard limits
+ * (pool copies, the copy limit setting) always hold.
  */
-function canAdd(state: State, ctx: Ctx, cand: Candidate, t: Tally, ignoreCaps = false): boolean {
+type Relax = 'none' | 'types' | 'all';
+
+function canAdd(state: State, ctx: Ctx, cand: Candidate, t: Tally, relax: Relax = 'none'): boolean {
   if (remaining(state, cand) <= 0) return false;
   if (t.total >= state.slots) return false;
-  if (ignoreCaps) return true;
+  if (relax !== 'all' && (state.chosen.get(cand.facts.card.id)?.qty ?? 0) >= cand.preferred)
+    return false;
+  if (relax !== 'none') return true;
   const f = cand.facts;
   if (f.creature && t.creatures + 1 > Math.ceil(ctx.typeMix.creatureMax * state.slots))
     return false;
@@ -346,7 +345,7 @@ function pickBest(
   filter: (c: Candidate) => boolean,
   why: string | ((c: Candidate) => string),
   kind: PickKind,
-  ignoreCaps = false,
+  relax: Relax = 'none',
 ): boolean {
   const t = tally(state, ctx);
   const targets = curveTargets(ctx.curveShape, state.slots);
@@ -357,7 +356,7 @@ function pickBest(
   };
   let best: Candidate | undefined;
   for (const cand of ctx.spells) {
-    if (!filter(cand) || !canAdd(state, ctx, cand, t, ignoreCaps)) continue;
+    if (!filter(cand) || !canAdd(state, ctx, cand, t, relax)) continue;
     if (!best) {
       best = cand;
       continue;
@@ -419,17 +418,23 @@ function fillTheme(state: State, ctx: Ctx): void {
     for (const { cand, qty } of state.chosen.values()) if (pick(cand)) n += qty;
     return n;
   };
+  // Theme cards strong enough to play on their own go first; weaker ones only fill what is left.
   const bar = ctx.config.cardStrength.themeMinStrength;
-  const isEnabler = (c: Candidate) => c.facts.enablerOf.includes(a.id) && c.facts.strength >= bar;
-  const isPayoff = (c: Candidate) => c.facts.payoffOf.includes(a.id) && c.facts.strength >= bar;
-  while (
-    count(isPayoff) < want.payoffs &&
-    pickBest(state, ctx, isPayoff, `${a.label} payoff`, 'theme')
-  );
-  while (
-    count(isEnabler) < want.enablers &&
-    pickBest(state, ctx, isEnabler, `${a.label} enabler`, 'theme')
-  );
+  const strong = (c: Candidate) => c.facts.strength >= bar;
+  const isEnabler = (c: Candidate) => c.facts.enablerOf.includes(a.id);
+  const isPayoff = (c: Candidate) => c.facts.payoffOf.includes(a.id);
+  for (const pick of [(c: Candidate) => isPayoff(c) && strong(c), isPayoff]) {
+    while (
+      count(isPayoff) < want.payoffs &&
+      pickBest(state, ctx, pick, `${a.label} payoff`, 'theme')
+    );
+  }
+  for (const pick of [(c: Candidate) => isEnabler(c) && strong(c), isEnabler]) {
+    while (
+      count(isEnabler) < want.enablers &&
+      pickBest(state, ctx, pick, `${a.label} enabler`, 'theme')
+    );
+  }
 }
 
 function fillTypeMinimums(state: State, ctx: Ctx): void {
@@ -484,18 +489,20 @@ function fillCurve(state: State, ctx: Ctx): void {
 }
 
 function fillAny(state: State, ctx: Ctx): void {
-  while (tally(state, ctx).total < state.slots) {
-    if (
-      !pickBest(
-        state,
-        ctx,
-        () => true,
-        (c) => describeWhy(c, ctx),
-        'filler',
-        true,
+  for (const relax of ['types', 'all'] as const) {
+    while (tally(state, ctx).total < state.slots) {
+      if (
+        !pickBest(
+          state,
+          ctx,
+          () => true,
+          (c) => describeWhy(c, ctx),
+          'filler',
+          relax,
+        )
       )
-    )
-      break;
+        break;
+    }
   }
 }
 
@@ -817,6 +824,15 @@ export function buildDeck(
   }
   const { archetype, ctx, state, lands, plan, mana, score } = best;
   notes.push(...best.notes, ...mana.notes);
+  for (const { cand, qty } of [...state.chosen.values()].sort((a, b) =>
+    a.cand.facts.card.name < b.cand.facts.card.name ? -1 : 1,
+  )) {
+    if (qty > cand.preferred) {
+      notes.push(
+        `Played ${qty} copies of ${cand.facts.card.name}, more than the usual ${cand.preferred}, because the bulk list ran out of other cards.`,
+      );
+    }
+  }
 
   const t = tally(state, ctx);
   for (const [roleId, q] of Object.entries(ctx.quotas)) {
@@ -853,8 +869,7 @@ export function buildDeck(
     const card = index.get(dc.cardId)!;
     if (!card.identity.every((c) => c === color))
       throw new Error(`builder chose off-color ${card.name}`);
-    if (dc.qty > copyLimit(card, limit, template.copyCaps))
-      throw new Error(`builder exceeded the copy limit on ${card.name}`);
+    if (dc.qty > limit) throw new Error(`builder exceeded the copy limit on ${card.name}`);
   }
   if (lands < template.landFormula.min || lands > template.landFormula.max) {
     throw new Error(`builder picked ${lands} lands, outside the template range`);

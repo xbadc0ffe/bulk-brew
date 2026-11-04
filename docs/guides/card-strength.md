@@ -24,24 +24,24 @@ Why these rules:
 - Flexible beats narrow. Removal that answers anything outranks removal that needs the creature to be attacking. Instant speed and fewer colored pips make a card easier to use.
 - Cheap matters. Most removal and most threats in casual play are cheap, so a cheap card that does its job beats a slightly better expensive one.
 - Popularity is a signal, not the answer. It comes from Commander play, so it favors multiplayer value cards and knows little about limited-only cards. It breaks up the middle of bulk without overruling what the card does.
-- Strength is context-free on purpose. A card that is weak alone can still make a themed deck: the theme passes and theme hits pull it in. A theme card scoring below `themeMinStrength` (3) does not count toward making that theme viable, because a theme built from cards that are dead on their own is not a real theme.
+- Strength is context-free on purpose. A card that is weak alone can still make a themed deck: the theme passes and theme hits pull it in. The theme pass fills its minimums from theme cards scoring at least `themeMinStrength` (3) first, and the scan ranks themes by how many such cards they have, so a theme made of cards that are dead on their own ranks low. Weaker theme cards still count when nothing better is left; the bar is a preference, not a rule.
 
 The builder uses strength as the main tiebreak after theme hits, and the objective adds 0.3 per strength point per copy, so the local search swaps weak picks for strong ones when the curve and roles allow.
 
 ## Deck score
 
-A score from 0 to 100 for a finished deck, from five parts that each run from 0 to 1:
+A score from 0 to 100 for a finished deck, used to rank styles against each other. Synergy leads; the rest is a minor tiebreak, because card strength and the shape checks cannot see how well a deck's cards work together.
 
 | Part     | Weight | Scale                                                                        |
 | -------- | ------ | ---------------------------------------------------------------------------- |
-| Strength | 0.45   | Average card strength, 3 maps to 0 and 7 to 1.                               |
-| Roles    | 0.20   | Share of each role target met, averaged over roles.                          |
+| Synergy  | 0.60   | Weighted enabler and payoff pairs per spell; 2 pairs per spell scores 1.     |
+| Strength | 0.15   | Average card strength, 3 maps to 0 and 7 to 1.                               |
+| Roles    | 0.10   | Share of each role target met, averaged over roles.                          |
 | Curve    | 0.10   | Curve misses beyond tolerance; misses equal to half the spell slots score 0. |
 | Type mix | 0.05   | Cards outside the type bounds, scaled the same way.                          |
-| Synergy  | 0.20   | Weighted enabler and payoff pairs per spell; 1.5 pairs per spell scores 1.   |
+
+Role coverage and type mix are full in almost every bulk pool, so in practice synergy decides and strength breaks near ties.
 
 ## Best fit
 
-The archetype scan measures how deep a theme runs in the pool, not how good its deck will be: a color full of flyers always looks deep in flyers. So best fit builds the three viable themes with the largest scan margins and the two best viable composition shapes, scores each finished deck, and keeps the highest. The deck notes list the scores it compared.
-
-Scores across styles usually sit within a few points of each other. That is honest: a pool often supports several decks of about the same strength, which is why the Build page shows ranked options rather than one answer.
+The archetype scan measures how deep a theme runs in the pool, not how good its deck will be: a color full of flyers always looks deep in flyers. So best fit builds the best deck it can for every viable style, scores each, and keeps the highest. The deck notes list the scores it compared. On the Build page (phase 11) the same builds become the ranked list of options.

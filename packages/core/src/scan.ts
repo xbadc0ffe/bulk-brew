@@ -87,24 +87,24 @@ function reportSynergy(
 ): ArchetypeReport {
   const key = String(template.size) as SizeKey;
   const want = a.minimums[key];
-  // Theme cards too weak to play on their own do not make a theme viable.
+  const isEnabler = (c: Candidate) => c.facts.enablerOf.includes(a.id);
+  const isPayoff = (c: Candidate) => c.facts.payoffOf.includes(a.id);
+  const enablers = countCopies(cands, isEnabler);
+  const payoffs = countCopies(cands, isPayoff);
+  // The margin counts only theme cards strong enough to play on their own, so
+  // a theme made of weak cards ranks low without being ruled out.
   const bar = config.cardStrength.themeMinStrength;
-  const enablers = countCopies(
-    cands,
-    (c) => c.facts.enablerOf.includes(a.id) && c.facts.strength >= bar,
-  );
-  const payoffs = countCopies(
-    cands,
-    (c) => c.facts.payoffOf.includes(a.id) && c.facts.strength >= bar,
-  );
+  const strongEnablers = countCopies(cands, (c) => isEnabler(c) && c.facts.strength >= bar);
+  const strongPayoffs = countCopies(cands, (c) => isPayoff(c) && c.facts.strength >= bar);
   const notes: string[] = [];
   const colorOk = !a.colors || a.colors.includes(color);
   if (!colorOk) notes.push(`${a.label} does not work in this color`);
   if (enablers < want.enablers)
-    notes.push(`needs ${plural(want.enablers - enablers, `more playable ${a.label} enabler`)}`);
+    notes.push(`needs ${plural(want.enablers - enablers, `more ${a.label} enabler`)}`);
   if (payoffs < want.payoffs)
-    notes.push(`needs ${plural(want.payoffs - payoffs, `more playable ${a.label} payoff`)}`);
-  const margin = Math.min(ratio(enablers, want.enablers), ratio(payoffs, want.payoffs)) - 1;
+    notes.push(`needs ${plural(want.payoffs - payoffs, `more ${a.label} payoff`)}`);
+  const margin =
+    Math.min(ratio(strongEnablers, want.enablers), ratio(strongPayoffs, want.payoffs)) - 1;
   return {
     archetype: a.id,
     label: a.label,

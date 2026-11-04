@@ -55,6 +55,11 @@ export interface Candidate {
   facts: CardFacts;
   /** Copies the builder may use: pool quantity capped by the copy limit (basics are uncapped). */
   available: number;
+  /**
+   * Copies the builder uses before it bends the copy guidelines (legendary and
+   * expensive cards); more only when the deck cannot be filled otherwise.
+   */
+  preferred: number;
   printing?: PrintingHint;
 }
 
@@ -140,7 +145,7 @@ export function maxCopiesFor(settings: Settings, config: BulkBrewConfig, size: D
   return templateFor(config, size).maxCopies;
 }
 
-/** Copy limit for one card: the deck limit, lowered for legendary and expensive cards. */
+/** Preferred copies of one card: the deck limit, lowered for legendary and expensive cards. */
 export function copyLimit(
   card: CardRecord,
   limit: number,
@@ -184,8 +189,9 @@ export function listCandidates(
     if (hasColorlessPip(card)) continue;
     const facts = factsFor(index, config, card);
     if (facts.basic && settings.unlimitedBasics) continue;
-    const available = facts.basic ? entry.qty : Math.min(entry.qty, copyLimit(card, limit, caps));
-    const cand: Candidate = { facts, available };
+    const available = facts.basic ? entry.qty : Math.min(entry.qty, limit);
+    const preferred = facts.basic ? available : Math.min(available, copyLimit(card, limit, caps));
+    const cand: Candidate = { facts, available, preferred };
     if (entry.printing) cand.printing = entry.printing;
     out.push(cand);
   }

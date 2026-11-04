@@ -59,4 +59,4 @@ A sweeper role exists but only control asks for it. Evasive threat is defined fo
 
 ## Copy limits
 
-The deck limit (4 for 60 and 40, 2 for 20) is lowered for cards that are bad in multiples: legendary cards at most 2, because a second copy on the battlefield is dead, and cards costing six or more at most 2, because several in an opening hand sit uncast. Both live in `copyCaps` per template.
+The deck limit (4 for 60 and 40, 2 for 20) is a setting and never broken. Under it, the builder prefers fewer copies of cards that are bad in multiples: legendary cards at most 2, because a second copy on the battlefield is dead, and cards costing six or more at most 2, because several in an opening hand sit uncast. Both live in `copyCaps` per template. They are guidelines: when the bulk list runs out of other cards, the last filler pass goes above them up to the deck limit, and the deck notes say so.

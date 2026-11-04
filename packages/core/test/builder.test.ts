@@ -67,7 +67,7 @@ describe('scanPool', () => {
     expect(thin.archetypes.every((a) => !a.viable)).toBe(true);
     const lifegain = big.archetypes.find((a) => a.archetype === 'lifegain')!;
     expect(lifegain.viable).toBe(false);
-    expect(lifegain.notes.join(' ')).toMatch(/needs \d+ more playable Lifegain/);
+    expect(lifegain.notes.join(' ')).toMatch(/needs \d+ more Lifegain/);
   });
 
   it('is empty for a color the pool lacks', () => {
@@ -310,5 +310,44 @@ describe('best fit', () => {
     const r = build(60, 'tokens');
     expect(r.deck.archetype).toBe('tokens');
     expect(r.explanation.notes.some((n) => n.startsWith('Compared '))).toBe(false);
+  });
+});
+
+describe('copy guidelines', () => {
+  it('keeps legendary cards at two copies unless the pool runs out of other cards', () => {
+    const legends = Array.from({ length: 6 }, (_, i) => ({
+      ...PACK.cards.find((c) => c.id === 'w-creature-2-0')!,
+      id: `legend-${i}`,
+      name: `Legend ${i}`,
+      typeLine: 'Legendary Creature — Human',
+      mv: (i % 3) + 1,
+    }));
+    const pack = { ...PACK, cards: [...PACK.cards, ...legends], cardCount: PACK.cards.length + 6 };
+    const idx = new CardIndex(pack);
+    const entries = Object.fromEntries(legends.map((c) => [c.id, { cardId: c.id, qty: 4 }]));
+
+    const cands = listCandidates({ entries, updatedAt: 't' }, idx, CONFIG, SETTINGS, 'W', 40);
+    expect(cands.every((c) => c.available === 4 && c.preferred === 2)).toBe(true);
+
+    // Six legends with four copies each: 24 copies for 23 spell slots, so the guideline bends.
+    const tight = buildDeck(
+      { size: 40, color: 'W', settings: SETTINGS, id: 't', createdAt: 't' },
+      { entries, updatedAt: 't' },
+      idx,
+      CONFIG,
+    );
+    expect(tight.deck.cards.some((c) => c.qty > 2)).toBe(true);
+    expect(tight.explanation.notes.join(' ')).toMatch(/more than the usual 2/);
+
+    // With the full fixture pool beside them, no legend needs a third copy.
+    const roomy = buildDeck(
+      { size: 40, color: 'W', settings: SETTINGS, id: 't', createdAt: 't' },
+      { entries: { ...bigPool().entries, ...entries }, updatedAt: 't' },
+      idx,
+      CONFIG,
+    );
+    for (const c of roomy.deck.cards.filter((c) => c.cardId.startsWith('legend-'))) {
+      expect(c.qty).toBeLessThanOrEqual(2);
+    }
   });
 });

@@ -12,7 +12,6 @@ import {
   factsFor,
   isFillerPick,
   manaCostsOf,
-  copyLimit,
   maxCopiesFor,
   templateFor,
   type BulkBrewConfig,
@@ -135,7 +134,7 @@ export function deckMetrics(
     const card = index.get(dc.cardId);
     if (!card) continue;
     total += dc.qty;
-    if (dc.qty > copyLimit(card, limit, template.copyCaps)) copyLimitOk = false;
+    if (dc.qty > limit) copyLimitOk = false;
     if (!card.identity.every((c) => c === deck.color)) colorLegal = false;
     const f = factsFor(index, config, card);
     if (f.spell) {
