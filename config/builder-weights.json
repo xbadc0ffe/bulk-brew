@@ -1,5 +1,5 @@
 {
-  "version": "7",
+  "version": "8",
   "objective": {
     "curveDeviation": 1.0,
     "typeMixDeviation": 1.0,
@@ -35,11 +35,18 @@
     "duplicateShare": 0.6,
     "maxPerStyle": 2
   },
+  "commander": {
+    "minimumScale": 1.6,
+    "roleCredit": 1,
+    "styleBonus": 5,
+    "deepPool": 120
+  },
   "secondary": {
     "minimumShare": 0.5,
     "themeHitShare": 0.5,
     "nearMiss": 3,
     "tribal": {
+      "100": { "enablers": 14, "payoffs": 2 },
       "60": { "enablers": 8, "payoffs": 2 },
       "40": { "enablers": 5, "payoffs": 1 },
       "20": { "enablers": 3, "payoffs": 1 }

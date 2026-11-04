@@ -35,8 +35,8 @@ export const RARITY_LABELS: Record<Rarity, string> = {
 /** A color a permanent can produce; 'C' is colorless. */
 export type ManaColor = Color | 'C';
 
-/** Supported deck sizes: 60 constructed, 40 limited-style, 20 Jumpstart packet. */
-export type DeckSize = 60 | 40 | 20;
+/** Supported deck sizes: 100 Commander, 60 constructed, 40 limited-style, 20 Jumpstart packet. */
+export type DeckSize = 100 | 60 | 40 | 20;
 
 /** Normalized card types. A card can have several (artifact creature, kindred instant). */
 export type CardType =
@@ -172,6 +172,8 @@ export interface Deck {
   archetype: string;
   /** Secondary style id, when one was asked for (see BuildRequest.secondary). */
   secondary?: string;
+  /** The commander's card id (100-card decks); the card is also in `cards`. */
+  commander?: string;
   /** Spells and nonbasic lands. */
   cards: DeckCard[];
   /** Basic land counts by color. */
@@ -202,6 +204,8 @@ export interface BuildRequest {
   colors: Color[];
   /** Preferred archetype id. Used when viable, otherwise the strongest viable one. */
   style?: string;
+  /** Commander card id; required for 100-card decks, which take its color identity. */
+  commander?: string;
   /**
    * Secondary style, used only with a style: another archetype id, or
    * "tribal:<Type>" for a creature type such as "tribal:Bird".

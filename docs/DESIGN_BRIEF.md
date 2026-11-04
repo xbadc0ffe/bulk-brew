@@ -46,12 +46,13 @@ Both apps support light and dark mode. No external fonts, CDNs, or trackers; eve
 
 Settings on the left, deck options on the right (desktop; phones keep a single build until parity).
 
-- Deck size: 60, 40, 20 (100 Commander later), with one line describing the selected size.
-- Max copies per card, a rarities drop-down with a checkbox per rarity, and unlimited basic lands.
-- Colors: five toggles, any number picked, each showing how many cards of that color the pool has.
+- Deck size: 100 (Commander), 60, 40, 20, with one line describing the selected size. Phones offer 60, 40, and 20 until parity.
+- Max copies per card (at 100, a line saying one copy of each), a rarities drop-down with a checkbox per rarity, and unlimited basic lands.
+- Colors: five toggles, any number picked, each showing how many cards of that color the pool has. At 100 the toggles give way to a line: the colors come from the commander.
 - Primary style drop-down: best fit by default, then the styles any subset of the picked colors can build, with viability labels; near misses show what is missing and cannot be picked. Secondary style drop-down, unlocked by a primary style.
 - Options: cards ranked strongest first, each with the deck's colors, name, a strength number and bar, a small curve, spell and land counts, a mana warning when a color is stretched, and the top synergy. They arrive one by one with a progress line; picking one opens the deck view with Accept, Back to options, and Export.
-- Empty and failure states: no colors picked; no decks meet the settings, with a Clear settings button.
+- Commander (100): before a commander is picked, the right side lists the commanders in the pool in tiers (top, good, possible), each with its color pips, name, and a line of reasons. The picked commander sits in a header above its deck options, with a Change commander button.
+- Empty and failure states: no colors picked; no commanders in the pool; no decks meet the settings, with a Clear settings button.
 
 ### Deck result and deck view
 

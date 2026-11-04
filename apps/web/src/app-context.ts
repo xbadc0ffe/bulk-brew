@@ -4,6 +4,7 @@ import type {
   AppearanceState,
   BuildFlow,
   CardDetailState,
+  CommanderList,
   DeckOptions,
   DecksState,
   KeyValueStore,
@@ -31,6 +32,8 @@ export interface AppState {
   build: BuildFlow;
   /** Deck options for the Build page, built in the background and kept across screens. */
   options: DeckOptions;
+  /** Commanders in the pool for 100-card builds, listed while the Build screen shows. */
+  commanders: CommanderList;
   /** The Build screen reports when it shows, so options only build while it does. */
   setBuildVisible(visible: boolean): void;
   /** The card shown in the detail panel, openable from any screen. */

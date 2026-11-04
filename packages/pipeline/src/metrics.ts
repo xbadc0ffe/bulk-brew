@@ -4,6 +4,7 @@
 
 import {
   COLORS,
+  commanderCopies,
   curveProfileFor,
   curveTargets,
   effectiveCurveProfile,
@@ -143,7 +144,7 @@ export function deckMetrics(
     const card = index.get(dc.cardId);
     if (!card) continue;
     total += dc.qty;
-    if (dc.qty > limit) copyLimitOk = false;
+    if (dc.qty > (deck.commander ? commanderCopies(card) : limit)) copyLimitOk = false;
     if (!fitsColors(card, deckColors, deck.size)) colorLegal = false;
     const f = factsFor(index, config, card);
     if (f.spell) {

@@ -152,6 +152,9 @@ export interface DeckTemplatesConfig {
 export type SizeKey = '60' | '40' | '20';
 export const SIZE_KEYS: readonly SizeKey[] = ['60', '40', '20'];
 
+/** A per-size table: every listed size, plus Commander (100) when given. */
+export type PerSize<T> = Record<SizeKey, T> & { '100'?: T };
+
 export interface SynergyArchetype {
   kind: 'synergy';
   id: string;
@@ -160,7 +163,8 @@ export interface SynergyArchetype {
   curveProfile: string;
   enablers: Matcher;
   payoffs: Matcher;
-  minimums: Record<SizeKey, { enablers: number; payoffs: number }>;
+  /** Pool minimums per size; Commander scales the 60-card ones unless it has its own. */
+  minimums: PerSize<{ enablers: number; payoffs: number }>;
   /** Scales how much synergy density this archetype earns in the objective. */
   synergyWeight: number;
   roleOverrides?: Record<SizeKey, Record<string, RoleQuota>>;
@@ -214,7 +218,7 @@ export interface LandRulesConfig {
     /** Largest share of the land count nonbasics may take. */
     maxShare: number;
     /** Lands that make only colorless mana allowed per deck size. */
-    maxColorlessOnly: Record<SizeKey, number>;
+    maxColorlessOnly: PerSize<number>;
   };
   mdfc: {
     landFaceCountsAsLand: boolean;
@@ -226,7 +230,7 @@ export interface LandRulesConfig {
     /** A non-main color carrying less than this share of the main color's weight is a splash. */
     splashShare: number;
     /** Each color of a multi-color deck holds at least this many spells. */
-    minCardsPerColor: Record<SizeKey, number>;
+    minCardsPerColor: PerSize<number>;
     /** Largest share of the land count nonbasics may take, by number of deck colors (2 to 5). */
     nonbasicMaxShare: Record<string, number>;
     /** Added per deck color a land makes beyond the first. */
@@ -273,6 +277,17 @@ export interface BuilderWeightsConfig {
   };
   /** How many viable archetypes best fit builds and compares. */
   bestFit: { synergyCandidates: number; compositionCandidates: number };
+  /** Commander decks. */
+  commander: {
+    /** Pool minimums of a style for 100 cards, as a multiple of its 60-card minimums. */
+    minimumScale: number;
+    /** Each role the commander fills needs this many fewer cards in the 99. */
+    roleCredit: number;
+    /** Deck score points for a style the commander itself enables or rewards. */
+    styleBonus: number;
+    /** Distinct cards in the commander's colors that make a deep pool. */
+    deepPool: number;
+  };
   /** Secondary styles: a second theme at a share of its minimums, a shape, or a tribe. */
   secondary: {
     /** Share of a synergy style's minimums a secondary style must reach. */
@@ -282,7 +297,7 @@ export interface BuilderWeightsConfig {
     /** Cards short, in total, that still show a secondary style as a near miss. */
     nearMiss: number;
     /** Tribe members and type payoffs a tribal secondary style needs, per size. */
-    tribal: Record<SizeKey, { enablers: number; payoffs: number }>;
+    tribal: PerSize<{ enablers: number; payoffs: number }>;
   };
   /** Deck options on the Build page. */
   buildOptions: {
@@ -380,6 +395,36 @@ export function configVersion(c: BulkBrewConfig): string {
     `w${c.builderWeights.version}`,
     `k${c.cardStrength.version}`,
   ].join('.');
+}
+
+/** A per-size value; Commander falls back to the 60-card value. */
+export function forSize<T>(table: PerSize<T>, size: number): T {
+  if (size === 100) return table['100'] ?? table['60'];
+  return table[String(size) as SizeKey];
+}
+
+/** A synergy style's pool minimums for a size; Commander scales the 60-card ones unless given. */
+export function minimumsFor(
+  c: BulkBrewConfig,
+  a: SynergyArchetype,
+  size: number,
+): { enablers: number; payoffs: number } {
+  if (size !== 100) return a.minimums[String(size) as SizeKey];
+  if (a.minimums['100']) return a.minimums['100'];
+  const k = c.builderWeights.commander.minimumScale;
+  return {
+    enablers: Math.ceil(a.minimums['60'].enablers * k),
+    payoffs: Math.ceil(a.minimums['60'].payoffs * k),
+  };
+}
+
+/** An archetype's role overrides for a size; Commander uses the template's roles. */
+export function roleOverridesFor(
+  a: Archetype | undefined,
+  size: number,
+): Record<string, RoleQuota> | undefined {
+  if (size === 100) return undefined;
+  return a?.roleOverrides?.[String(size) as SizeKey];
 }
 
 export function templateFor(c: BulkBrewConfig, size: DeckSize): DeckTemplate {
@@ -562,7 +607,7 @@ export function validateConfig(c: BulkBrewConfig): string[] {
     }
   }
 
-  for (const key of SIZE_KEYS) {
+  for (const key of [...SIZE_KEYS, '100'] as const) {
     const t = c.deckTemplates.templates[key];
     if (!t) {
       problems.push(`deckTemplates: missing template for ${key}`);
@@ -647,8 +692,9 @@ export function validateConfig(c: BulkBrewConfig): string[] {
     if (a.kind === 'synergy') {
       checkMatcher(`${w}.enablers`, a.enablers, problems);
       checkMatcher(`${w}.payoffs`, a.payoffs, problems);
-      for (const key of SIZE_KEYS) {
+      for (const key of [...SIZE_KEYS, '100'] as const) {
         const m = a.minimums?.[key];
+        if (key === '100' && m === undefined) continue;
         if (!m || !isNum(m.enablers) || !isNum(m.payoffs)) {
           problems.push(`${w}.minimums.${key}: enablers and payoffs must be numbers`);
         }
@@ -692,7 +738,8 @@ export function validateConfig(c: BulkBrewConfig): string[] {
     }
     if (isNum(nb.maxShare) && (nb.maxShare < 0 || nb.maxShare > 1))
       problems.push('landRules.nonbasic.maxShare: must be a share between 0 and 1');
-    for (const key of SIZE_KEYS) {
+    for (const key of [...SIZE_KEYS, '100'] as const) {
+      if (key === '100' && nb.maxColorlessOnly?.[key] === undefined) continue;
       if (!isNum(nb.maxColorlessOnly?.[key]))
         problems.push(`landRules.nonbasic.maxColorlessOnly.${key}: must be a number`);
     }
@@ -767,13 +814,20 @@ export function validateConfig(c: BulkBrewConfig): string[] {
   }
   if (!isNum(sec?.nearMiss) || sec.nearMiss < 0)
     problems.push('builderWeights.secondary.nearMiss: must be a non-negative number');
-  for (const key of ['60', '40', '20'] as const) {
+  for (const key of ['60', '40', '20', '100'] as const) {
     const t = sec?.tribal?.[key];
+    if (key === '100' && t === undefined) continue;
     const whole = (v: unknown) => isNum(v) && Number.isInteger(v) && v >= 0;
     if (!t || !whole(t.enablers) || !whole(t.payoffs))
       problems.push(
         `builderWeights.secondary.tribal.${key}: enablers and payoffs must be whole numbers`,
       );
+  }
+
+  const cmd = bw.commander;
+  for (const k of ['minimumScale', 'roleCredit', 'styleBonus', 'deepPool'] as const) {
+    if (!isNum(cmd?.[k]) || cmd[k] < 0)
+      problems.push(`builderWeights.commander.${k}: must be a non-negative number`);
   }
 
   const bo = bw.buildOptions;
@@ -809,8 +863,9 @@ export function validateConfig(c: BulkBrewConfig): string[] {
   }
   if (!isNum(lc?.splashShare) || lc.splashShare < 0 || lc.splashShare > 1)
     problems.push('landRules.colors.splashShare: must be between 0 and 1');
-  for (const key of ['60', '40', '20'] as const) {
-    if (!isNum(lc?.minCardsPerColor?.[key]) || lc.minCardsPerColor[key] < 0)
+  for (const key of ['60', '40', '20', '100'] as const) {
+    if (key === '100' && lc?.minCardsPerColor?.[key] === undefined) continue;
+    if (!isNum(lc?.minCardsPerColor?.[key]) || lc.minCardsPerColor[key]! < 0)
       problems.push(`landRules.colors.minCardsPerColor.${key}: must be a non-negative number`);
   }
   for (const n of ['2', '3', '4', '5']) {

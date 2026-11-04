@@ -1,6 +1,45 @@
 {
-  "version": "2",
+  "version": "3",
   "templates": {
+    "100": {
+      "size": 100,
+      "label": "Commander",
+      "description": "One commander plus 99 cards, one copy of each. Colors come from the commander.",
+      "baseLands": 37,
+      "landFormula": {
+        "referenceMv": 3.2,
+        "slopePerMv": 2.5,
+        "credits": {
+          "rockCheap": 0.2,
+          "rockThree": 0.15,
+          "dorkCheap": 0.15,
+          "dorkThree": 0.1,
+          "landRamp": 0.2,
+          "mdfcLand": 0.5
+        },
+        "min": 35,
+        "max": 40
+      },
+      "curveProfile": "commander",
+      "typeMix": {
+        "creatureMin": 0.25,
+        "creatureMax": 0.6,
+        "instantSorceryMin": 0.1,
+        "noncreaturePermanentMax": 0.4
+      },
+      "roles": {
+        "ramp": { "min": 8, "target": 10 },
+        "removal": { "min": 6, "target": 9 },
+        "cardAdvantage": { "min": 7, "target": 10 },
+        "sweeper": { "min": 1, "target": 3 },
+        "finisher": { "min": 3, "target": 6 },
+        "cheapInteraction": { "min": 2, "target": 4 },
+        "earlyCreature": { "min": 3, "target": 6 }
+      },
+      "maxCopies": 1,
+      "copyCaps": { "legendary": 1, "expensiveMv": 99, "expensive": 1 },
+      "tolerances": { "curve": 2, "typeMix": 0.08 }
+    },
     "60": {
       "size": 60,
       "label": "60-card deck",

@@ -3,6 +3,7 @@
 // previous comparable run.
 // Usage: npm run eval [-- --styles] [--pools <substring>] [--colors pairs|all] [--out <file>]
 //        npm run eval -- --dir <folder> [--combine]   (a local folder, results written there)
+//        --commanders <n> builds the n most promising commanders of each pool (default 2, 0 skips)
 // Exits 1 when any build fails or any deck breaks a hard invariant.
 
 import { execFileSync } from 'node:child_process';
@@ -14,6 +15,7 @@ import {
   BuildError,
   buildDeck,
   CardIndex,
+  commanderCandidates,
   COLORS,
   configVersion,
   normalizeColors,
@@ -37,6 +39,9 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '.
 const POOLS_DIR = path.join(ROOT, 'eval', 'pools');
 const RESULTS_DIR = path.join(ROOT, 'eval', 'results');
 const SIZES: DeckSize[] = [60, 40, 20];
+/** Every size a run may hold; Commander rows appear once a run builds them. */
+const ALL_SIZES: DeckSize[] = [100, ...SIZES];
+const DEFAULT_COMMANDERS = 2;
 
 export interface DeckRun {
   pool: string;
@@ -45,6 +50,8 @@ export interface DeckRun {
   color: string;
   /** Requested style, or "best" for best fit. */
   style: string;
+  /** Commander name for 100-card runs. */
+  commander?: string;
   ok: boolean;
   error?: string;
   archetype?: string;
@@ -224,10 +231,15 @@ function printDeltas(previous: Results, current: Results): void {
   if (common.length === 0) return;
   const inCommon = <T extends { pool: string; size: DeckSize }>(xs: T[], size: DeckSize) =>
     xs.filter((x) => x.size === size && common.includes(x.pool));
-  for (const size of SIZES) {
+  for (const size of ALL_SIZES) {
+    if (!current.runs.some((r) => r.size === size)) continue;
     const before = summarize(inCommon(previous.runs, size), inCommon(previous.skips ?? [], size));
     const after = summarize(inCommon(current.runs, size), inCommon(current.skips, size));
     console.log(`${size}-card:`);
+    if (before.decks + before.skipped === 0) {
+      console.log('  no earlier runs at this size');
+      continue;
+    }
     console.log(deltaLine('decks', before.decks, after.decks, 'none'));
     console.log(deltaLine('failures', before.failures, after.failures, 'lower'));
     console.log(deltaLine('size errors', before.sizeErrors, after.sizeErrors, 'lower'));
@@ -266,6 +278,7 @@ function main(): number {
   const spread = arg('colors');
   const dir = arg('dir');
   const combine = process.argv.includes('--combine');
+  const commanderCount = Math.max(0, Number(arg('commanders') ?? DEFAULT_COMMANDERS) || 0);
   const poolsDir = dir ? path.resolve(dir) : POOLS_DIR;
   const t0 = Date.now();
   const packPath = path.join(ROOT, 'data', 'packs', PACK_FILE);
@@ -360,6 +373,44 @@ function main(): number {
         }
       }
     }
+    // Commander: best fit under the most promising commanders that can build.
+    const leaders = commanderCandidates(pool, index, config, settings)
+      .filter((c) => c.tier !== 'possible')
+      .slice(0, commanderCount);
+    for (const lead of leaders) {
+      const color = lead.colors.join('');
+      const t1 = Date.now();
+      const base = { pool: name, size: 100 as const, color, style: 'best', commander: lead.name };
+      try {
+        const result = buildDeck(
+          {
+            size: 100,
+            colors: lead.colors,
+            commander: lead.id,
+            settings,
+            id: `${name}-100-${lead.id}`,
+            createdAt: 'eval',
+          },
+          pool,
+          index,
+          config,
+        );
+        runs.push({
+          ...base,
+          ok: true,
+          archetype: result.deck.archetype,
+          ms: Date.now() - t1,
+          metrics: deckMetrics(result.deck, index, config, settings),
+        });
+      } catch (err) {
+        runs.push({
+          ...base,
+          ok: false,
+          error: err instanceof BuildError ? err.message : String(err),
+          ms: Date.now() - t1,
+        });
+      }
+    }
   }
 
   const pools: Record<string, Summary> = {};
@@ -370,7 +421,8 @@ function main(): number {
     );
   }
   const bySize: Record<string, Summary> = {};
-  for (const size of SIZES) {
+  const sizesRun = ALL_SIZES.filter((size) => runs.some((r) => r.size === size));
+  for (const size of sizesRun) {
     bySize[String(size)] = summarize(
       runs.filter((r) => r.size === size),
       skips.filter((s) => s.size === size),
@@ -419,14 +471,14 @@ function main(): number {
   console.log('');
   console.log(HEADER);
   for (const [name, s] of Object.entries(pools)) console.log(row(name, s));
-  for (const size of SIZES) console.log(row(`all ${size}-card`, bySize[String(size)]!));
+  for (const size of sizesRun) console.log(row(`all ${size}-card`, bySize[String(size)]!));
   console.log(row('**overall**', overall));
 
   const failures = runs.filter((r) => !r.ok);
   if (failures.length) {
     console.log('\nfailures:');
     for (const f of failures)
-      console.log(`  ${f.pool} ${f.size} ${f.color} ${f.style}: ${f.error}`);
+      console.log(`  ${f.pool} ${f.size} ${f.color} ${f.commander ?? f.style}: ${f.error}`);
   }
   const flagged = runs.filter(
     (r) => r.ok && r.metrics && (!r.metrics.castable || hasSizeError(r.metrics)),
@@ -444,7 +496,7 @@ function main(): number {
       ]
         .filter(Boolean)
         .join('; ');
-      console.log(`  ${r.pool} ${r.size} ${r.color} ${r.style}: ${why}`);
+      console.log(`  ${r.pool} ${r.size} ${r.color} ${r.commander ?? r.style}: ${why}`);
     }
   }
 

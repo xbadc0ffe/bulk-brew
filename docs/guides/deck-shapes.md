@@ -6,6 +6,7 @@ What a playable casual deck looks like at each size: how many lands, how the spe
 
 | Size | Style              | Base lands | Spells | Max copies | Notes                                                 |
 | ---- | ------------------ | ---------- | ------ | ---------- | ----------------------------------------------------- |
+| 100  | Commander          | 37         | 62     | 1          | One commander plus 99; see [Commander](commander.md). |
 | 60   | Casual constructed | 24         | 36     | 4          | The classic kitchen-table deck.                       |
 | 40   | Limited style      | 17         | 23     | 4          | Shaped like a draft deck: creature heavy, simple.     |
 | 20   | Jumpstart packet   | 8          | 12     | 2          | Half a deck. Two packets of different colors combine. |
@@ -23,6 +24,7 @@ Each profile is the share of nonland spells at mana value 1, 2, 3, 4, 5, 6, and 
 | control   | 0.06 | 0.20 | 0.24 | 0.20 | 0.14 | 0.09 | 0.07 | Control                             |
 | jumpstart | 0.14 | 0.30 | 0.28 | 0.17 | 0.08 | 0.03 | 0.00 | Every 20-card packet                |
 | ramp      | 0.06 | 0.28 | 0.18 | 0.14 | 0.17 | 0.11 | 0.06 | Ramp into big creatures             |
+| commander | 0.08 | 0.20 | 0.24 | 0.20 | 0.13 | 0.09 | 0.06 | Every 100-card Commander deck       |
 
 Why these shapes: a two-drop is the most important slot in any deck, so every profile peaks at two or three. Aggro front-loads because it wants to spend all its mana every turn from turn one, and keeps only about one spell in seven at four or more: its noncreature spells should clear blockers, pump, or protect rather than wait in hand. Ramp has two peaks: cheap mana sources at two, then the threats they power out at five and six, with a thin middle. Control shifts weight to four and above because it plans to survive to the late game and win with fewer, bigger cards. Zero-cost spells count in the one slot. The tolerance of one card per bucket (`tolerances.curve`) means the builder does not chase exact counts.
 

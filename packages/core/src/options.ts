@@ -26,6 +26,8 @@ export interface OptionsRequest {
   primary?: string;
   /** Wanted second style id; best effort. */
   secondary?: string;
+  /** Commander card id for 100-card decks; the colors come from it. */
+  commander?: string;
   settings: Settings;
 }
 
@@ -74,9 +76,12 @@ export function planOptions(
   /** Scans the caller already has, keyed by color letters such as "WU". */
   scans?: ReadonlyMap<string, ScanReport>,
 ): OptionsPlan {
-  const picked = normalizeColors(req.colors);
+  const lead = req.commander ? index.get(req.commander) : undefined;
+  const picked = normalizeColors(lead ? lead.identity : req.colors);
   const perSubset: OptionPlan[][] = [];
-  for (const subset of colorSubsets(picked)) {
+  // A commander fixes the colors; other decks try every subset of the picked ones.
+  const subsets = lead ? [picked] : colorSubsets(picked);
+  for (const subset of subsets) {
     const scan =
       scans?.get(subset.join('')) ?? scanPool(pool, index, config, req.settings, req.size, subset);
     if (!scan.possible) continue;
@@ -126,6 +131,7 @@ export function buildOption(
       colors: plan.colors,
       style: plan.style,
       ...(req.secondary ? { secondary: req.secondary } : {}),
+      ...(req.commander ? { commander: req.commander } : {}),
       settings: req.settings,
       id: plan.key,
       createdAt: '',
@@ -180,7 +186,7 @@ export function addOption(
   const cfg = config.builderWeights.buildOptions;
   const picked = normalizeColors(req.colors);
   const deckColors = result.deck.colors ?? [result.deck.color];
-  const allColors = deckColors.length === picked.length;
+  const allColors = Boolean(req.commander) || deckColors.length === picked.length;
   const rank =
     (result.explanation.score?.total ?? 0) +
     (allColors ? cfg.allColorsBonus : 0) +

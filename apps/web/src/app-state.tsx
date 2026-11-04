@@ -4,6 +4,7 @@ import {
   useAppearance,
   useBuildFlow,
   useCardDetail,
+  useCommanderList,
   useDeckOptions,
   useDecks,
   usePack,
@@ -44,7 +45,15 @@ export function AppStateProvider({ kv, children }: { kv: KeyValueStore; children
     colors: build.colors,
     primary: build.style,
     secondary: build.secondary,
+    commander: build.commander,
     paused: !buildVisible || build.result !== undefined,
+  });
+  const commanders = useCommanderList({
+    enabled: buildVisible && build.size === 100,
+    index,
+    config: CONFIG,
+    pool: pool.pool,
+    settings: build.buildSettings,
   });
   const detail = useCardDetail();
   const value: AppState = {
@@ -59,6 +68,7 @@ export function AppStateProvider({ kv, children }: { kv: KeyValueStore; children
     scans,
     build,
     options,
+    commanders,
     setBuildVisible,
     detail,
   };

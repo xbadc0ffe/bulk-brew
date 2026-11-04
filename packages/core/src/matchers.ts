@@ -122,6 +122,44 @@ export function inTribe(card: CardRecord, type: string): boolean {
   return card.keywords.includes('Changeling') || creatureTypes(card).includes(type);
 }
 
+/** Whether a card may be a commander (CR 903.3 and 903.3a) and is legal in the format. */
+export function canBeCommander(card: CardRecord): boolean {
+  if (card.commanderLegality) return false;
+  if (card.unset) return false;
+  if (/can be your commander/i.test(card.text)) return true;
+  const front = card.typeLine.split('//')[0] ?? '';
+  if (!/\bLegendary\b/.test(front)) return false;
+  if (/\bCreature\b/.test(front)) return true;
+  // A card that is a creature everywhere but the battlefield is a creature card in the deck.
+  if (/isn't on the battlefield, it's an? [^.]*\bcreature\b/i.test(card.text)) return true;
+  if (/\bVehicle\b/.test(front)) return true;
+  return /\bSpacecraft\b/.test(front) && card.power !== undefined && card.toughness !== undefined;
+}
+
+/**
+ * Copies of a card a Commander deck may hold: one, more for cards whose text
+ * allows it ("any number of cards named", "up to seven cards named").
+ */
+export function commanderCopies(card: CardRecord): number {
+  if (/a deck can have any number of cards named/i.test(card.text)) return Infinity;
+  const m = /a deck can have up to (\w+) cards named/i.exec(card.text);
+  if (m) {
+    const words: Record<string, number> = {
+      two: 2,
+      three: 3,
+      four: 4,
+      five: 5,
+      six: 6,
+      seven: 7,
+      eight: 8,
+      nine: 9,
+      ten: 10,
+    };
+    return words[m[1]!.toLowerCase()] ?? (Number.parseInt(m[1]!, 10) || 1);
+  }
+  return 1;
+}
+
 /** Cards whose mana or effect depends on a commander do nothing outside Commander. */
 export function needsCommander(card: CardRecord): boolean {
   let text = card.text.replace(/\([^)]*\)/g, '');

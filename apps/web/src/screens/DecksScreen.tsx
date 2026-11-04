@@ -111,7 +111,7 @@ function DeckTable({ onOpen }: { onOpen(id: string): void }) {
   );
   const present = {
     colors: COLORS.filter((c) => list.some((d) => info.get(d.id)!.colors.includes(c))),
-    sizes: [60, 40, 20].filter((s) => list.some((d) => d.size === s)),
+    sizes: [100, 60, 40, 20].filter((s) => list.some((d) => d.size === s)),
     styles: [...new Set(list.map((d) => info.get(d.id)!.style))].sort(),
   };
   const rows = useMemo(() => {

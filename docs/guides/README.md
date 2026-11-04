@@ -9,6 +9,7 @@ The reasoning behind the numbers in `config/`. Each guide names the config file 
 | [Archetypes](archetypes.md)       | `archetypes.json`, `roles.json`, `synergy-rules.json`                |
 | [Mana base](mana-base.md)         | `deck-templates.json` land formula, `land-rules.json`, castability   |
 | [Jumpstart packets](jumpstart.md) | The 20-card template and curve profile                               |
+| [Commander](commander.md)         | The `100` template, `commander` curve profile and builder weights    |
 | [Card strength](card-strength.md) | `card-strength.json`, `builder-weights.json` deck score and best fit |
 
 Run `npm run config:check` after editing config. It validates the files, confirms every tag exists in the current data pack, and prints how many cards each role and archetype matches per color.

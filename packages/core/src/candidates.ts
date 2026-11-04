@@ -11,6 +11,7 @@ import {
   isEvasiveCreature,
   isFinisher,
   isLand,
+  commanderCopies,
   isMdfcLand,
   manaSourceKind,
   needsCommander,
@@ -190,6 +191,8 @@ export function listCandidates(
     const card = index.get(id);
     if (!card) continue;
     if (card.unset && !settings.includeUnsets) continue;
+    // Banned or not legal in Commander keeps a card out of the 99.
+    if (isCommanderSize(size) && card.commanderLegality) continue;
     if (!fitsColors(card, deckColors, size)) continue;
     // Decks run basics of their colors, which cannot make the {C} these cards demand.
     if (hasColorlessPip(card)) continue;
@@ -197,7 +200,9 @@ export function listCandidates(
     if (facts.basic && settings.unlimitedBasics) continue;
     // Cards with no known rarity (schema 1 packs) stay in, so the filter never empties a pool by accident.
     if (rarities && !facts.basic && card.rarity && !rarities.has(card.rarity)) continue;
-    const available = facts.basic ? entry.qty : Math.min(entry.qty, limit);
+    const available = facts.basic
+      ? entry.qty
+      : Math.min(entry.qty, isCommanderSize(size) ? commanderCopies(card) : limit);
     const preferred = facts.basic
       ? available
       : Math.min(available, preferredCopies(card, limit, caps));

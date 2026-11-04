@@ -10,6 +10,9 @@
 import {
   configVersion,
   curveProfileFor,
+  forSize,
+  minimumsFor,
+  roleOverridesFor,
   templateFor,
   type Archetype,
   type BuilderWeightsConfig,
@@ -19,8 +22,14 @@ import {
   type SynergyArchetype,
   type TypeMix,
 } from './config.ts';
-import { listCandidates, maxCopiesFor, type Candidate, type CardFacts } from './candidates.ts';
-import { inTribe } from './matchers.ts';
+import {
+  factsFor,
+  listCandidates,
+  maxCopiesFor,
+  type Candidate,
+  type CardFacts,
+} from './candidates.ts';
+import { canBeCommander, commanderCopies, inTribe } from './matchers.ts';
 import {
   chooseManaBase,
   ManaBaseError,
@@ -50,7 +59,9 @@ import {
 import {
   type BuildExplanation,
   type BuildRequest,
+  RARITY_LABELS,
   type BuildResult,
+  type CardRecord,
   type Color,
   type Deck,
   type DeckScore,
@@ -174,7 +185,6 @@ function resolveSecondary(
 ): { theme?: SecondaryTheme; note?: string } {
   if (!id) return {};
   const sec = config.builderWeights.secondary;
-  const key = String(size) as '60' | '40' | '20';
   if (id.startsWith('tribal:')) {
     const type = id.slice(7);
     const tag = `typal-${type.toLowerCase()}`;
@@ -185,7 +195,7 @@ function resolveSecondary(
         kind: 'tribal',
         isEnabler: (c) => inTribe(c.facts.card, type),
         isPayoff: (c) => c.facts.card.tags.includes(tag),
-        want: sec.tribal[key],
+        want: forSize(sec.tribal, size),
       },
     };
   }
@@ -215,8 +225,8 @@ function resolveSecondary(
       isEnabler: (c) => c.facts.enablerOf.includes(a.id),
       isPayoff: (c) => c.facts.payoffOf.includes(a.id),
       want: {
-        enablers: Math.ceil(a.minimums[key].enablers * sec.minimumShare),
-        payoffs: Math.ceil(a.minimums[key].payoffs * sec.minimumShare),
+        enablers: Math.ceil(minimumsFor(config, a, size).enablers * sec.minimumShare),
+        payoffs: Math.ceil(minimumsFor(config, a, size).payoffs * sec.minimumShare),
       },
     },
   };
@@ -557,8 +567,7 @@ function fillRoles(state: State, ctx: Ctx, level: 'min' | 'target', kind: PickKi
 function fillTheme(state: State, ctx: Ctx): void {
   if (ctx.archetype.kind !== 'synergy') return;
   const a: SynergyArchetype = ctx.archetype;
-  const key = String(ctx.template.size) as '60' | '40' | '20';
-  const want = a.minimums[key];
+  const want = minimumsFor(ctx.config, a, ctx.template.size);
   const count = (pick: (c: Candidate) => boolean) => {
     let n = 0;
     for (const { cand, qty } of state.chosen.values()) if (pick(cand)) n += qty;
@@ -696,8 +705,7 @@ function fillSecondary(state: State, ctx: Ctx): void {
 /** Every color of a multi-color deck gets at least its minimum of spells of that color. */
 function fillColorMinimums(state: State, ctx: Ctx): void {
   if (ctx.plan.colors.length < 2) return;
-  const key = String(ctx.template.size) as '60' | '40' | '20';
-  const want = ctx.config.landRules.colors.minCardsPerColor[key] ?? 0;
+  const want = forSize(ctx.config.landRules.colors.minCardsPerColor, ctx.template.size);
   for (const color of ctx.plan.colors) {
     const has = (c: Candidate) => c.facts.card.colors.includes(color);
     const count = () => {
@@ -999,6 +1007,40 @@ export function castPenalties(
   return out;
 }
 
+/** The commander counts toward the roles it fills, so the 99 need fewer of them. */
+function creditCommander(
+  quotas: Record<string, RoleQuota>,
+  roles: readonly string[],
+  credit: number,
+): Record<string, RoleQuota> {
+  if (roles.length === 0) return quotas;
+  const out: Record<string, RoleQuota> = {};
+  for (const [id, q] of Object.entries(quotas)) {
+    out[id] = roles.includes(id)
+      ? { min: Math.max(0, q.min - credit), target: Math.max(0, q.target - credit) }
+      : q;
+  }
+  return out;
+}
+
+/** The commander for a 100-card request, or a plain-language reason it cannot lead. */
+function commanderFor(request: BuildRequest, pool: Pool, index: CardIndex): CardRecord {
+  const rarities = request.settings.rarities?.length ? request.settings.rarities : undefined;
+  if (!request.commander) throw new BuildError('Pick a commander for a 100-card deck.');
+  const card = index.get(request.commander);
+  if (!card) throw new BuildError('The picked commander is not in the card data.');
+  if (!canBeCommander(card)) throw new BuildError(`${card.name} cannot be a commander.`);
+  if ((pool.entries[card.id]?.qty ?? 0) < 1)
+    throw new BuildError(`${card.name} is not in your bulk list.`);
+  if (rarities && card.rarity && !rarities.includes(card.rarity))
+    throw new BuildError(
+      `${card.name} is ${RARITY_LABELS[card.rarity].toLowerCase()}, a rarity left out of builds.`,
+    );
+  if (card.identity.length === 0)
+    throw new BuildError(`${card.name} is colorless; colorless commanders are not supported yet.`);
+  return card;
+}
+
 /** One complete spell build for one archetype, before the mana base is picked. */
 interface Attempt {
   archetype: Archetype;
@@ -1022,11 +1064,13 @@ function attempt(
   plan: ColorPlan,
   penalty: Map<string, number>,
   secondary: SecondaryTheme | undefined,
+  commander: CardRecord | undefined,
 ): Attempt {
   const { size, settings } = request;
+  // A Commander deck builds its 99 around the commander, who takes the hundredth slot.
+  const deckSize = commander ? size - 1 : size;
   // A shape as secondary style sets the curve, type mix, and roles under a themed primary.
   const shape = secondary?.shape;
-  const key = String(size) as '60' | '40' | '20';
   const spells = cands.filter((c) => c.facts.spell);
   const themeValue = new Map<string, number>();
   const themeFlags = new Map<string, number>();
@@ -1055,9 +1099,13 @@ function attempt(
     config,
     template,
     archetype,
-    quotas: shape
-      ? { ...effectiveQuotas(template, archetype), ...(shape.roleOverrides?.[key] ?? {}) }
-      : effectiveQuotas(template, archetype),
+    quotas: creditCommander(
+      shape
+        ? { ...effectiveQuotas(template, archetype), ...(roleOverridesFor(shape, size) ?? {}) }
+        : effectiveQuotas(template, archetype),
+      commander ? factsFor(index, config, commander).roles : [],
+      config.builderWeights.commander.roleCredit,
+    ),
     typeMix: shape
       ? { ...effectiveTypeMix(template, archetype), ...(shape.typeMixOverrides ?? {}) }
       : effectiveTypeMix(template, archetype),
@@ -1077,8 +1125,8 @@ function attempt(
     themeValue,
     themeFlags,
     themeWant: {
-      pe: archetype.kind === 'synergy' ? archetype.minimums[key].enablers : 0,
-      pp: archetype.kind === 'synergy' ? archetype.minimums[key].payoffs : 0,
+      pe: archetype.kind === 'synergy' ? minimumsFor(config, archetype, size).enablers : 0,
+      pp: archetype.kind === 'synergy' ? minimumsFor(config, archetype, size).payoffs : 0,
       se: secondary?.want.enablers ?? 0,
       sp: secondary?.want.payoffs ?? 0,
     },
@@ -1086,15 +1134,15 @@ function attempt(
   const notes: string[] = [];
 
   let lands = template.baseLands;
-  const state: State = { slots: size - lands, chosen: new Map(), order: [] };
+  const state: State = { slots: deckSize - lands, chosen: new Map(), order: [] };
   fillAll(state, ctx);
-  lands = refitLands(state, ctx, lands, size);
+  lands = refitLands(state, ctx, lands, deckSize);
 
   const swaps = localSearch(state, ctx);
   if (swaps > 0) {
     notes.push(`Improved by ${swaps} swap${swaps === 1 ? '' : 's'} after the first pass.`);
   }
-  lands = refitLands(state, ctx, lands, size);
+  lands = refitLands(state, ctx, lands, deckSize);
   let landPlan = planLandCount(template, spellCopies(state), config.landRules.mdfc);
 
   // A thin pool may not fill every slot: pad with lands up to the clamp.
@@ -1106,7 +1154,7 @@ function attempt(
       );
     }
     lands += short;
-    state.slots = size - lands;
+    state.slots = deckSize - lands;
     landPlan = planLandCount(template, spellCopies(state), config.landRules.mdfc);
     notes.push(`Ran out of fitting spells; added ${short} extra land${short === 1 ? '' : 's'}.`);
   }
@@ -1129,10 +1177,16 @@ function attempt(
   };
 }
 
+/** "Anafenza, Kin-Tree Spirit" becomes "Anafenza"; the front face of a two-faced name. */
+function shortName(name: string): string {
+  return (name.split(' // ')[0] ?? name).split(',')[0]!.trim();
+}
+
 /**
  * Build one deck. Throws BuildError with a plain-language message when the
  * pool cannot make a deck of the requested size and color.
  */
+
 export function buildDeck(
   request: BuildRequest,
   pool: Pool,
@@ -1140,10 +1194,13 @@ export function buildDeck(
   config: BulkBrewConfig,
 ): BuildResult {
   const { size, settings } = request;
-  const colors = normalizeColors(request.colors);
+  const commander = isCommanderSize(size) ? commanderFor(request, pool, index) : undefined;
+  const colors = normalizeColors(commander ? commander.identity : request.colors);
   if (colors.length === 0) throw new BuildError('Pick at least one color.');
   const template = templateFor(config, size);
-  const cands = listCandidates(pool, index, config, settings, colors, size);
+  const cands = listCandidates(pool, index, config, settings, colors, size).filter(
+    (c) => c.facts.card.id !== commander?.id,
+  );
   const scan = scanCandidates(cands, config, settings, size, colors);
   const colorLabel = colorsLabel(colors);
   if (!scan.possible) {
@@ -1184,6 +1241,16 @@ export function buildDeck(
   if (request.secondary && !request.style)
     notes.push('A secondary style needs a primary style; built the best fit without it.');
 
+  // A commander pulls best fit toward the styles its own text enables or rewards.
+  const commanderFacts = commander ? factsFor(index, config, commander) : undefined;
+  const rankOf = (at: Attempt) =>
+    at.score.total +
+    (commanderFacts &&
+    (commanderFacts.enablerOf.includes(at.archetype.id) ||
+      commanderFacts.payoffOf.includes(at.archetype.id))
+      ? config.builderWeights.commander.styleBonus
+      : 0);
+
   // Ties keep the earlier candidate: themes come first, so a theme beats a plain shape it ties.
   let best: Attempt | undefined;
   let firstError: unknown;
@@ -1202,10 +1269,11 @@ export function buildDeck(
         colorPlanned,
         penalty,
         resolved.theme,
+        commander,
       );
       if (resolved.note) at.notes.unshift(resolved.note);
       tried.push(at);
-      if (!best || at.score.total > best.score.total) best = at;
+      if (!best || rankOf(at) > rankOf(best)) best = at;
     } catch (err) {
       if (!(err instanceof BuildError)) throw err;
       firstError ??= err;
@@ -1218,8 +1286,12 @@ export function buildDeck(
       .slice(0, 3)
       .map((at) => `${at.archetype.label} ${at.score.total.toFixed(1)}`);
     if (rest.length > 3) shown.push(`${rest.length - 3} more`);
+    const favored =
+      rankOf(best) > best.score.total && rest.some((at) => at.score.total > best!.score.total);
     notes.push(
-      `Compared ${tried.length} styles and kept the strongest, ${best.archetype.label} (${best.score.total.toFixed(1)} of 100). Next: ${shown.join(', ')}.`,
+      favored
+        ? `Compared ${tried.length} styles and kept ${best.archetype.label} (${best.score.total.toFixed(1)} of 100), a style ${shortName(commander!.name)} leads. Next: ${shown.join(', ')}.`
+        : `Compared ${tried.length} styles and kept the strongest, ${best.archetype.label} (${best.score.total.toFixed(1)} of 100). Next: ${shown.join(', ')}.`,
     );
   }
   const { archetype, ctx, state, lands, plan, mana, score } = best;
@@ -1290,6 +1362,12 @@ export function buildDeck(
       if (cand.printing) dc.printing = cand.printing;
       return dc;
     });
+  if (commander) {
+    const lead: DeckCard = { cardId: commander.id, qty: 1, why: 'Commander' };
+    const printing = pool.entries[commander.id]?.printing;
+    if (printing) lead.printing = printing;
+    cards.unshift(lead);
+  }
   for (const pick of mana.nonbasics) {
     const dc: DeckCard = { cardId: pick.candidate.facts.card.id, qty: pick.qty, why: pick.why };
     if (pick.candidate.printing) dc.printing = pick.candidate.printing;
@@ -1304,7 +1382,10 @@ export function buildDeck(
     const card = index.get(dc.cardId)!;
     const fits = isCommanderSize(size) ? identityWithin(card, colors) : playableWith(card, colors);
     if (!fits) throw new Error(`builder chose off-color ${card.name}`);
-    if (dc.qty > limit) throw new Error(`builder exceeded the copy limit on ${card.name}`);
+    const most = commander ? commanderCopies(card) : limit;
+    if (dc.qty > most) throw new Error(`builder exceeded the copy limit on ${card.name}`);
+    if (commander && card.commanderLegality)
+      throw new Error(`builder chose ${card.name}, which is not legal in Commander`);
   }
   if (lands < template.landFormula.min || lands > template.landFormula.max) {
     throw new Error(`builder picked ${lands} lands, outside the template range`);
@@ -1349,12 +1430,13 @@ export function buildDeck(
 
   const deck: Deck = {
     id: request.id ?? '',
-    name: `${colorLabel} ${archetype.label}${secondaryInfo ? ` with ${secondaryInfo.label}` : ''} ${size}`,
+    name: `${commander ? shortName(commander.name) : colorLabel} ${archetype.label}${secondaryInfo ? ` with ${secondaryInfo.label}` : ''} ${size}`,
     size,
     color: colorPlanned.main,
     ...(colors.length > 1 ? { colors: colorPlanned.colors } : {}),
     archetype: archetype.id,
     ...(secondaryInfo ? { secondary: secondaryInfo.id } : {}),
+    ...(commander ? { commander: commander.id } : {}),
     cards,
     basics: Object.fromEntries(Object.entries(mana.basics).filter(([, q]) => (q ?? 0) > 0)),
     committed: false,

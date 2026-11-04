@@ -30,6 +30,8 @@ export interface DeckOptionsInput {
   colors: Color[];
   primary: string | undefined;
   secondary: string | undefined;
+  /** Commander card id for 100-card decks. */
+  commander: string | undefined;
   /** True while a deck is open or the Build screen is not showing; work waits until it is false. */
   paused: boolean;
 }
@@ -47,6 +49,8 @@ export interface DeckOptions {
   scans: ReadonlyMap<string, ScanReport>;
   /** Something unexpected stopped the work. */
   error: string | undefined;
+  /** Why the first planned build could not make a deck, shown when none could. */
+  failure: string | undefined;
 }
 
 interface Tagged extends DeckOptions {
@@ -66,6 +70,7 @@ const EMPTY: DeckOptions = {
   primaryUnavailable: false,
   scans: NO_SCANS,
   error: undefined,
+  failure: undefined,
 };
 
 /**
@@ -75,9 +80,22 @@ const EMPTY: DeckOptions = {
  * the settings or the pool starts over.
  */
 export function useDeckOptions(input: DeckOptionsInput): DeckOptions {
-  const { enabled, index, config, pool, settings, size, colors, primary, secondary, paused } =
-    input;
-  const active = enabled && Boolean(index) && colors.length > 0;
+  const {
+    enabled,
+    index,
+    config,
+    pool,
+    settings,
+    size,
+    colors,
+    primary,
+    secondary,
+    commander,
+    paused,
+  } = input;
+  // Commander decks wait for a commander; other sizes wait for a color.
+  const active =
+    enabled && Boolean(index) && colors.length > 0 && (size !== 100 || Boolean(commander));
 
   // Which cards the options draw from; styles are left out so a style change reuses the scans.
   const scanKey = useMemo(
@@ -95,7 +113,7 @@ export function useDeckOptions(input: DeckOptionsInput): DeckOptions {
       ]),
     [size, colors, settings, pool.updatedAt, index, config],
   );
-  const key = `${scanKey}|${primary ?? ''}|${secondary ?? ''}`;
+  const key = `${scanKey}|${commander ?? ''}|${primary ?? ''}|${secondary ?? ''}`;
   const request = useMemo(
     () => ({
       size,
@@ -103,8 +121,9 @@ export function useDeckOptions(input: DeckOptionsInput): DeckOptions {
       settings,
       ...(primary ? { primary } : {}),
       ...(secondary ? { secondary } : {}),
+      ...(commander ? { commander } : {}),
     }),
-    [size, colors, settings, primary, secondary],
+    [size, colors, settings, primary, secondary, commander],
   );
 
   const [state, setState] = useState<Tagged>({ ...EMPTY, key: '', scanKey: '' });
@@ -120,7 +139,8 @@ export function useDeckOptions(input: DeckOptionsInput): DeckOptions {
         let scans = scanCache.current?.key === scanKey ? scanCache.current.scans : undefined;
         if (!scans) {
           scans = new Map();
-          for (const subset of colorSubsets(colors)) {
+          // A commander fixes the colors, so only the full set is scanned.
+          for (const subset of size === 100 ? [colors] : colorSubsets(colors)) {
             scans.set(subset.join(''), scanPool(pool, index, config, settings, size, subset));
           }
           scanCache.current = { key: scanKey, scans };
@@ -154,11 +174,13 @@ export function useDeckOptions(input: DeckOptionsInput): DeckOptions {
       next.current += 1;
       let result: BuildResult | undefined;
       let error: string | undefined;
+      let failure: string | undefined;
       if (plan) {
         try {
           result = buildOption(plan, request, pool, index, config);
         } catch (err) {
-          if (!(err instanceof BuildError)) error = String(err);
+          if (err instanceof BuildError) failure = err.message;
+          else error = String(err);
         }
       }
       setState((s) => {
@@ -169,6 +191,7 @@ export function useDeckOptions(input: DeckOptionsInput): DeckOptions {
           built,
           working: !error && built < plans.current.length,
           error,
+          failure: s.failure ?? failure,
           options:
             plan && result
               ? addOption(s.options, plan.key, result, request, index, config)
@@ -186,6 +209,6 @@ export function useDeckOptions(input: DeckOptionsInput): DeckOptions {
     // Planning is pending; keep the style scans when only the styles changed.
     return { ...EMPTY, scans: state.scanKey === scanKey ? state.scans : NO_SCANS, working: true };
   }
-  const { options, built, planned, working, primaryUnavailable, scans, error } = state;
-  return { options, built, planned, working, primaryUnavailable, scans, error };
+  const { options, built, planned, working, primaryUnavailable, scans, error, failure } = state;
+  return { options, built, planned, working, primaryUnavailable, scans, error, failure };
 }

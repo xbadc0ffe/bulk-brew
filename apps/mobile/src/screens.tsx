@@ -519,7 +519,7 @@ function Analysis() {
           disabled={sizes.length === 0}
           onClick={() => {
             // Land on a size this color can build, and keep a result already shown for it.
-            if (!scans[build.size][color].possible) build.setSize(sizes[0]!);
+            if (build.size === 100 || !scans[build.size][color].possible) build.setSize(sizes[0]!);
             if (build.color !== color) build.setColor(color);
             nav.go('build');
           }}

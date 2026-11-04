@@ -48,7 +48,8 @@ export function deckToDecklist(deck: Deck, index: CardIndex, config?: BulkBrewCo
   for (const dc of sorted) {
     const card = index.get(dc.cardId);
     if (!card) continue;
-    const g = primaryGroup(card);
+    // A Commander deck lists its commander on its own, first.
+    const g = dc.cardId === deck.commander ? 'Commander' : primaryGroup(card);
     if (!groups.has(g)) groups.set(g, []);
     groups.get(g)!.push(line(card, dc));
     counts.set(g, (counts.get(g) ?? 0) + dc.qty);
@@ -75,7 +76,7 @@ export function deckToDecklist(deck: Deck, index: CardIndex, config?: BulkBrewCo
     .map((c) => COLOR_LABELS[c])
     .join(' and ');
   const out: string[] = [`// ${deck.name}`, `// ${deck.size} cards, ${colorText}`];
-  for (const g of [...GROUPS.map((x) => x.label), 'Other']) {
+  for (const g of ['Commander', ...GROUPS.map((x) => x.label), 'Other']) {
     const lines = groups.get(g);
     if (!lines?.length) continue;
     out.push('', `// ${g} (${counts.get(g) ?? 0})`, ...lines);

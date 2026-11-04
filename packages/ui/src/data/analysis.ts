@@ -2,10 +2,13 @@ import { type ArchetypeReport, type Color, type DeckSize, type ScanReport } from
 
 export type Viability = 'viable' | 'near' | 'none';
 
-export const DECK_SIZES: readonly DeckSize[] = [60, 40, 20];
+/** Sizes the pool analysis covers; Commander depends on the commander, so it has its own list. */
+export type ScannedSize = Exclude<DeckSize, 100>;
 
-/** Scans for every color at every deck size. */
-export type ScansBySize = Record<DeckSize, Record<Color, ScanReport>>;
+export const DECK_SIZES: readonly ScannedSize[] = [60, 40, 20];
+
+/** Scans for every color at every analyzed deck size. */
+export type ScansBySize = Record<ScannedSize, Record<Color, ScanReport>>;
 
 const VIABILITY_LABEL: Record<Viability, string> = {
   viable: 'Viable',
@@ -70,7 +73,7 @@ export function scanShortfall(scan: ScanReport): string | undefined {
 }
 
 /** Sizes the color can build at all, largest first. */
-export function buildableSizes(scans: ScansBySize, color: Color): DeckSize[] {
+export function buildableSizes(scans: ScansBySize, color: Color): ScannedSize[] {
   return DECK_SIZES.filter((size) => scans[size][color].possible);
 }
 

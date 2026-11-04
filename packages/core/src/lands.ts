@@ -3,7 +3,7 @@
 // the lands come from the pool's nonbasics scored by the land rules, with
 // basics filling the rest.
 
-import type { BulkBrewConfig, DeckTemplate, LandRulesConfig } from './config.ts';
+import { forSize, type BulkBrewConfig, type DeckTemplate, type LandRulesConfig } from './config.ts';
 import type { Candidate, CardFacts } from './candidates.ts';
 import type { CardIndex } from './pack.ts';
 import { isCommanderSize, pipDemand, sourcesNeeded } from './colors.ts';
@@ -292,11 +292,10 @@ export function chooseManaBase(
   const rules = config.landRules.nonbasic;
   const colors = plan.colors;
   const multi = colors.length > 1;
-  const key = String(size) as '60' | '40' | '20';
   const shareByCount = config.landRules.colors.nonbasicMaxShare;
   const maxShare = multi ? (shareByCount[String(colors.length)] ?? rules.maxShare) : rules.maxShare;
   const maxNonbasics = Math.floor(count * maxShare);
-  const maxColorless = rules.maxColorlessOnly[key] ?? 0;
+  const maxColorless = forSize(rules.maxColorlessOnly, size);
   const notes: string[] = [];
 
   const scored = landCandidates

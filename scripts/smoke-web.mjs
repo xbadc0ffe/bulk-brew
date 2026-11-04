@@ -184,10 +184,18 @@ try {
   await shot('2-pool');
 
   await click('^Build$');
-  await click('^60$');
-  // Color tiles read like "W White 754 cards". SMOKE_COLORS picks several, such as "White,Blue".
-  const colorNames = (process.env.SMOKE_COLORS ?? 'White').split(',');
-  for (const name of colorNames) await click(`${name}\\d`);
+  // SMOKE_SIZE=100 builds Commander: pick SMOKE_COMMANDER (part of a name) from the list.
+  const size = process.env.SMOKE_SIZE ?? '60';
+  await click(`^${size}$`);
+  if (size === '100') {
+    await waitForText(/Pick a commander/, 30000);
+    await shot('3-commanders');
+    await click(process.env.SMOKE_COMMANDER ?? 'Dion');
+  } else {
+    // Color tiles read like "W White 754 cards". SMOKE_COLORS picks several, such as "White,Blue".
+    const colorNames = (process.env.SMOKE_COLORS ?? 'White').split(',');
+    for (const name of colorNames) await click(`${name}\\d`);
+  }
   // Open the rarity drop-down so the form screenshot shows it, then close it.
   await click('^All rarities');
   await waitForText(/Mythic/, 5000);
@@ -219,6 +227,8 @@ try {
   await waitForText(/save the deck and remove the cards/);
   await click('^Accept$', 'last');
   log('accept', oneLine((await waitForText(/Saved "/)).match(/Saved "[^\n]*/)[0], 160));
+  // The commander left the pool with its deck, so the commander list comes back.
+  if (size === '100') log('commander-cleared', (await waitForText(/Pick a commander/)).length > 0);
 
   await click('^Bulk List');
   await waitForText(/unique/);

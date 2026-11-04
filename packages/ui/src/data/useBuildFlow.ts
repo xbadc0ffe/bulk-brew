@@ -48,6 +48,9 @@ export interface BuildFlow {
   /** Secondary style, only once a primary style is picked. */
   secondary: string | undefined;
   setSecondary(style: string | undefined): void;
+  /** Commander card id for 100-card decks; picking one sets the colors to its identity. */
+  commander: string | undefined;
+  setCommander(id: string | undefined): void;
   /** The settings a build uses: the stored ones with this build's copy limit. */
   buildSettings: Settings;
   /** Show a finished build, such as a deck option, as the result. */
@@ -90,6 +93,7 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
   const color = colors[0];
   const [style, setStyleState] = useState<string>();
   const [secondary, setSecondaryState] = useState<string>();
+  const [commander, setCommanderState] = useState<string>();
   /** A copy limit for this build, valid only while the size and stored setting match. */
   const [override, setOverride] = useState<{ size: DeckSize; base: number; value: number }>();
   const [result, setResult] = useState<BuildResult>();
@@ -109,13 +113,14 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
     [settings, size, maxCopies],
   );
   const sizeScans = useMemo(() => {
-    if (!index) return undefined;
+    // Commander colors come from the commander, so there is no per-color scan at 100.
+    if (!index || size === 100) return undefined;
     if (buildSettings === settings && scans) return scans[size];
     return scanAll(pool.pool, index, config, buildSettings, size);
   }, [index, pool.pool, config, buildSettings, settings, scans, size]);
   const colorScan = useMemo(() => {
     if (!index || colors.length === 0) return undefined;
-    if (colors.length === 1) return sizeScans?.[colors[0]!];
+    if (colors.length === 1 && sizeScans) return sizeScans[colors[0]!];
     return scanPool(pool.pool, index, config, buildSettings, size, colors);
   }, [index, colors, sizeScans, pool.pool, config, buildSettings, size]);
 
@@ -126,10 +131,17 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
 
   const setSize = useCallback(
     (s: DeckSize) => {
+      // Commander picks colors through its commander, so switching to or from 100 starts over.
+      if ((size === 100) !== (s === 100)) {
+        setCommanderState(undefined);
+        setColorsState([]);
+        setStyleState(undefined);
+        setSecondaryState(undefined);
+      }
       setSizeState(s);
       reject();
     },
-    [reject],
+    [reject, size],
   );
   const setColor = useCallback(
     (c: Color) => {
@@ -157,6 +169,17 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
     },
     [reject],
   );
+  const setCommander = useCallback(
+    (id: string | undefined) => {
+      setCommanderState(id);
+      const card = id && index ? index.get(id) : undefined;
+      setColorsState(card ? normalizeColors(card.identity) : []);
+      setStyleState(undefined);
+      setSecondaryState(undefined);
+      reject();
+    },
+    [index, reject],
+  );
   const setSecondary = useCallback(
     (s: string | undefined) => {
       setSecondaryState(s);
@@ -174,6 +197,7 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
     [maxCopies],
   );
   const clearChoices = useCallback(() => {
+    setCommanderState(undefined);
     setColorsState([]);
     setStyleState(undefined);
     setSecondaryState(undefined);
@@ -193,8 +217,8 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
     const handle = setTimeout(() => {
       try {
         const request = style
-          ? { size, colors, settings: buildSettings, style }
-          : { size, colors, settings: buildSettings };
+          ? { size, colors, settings: buildSettings, style, ...(commander ? { commander } : {}) }
+          : { size, colors, settings: buildSettings, ...(commander ? { commander } : {}) };
         setResult(buildDeck(request, pool.pool, index, config));
         setResultMaxCopies(maxCopies);
         setError(undefined);
@@ -206,7 +230,18 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
       }
     }, 0);
     return () => clearTimeout(handle);
-  }, [building, index, colors, size, style, buildSettings, maxCopies, pool.pool, config]);
+  }, [
+    building,
+    index,
+    colors,
+    size,
+    style,
+    commander,
+    buildSettings,
+    maxCopies,
+    pool.pool,
+    config,
+  ]);
 
   const canBuild = Boolean(index && colors.length > 0 && colorScan?.possible && !building);
 
@@ -233,6 +268,13 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
     decks.save(deck);
     reject();
     setAccepted(deck);
+    // The commander left the pool with its deck; the list of commanders comes back.
+    if (deck.commander) {
+      setCommanderState(undefined);
+      setColorsState([]);
+      setStyleState(undefined);
+      setSecondaryState(undefined);
+    }
     return deck;
   }, [result, index, decks, pool.pool, pool.actions, settings, config, reject]);
 
@@ -240,7 +282,11 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
     reject();
     setAccepted(undefined);
     setOverride(undefined);
-  }, [reject]);
+    if (commander) {
+      setCommanderState(undefined);
+      setColorsState([]);
+    }
+  }, [reject, commander]);
 
   return {
     size,
@@ -253,6 +299,8 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
     setStyle,
     secondary,
     setSecondary,
+    commander,
+    setCommander,
     buildSettings,
     open,
     clearChoices,

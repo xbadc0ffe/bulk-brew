@@ -82,7 +82,7 @@ export function parseBackup(json: string): Backup {
     if (!isRecord(deck) || typeof deck.id !== 'string' || typeof deck.name !== 'string')
       fail('a deck has no id or name');
     const where = `deck "${deck.name}"`;
-    if (![60, 40, 20].includes(deck.size as number)) fail(`${where} has a bad size`);
+    if (![100, 60, 40, 20].includes(deck.size as number)) fail(`${where} has a bad size`);
     if (!COLORS.includes(deck.color as never)) fail(`${where} has a bad color`);
     if (
       deck.colors !== undefined &&

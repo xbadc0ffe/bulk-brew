@@ -7,7 +7,7 @@ import type { CardRecord, DataPack, Pool, PoolEntry, Settings } from '../src/typ
 import { CONFIG } from './config.test.ts';
 
 export const SETTINGS: Settings = {
-  maxCopies: { 60: 4, 40: 4, 20: 2 },
+  maxCopies: { 100: 1, 60: 4, 40: 4, 20: 2 },
   unlimitedBasics: true,
   includeUnsets: false,
   showArt: false,

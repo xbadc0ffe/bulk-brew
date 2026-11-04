@@ -2,11 +2,6 @@
 
 Ranked. The current phase is at the top. Finished phases are removed, not struck through.
 
-## Phase 13: Commander
-
-- 100-card singleton template, commander candidates and tiers, commander-anchored builds, commander list and header on the Build page.
-- Verify eligibility, singleton exceptions, and identity against the rules in `docs/rules/`.
-
 ## Phase 8: iOS app (on hold until the owner starts it)
 
 - Capacitor project around `apps/mobile`, bundled data pack and config, over-the-air data update.
@@ -41,6 +36,7 @@ Ranked. The current phase is at the top. Finished phases are removed, not struck
 
 ## Owner review follow-ups
 
+- Commander: Partner, Background, and similar pairs; colorless commanders (need Wastes); a role for answers to artifacts and enchantments; prefer ramp that costs less than the commander; extra copies of a commander whose text allows any number; the phone layout (phones do not offer 100 yet).
 - Mobile: secondary style picker (phones build with the primary style only).
 - Tribes: multi-word creature types such as "Time Lord" split into two words; Blink as a style needs a way to detect enter-the-battlefield value.
 - Mobile parity for the deck options list on the Build page (phones still build one deck).

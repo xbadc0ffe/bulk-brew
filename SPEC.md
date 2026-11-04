@@ -192,9 +192,9 @@ The Build page has settings on the left and deck options on the right.
 
 ## Commander (phase 13)
 
-- **Legality**: the commander must be allowed by the format (legendary creature or text that says it can be your commander; partner and background pairs later) and not banned. Every card fits inside the commander's color identity. Singleton except basics and cards whose text allows any number.
-- **Candidates and tiers**: ranked by how many pool cards fit its identity, whether its own text matches a style the pool supports, its mana value, its colors against the fixing in the pool, and tribal fit when it names a creature type. Game Changers are allowed; bulk rarely holds many.
-- **Template**: about 37 lands, 10 ramp, 10 card draw (cantrips do not count), 8 to 9 targeted removal with some that hit artifacts and enchantments, 3 sweepers, and the rest for the theme; lands plus ramp at least 45; ramp should cost less than the commander. The commander counts toward the roles it fills, and the deck must still work without it. Numbers live in `deck-templates.json`.
+- **Legality**: the commander must be allowed by the format (a legendary creature card, Vehicle, or Spacecraft with power and toughness, or text that says it can be your commander; partner and background pairs later). Cards banned or not legal in Commander stay out of the commander list and the 99. Every card fits inside the commander's color identity. Singleton except basics and cards whose text allows more.
+- **Candidates and tiers**: top, good, and possible (see `docs/guides/commander.md`), ranked by how many pool cards fit its identity, whether its own text rewards a style the pool supports or a creature type it holds, its mana value, and its colors against the fixing in the pool. Game Changers are allowed; bulk rarely holds many. Partner and Background pairs and colorless commanders are not supported yet.
+- **Template**: 35 to 40 lands (37 to start), 10 ramp, 10 card draw (cantrips do not count), 9 removal, 3 sweepers, and the rest for the theme, so lands plus ramp land near 45 to 47. Every Commander deck uses the `commander` curve profile. The commander counts as one card toward each role it fills, so the deck still works when it is off the table. Numbers live in `deck-templates.json` and the `commander` block of `builder-weights.json`; the reasoning is in `docs/guides/commander.md`.
 
 ## Jumpstart packets
 
@@ -204,7 +204,7 @@ A 20-card packet includes its lands (about 8) and is built so that any two packe
 
 - Fixed test pools in `eval/pools/`, each exercising something specific.
 - A written rubric in `eval/rubric.md`: curve, type mix, role coverage, synergy, mana base, playability.
-- `npm run eval` builds every pool at every size and color the scan allows, scores the decks with automatic metrics (size and copy invariants, land count against the formula clamp, curve deviation, type mix, role coverage, synergy density, filler, castability, build time), writes `eval/results/<date>-<sha>.json`, prints a summary per pool and per size, and shows per-size deltas against the previous full run. It exits 1 on any build failure or broken invariant. `npm run eval:pools` regenerates the synthetic pools from a fixed seed. An on-demand GitHub Actions workflow runs the same suite.
+- `npm run eval` builds every pool at every size and color the scan allows, plus best fit under the two most promising commanders of each pool (`--commanders <n>` changes the count), scores the decks with automatic metrics (size and copy invariants, land count against the formula clamp, curve deviation, type mix, role coverage, synergy density, filler, castability, build time), writes `eval/results/<date>-<sha>.json`, prints a summary per pool and per size, and shows per-size deltas against the previous full run. It exits 1 on any build failure or broken invariant. `npm run eval:pools` regenerates the synthetic pools from a fixed seed. An on-demand GitHub Actions workflow runs the same suite.
 - Committed baselines in `eval/results/` are full best-fit runs: `2026-11-03-fe5b028.json` (schema 1 pack, margin-based best fit) and `2026-11-04-74cbcae.json` (schema 2 pack, card strength and best fit by building). Compare new runs with the latest.
 - Claude reviews decks against the rubric as a development aid, not as ground truth. The user calibrates on a sample.
 
@@ -248,7 +248,7 @@ npm workspaces monorepo, TypeScript throughout.
 | 10    | Colors: one to five colors, castability candidates, pip-based mana bases, fixing, saved deck migration          | done                              |
 | 11    | Build page: settings left, ranked deck options right, background worker, state kept                             | done                              |
 | 12    | Styles: primary and secondary styles, tribal as a secondary style, new styles                                   | done                              |
-| 13    | Commander: 100-card singleton, commander candidates and tiers, commander-anchored builds                        | next                              |
+| 13    | Commander: 100-card singleton, commander candidates and tiers, commander-anchored builds                        | done                              |
 | Later | Batch balanced mode, offline image download                                                                     |                                   |
 
 ## Decisions

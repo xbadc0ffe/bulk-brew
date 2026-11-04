@@ -3,6 +3,9 @@
 // it so the user can pick a style that will actually work.
 
 import {
+  forSize,
+  minimumsFor,
+  roleOverridesFor,
   templateFor,
   type Archetype,
   type BulkBrewConfig,
@@ -12,7 +15,7 @@ import {
   type TypeMix,
 } from './config.ts';
 import { listCandidates, type Candidate } from './candidates.ts';
-import { colorsLabel, normalizeColors } from './colors.ts';
+import { colorsLabel, isCommanderSize, normalizeColors } from './colors.ts';
 import { creatureTypes } from './matchers.ts';
 import type { CardIndex } from './pack.ts';
 import {
@@ -27,8 +30,6 @@ import {
   type TribeReport,
 } from './types.ts';
 
-type SizeKey = '60' | '40' | '20';
-
 /**
  * Share of a deck's spell slots that must be cards of the deck color.
  * Colorless cards fit every color, so without this a pile of artifacts would
@@ -39,13 +40,14 @@ export const MIN_COLORED_SHARE = 0.5;
 /**
  * Curve profile for a size and archetype. Jumpstart packets always use the
  * template's own profile: two packets must curve out together on 16 lands,
- * whatever theme each one has.
+ * whatever theme each one has. Commander decks do too: long multiplayer
+ * games shape the curve more than the style does.
  */
 export function effectiveCurveProfile(
   template: DeckTemplate,
   archetype: Archetype | undefined,
 ): string {
-  if (template.size === 20) return template.curveProfile;
+  if (template.size === 20 || template.size === 100) return template.curveProfile;
   return archetype?.curveProfile ?? template.curveProfile;
 }
 
@@ -54,8 +56,7 @@ export function effectiveQuotas(
   template: DeckTemplate,
   archetype: Archetype | undefined,
 ): Record<string, RoleQuota> {
-  const key = String(template.size) as SizeKey;
-  return { ...template.roles, ...(archetype?.roleOverrides?.[key] ?? {}) };
+  return { ...template.roles, ...(roleOverridesFor(archetype, template.size) ?? {}) };
 }
 
 export function effectiveTypeMix(
@@ -88,8 +89,7 @@ function reportSynergy(
   colors: readonly Color[],
   possible: boolean,
 ): ArchetypeReport {
-  const key = String(template.size) as SizeKey;
-  const want = a.minimums[key];
+  const want = minimumsFor(config, a, template.size);
   const isEnabler = (c: Candidate) => c.facts.enablerOf.includes(a.id);
   const isPayoff = (c: Candidate) => c.facts.payoffOf.includes(a.id);
   const enablers = countCopies(cands, isEnabler);
@@ -164,7 +164,8 @@ export function scanCandidates(
   const color = colors[0]!;
   const label = colorsLabel(colors);
   const template = templateFor(config, size);
-  const spellSlots = size - template.baseLands;
+  // A Commander deck's commander takes one of the 100 slots.
+  const spellSlots = size - (isCommanderSize(size) ? 1 : 0) - template.baseLands;
   let spells = 0;
   let colored = 0;
   let creatures = 0;
@@ -197,7 +198,7 @@ export function scanCandidates(
     );
   } else if (colors.length > 1) {
     // Each color of a multi-color deck must bring enough of its own cards.
-    const per = config.landRules.colors.minCardsPerColor[String(size) as SizeKey] ?? 0;
+    const per = forSize(config.landRules.colors.minCardsPerColor, size);
     for (const c of colors) {
       const n = countCopies(cands, (x) => x.facts.card.colors.includes(c));
       if (n < per)
@@ -294,7 +295,6 @@ export function secondaryChoices(
   const primary = config.archetypes.archetypes.find((a) => a.id === primaryId);
   if (!primary) return [];
   const sec = config.builderWeights.secondary;
-  const key = String(scan.size) as SizeKey;
   const out: SecondaryChoice[] = [];
   const judge = (short: number) =>
     short <= 0 ? 'viable' : short <= sec.nearMiss ? 'near' : undefined;
@@ -311,8 +311,8 @@ export function secondaryChoices(
     const report = scan.archetypes.find((r) => r.archetype === a.id);
     if (!report) continue;
     if (a.colors && !scan.colors.some((c) => a.colors!.includes(c))) continue;
-    const wantE = Math.ceil(a.minimums[key].enablers * sec.minimumShare);
-    const wantP = Math.ceil(a.minimums[key].payoffs * sec.minimumShare);
+    const wantE = Math.ceil(minimumsFor(config, a, scan.size).enablers * sec.minimumShare);
+    const wantP = Math.ceil(minimumsFor(config, a, scan.size).payoffs * sec.minimumShare);
     const shortE = Math.max(0, wantE - report.enablers.have);
     const shortP = Math.max(0, wantP - report.payoffs.have);
     const state = judge(shortE + shortP);
@@ -325,7 +325,7 @@ export function secondaryChoices(
       .join(', ');
     out.push({ id: a.id, label: a.label, kind: 'synergy', state, note });
   }
-  const want = sec.tribal[key];
+  const want = forSize(sec.tribal, scan.size);
   for (const t of scan.tribes ?? []) {
     // A type with no cards that reward it is just a crowd of bodies, not a tribe.
     if (t.payoffs === 0) continue;

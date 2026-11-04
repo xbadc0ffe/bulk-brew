@@ -75,7 +75,8 @@ function BuildForm() {
         )}
         <p className={phone.note}>
           The phone layout builds the single strongest deck for your picks. The ranked list of deck
-          options is on the desktop layout for now and comes to phones next.
+          options and 100-card Commander decks are on the desktop layout for now and come to phones
+          next.
         </p>
         <section className="flex flex-col gap-2">
           <h2 className={phone.groupLabel}>Deck size</h2>

@@ -1,5 +1,5 @@
 {
-  "version": "2",
+  "version": "3",
   "profiles": [
     {
       "id": "aggro",
@@ -24,6 +24,12 @@
       "label": "Jumpstart packet",
       "description": "Low and tight so two packets together still curve out on eight lands each.",
       "shape": [0.14, 0.3, 0.28, 0.17, 0.08, 0.03, 0.0]
+    },
+    {
+      "id": "commander",
+      "label": "Commander",
+      "description": "A longer game: plenty of two- and three-drops, with room for big plays at five and up.",
+      "shape": [0.08, 0.2, 0.24, 0.2, 0.13, 0.09, 0.06]
     },
     {
       "id": "ramp",

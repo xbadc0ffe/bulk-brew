@@ -28,6 +28,7 @@ import { OptionsPanel } from './BuildOptions.tsx';
 import { DeckLayout, ExportMenu } from './DeckLayout.tsx';
 
 const SIZES: { id: DeckSize; label: string }[] = [
+  { id: 100, label: '100' },
   { id: 60, label: '60' },
   { id: 40, label: '40' },
   { id: 20, label: '20' },
@@ -36,6 +37,7 @@ const SIZES: { id: DeckSize; label: string }[] = [
 /** One line per size, in the voice of the design's 60-card line. */
 function sizeLine(size: DeckSize, copies: number): string {
   const c = `Up to ${copies} ${copies === 1 ? 'copy' : 'copies'} of a card.`;
+  if (size === 100) return 'Commander. One commander plus 99 cards, one copy of each.';
   if (size === 60) return `Casual constructed. ${c}`;
   if (size === 40) return `Draft-style limited deck. ${c}`;
   return `Jumpstart packet. Pair two for a 40-card game. ${c}`;
@@ -93,16 +95,20 @@ function BuildForm() {
           <p className="text-[12px] text-fg-2">{sizeLine(flow.size, flow.maxCopies)}</p>
         </div>
 
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-[13px] text-fg-1">Max copies per card</span>
-          <Stepper
-            max={99}
-            label="Max copies per card"
-            value={flow.maxCopies}
-            min={1}
-            onChange={flow.setMaxCopies}
-          />
-        </div>
+        {flow.size === 100 ? (
+          <p className="text-[13px] text-fg-1">One copy of each card, except basic lands.</p>
+        ) : (
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-[13px] text-fg-1">Max copies per card</span>
+            <Stepper
+              max={99}
+              label="Max copies per card"
+              value={flow.maxCopies}
+              min={1}
+              onChange={flow.setMaxCopies}
+            />
+          </div>
+        )}
 
         <div className="flex items-center justify-between gap-3">
           <span className="flex flex-col">
@@ -135,47 +141,60 @@ function BuildForm() {
           />
         </label>
 
-        <div className="flex flex-col gap-2">
-          <h2 className={ui.sectionLabel}>Colors</h2>
-          <div role="group" aria-label="Colors" className="grid grid-cols-5 gap-1.5">
-            {COLORS.map((c) => {
-              const s = flow.sizeScans?.[c];
-              // Any color with cards of its own can join a set; the set's scan decides the rest.
-              const can = (s?.colored ?? 0) > 0;
-              const on = flow.colors.includes(c);
-              return (
-                <button
-                  key={c}
-                  type="button"
-                  aria-pressed={on}
-                  aria-disabled={!can && !on}
-                  title={
-                    can ? undefined : `No ${COLOR_LABELS[c].toLowerCase()} cards in your bulk list`
-                  }
-                  onClick={() => {
-                    if (can || on) flow.toggleColor(c);
-                  }}
-                  className={`flex min-w-0 flex-col items-center gap-1 rounded-md border px-1 pt-2.5 pb-2 text-center ${
-                    on ? 'border-ink bg-surface' : 'border-line'
-                  } ${can || on ? (on ? '' : 'hover:bg-surface-2') : 'cursor-default opacity-55'}`}
-                >
-                  <Pip symbol={c} size={22} />
-                  <span className="text-[12px] font-medium">{COLOR_LABELS[c]}</span>
-                  <span className="text-[10.5px] leading-tight text-fg-2">
-                    {s?.colored ?? 0} cards
-                  </span>
-                </button>
-              );
-            })}
+        {flow.size === 100 ? (
+          <div className="flex flex-col gap-2">
+            <h2 className={ui.sectionLabel}>Colors</h2>
+            <p className="text-[12px] text-fg-2">
+              {flow.commander
+                ? `Colors come from the commander: ${colorName ?? 'colorless'}.`
+                : 'Pick a commander on the right. Its colors become the deck colors.'}
+            </p>
           </div>
-          <p className="text-[12px] text-fg-2">
-            {colorName
-              ? scan && !scan.possible && flow.colors.length > 1
-                ? `${colorName} together falls short (${scanShortfall(scan) ?? 'not enough cards'}); options use fewer of these colors.`
-                : `Options use ${flow.colors.length > 1 ? 'any of these colors' : 'this color'}.`
-              : 'Pick one or more colors. Options can use any of them.'}
-          </p>
-        </div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            <h2 className={ui.sectionLabel}>Colors</h2>
+            <div role="group" aria-label="Colors" className="grid grid-cols-5 gap-1.5">
+              {COLORS.map((c) => {
+                const s = flow.sizeScans?.[c];
+                // Any color with cards of its own can join a set; the set's scan decides the rest.
+                const can = (s?.colored ?? 0) > 0;
+                const on = flow.colors.includes(c);
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    aria-pressed={on}
+                    aria-disabled={!can && !on}
+                    title={
+                      can
+                        ? undefined
+                        : `No ${COLOR_LABELS[c].toLowerCase()} cards in your bulk list`
+                    }
+                    onClick={() => {
+                      if (can || on) flow.toggleColor(c);
+                    }}
+                    className={`flex min-w-0 flex-col items-center gap-1 rounded-md border px-1 pt-2.5 pb-2 text-center ${
+                      on ? 'border-ink bg-surface' : 'border-line'
+                    } ${can || on ? (on ? '' : 'hover:bg-surface-2') : 'cursor-default opacity-55'}`}
+                  >
+                    <Pip symbol={c} size={22} />
+                    <span className="text-[12px] font-medium">{COLOR_LABELS[c]}</span>
+                    <span className="text-[10.5px] leading-tight text-fg-2">
+                      {s?.colored ?? 0} cards
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-[12px] text-fg-2">
+              {colorName
+                ? scan && !scan.possible && flow.colors.length > 1
+                  ? `${colorName} together falls short (${scanShortfall(scan) ?? 'not enough cards'}); options use fewer of these colors.`
+                  : `Options use ${flow.colors.length > 1 ? 'any of these colors' : 'this color'}.`
+                : 'Pick one or more colors. Options can use any of them.'}
+            </p>
+          </div>
+        )}
 
         <div className="flex flex-col gap-2">
           <h2 className={ui.sectionLabel}>Primary style</h2>
@@ -393,12 +412,13 @@ function BuildResultView() {
   if (!result || !index) return null;
   const deck = result.deck;
   const lands = result.explanation.lands.count;
+  const copies = flow.resultMaxCopies ?? flow.maxCopies;
 
   return (
     <>
       <DeckLayout
         deck={deck}
-        meta={`${deck.size} cards · ${lands} lands · max ${flow.resultMaxCopies ?? flow.maxCopies} copies`}
+        meta={`${deck.size} cards · ${lands} lands · ${deck.commander ? 'one copy of each' : `max ${copies} ${copies === 1 ? 'copy' : 'copies'}`}`}
         status={flow.error ?? status}
         actions={
           <>
