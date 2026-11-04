@@ -33,7 +33,7 @@ export function AboutScreen() {
 
         <section className="flex flex-col gap-2">
           <h2 className={ui.sectionLabel}>Contact</h2>
-          <div className={`${ui.box} divide-y divide-surface-2`}>
+          <div className={`${ui.box} divide-y-1 divide-surface-2`}>
             <p className="flex justify-between gap-4 px-4 py-[11px]">
               <span className="font-semibold">Website</span>
               <a className={ui.link} href={WEBSITE} target="_blank" rel="noreferrer">
@@ -57,7 +57,7 @@ export function AboutScreen() {
 
         <section className="flex flex-col gap-2">
           <h2 className={ui.sectionLabel}>Card data</h2>
-          <div className={`${ui.box} divide-y divide-surface-2`}>
+          <div className={`${ui.box} divide-y-1 divide-surface-2`}>
             <div className="flex flex-col gap-0.5 px-4 py-[11px]">
               <span className="font-semibold">
                 Scryfall oracle cards · data format v

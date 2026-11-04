@@ -45,7 +45,7 @@ export const phone = {
     'rounded-lg border border-line-strong bg-surface px-3 py-[0.5625rem] text-[0.875rem] text-ink placeholder:text-fg-3',
   group: 'overflow-hidden rounded-[10px] border border-line bg-surface',
   groupLabel: 'px-1 pb-1.5 text-[0.6875rem] font-semibold tracking-[0.04em] text-fg-2 uppercase',
-  row: 'flex min-h-11 items-center gap-3 border-b border-surface-2 px-4 py-2.5 last:border-b-0',
+  row: 'flex min-h-11 items-center gap-3 border-b-1 border-surface-2 px-4 py-2.5 last:border-b-0',
   badge:
     'inline-flex items-center rounded bg-surface-2 px-[0.4375rem] py-0.5 text-[0.6875rem] whitespace-nowrap text-fg-1',
   note: 'text-[0.8125rem] text-fg-2',

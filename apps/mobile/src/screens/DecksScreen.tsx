@@ -164,7 +164,7 @@ function SwipeRow(props: {
   const width = () => tray.current?.offsetWidth ?? 176;
 
   return (
-    <li className="relative border-b border-surface-2 last:border-b-0">
+    <li className="relative border-b-1 border-surface-2 last:border-b-0">
       <div ref={tray} className="absolute inset-y-0 right-0 flex w-44" aria-hidden={!open}>
         {props.actions.map((a, i) => (
           <button

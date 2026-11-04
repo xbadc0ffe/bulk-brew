@@ -36,32 +36,40 @@ function Stack({ x, y, w, h }: { x: number; y: number; w: number; h: number }) {
 }
 
 /**
- * A stack of cards lying flat, seen from an angle: the top card's face and,
- * under it, one edge line per card below, like the Decks icon tipped back.
+ * A stack of cards lying flat, seen from an angle: the top card's face over
+ * the stack's body, with a line per card edge wrapping the front and side.
+ * The body is filled so a stack in front hides the ones behind it.
  */
 function AngledStack({ x, base, cards }: { x: number; base: number; cards: number }) {
-  const w = 8.5;
+  const w = 10;
   const depth = 5;
-  const skew = 3.5;
-  const gap = 2.7;
-  const top = base - (cards - 1) * gap;
+  const skew = 4;
+  const gap = 4;
+  const h = (cards - 1) * gap;
+  const top = base - h;
   return (
     <>
-      {Array.from({ length: cards - 1 }, (_, k) => (
-        <path key={k} d={`M${x} ${top + k * gap} v${gap} h${w} l${skew} ${-depth} v${-gap}`} />
+      <path
+        d={`M${x} ${top} l${skew} ${-depth} h${w} v${h} l${-skew} ${depth} h${-w} Z`}
+        fill="var(--icon-fill)"
+        stroke="none"
+      />
+      <path d={`M${x} ${top} v${h} h${w} l${skew} ${-depth} v${-h}`} />
+      {Array.from({ length: cards - 2 }, (_, i) => (
+        <path key={i} d={`M${x} ${top + (i + 1) * gap} h${w} l${skew} ${-depth}`} />
       ))}
       <path d={`M${x} ${top} h${w} l${skew} ${-depth} h${-w} Z`} fill="var(--icon-fill)" />
     </>
   );
 }
 
-/** Bulk List: three stacks of cards, the tallest at the back. */
+/** Bulk List: two stacks of cards at the back, a shorter one in front of them. */
 export function StacksIcon({ size = 28 }: { size?: number }) {
   return (
     <Svg size={size}>
-      <AngledStack x={10} base={20.5} cards={4} />
-      <AngledStack x={1.2} base={30} cards={2} />
-      <AngledStack x={18.8} base={30} cards={3} />
+      <AngledStack x={1} base={20.5} cards={3} />
+      <AngledStack x={17} base={20.5} cards={3} />
+      <AngledStack x={8.8} base={29.5} cards={2} />
     </Svg>
   );
 }

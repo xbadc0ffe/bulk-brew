@@ -276,7 +276,7 @@ export function ActionSheet(props: {
             <button
               key={a.label}
               type="button"
-              className="flex min-h-12 w-full items-center justify-center border-b border-surface-2 text-[1rem] text-ink last:border-b-0 active:bg-surface-2"
+              className="flex min-h-12 w-full items-center justify-center border-b-1 border-surface-2 text-[1rem] text-ink last:border-b-0 active:bg-surface-2"
               onClick={() => {
                 onClose();
                 a.onSelect();

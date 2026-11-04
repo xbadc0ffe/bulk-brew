@@ -126,7 +126,7 @@ export function AnalysisPanel() {
               {rows.map((r) => (
                 <div
                   key={r.archetype}
-                  className="grid min-h-[54px] grid-cols-[1.3fr_1fr_1fr_1fr] items-center gap-4 border-b border-surface-2 px-[18px] py-2 last:border-b-0"
+                  className="grid min-h-[54px] grid-cols-[1.3fr_1fr_1fr_1fr] items-center gap-4 border-b-1 border-surface-2 px-[18px] py-2 last:border-b-0"
                 >
                   <div className="flex min-w-0 flex-col gap-0.5">
                     <span className="text-[13.5px] font-semibold">{r.label}</span>

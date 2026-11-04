@@ -203,7 +203,7 @@ function PoolCards() {
           <li
             key={card.id}
             data-row
-            className="h-[3.25rem] border-b border-surface-2 last:border-b-0"
+            className="h-[3.25rem] border-b-1 border-surface-2 last:border-b-0"
           >
             <button
               type="button"
@@ -490,7 +490,7 @@ function Analysis() {
           {rows.map((r) => (
             <li
               key={r.archetype}
-              className="flex flex-col gap-1 border-b border-surface-2 px-4 py-2.5 last:border-b-0"
+              className="flex flex-col gap-1 border-b-1 border-surface-2 px-4 py-2.5 last:border-b-0"
             >
               <div className="flex items-center justify-between gap-3">
                 <span className="text-[0.875rem] font-medium">{r.label}</span>
@@ -645,7 +645,7 @@ export function ImportScreen() {
                   return (
                     <li
                       key={`${u.line.line}:${u.line.raw}`}
-                      className="flex flex-col gap-1.5 border-b border-surface-2 px-3 py-2.5 last:border-b-0"
+                      className="flex flex-col gap-1.5 border-b-1 border-surface-2 px-3 py-2.5 last:border-b-0"
                     >
                       <div className="flex items-center gap-2.5">
                         <span className="w-5 shrink-0 font-mono text-[0.75rem] text-fg-1">

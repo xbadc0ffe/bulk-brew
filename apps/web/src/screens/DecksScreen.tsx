@@ -412,7 +412,7 @@ function DeckTable({ onOpen }: { onOpen(id: string): void }) {
                   if (endingRename.current) endingRename.current = false;
                   else onOpen(d.id);
                 }}
-                className="h-12 cursor-pointer border-b border-surface-2 last:border-b-0 hover:bg-surface-2"
+                className="h-12 cursor-pointer border-b-1 border-surface-2 last:border-b-0 hover:bg-surface-2"
               >
                 <td className="pl-[18px]">
                   <button

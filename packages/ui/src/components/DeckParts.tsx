@@ -39,7 +39,10 @@ export function DeckList(props: DeckListProps) {
                 const open =
                   r.card && onOpenCard ? () => onOpenCard(r.card!.id, r.printing) : undefined;
                 return (
-                  <li key={r.key} className="border-b border-surface-2 bg-surface last:border-b-0">
+                  <li
+                    key={r.key}
+                    className="border-b-1 border-surface-2 bg-surface last:border-b-0"
+                  >
                     <button
                       type="button"
                       disabled={!open}

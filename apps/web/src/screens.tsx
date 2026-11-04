@@ -322,7 +322,7 @@ function UnresolvedRow(props: {
     if (name && name !== line.name) onEdit(name);
   };
   return (
-    <li className="grid grid-cols-[34px_1fr_auto] items-start gap-3 border-b border-surface-2 px-3.5 py-2.5 last:border-b-0">
+    <li className="grid grid-cols-[34px_1fr_auto] items-start gap-3 border-b-1 border-surface-2 px-3.5 py-2.5 last:border-b-0">
       <span className="pt-1.5 font-mono text-[12px] text-fg-1 tabular-nums">{line.line.qty}</span>
       <div className="flex min-w-0 flex-col gap-1">
         <input
@@ -891,7 +891,7 @@ function BulkList() {
                       key={card.id}
                       data-row
                       onClick={() => openRow(card.id, e.printing)}
-                      className={`cursor-pointer border-b border-surface-2 ${on ? 'bg-surface-2' : 'hover:bg-surface-2'}`}
+                      className={`cursor-pointer border-b-1 border-surface-2 ${on ? 'bg-surface-2' : 'hover:bg-surface-2'}`}
                       style={{ height: rowHeight }}
                     >
                       <td className="pr-3 pl-6 font-mono text-[12px] text-fg-1 tabular-nums">

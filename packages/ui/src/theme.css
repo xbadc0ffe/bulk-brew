@@ -212,6 +212,9 @@
 }
 
 @theme inline {
+  /* Outlines are two pixels (a fraction rounds down to one on most screens). Faint row
+     separators opt back into one pixel with border-b-1 and divide-y-1. */
+  --default-border-width: 2px;
   --color-canvas: var(--bg);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface2);

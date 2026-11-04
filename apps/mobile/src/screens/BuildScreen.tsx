@@ -239,7 +239,7 @@ function StyleRow(props: {
   const { name, description, state, checked, disabled, onSelect } = props;
   return (
     <label
-      className={`flex min-h-11 items-center gap-2.5 border-b border-surface-2 px-3 py-2 last:border-b-0 has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-ink ${
+      className={`flex min-h-11 items-center gap-2.5 border-b-1 border-surface-2 px-3 py-2 last:border-b-0 has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-ink ${
         disabled ? 'opacity-55' : 'active:bg-surface-2'
       }`}
     >

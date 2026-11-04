@@ -46,7 +46,7 @@ function Row({
 }) {
   const Label = htmlFor ? 'label' : 'div';
   return (
-    <div className="flex items-center justify-between gap-4 border-b border-surface-2 px-4 py-[11px] last:border-b-0">
+    <div className="flex items-center justify-between gap-4 border-b-1 border-surface-2 px-4 py-[11px] last:border-b-0">
       <Label htmlFor={htmlFor} className="flex min-w-0 flex-col gap-0.5">
         <span className={ui.label}>{label}</span>
         {hint && <span className={ui.hint}>{hint}</span>}
