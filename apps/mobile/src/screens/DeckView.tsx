@@ -75,7 +75,7 @@ export function DeckScreen(props: {
         </>
       ) : (
         <div className="px-4 pb-4">
-          <DeckExplanation deck={deck} config={config} variant="phone" />
+          <DeckExplanation deck={deck} config={config} index={index} variant="phone" />
         </div>
       )}
       <ActionSheet

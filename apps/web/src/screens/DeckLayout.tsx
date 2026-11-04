@@ -123,7 +123,7 @@ export function DeckLayout(props: {
             wide ? 'lg:w-1/2' : 'lg:w-[320px]'
           }`}
         >
-          <DeckExplanation deck={deck} config={config} detailed={wide} />
+          <DeckExplanation deck={deck} config={config} index={index} detailed={wide} />
         </aside>
       </div>
     </div>

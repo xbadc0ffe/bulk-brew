@@ -2,8 +2,10 @@ import { useMemo, useState } from 'react';
 import type { BulkBrewConfig, CardIndex, Deck, PrintingHint } from '@bulk-brew/core';
 import { CardImage } from './CardImage.tsx';
 import { CurveChart, RoleBar, RoleBars, type Variant } from './controls.tsx';
+import { ColorBreakdown, TypeBreakdown } from './DeckStats.tsx';
 import { ManaCost } from '../ManaCost.tsx';
 import { archetypeInfo, deckGroups } from '../data/deckGroups.ts';
+import { deckColorShares, deckTypeCounts } from '../data/deckStats.ts';
 import { ui } from '../styles.ts';
 
 export interface DeckListProps {
@@ -145,22 +147,26 @@ function reasons(deck: Deck): { why: string; qty: number }[] {
 }
 
 /**
- * Archetype, curve, roles, synergies, and the builder notes behind a
- * disclosure. `detailed` shows more: role descriptions, why each card was
- * picked, and the notes open.
+ * Archetype, colors, card types, curve, roles, synergies, and the builder
+ * notes behind a disclosure. `detailed` shows more: role descriptions, why
+ * each card was picked, and the notes open. Colors and types need `index`.
  */
 export function DeckExplanation({
   deck,
   config,
+  index,
   variant = 'desktop',
   detailed = false,
 }: {
   deck: Deck;
   config: BulkBrewConfig;
+  index?: CardIndex | undefined;
   variant?: Variant;
   detailed?: boolean;
 }) {
   const [notesOpen, setNotes] = useState(false);
+  const shares = useMemo(() => (index ? deckColorShares(deck, index) : undefined), [deck, index]);
+  const types = useMemo(() => (index ? deckTypeCounts(deck, index) : undefined), [deck, index]);
   const notes = notesOpen || detailed;
   const e = deck.explanation;
   const phone = variant === 'phone';
@@ -189,6 +195,19 @@ export function DeckExplanation({
         </span>
         {info.description && <p className="leading-[1.5] text-fg-1">{info.description}</p>}
       </section>
+      {shares && (
+        <section className="flex flex-col gap-2">
+          <h3 className={label}>Colors</h3>
+          <ColorBreakdown shares={shares} size={phone ? 84 : 96} />
+          <p className={small}>Share of the colored mana symbols in the spells&apos; costs.</p>
+        </section>
+      )}
+      {types && types.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <h3 className={label}>Card types</h3>
+          <TypeBreakdown counts={types} />
+        </section>
+      )}
       <section className="flex flex-col gap-2">
         <h3 className={label}>Mana curve</h3>
         <CurveChart curve={e.curve} variant={variant} />

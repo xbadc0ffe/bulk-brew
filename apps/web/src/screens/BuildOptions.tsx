@@ -5,7 +5,20 @@ import {
   type CommanderTier,
   type DeckOption,
 } from '@bulk-brew/core';
-import { archetypeInfo, Pip, ui, type DeckOptions } from '@bulk-brew/ui';
+import { useMemo, type ReactNode } from 'react';
+import {
+  archetypeInfo,
+  ColorBreakdown,
+  CurveChart,
+  deckColorShares,
+  deckTypeCounts,
+  Pip,
+  RoleBar,
+  RoleBars,
+  TypeBreakdown,
+  ui,
+  type DeckOptions,
+} from '@bulk-brew/ui';
 import { useAppState } from '../app-context.ts';
 
 /** The right side of the Build page: ranked deck options, built as you watch. */
@@ -62,20 +75,18 @@ export function OptionsPanel(props: { options: DeckOptions; onClear(): void }) {
         <h2 id="options-title" tabIndex={-1} className="text-[15px] font-semibold">
           Deck options
         </h2>
-        <p className="flex items-center gap-2 text-[12px] text-fg-2">
-          {options.working && <Spinner />}
-          <span aria-hidden={options.working}>
-            {options.working
-              ? `Building options, ${options.built} of ${options.planned}`
-              : `${options.options.length} option${options.options.length === 1 ? '' : 's'}, strongest first`}
-          </span>
-        </p>
+        {options.working && (
+          <p aria-hidden className="flex items-center gap-2 text-[12px] text-fg-2">
+            <Spinner />
+            Building options, {options.built} of {options.planned}
+          </p>
+        )}
         {/* Announce once the list settles, not on every build. */}
         <span className="sr-only" aria-live="polite">
           {options.working ? '' : `${options.options.length} deck options ready.`}
         </span>
       </div>
-      <ul className="grid auto-rows-min grid-cols-1 gap-3 p-6 md:min-h-0 md:flex-1 md:overflow-y-auto lg:grid-cols-2">
+      <ul className="grid auto-rows-min grid-cols-[repeat(auto-fill,minmax(min(340px,100%),1fr))] gap-4 p-6 md:min-h-0 md:flex-1 md:overflow-y-auto">
         {options.options.map((o) => (
           <li key={o.key}>
             <OptionCard option={o} onOpen={() => flow.open(o.result)} />
@@ -213,87 +224,78 @@ function Spinner() {
 }
 
 function OptionCard({ option, onOpen }: { option: DeckOption; onOpen(): void }) {
-  const { config, build: flow } = useAppState();
+  const { config, build: flow, index } = useAppState();
   const { deck, explanation } = option.result;
   const colors = normalizeColors(deck.colors ?? [deck.color]);
   const style = archetypeInfo(config, deck.archetype);
-  const score = Math.round(explanation.score?.total ?? 0);
-  const spells = explanation.curve.reduce((n, t) => n + t, 0);
   const missing = flow.colors.filter((c) => !colors.includes(c));
   const synergy = explanation.synergies[0];
   const stretched = explanation.notes.find((n) => n.includes('is stretched'));
   const secondary = explanation.secondary;
   const title = `${colorsLabel(colors)} ${style.label}${secondary ? ` with ${secondary.label}` : ''}`;
+  const shares = useMemo(() => (index ? deckColorShares(deck, index) : []), [deck, index]);
+  const types = useMemo(() => (index ? deckTypeCounts(deck, index) : []), [deck, index]);
+  const roles = Object.entries(explanation.roles);
+  const left = missing.map((c) => COLOR_LABELS[c].toLowerCase()).join(' and ');
   return (
     <button
       type="button"
       onClick={onOpen}
-      aria-label={`${title}, strength ${score}${secondary && !secondary.met ? `, ${secondary.label} not fully met` : ''}${missing.length > 0 ? `, leaves out ${missing.map((c) => COLOR_LABELS[c].toLowerCase()).join(' and ')}` : ''}${stretched ? ', mana is stretched' : ''}`}
-      className="flex w-full flex-col gap-3 rounded-lg border border-line bg-surface p-4 text-left hover:border-line-strong hover:bg-surface-2"
+      aria-label={`${title}${secondary && !secondary.met ? `, ${secondary.label} not fully met` : ''}${missing.length > 0 ? `, leaves out ${left}` : ''}${stretched ? ', mana is stretched' : ''}`}
+      className="flex h-full w-full flex-col gap-4 rounded-lg border border-line bg-surface p-4 text-left hover:border-line-strong hover:bg-surface-2"
     >
-      <span className="flex items-start justify-between gap-3">
-        <span className="flex min-w-0 flex-col gap-1">
-          <span className="flex items-center gap-1">
-            {colors.map((c) => (
-              <Pip key={c} symbol={c} size={18} />
-            ))}
+      <span className="flex min-w-0 flex-col gap-1">
+        <span className="flex items-center gap-1">
+          {colors.map((c) => (
+            <Pip key={c} symbol={c} size={18} />
+          ))}
+        </span>
+        <span className="text-[15px] font-semibold">{title}</span>
+        <span className="text-[12px] text-fg-2">{style.description}</span>
+      </span>
+      <ColorBreakdown shares={shares} size={84} />
+      <Part label="Mana curve">
+        <CurveChart curve={explanation.curve} />
+      </Part>
+      <Part label="Card types">
+        <TypeBreakdown counts={types} />
+      </Part>
+      {roles.length > 0 && (
+        <Part label="Roles">
+          <span className="text-[12.5px]">
+            <RoleBars>
+              {roles.map(([id, c]) => (
+                <RoleBar
+                  key={id}
+                  label={config.roles.roles.find((r) => r.id === id)?.label ?? id}
+                  have={c.have}
+                  want={c.want}
+                />
+              ))}
+            </RoleBars>
           </span>
-          <span className="text-[15px] font-semibold">{title}</span>
-          <span className="text-[12px] text-fg-2">{style.description}</span>
+        </Part>
+      )}
+      {(missing.length > 0 || stretched || (secondary && !secondary.met)) && (
+        <span className="flex flex-wrap gap-1.5">
+          {missing.length > 0 && <span className={ui.tag}>Leaves out {left}</span>}
+          {stretched && <span className={ui.tag}>Mana is stretched</span>}
+          {secondary && !secondary.met && (
+            <span className={ui.tag}>{secondary.label} not fully met</span>
+          )}
         </span>
-        <span className="flex shrink-0 flex-col items-end">
-          <span className="text-[20px] font-semibold tabular-nums">{score}</span>
-          <span className="text-[11px] text-fg-2">strength</span>
-        </span>
-      </span>
-      <span className="h-1.5 w-full overflow-hidden rounded bg-surface-2" aria-hidden>
-        <span className="block h-full rounded bg-ink" style={{ width: `${Math.max(4, score)}%` }} />
-      </span>
-      <MiniCurve curve={explanation.curve} />
-      <span className="flex flex-wrap gap-1.5">
-        <span className={ui.tag}>
-          {spells} spells, {explanation.lands.count} lands
-        </span>
-        {missing.length > 0 && (
-          <span className={ui.tag}>
-            Leaves out {missing.map((c) => COLOR_LABELS[c].toLowerCase()).join(' and ')}
-          </span>
-        )}
-        {stretched && <span className={ui.tag}>Mana is stretched</span>}
-        {secondary && !secondary.met && (
-          <span className={ui.tag}>{secondary.label} not fully met</span>
-        )}
-      </span>
+      )}
       {synergy && <span className="text-[12px] text-fg-1">{synergy}</span>}
     </button>
   );
 }
 
-/** A small mana curve: one bar per mana value, 1 through 6 and up (zero folds into 1). */
-function MiniCurve({ curve }: { curve: number[] }) {
-  const buckets = [
-    (curve[0] ?? 0) + (curve[1] ?? 0),
-    curve[2] ?? 0,
-    curve[3] ?? 0,
-    curve[4] ?? 0,
-    curve[5] ?? 0,
-    (curve[6] ?? 0) + (curve[7] ?? 0),
-  ];
-  const max = Math.max(1, ...buckets);
-  const label = buckets.map((n, i) => `${n} at ${i === 5 ? '6 or more' : i + 1}`).join(', ');
+/** A labeled block inside an option card. */
+function Part({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <span className="flex items-end gap-1" role="img" aria-label={`Mana curve: ${label}`}>
-      {buckets.map((n, i) => (
-        <span key={i} className="flex flex-1 flex-col items-center gap-0.5">
-          <span className="flex h-8 w-full items-end">
-            <span
-              className="block w-full rounded-t-[2px] bg-fg-3"
-              style={{ height: `${Math.max(2, (n / max) * 100)}%` }}
-            />
-          </span>
-          <span className="text-[10px] text-fg-2 tabular-nums">{i === 5 ? '6+' : i + 1}</span>
-        </span>
-      ))}
+    <span className="flex flex-col gap-2 border-t border-line pt-3">
+      <span className={ui.sectionLabel}>{label}</span>
+      {children}
     </span>
   );
 }

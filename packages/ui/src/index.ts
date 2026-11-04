@@ -104,6 +104,18 @@ export {
   type TypeKey,
 } from './data/poolView.ts';
 export { DeckList, DeckExplanation, type DeckListProps } from './components/DeckParts.tsx';
+export {
+  ColorBreakdown,
+  ColorShareList,
+  ColorWheel,
+  TypeBreakdown,
+} from './components/DeckStats.tsx';
+export {
+  deckColorShares,
+  deckTypeCounts,
+  type ColorShare,
+  type TypeCount,
+} from './data/deckStats.ts';
 export { ConfirmDialog, type ConfirmDialogProps } from './components/ConfirmDialog.tsx';
 export {
   archetypeInfo,

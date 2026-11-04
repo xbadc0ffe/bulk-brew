@@ -26,20 +26,16 @@ export interface DeckGroup {
   rows: DeckRow[];
 }
 
-// The core's type groups folded into the design's four, plus a catch-all.
-const FOLD: Record<string, string> = {
-  Creatures: 'Creatures',
-  Instants: 'Instants and sorceries',
-  Sorceries: 'Instants and sorceries',
-  Enchantments: 'Enchantments and artifacts',
-  Artifacts: 'Enchantments and artifacts',
-  Lands: 'Lands',
-};
-const ORDER = [
+// One group per card type, in the order a decklist lists them.
+export const TYPE_GROUPS = [
   'Creatures',
-  'Instants and sorceries',
-  'Enchantments and artifacts',
-  'Other spells',
+  'Planeswalkers',
+  'Instants',
+  'Sorceries',
+  'Artifacts',
+  'Enchantments',
+  'Battles',
+  'Other',
   'Lands',
 ];
 
@@ -68,7 +64,7 @@ export function deckGroups(deck: Deck, index: CardIndex, config: BulkBrewConfig)
     add('Lands', { key: `basic-${color}`, qty: n, name, card: index.find(name) });
   }
   for (const { dc, card } of sorted) {
-    add(FOLD[primaryGroup(card)] ?? 'Other spells', {
+    add(primaryGroup(card), {
       key: dc.cardId,
       qty: dc.qty,
       name: card.name,
@@ -77,7 +73,7 @@ export function deckGroups(deck: Deck, index: CardIndex, config: BulkBrewConfig)
       printing: dc.printing,
     });
   }
-  return ORDER.filter((g) => map.has(g)).map((label) => {
+  return TYPE_GROUPS.filter((g) => map.has(g)).map((label) => {
     const rows = map.get(label)!;
     return { label, count: rows.reduce((n, r) => n + r.qty, 0), rows };
   });
