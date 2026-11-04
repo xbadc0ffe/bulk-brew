@@ -35,6 +35,34 @@ function Stack({ x, y, w, h }: { x: number; y: number; w: number; h: number }) {
   );
 }
 
+type Point = [number, number];
+
+/** A path through the points with every corner rounded by r. */
+function rounded(points: Point[], r: number, closed: boolean): string {
+  const n = points.length;
+  const at = (i: number) => points[(i + n) % n]!;
+  // The point r along the way from a toward b, at most halfway.
+  const toward = (a: Point, b: Point): Point => {
+    const dx = b[0] - a[0];
+    const dy = b[1] - a[1];
+    const t = Math.min(r, Math.hypot(dx, dy) / 2) / Math.hypot(dx, dy);
+    return [a[0] + dx * t, a[1] + dy * t];
+  };
+  const f = (p: Point) => `${+p[0].toFixed(2)} ${+p[1].toFixed(2)}`;
+  const corner = (i: number) => {
+    const c = at(i);
+    return ` L${f(toward(c, at(i - 1)))} Q${f(c)} ${f(toward(c, at(i + 1)))}`;
+  };
+  if (closed) {
+    let d = `M${f(toward(at(0), at(1)))}`;
+    for (let i = 1; i <= n; i++) d += corner(i);
+    return `${d} Z`;
+  }
+  let d = `M${f(points[0]!)}`;
+  for (let i = 1; i < n - 1; i++) d += corner(i);
+  return `${d} L${f(points[n - 1]!)}`;
+}
+
 /**
  * A stack of cards lying flat, seen from an angle: the top card's face over
  * the stack's body, with a line per card edge wrapping the front and side.
@@ -45,42 +73,51 @@ function AngledStack({ x, base, cards }: { x: number; base: number; cards: numbe
   const depth = 5;
   const skew = 4;
   const gap = 4;
-  const h = (cards - 1) * gap;
-  const top = base - h;
+  const r = 1.2;
+  const top = base - (cards - 1) * gap;
+  const back = (y: number): Point => [x + w + skew, y - depth];
+  const edge = (y: number): Point[] => [[x, y], [x + w, y], back(y)];
   return (
     <>
       <path
-        d={`M${x} ${top} l${skew} ${-depth} h${w} v${h} l${-skew} ${depth} h${-w} Z`}
+        d={rounded(
+          [[x, top], [x + skew, top - depth], back(top), back(base), [x + w, base], [x, base]],
+          r,
+          true,
+        )}
         fill="var(--icon-fill)"
         stroke="none"
       />
-      <path d={`M${x} ${top} v${h} h${w} l${skew} ${-depth} v${-h}`} />
+      <path d={rounded([[x, top], ...edge(base), back(top)], r, false)} />
       {Array.from({ length: cards - 2 }, (_, i) => (
-        <path key={i} d={`M${x} ${top + (i + 1) * gap} h${w} l${skew} ${-depth}`} />
+        <path key={i} d={rounded(edge(top + (i + 1) * gap), r, false)} />
       ))}
-      <path d={`M${x} ${top} h${w} l${skew} ${-depth} h${-w} Z`} fill="var(--icon-fill)" />
+      <path
+        d={rounded([[x, top], [x + w, top], back(top), [x + skew, top - depth]], r, true)}
+        fill="var(--icon-fill)"
+      />
     </>
   );
 }
 
-/** Bulk List: two stacks of cards at the back, a shorter one in front of them. */
+/** Bulk List: two stacks of cards at the back, a third in front of them. */
 export function StacksIcon({ size = 28 }: { size?: number }) {
   return (
     <Svg size={size}>
-      <AngledStack x={1} base={20.5} cards={3} />
-      <AngledStack x={17} base={20.5} cards={3} />
-      <AngledStack x={8.8} base={29.5} cards={2} />
+      <AngledStack x={1} base={18.5} cards={3} />
+      <AngledStack x={17} base={18.5} cards={3} />
+      <AngledStack x={8.8} base={28.5} cards={3} />
     </Svg>
   );
 }
 
 /** Build: three cards fanned out. */
 export function FanIcon({ size = 28 }: { size?: number }) {
-  const card = { x: 11, y: 4, width: 10, height: 15, rx: 1.6, fill: 'var(--icon-fill)' };
+  const card = { x: 10.5, y: 4.5, width: 11, height: 17, rx: 1.6, fill: 'var(--icon-fill)' };
   return (
     <Svg size={size}>
-      <rect {...card} transform="rotate(-28 16 27)" />
-      <rect {...card} transform="rotate(28 16 27)" />
+      <rect {...card} transform="rotate(-24 16 30)" />
+      <rect {...card} transform="rotate(24 16 30)" />
       <rect {...card} />
     </Svg>
   );
@@ -90,7 +127,7 @@ export function FanIcon({ size = 28 }: { size?: number }) {
 export function StackIcon({ size = 28 }: { size?: number }) {
   return (
     <Svg size={size}>
-      <Stack x={9} y={10} w={14} h={19} />
+      <Stack x={8} y={8.5} w={16} h={21} />
     </Svg>
   );
 }
