@@ -114,7 +114,7 @@ Image URLs come from `imageUrl()` and `printingImageUrl()` in `packages/core/src
 
 ## Constraints
 
-- Card art is off by default and everything must work as text. Art, when on, loads from Scryfall on demand and must be shown whole and unchanged: no cropping, recoloring, or marks drawn into it. The only thing laid over a card is the small turn-over button on a two-sided card's right edge, away from the artist credit and copyright line. Clicking the art in the card detail opens it full screen. Art crops, if ever used, need the artist name beside them.
+- Card art is off by default and everything must work as text. Art, when on, loads from Scryfall on demand and must be shown whole and unchanged: no cropping, recoloring, or marks drawn into it. The only thing laid over a card is the small turn-over button on a two-sided card's right edge, away from the artist credit and copyright line. Clicking the art in the card detail opens it full screen, where the wheel, + and − buttons, or a pinch zoom it and a drag moves it. Art crops, if ever used, need the artist name beside them.
 - No user data leaves the device. There is no sign-in and no sync.
 - Pools can hold thousands of cards; lists must stay fast.
 - Color is never the only signal; pair it with mana symbols or labels. Meet contrast guidelines in both themes. Mobile tap targets are at least 44 points and text respects the system text size.

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import type { BulkBrewConfig, CardIndex, CardRecord, PrintingHint } from '@bulk-brew/core';
-import { CardArt } from './CardImage.tsx';
+import { CardArt } from './CardArt.tsx';
 import { Stepper, type Variant } from './controls.tsx';
 import { ManaCost, SymbolText } from '../ManaCost.tsx';
 import { DISPLAY_TAGS } from '../data/config.ts';
