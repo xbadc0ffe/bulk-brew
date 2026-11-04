@@ -33,7 +33,7 @@ import { useAppState } from '../app-context.ts';
  */
 export function OptionsPanel(props: { options: DeckOptions; onClear(): void }) {
   const { build: flow } = useAppState();
-  if (flow.size === 100 && !flow.commander) return <CommanderList />;
+  if (flow.size === 100 && !flow.commander) return <CommanderList onClear={props.onClear} />;
   if (flow.size !== 100) return <OptionsBody {...props} />;
   return (
     <div className="flex min-w-0 flex-col md:min-h-0 md:flex-1 md:flex-row">
@@ -46,7 +46,8 @@ export function OptionsPanel(props: { options: DeckOptions; onClear(): void }) {
 }
 
 function OptionsBody({ options, onClear }: { options: DeckOptions; onClear(): void }) {
-  const { build: flow } = useAppState();
+  const { build: flow, config, index } = useAppState();
+  const lead = flow.commander ? index?.get(flow.commander) : undefined;
   if (flow.colors.length === 0) {
     return (
       <Centered>
@@ -59,7 +60,11 @@ function OptionsBody({ options, onClear }: { options: DeckOptions; onClear(): vo
     return (
       <Centered>
         <p className="text-ink">No decks meet these settings.</p>
-        <p>None of the picked colors can build the picked primary archetype.</p>
+        <p>
+          {lead && flow.style
+            ? `Your bulk list is short of cards to build ${archetypeInfo(config, flow.style).label} under ${lead.name}.`
+            : 'None of the picked colors can build the picked primary archetype.'}
+        </p>
         <button type="button" className={`${ui.secondary} mt-2`} onClick={onClear}>
           Clear settings
         </button>
@@ -201,10 +206,15 @@ function Chips({ lead, items, strong }: { lead: string; items: string[]; strong?
   );
 }
 
-/** Commanders in the bulk list, best first, grouped by tier. Picking one starts the options. */
-function CommanderList() {
-  const { build: flow, commanders, index } = useAppState();
-  const list = commanders.list;
+/**
+ * Commanders in the bulk list, best first. Picked colors and a style filter
+ * the list. Without a style the groups are tiers; with one they are whether
+ * the bulk list can build it under each commander, moving as the background
+ * checks finish. Picking one starts the options.
+ */
+function CommanderList({ onClear }: { onClear(): void }) {
+  const { build: flow, commanders, index, config } = useAppState();
+  const { list, shown, fit, checking } = commanders;
   if (!list || !index) {
     return (
       <Centered>
@@ -224,27 +234,73 @@ function CommanderList() {
       </Centered>
     );
   }
-  const tiers = (['top', 'good', 'possible'] as const).filter((t) =>
-    list.some((c) => c.tier === t),
-  );
+  const style = flow.style ? archetypeInfo(config, flow.style).label : undefined;
+  const colorName = flow.colors.length > 0 ? colorsLabel(flow.colors) : undefined;
+  if (shown.length === 0) {
+    return (
+      <Centered>
+        <p className="text-ink">
+          {style && commanders.inColors.length > 0
+            ? `No commanders ${colorName ? `within ${colorName} ` : ''}lead ${style}.`
+            : `No commanders within ${colorName ?? 'these colors'}.`}
+        </p>
+        <p>
+          {style && commanders.inColors.length > 0
+            ? 'A commander leads a style when its own text rewards or feeds it.'
+            : 'A commander shows when all its colors are picked.'}
+        </p>
+        <button type="button" className={`${ui.secondary} mt-2`} onClick={onClear}>
+          Clear settings
+        </button>
+      </Centered>
+    );
+  }
+  const groups: { key: string; title: string; items: CommanderCandidate[] }[] = style
+    ? [
+        { key: 'fits', title: `Can build ${style}` },
+        { key: 'checking', title: 'Checking your bulk list' },
+        { key: 'short', title: `Not enough cards for ${style}` },
+      ].map((g) => ({ ...g, items: shown.filter((c) => fit.get(c.id) === g.key) }))
+    : (['top', 'good', 'possible'] as const).map((t) => ({
+        key: t,
+        title: TIER_LABELS[t],
+        items: shown.filter((c) => c.tier === t),
+      }));
+  const filtered = shown.length < list.length;
   return (
     <div className="flex flex-col md:min-h-0 md:flex-1">
       <div className="flex items-center justify-between gap-3 border-b border-line px-6 py-3">
         <h2 id="options-title" tabIndex={-1} className="text-[15px] font-semibold">
           Pick a commander
         </h2>
-        <p className="text-[12px] text-fg-2">
-          {list.length} in your bulk list, most promising first
-        </p>
+        {style && checking > 0 ? (
+          <p aria-hidden className="flex items-center gap-2 text-[12px] text-fg-2">
+            <Spinner />
+            Checking which can build {style}, {shown.length - checking} of {shown.length}
+          </p>
+        ) : (
+          <p className="text-[12px] text-fg-2">
+            {filtered ? `${shown.length} of ${list.length}` : list.length} in your bulk list
+            {style ? '' : ', most promising first'}
+          </p>
+        )}
+        {/* Announce once the checks settle, not on every one. */}
+        <span className="sr-only" aria-live="polite">
+          {style && checking === 0
+            ? `${shown.filter((c) => fit.get(c.id) === 'fits').length} of ${shown.length} commanders can build ${style}.`
+            : ''}
+        </span>
       </div>
       <div className="flex flex-col gap-6 p-6 md:min-h-0 md:flex-1 md:overflow-y-auto">
-        {tiers.map((tier) => (
-          <section key={tier} className="flex flex-col gap-3">
-            <h3 className={ui.sectionLabel}>{TIER_LABELS[tier]}</h3>
-            <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(275px,100%),1fr))] gap-4">
-              {list
-                .filter((c) => c.tier === tier)
-                .map((c) => {
+        {groups
+          .filter((g) => g.items.length > 0)
+          .map((g) => (
+            <section key={g.key} className="flex flex-col gap-3">
+              <h3 className={ui.sectionLabel}>
+                {g.title} ({g.items.length})
+              </h3>
+              <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(275px,100%),1fr))] gap-4">
+                {g.items.map((c) => {
                   const card = index.get(c.id);
                   if (!card) return null;
                   return (
@@ -260,9 +316,9 @@ function CommanderList() {
                     </li>
                   );
                 })}
-            </ul>
-          </section>
-        ))}
+              </ul>
+            </section>
+          ))}
       </div>
     </div>
   );

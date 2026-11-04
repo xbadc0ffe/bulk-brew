@@ -48,12 +48,16 @@ export function AppStateProvider({ kv, children }: { kv: KeyValueStore; children
     commander: build.commander,
     paused: !buildVisible || build.result !== undefined,
   });
+  // Commanders are checked against the picked style only while their list shows.
   const commanders = useCommanderList({
     enabled: buildVisible && build.size === 100,
     index,
     config: CONFIG,
     pool: pool.pool,
     settings: build.buildSettings,
+    colors: build.colors,
+    style: build.style,
+    paused: !buildVisible || build.result !== undefined || build.commander !== undefined,
   });
   const detail = useCardDetail();
   const value: AppState = {

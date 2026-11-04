@@ -35,7 +35,11 @@ export {
   type ScansBySize,
   type Viability,
 } from './data/analysis.ts';
-export { useCommanderList, type CommanderList } from './data/useCommanderList.ts';
+export {
+  useCommanderList,
+  type CommanderFit,
+  type CommanderList,
+} from './data/useCommanderList.ts';
 export { usePoolScans } from './data/usePoolScans.ts';
 export {
   useAppearance,

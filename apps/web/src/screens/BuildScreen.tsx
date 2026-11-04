@@ -1,11 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   COLORS,
   COLOR_LABELS,
   colorsLabel,
+  commanderSuits,
   RARITIES,
   secondaryChoices,
   secondaryLabel,
+  type Color,
+  type CommanderCandidate,
   type DeckSize,
   type ScanReport,
 } from '@bulk-brew/core';
@@ -61,12 +64,17 @@ function Build() {
 }
 
 function BuildForm() {
-  const { build: flow, config, settings, index, options } = useAppState();
+  const { build: flow, config, settings, index, options, commanders } = useAppState();
   // Schema 1 packs carry no rarity, so the filter cannot act until the data is refreshed.
   const rarityKnown = (index?.pack.schema ?? 2) >= 2;
   const colorName = flow.colors.length > 0 ? colorsLabel(flow.colors) : undefined;
   const scan = flow.colorScan;
-  const choices = styleChoices(config, options.scans);
+  // At 100, until a commander is picked, colors and styles filter the commander list.
+  const listing = flow.size === 100 && !flow.commander;
+  const styleScans = listing ? colorScans(commanders.inColors, commanders.scans) : options.scans;
+  const choices = listing
+    ? commanderStyleChoices(config, commanders.inColors, commanders.scans)
+    : styleChoices(config, options.scans);
 
   return (
     <div className="flex h-full flex-col overflow-y-auto md:flex-row md:overflow-hidden">
@@ -137,14 +145,7 @@ function BuildForm() {
         </label>
 
         {flow.size === 100 ? (
-          <div className="flex flex-col gap-2">
-            <h2 className={ui.sectionLabel}>Colors</h2>
-            <p className="text-[12px] text-fg-2">
-              {flow.commander
-                ? `Colors come from the commander: ${colorName ?? 'colorless'}.`
-                : 'Pick a commander on the right. Its colors become the deck colors.'}
-            </p>
-          </div>
+          <CommanderColors />
         ) : (
           <div className="flex flex-col gap-2">
             <h2 className={ui.sectionLabel}>Colors</h2>
@@ -153,31 +154,20 @@ function BuildForm() {
                 const s = flow.sizeScans?.[c];
                 // Any color with cards of its own can join a set; the set's scan decides the rest.
                 const can = (s?.colored ?? 0) > 0;
-                const on = flow.colors.includes(c);
                 return (
-                  <button
+                  <ColorToggle
                     key={c}
-                    type="button"
-                    aria-pressed={on}
-                    aria-disabled={!can && !on}
+                    color={c}
+                    on={flow.colors.includes(c)}
+                    can={can}
+                    count={`${s?.colored ?? 0} cards`}
                     title={
                       can
                         ? undefined
                         : `No ${COLOR_LABELS[c].toLowerCase()} cards in your bulk list`
                     }
-                    onClick={() => {
-                      if (can || on) flow.toggleColor(c);
-                    }}
-                    className={`flex min-w-0 flex-col items-center gap-1 rounded-md border px-1 pt-2.5 pb-2 text-center ${
-                      on ? 'border-ink bg-surface' : 'border-line'
-                    } ${can || on ? (on ? '' : 'hover:bg-surface-2') : 'cursor-default opacity-55'}`}
-                  >
-                    <Pip symbol={c} size={22} />
-                    <span className="text-[12px] font-semibold">{COLOR_LABELS[c]}</span>
-                    <span className="text-[10.5px] leading-tight text-fg-2">
-                      {s?.colored ?? 0} cards
-                    </span>
-                  </button>
+                    onToggle={() => flow.toggleColor(c)}
+                  />
                 );
               })}
             </div>
@@ -197,11 +187,20 @@ function BuildForm() {
             label="Primary archetype"
             value={flow.style}
             emptyLabel="Best fit"
-            emptyDescription="Show the strongest decks of any archetype"
+            emptyDescription={
+              listing
+                ? 'Show every commander, most promising first'
+                : 'Show the strongest decks of any archetype'
+            }
             choices={choices}
-            disabled={flow.colors.length === 0}
+            disabled={listing ? !commanders.list : flow.colors.length === 0}
             onChange={flow.setStyle}
           />
+          {listing && flow.style && (
+            <p className="text-[12px] text-fg-2">
+              Commanders that can build it move to the top as each one is checked.
+            </p>
+          )}
           <h2 className={`${ui.sectionLabel} mt-2`}>Secondary archetype</h2>
           {flow.style ? (
             <StylePicker
@@ -209,7 +208,7 @@ function BuildForm() {
               value={flow.secondary}
               emptyLabel="None"
               emptyDescription="Build around the primary archetype alone"
-              choices={secondaryStyleChoices(config, options.scans, flow.style)}
+              choices={secondaryStyleChoices(config, styleScans, flow.style)}
               onChange={flow.setSecondary}
             />
           ) : (
@@ -229,11 +228,156 @@ function BuildForm() {
   );
 }
 
+/** One color button: its symbol, name, and a count below. */
+function ColorToggle(props: {
+  color: Color;
+  on: boolean;
+  /** Whether it can be picked; a picked color can always be dropped. */
+  can: boolean;
+  count: ReactNode;
+  title: string | undefined;
+  /** Shown but not changeable, such as a picked commander's colors. */
+  locked?: boolean;
+  onToggle(): void;
+}) {
+  const { color, on, can, count, title, locked, onToggle } = props;
+  const active = !locked && (can || on);
+  return (
+    <button
+      type="button"
+      aria-pressed={on}
+      aria-disabled={!active}
+      title={title}
+      onClick={() => {
+        if (active) onToggle();
+      }}
+      className={`flex min-w-0 flex-col items-center gap-1 rounded-md border px-1 pt-2.5 pb-2 text-center ${
+        on ? 'border-ink bg-surface' : 'border-line'
+      } ${active ? (on ? '' : 'hover:bg-surface-2') : on ? 'cursor-default' : 'cursor-default opacity-55'}`}
+    >
+      <Pip symbol={color} size={22} />
+      <span className="text-[12px] font-semibold">{COLOR_LABELS[color]}</span>
+      <span className="text-[10.5px] leading-tight text-fg-2">{count}</span>
+    </button>
+  );
+}
+
+const COUNT_WORDS = ['', 'one', 'both', 'all three', 'all four', 'all five'];
+
+/**
+ * Commander colors: before a commander is picked, the buttons filter the
+ * commander list (a commander shows when every one of its colors is picked);
+ * once one is picked, they show its colors and wait for Change.
+ */
+function CommanderColors() {
+  const { build: flow, commanders } = useAppState();
+  const list = commanders.list;
+  const picked = flow.colors;
+  const name = picked.length > 0 ? colorsLabel(picked) : undefined;
+  return (
+    <div className="flex flex-col gap-2">
+      <h2 className={ui.sectionLabel}>Colors</h2>
+      <div role="group" aria-label="Colors" className="grid grid-cols-5 gap-1.5">
+        {COLORS.map((c) => {
+          const n = list?.filter((x) => x.colors.includes(c)).length ?? 0;
+          const label = COLOR_LABELS[c].toLowerCase();
+          // "Commanders" does not fit the button, so the line below says what the number counts.
+          // A no-break space keeps the button height while the list loads.
+          const count = list ? (
+            <>
+              {n}
+              <span className="sr-only"> {n === 1 ? 'commander' : 'commanders'}</span>
+            </>
+          ) : (
+            ' '
+          );
+          return (
+            <ColorToggle
+              key={c}
+              color={c}
+              on={picked.includes(c)}
+              can={n > 0}
+              locked={Boolean(flow.commander)}
+              count={count}
+              title={
+                flow.commander
+                  ? 'Colors come from the commander'
+                  : list && n === 0
+                    ? `No ${label} commanders in your bulk list`
+                    : undefined
+              }
+              onToggle={() => flow.toggleColor(c)}
+            />
+          );
+        })}
+      </div>
+      <p className="text-[12px] text-fg-2">
+        {flow.commander
+          ? `Colors come from the commander: ${name ?? 'colorless'}.`
+          : !name
+            ? 'Numbers count the commanders with each color. Pick colors to narrow the list: a commander shows when all its colors are picked.'
+            : picked.length === 1
+              ? `Showing ${name.toLowerCase()} commanders. Pick more colors to add multicolor ones.`
+              : `Showing commanders within ${name}, the ones with ${COUNT_WORDS[picked.length]} colors first.`}
+      </p>
+    </div>
+  );
+}
+
 interface StyleChoice {
   id: string;
   label: string;
   description: string;
-  state: 'viable' | 'near';
+  /** Near misses cannot be picked; a commander style the pool is short for can, to see who leads it. */
+  state: 'viable' | 'near' | 'short';
+}
+
+/** Scans of the commanders' colors, keyed by color letters, for the style pickers. */
+function colorScans(
+  list: readonly CommanderCandidate[],
+  scans: ReadonlyMap<string, ScanReport>,
+): Map<string, ScanReport> {
+  const out = new Map<string, ScanReport>();
+  for (const c of list) {
+    const key = c.colors.join('');
+    const scan = scans.get(key);
+    if (scan) out.set(key, scan);
+  }
+  return out;
+}
+
+/**
+ * Styles to filter the commanders by: every style a listed commander leads.
+ * Viable when some leader's colors can build it; short when none can, still
+ * pickable so the player sees which commanders lead it.
+ */
+function commanderStyleChoices(
+  config: ReturnType<typeof useAppState>['config'],
+  list: readonly CommanderCandidate[],
+  scans: ReadonlyMap<string, ScanReport>,
+): StyleChoice[] {
+  const out: StyleChoice[] = [];
+  for (const a of config.archetypes.archetypes) {
+    const leaders = list.filter((c) => commanderSuits(c, a.id, config));
+    if (leaders.length === 0) continue;
+    const viable = leaders.some(
+      (c) => scans.get(c.colors.join(''))?.archetypes.find((r) => r.archetype === a.id)?.viable,
+    );
+    // Plain shapes suit every commander, so a count says nothing there.
+    const count =
+      a.kind === 'synergy'
+        ? `${leaders.length} ${leaders.length === 1 ? 'commander leads' : 'commanders lead'} it`
+        : undefined;
+    out.push({
+      id: a.id,
+      label: a.label,
+      description: viable
+        ? `${a.description}${count ? ` ${capitalize(count)}.` : ''}`
+        : `${count ? `${capitalize(count)}, but your` : 'Your'} bulk list is short of cards for it`,
+      state: viable ? 'viable' : 'short',
+    });
+  }
+  return out.sort((x, y) => Number(x.state !== 'viable') - Number(y.state !== 'viable'));
 }
 
 /**
@@ -297,6 +441,12 @@ function secondaryStyleChoices(
   );
 }
 
+const STATE_LABELS: Record<StyleChoice['state'], string> = {
+  viable: 'Viable',
+  near: 'Near miss',
+  short: 'Short',
+};
+
 function StylePicker(props: {
   label: string;
   value: string | undefined;
@@ -346,9 +496,9 @@ function StylePicker(props: {
               key={c.id}
               name={c.label}
               description={c.description}
-              state={c.state === 'viable' ? 'Viable' : 'Near miss'}
+              state={STATE_LABELS[c.state]}
               checked={value === c.id}
-              disabled={c.state !== 'viable'}
+              disabled={c.state === 'near'}
               onSelect={() => {
                 close();
                 onChange(c.id);

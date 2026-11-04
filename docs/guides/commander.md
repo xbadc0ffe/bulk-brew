@@ -44,6 +44,8 @@ The Build page lists every commander in the bulk list in three tiers:
 
 Each entry says why: how many cards fit its colors, which styles it rewards or feeds, and what holds it back (cost, fixing). Unchecked rarities leave commanders out of the list, the same as any other card.
 
+Picked colors narrow the list to commanders whose colors all come from them, the ones using every picked color first. A picked primary archetype keeps the commanders that lead it: a synergy style counts when the commander's own text rewards or feeds it, and Aggro, Midrange, and Control suit any commander. The list then asks whether the bulk list can build that style under each one. If the scan of the commander's colors says no, the answer is no; otherwise the app builds the deck and checks that it kept the style and reached the style's enabler and payoff minimums for 100 cards. The scan alone misses some: on a test pool of 5,300 cards, 9 of 63 Ramp commanders passed the scan but their builds fell short.
+
 ## Power level
 
 Bulk Brew builds casual decks from bulk and does not filter Game Changers: a bulk list rarely holds many, and when it does, the player can decide.

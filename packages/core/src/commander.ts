@@ -6,6 +6,7 @@
 // basic lands and cards whose text allows more.
 
 import type { BulkBrewConfig } from './config.ts';
+import { BuildError, buildDeck, styleCounts } from './builder.ts';
 import { factsFor } from './candidates.ts';
 import type { CardIndex } from './pack.ts';
 import { scanPool, secondaryLabel } from './scan.ts';
@@ -27,6 +28,8 @@ export interface CommanderCandidate {
   styles: { id: string; label: string }[];
   /** The styles it rewards (a payoff for them), tribes included; the rest of `styles` it only feeds. */
   leads: { id: string; label: string }[];
+  /** Synergy archetypes its text rewards or feeds, whether or not the pool can build them. */
+  supports: string[];
   /** Plain-language reasons for the tier. */
   reasons: string[];
   /** Nonland cards in the pool that fit the commander's colors. */
@@ -70,9 +73,10 @@ export function commanderCandidates(
   index: CardIndex,
   config: BulkBrewConfig,
   settings: Settings,
+  /** Scans of each commander's colors at 100, keyed by color letters such as "WU"; filled while listing. */
+  scans: Map<string, ScanReport> = new Map(),
 ): CommanderCandidate[] {
   const out: CommanderCandidate[] = [];
-  const scans = new Map<string, ScanReport>();
   const rarities = settings.rarities?.length ? new Set(settings.rarities) : undefined;
   for (const entry of Object.values(pool.entries)) {
     if (entry.qty <= 0) continue;
@@ -103,6 +107,12 @@ export function commanderCandidates(
         leads.push({ id: `tribal:${t.type}`, label: secondaryLabel(config, `tribal:${t.type}`) });
     }
     const styles = [...leads, ...feeds];
+    const supports = config.archetypes.archetypes
+      .filter(
+        (a) =>
+          a.kind === 'synergy' && (facts.payoffOf.includes(a.id) || facts.enablerOf.includes(a.id)),
+      )
+      .map((a) => a.id);
     const depth = scan.distinct;
     // Three or more colors need lands that make several of them.
     const fixers = fixingLands(pool, index, config, colors);
@@ -137,6 +147,7 @@ export function commanderCandidates(
       score: Math.round(score * 100) / 100,
       styles,
       leads,
+      supports,
       reasons,
       depth,
       enough,
@@ -158,4 +169,75 @@ export function commanderCandidates(
       b.score - a.score ||
       (a.name < b.name ? -1 : a.name > b.name ? 1 : 0),
   );
+}
+
+/**
+ * Whether a commander leads the style: its text rewards or feeds a synergy
+ * style. Plain shapes such as Midrange suit any commander.
+ */
+export function commanderSuits(
+  candidate: CommanderCandidate,
+  style: string,
+  config: BulkBrewConfig,
+): boolean {
+  const archetype = config.archetypes.archetypes.find((a) => a.id === style);
+  if (!archetype) return false;
+  return archetype.kind === 'composition' || candidate.supports.includes(style);
+}
+
+/**
+ * The commanders to offer for picked colors and a style. Colors keep the
+ * commanders whose colors all come from the picked ones (every commander
+ * when none are picked), the ones that use every picked color first, as
+ * deck options that use every picked color rank first. A style keeps the
+ * commanders that lead it. The list order is otherwise kept.
+ */
+export function filterCommanders(
+  list: readonly CommanderCandidate[],
+  colors: readonly Color[],
+  style: string | undefined,
+  config: BulkBrewConfig,
+): CommanderCandidate[] {
+  const picked = new Set(colors);
+  const kept = list.filter(
+    (c) =>
+      (picked.size === 0 || c.colors.every((x) => picked.has(x))) &&
+      (!style || commanderSuits(c, style, config)),
+  );
+  if (picked.size < 2) return kept;
+  const full = (c: CommanderCandidate) => (c.colors.length === picked.size ? 0 : 1);
+  // Array sort is stable, so each group keeps the list order.
+  return kept.sort((a, b) => full(a) - full(b));
+}
+
+/**
+ * Whether the pool can build the style under this commander: the deck keeps
+ * the style and reaches its enabler and payoff minimums. This builds a whole
+ * deck, so callers check one commander at a time.
+ */
+export function commanderCanBuild(
+  commander: string,
+  style: string,
+  pool: Pool,
+  index: CardIndex,
+  config: BulkBrewConfig,
+  settings: Settings,
+): boolean {
+  try {
+    const { deck } = buildDeck(
+      { size: 100, colors: [], commander, style, requireStyle: true, settings },
+      pool,
+      index,
+      config,
+    );
+    if (deck.archetype !== style) return false;
+    const theme = styleCounts(deck, index, config).find((s) => s.id === style);
+    return (
+      !theme ||
+      (theme.enablers.have >= theme.enablers.want && theme.payoffs.have >= theme.payoffs.want)
+    );
+  } catch (err) {
+    if (err instanceof BuildError) return false;
+    throw err;
+  }
 }

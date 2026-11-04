@@ -204,6 +204,8 @@ export interface BuildRequest {
   colors: Color[];
   /** Preferred archetype id. Used when viable, otherwise the strongest viable one. */
   style?: string;
+  /** Throw a BuildError when the style is not viable, instead of building the best fit. */
+  requireStyle?: boolean;
   /** Commander card id; required for 100-card decks, which take its color identity. */
   commander?: string;
   /**

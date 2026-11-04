@@ -34,9 +34,12 @@ export interface BuildFlowInput {
 export interface BuildFlow {
   size: DeckSize;
   setSize(size: DeckSize): void;
-  /** Picked colors in WUBRG order; the build uses every one. */
+  /**
+   * Deck colors in WUBRG order: the picked ones, or at 100 the commander's
+   * once one is picked. Before that, the picked colors filter the commanders.
+   */
   colors: Color[];
-  /** Add or remove one color. */
+  /** Add or remove one color. Ignored at 100 while a commander is picked. */
   toggleColor(color: Color): void;
   /** The first picked color, for screens that work with one. */
   color: Color | undefined;
@@ -48,7 +51,7 @@ export interface BuildFlow {
   /** Secondary style, only once a primary style is picked. */
   secondary: string | undefined;
   setSecondary(style: string | undefined): void;
-  /** Commander card id for 100-card decks; picking one sets the colors to its identity. */
+  /** Commander card id for 100-card decks; while one is picked, the deck colors are its own. */
   commander: string | undefined;
   setCommander(id: string | undefined): void;
   /** The settings a build uses: the stored ones with this build's copy limit. */
@@ -90,11 +93,17 @@ export interface BuildFlow {
 export function useBuildFlow(input: BuildFlowInput): BuildFlow {
   const { index, config, pool, settings, decks, scans } = input;
   const [size, setSizeState] = useState<DeckSize>(60);
-  const [colors, setColorsState] = useState<Color[]>([]);
-  const color = colors[0];
+  const [picked, setColorsState] = useState<Color[]>([]);
   const [style, setStyleState] = useState<string>();
   const [secondary, setSecondaryState] = useState<string>();
   const [commander, setCommanderState] = useState<string>();
+  const lead = size === 100 && commander && index ? index.get(commander) : undefined;
+  const leadIdentity = lead?.identity;
+  const colors = useMemo(
+    () => (leadIdentity ? normalizeColors(leadIdentity) : picked),
+    [leadIdentity, picked],
+  );
+  const color = colors[0];
   /** A copy limit for this build, valid only while the size and stored setting match. */
   const [override, setOverride] = useState<{ size: DeckSize; base: number; value: number }>();
   const [result, setResult] = useState<BuildResult>();
@@ -107,9 +116,6 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
   // a backup replaced the pool) is no longer picked; the commander list returns.
   if (commander && pool.loaded && (pool.pool.entries[commander]?.qty ?? 0) <= 0) {
     setCommanderState(undefined);
-    setColorsState([]);
-    setStyleState(undefined);
-    setSecondaryState(undefined);
     setResult(undefined);
   }
 
@@ -130,10 +136,11 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
     return scanAll(pool.pool, index, config, buildSettings, size);
   }, [index, pool.pool, config, buildSettings, settings, scans, size]);
   const colorScan = useMemo(() => {
-    if (!index || colors.length === 0) return undefined;
+    // Before a commander is picked, the colors at 100 only filter the commanders.
+    if (!index || colors.length === 0 || (size === 100 && !commander)) return undefined;
     if (colors.length === 1 && sizeScans) return sizeScans[colors[0]!];
     return scanPool(pool.pool, index, config, buildSettings, size, colors);
-  }, [index, colors, sizeScans, pool.pool, config, buildSettings, size]);
+  }, [index, colors, sizeScans, pool.pool, config, buildSettings, size, commander]);
 
   const reject = useCallback(() => {
     setResult(undefined);
@@ -142,17 +149,12 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
 
   const setSize = useCallback(
     (s: DeckSize) => {
-      // Commander picks colors through its commander, so switching to or from 100 starts over.
-      if ((size === 100) !== (s === 100)) {
-        setCommanderState(undefined);
-        setColorsState([]);
-        setStyleState(undefined);
-        setSecondaryState(undefined);
-      }
+      // Colors and styles carry over; at 100 they filter the commanders until one is picked.
+      if (s !== 100) setCommanderState(undefined);
       setSizeState(s);
       reject();
     },
-    [reject, size],
+    [reject],
   );
   const setColor = useCallback(
     (c: Color) => {
@@ -165,12 +167,14 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
   );
   const toggleColor = useCallback(
     (c: Color) => {
+      // A picked commander sets the colors; Change returns to the list and its filter.
+      if (lead) return;
       setColorsState((cs) =>
         normalizeColors(cs.includes(c) ? cs.filter((x) => x !== c) : [...cs, c]),
       );
       reject();
     },
-    [reject],
+    [reject, lead],
   );
   const setStyle = useCallback(
     (s: string | undefined) => {
@@ -182,14 +186,12 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
   );
   const setCommander = useCallback(
     (id: string | undefined) => {
+      // Picked colors and styles stay: the styles lead the commander's options, and the
+      // colors filter the list again after Change.
       setCommanderState(id);
-      const card = id && index ? index.get(id) : undefined;
-      setColorsState(card ? normalizeColors(card.identity) : []);
-      setStyleState(undefined);
-      setSecondaryState(undefined);
       reject();
     },
-    [index, reject],
+    [reject],
   );
   const setSecondary = useCallback(
     (s: string | undefined) => {
@@ -288,12 +290,7 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
       reject();
       setAccepted(deck);
       // The commander left the pool with its deck; the list of commanders comes back.
-      if (deck.commander) {
-        setCommanderState(undefined);
-        setColorsState([]);
-        setStyleState(undefined);
-        setSecondaryState(undefined);
-      }
+      if (deck.commander) setCommanderState(undefined);
       return deck;
     },
     [result, index, decks, pool.pool, pool.actions, settings, config, reject],
@@ -303,11 +300,8 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
     reject();
     setAccepted(undefined);
     setOverride(undefined);
-    if (commander) {
-      setCommanderState(undefined);
-      setColorsState([]);
-    }
-  }, [reject, commander]);
+    setCommanderState(undefined);
+  }, [reject]);
 
   return {
     size,

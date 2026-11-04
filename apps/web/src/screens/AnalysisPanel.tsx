@@ -157,9 +157,10 @@ export function AnalysisPanel() {
               className={`${ui.link} ml-auto text-[12px]`}
               onClick={() => {
                 // Land on a size this color can build, and keep a result already shown for it.
-                if (build.size === 100 || !scans[build.size][color].possible)
-                  build.setSize(sizes[0]!);
-                if (build.color !== color) build.setColor(color);
+                // Leaving 100 brings back the picked colors, so the color is set again then.
+                const leave = build.size === 100 || !scans[build.size][color].possible;
+                if (leave) build.setSize(sizes[0]!);
+                if (leave || build.colors.join('') !== color) build.setColor(color);
                 nav.go('build');
               }}
             >

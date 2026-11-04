@@ -130,6 +130,9 @@ export function buildOption(
       size: req.size,
       colors: plan.colors,
       style: plan.style,
+      // A picked primary style is required. Under a commander the 99 can fall short of a
+      // style its colors build, and a best-fit deck of another style would ignore the pick.
+      ...(req.primary ? { requireStyle: true } : {}),
       ...(req.secondary ? { secondary: req.secondary } : {}),
       ...(req.commander ? { commander: req.commander } : {}),
       settings: req.settings,

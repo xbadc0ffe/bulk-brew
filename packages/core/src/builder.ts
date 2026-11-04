@@ -1227,6 +1227,11 @@ export function buildDeck(
       styleBuilt = true;
     } else {
       const why = report?.notes.join('; ') ?? 'unknown archetype';
+      if (request.requireStyle) {
+        throw new BuildError(
+          `Not enough cards to build ${a?.label ?? request.style}${commander ? ` under ${shortName(commander.name)}` : ''}${why ? `: ${why}` : ''}.`,
+        );
+      }
       notes.push(
         `Archetype "${a?.label ?? request.style}" is not viable here (${why}); picked the best fit instead.`,
       );

@@ -1,10 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { BuildError, buildDeck } from '../src/builder.ts';
-import { commanderCandidates } from '../src/commander.ts';
+import {
+  commanderCanBuild,
+  commanderCandidates,
+  commanderSuits,
+  filterCommanders,
+  type CommanderCandidate,
+} from '../src/commander.ts';
 import { deckToDecklist } from '../src/export.ts';
 import { canBeCommander, commanderCopies } from '../src/matchers.ts';
 import { CardIndex } from '../src/pack.ts';
-import type { CardRecord, DataPack, Pool } from '../src/types.ts';
+import type { CardRecord, Color, DataPack, Pool, ScanReport } from '../src/types.ts';
 import { CONFIG } from './config.test.ts';
 import { SETTINGS } from './builder-fixtures.ts';
 
@@ -201,5 +207,108 @@ describe('Commander builds', () => {
     expect(() => buildDeck({ ...request, commander: 'w-3' }, pool, index, CONFIG)).toThrow(
       /cannot be a commander/,
     );
+  });
+
+  it('fills the scans of each commander color set while listing', () => {
+    const scans = new Map<string, ScanReport>();
+    commanderCandidates(pool, index, CONFIG, SETTINGS, scans);
+    expect([...scans.keys()]).toEqual(['W']);
+    expect(scans.get('W')!.size).toBe(100);
+  });
+
+  it('refuses a style the pool cannot build when the style is required', () => {
+    const loose = buildDeck(
+      { ...request, commander: 'lead', style: 'tokens' },
+      pool,
+      index,
+      CONFIG,
+    );
+    expect(loose.deck.archetype).not.toBe('tokens');
+    expect(() =>
+      buildDeck(
+        { ...request, commander: 'lead', style: 'tokens', requireStyle: true },
+        pool,
+        index,
+        CONFIG,
+      ),
+    ).toThrow(/Not enough cards to build Tokens under Lead/);
+  });
+
+  it('checks whether a commander can build a style', () => {
+    // Nothing is viable here: a requested Midrange deck is only built as a last resort.
+    const midrange = buildDeck(
+      { ...request, commander: 'lead', style: 'midrange' },
+      pool,
+      index,
+      CONFIG,
+    );
+    expect(midrange.deck.archetype).toBe('midrange');
+    expect(commanderCanBuild('lead', 'midrange', pool, index, CONFIG, SETTINGS)).toBe(false);
+
+    // Token makers and anthems make Tokens viable, and a commander with an anthem leads it.
+    const themed = cards.map((c, i) =>
+      i % 9 === 3 || i % 9 === 4
+        ? { ...c, tags: ['multiple-bodies'] }
+        : i % 9 === 5
+          ? { ...c, tags: ['anthem'] }
+          : c,
+    );
+    const anthemLead = { ...lead, tags: ['anthem'] };
+    const tIndex = new CardIndex({ ...pack, cards: [...themed, anthemLead, plains] });
+    const listed = commanderCandidates(pool, tIndex, CONFIG, SETTINGS);
+    expect(listed[0]!.supports).toContain('tokens');
+    expect(commanderCanBuild('lead', 'tokens', pool, tIndex, CONFIG, SETTINGS)).toBe(true);
+    expect(commanderCanBuild('lead', 'counters', pool, tIndex, CONFIG, SETTINGS)).toBe(false);
+  });
+});
+
+describe('filterCommanders', () => {
+  const lead = (id: string, colors: Color[], supports: string[] = []): CommanderCandidate => ({
+    id,
+    name: id,
+    colors,
+    tier: 'good',
+    score: 1,
+    styles: [],
+    leads: [],
+    supports,
+    reasons: [],
+    depth: 100,
+    enough: true,
+    mv: 3,
+    fixers: 0,
+    fixed: true,
+  });
+  const list = [
+    lead('w', ['W'], ['tokens']),
+    lead('u', ['U']),
+    lead('wu', ['W', 'U'], ['tokens']),
+    lead('wub', ['W', 'U', 'B']),
+    lead('g', ['G'], ['counters']),
+  ];
+  const ids = (l: CommanderCandidate[]) => l.map((c) => c.id);
+
+  it('keeps every commander when nothing is picked', () => {
+    expect(ids(filterCommanders(list, [], undefined, CONFIG))).toEqual(ids(list));
+  });
+
+  it('keeps commanders whose colors fit inside the picked ones, every picked color first', () => {
+    expect(ids(filterCommanders(list, ['W'], undefined, CONFIG))).toEqual(['w']);
+    expect(ids(filterCommanders(list, ['W', 'U'], undefined, CONFIG))).toEqual(['wu', 'w', 'u']);
+    expect(ids(filterCommanders(list, ['W', 'U', 'B'], undefined, CONFIG))).toEqual([
+      'wub',
+      'w',
+      'u',
+      'wu',
+    ]);
+  });
+
+  it('keeps the commanders that lead a synergy style, and all of them for a plain shape', () => {
+    expect(ids(filterCommanders(list, [], 'tokens', CONFIG))).toEqual(['w', 'wu']);
+    expect(ids(filterCommanders(list, ['W'], 'tokens', CONFIG))).toEqual(['w']);
+    expect(ids(filterCommanders(list, [], 'midrange', CONFIG))).toEqual(ids(list));
+    expect(commanderSuits(list[4]!, 'counters', CONFIG)).toBe(true);
+    expect(commanderSuits(list[4]!, 'tokens', CONFIG)).toBe(false);
+    expect(commanderSuits(list[4]!, 'no-such-style', CONFIG)).toBe(false);
   });
 });

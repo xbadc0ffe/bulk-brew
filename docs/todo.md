@@ -35,6 +35,7 @@ Ranked. The current phase is at the top. Finished phases are removed, not struck
 - `<meta name="theme-color">` stays dark grey; make it follow the theme.
 - Empty, loading, and error states follow the handoff's suggestions; confirm them with the owner.
 - Mobile: Rename uses the browser prompt; replace it with an inline field like the web's click-to-rename.
+- Build page: the archetype drop-down shows a horizontal scrollbar under its list when the list scrolls (seen at 1600 by 1000, any deck size).
 
 ## Owner review follow-ups
 
