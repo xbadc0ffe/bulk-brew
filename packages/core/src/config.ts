@@ -57,6 +57,8 @@ export interface MatcherClause {
   excludeTypes?: CardType[];
   /** Type line contains at least one of these words (subtypes such as "Aura"). */
   typeLineAny?: string[];
+  /** Type line contains none of these words, such as "Curse" for Auras that enchant a player. */
+  excludeTypeLine?: string[];
   derived?: DerivedPredicate;
   minMv?: number;
   maxMv?: number;
@@ -525,6 +527,7 @@ function checkMatcher(where: string, m: unknown, problems: string[]): void {
       'anyTypes',
       'excludeTypes',
       'typeLineAny',
+      'excludeTypeLine',
     ];
     const knownKeys = new Set<string>([...listKeys, 'derived', 'minMv', 'maxMv']);
     for (const k of keys) {
@@ -547,7 +550,9 @@ function checkMatcher(where: string, m: unknown, problems: string[]): void {
     }
     if (c.minMv !== undefined && !isNum(c.minMv)) problems.push(`${w}.minMv: must be a number`);
     if (c.maxMv !== undefined && !isNum(c.maxMv)) problems.push(`${w}.maxMv: must be a number`);
-    const onlyExclusions = keys.every((k) => k === 'excludeTags' || k === 'excludeTypes');
+    const onlyExclusions = keys.every(
+      (k) => k === 'excludeTags' || k === 'excludeTypes' || k === 'excludeTypeLine',
+    );
     if (onlyExclusions) problems.push(`${w}: clause needs a positive condition`);
   });
 }

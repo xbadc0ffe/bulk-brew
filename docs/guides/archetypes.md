@@ -4,7 +4,7 @@ Two kinds of deck identity. Composition archetypes are about shape: curve and ro
 
 ## How matching works
 
-Roles, enablers, payoffs, and synergy rules are all matchers: a list of clauses, where a card matches when any clause matches and every condition inside the clause holds. Conditions are Tagger tags (any of, all of, none of), Scryfall keywords, normalized card types, words in the type line, mana value bounds, and a few derived facts tags cannot express: big threat (`finisher`), Commander finisher, cheap mana source, evasive creature, modal land face, basic land, nonbasic land, vanilla body.
+Roles, enablers, payoffs, and synergy rules are all matchers: a list of clauses, where a card matches when any clause matches and every condition inside the clause holds. Conditions are Tagger tags (any of, all of, none of), Scryfall keywords, normalized card types, words in the type line (or words it must not have), mana value bounds, and a few derived facts tags cannot express: big threat (`finisher`), Commander finisher, cheap mana source, evasive creature, modal land face, basic land, nonbasic land, vanilla body.
 
 Tagger tags are inherited: a card tagged `spot-removal` also carries `removal`, so broad and narrow tags both work. Tag weights are ignored because nearly all taggings share the same weight.
 
@@ -48,7 +48,7 @@ Notes from the tag scan:
 - One-shot token makers like Raise the Alarm carry `multiple-bodies`, not a token tag, so both are enablers.
 - Tagger has no tag for "whenever a creature you control dies" alone. The aristocrats payoff uses `death-trigger` minus `death-trigger-self`, plus `blood-artist-ability`, which catches Zulaport Cutthroat even though it also triggers on itself.
 - Prowess creatures are found by keyword because the tag for it covers only a handful of cards.
-- Auras and equipment have no reliable tag, so the enabler is the type line. Auras that pacify, lock down, exile, steal, shrink, or tax an opposing creature (`pacifism`, `lockdown-creature`, `banish`, `control-changing-effects`, `removal-toughness`, `ransom`) are removal, not Voltron; that also drops Cartouche of Ambition, a friendly aura with a shrinking trigger. Curses still count, since no tag marks them. Enchantment-matters payoffs belong to Enchantments, not Voltron.
+- Auras and equipment have no reliable tag, so the enabler is the type line. Auras that pacify, lock down, exile, steal, shrink, or tax an opposing creature (`pacifism`, `lockdown-creature`, `banish`, `control-changing-effects`, `removal-toughness`, `ransom`) are removal, not Voltron; that also drops Cartouche of Ambition, a friendly aura with a shrinking trigger. Curses enchant a player, so the Aura clause leaves out type lines with Curse (`excludeTypeLine`). Enchantment-matters payoffs belong to Enchantments, not Voltron.
 - Evasion payoffs leave out combat tricks that grant flying and one-turn team pumps: those help any creature deck and made Evasion look deep in every white pool.
 
 ## Secondary styles

@@ -13,6 +13,12 @@ describe('validateConfig', () => {
     expect(validateConfig(c).some((p) => p.includes('unknown key "anyTag"'))).toBe(true);
   });
 
+  it('rejects a clause made only of exclusions', () => {
+    const c = clone();
+    c.roles.roles[0]!.match = [{ excludeTypeLine: ['Curse'] }];
+    expect(validateConfig(c).some((p) => p.includes('needs a positive condition'))).toBe(true);
+  });
+
   it('rejects empty clauses and negative curve shares', () => {
     const c = clone();
     c.roles.roles[0]!.match = [{}];

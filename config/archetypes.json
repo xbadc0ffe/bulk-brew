@@ -1,5 +1,5 @@
 {
-  "version": "6",
+  "version": "7",
   "archetypes": [
     {
       "kind": "composition",
@@ -281,6 +281,7 @@
         { "typeLineAny": ["Equipment"] },
         {
           "typeLineAny": ["Aura"],
+          "excludeTypeLine": ["Curse"],
           "excludeTags": [
             "pacifism",
             "banish",

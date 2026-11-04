@@ -140,6 +140,11 @@ describe('cardMatches', () => {
 
   it('supports type line words, keywords, and exclusions', () => {
     expect(cardMatches(aura, [{ typeLineAny: ['Aura', 'Equipment'] }])).toBe(true);
+    // A Curse enchants a player, so a Voltron clause leaves it out.
+    const curse = { ...aura, name: 'Curse of Opulence', typeLine: 'Enchantment — Aura Curse' };
+    const voltronAura = [{ typeLineAny: ['Aura'], excludeTypeLine: ['Curse'] }];
+    expect(cardMatches(aura, voltronAura)).toBe(true);
+    expect(cardMatches(curse, voltronAura)).toBe(false);
     expect(cardMatches(bird, [{ anyTags: ['evasion'], excludeTags: ['evasion'] }])).toBe(false);
     expect(cardMatches(bird, [{ derived: 'evasiveCreature' }])).toBe(true);
     expect(cardMatches(bolt, [{ derived: 'evasiveCreature' }])).toBe(false);

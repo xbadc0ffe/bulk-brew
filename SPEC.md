@@ -222,7 +222,7 @@ npm workspaces monorepo, TypeScript throughout.
 
 - **Storage**: pool, decks, and settings in IndexedDB behind one key-value interface (`packages/ui/src/storage/kv.ts`). On iOS the same store runs in the WebView unless phase 8 moves it to native storage. Backup is a JSON file export and import; restore writes all keys in one transaction.
 - **Offline**: the web app is an installable progressive web app. Its service worker precaches the app shell and built assets per deploy and keeps the data pack in a separate cache that survives deploys. The iOS app bundles everything.
-- **iOS**: Capacitor wraps the mobile app's static build. Builds run on the user's Mac mini with Xcode and ship through TestFlight and the App Store.
+- **iOS**: Capacitor wraps the mobile app's static build. Builds run on the user's Mac mini with Xcode and ship through TestFlight and the App Store. The home-screen icon comes in a light and a dark version (`apps/mobile/resources/`), matching the web app's icon, which follows light and dark mode in the sidebar and the browser tab.
 
 ## Compliance
 
@@ -270,7 +270,7 @@ Resolved questions, kept so they are not reopened by accident.
 - Game Changers are not filtered out.
 - The app says archetype where the code and config say style (`style`, `secondary`, styleBonus). Labels can change freely; ids stay, so saved decks and eval results keep working.
 - Finisher means a card that can end a Commander game at 40 life: an overrun, an extra combat, another way to win, a planeswalker costing five or more, a creature with seven or more power, an evasive or trampling one with five or more, or an evasive double striker. Only the 100-card template asks for finishers. The 60, 40, and 20-card templates ask for big threats (big bodies, big flyers, planeswalkers), the role id `finisher` kept so saved decks still read.
-- Deck scores stay internal: no strength number on screen or in builder notes, since raw scores invite the wrong comparisons.
+- Deck scores stay internal: no strength number on screen or in builder notes, since raw scores invite the wrong comparisons. The score rewards strong cards together, which is not the same as a deck that works, so it is a ranking aid that keeps being reworked, not a measure of power.
 - The deck list groups cards by exact type (creatures, planeswalkers, instants, sorceries, artifacts, enchantments, battles, lands), the same groups the Card types breakdown counts. A Commander deck lists its commander first in a group of its own; Card types still counts it under its type.
 - Tribal is a secondary style, not a primary one. A secondary style needs a primary style; a second theme needs half its minimums, a shape can only follow a themed primary, and a tribe needs members and type payoffs (`builderWeights.secondary`).
 - Name: Bulk Brew, repo `bulk-brew`. An unrelated dormant repo shares the name; not a concern.

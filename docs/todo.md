@@ -12,6 +12,7 @@ Ranked. The current phase is at the top. Finished phases are removed, not struck
 
 - Multi-color: split cards count only their first half's pips; pathway lands (land // land) count for both colors; Thriving lands count for every deck color in 3+ color decks; fetch lands without the `tutor-land-basic` tag (true fetches) are not used for fixing.
 - Eval: `npm run eval -- --dir test-bulk --combine --colors all` runs the owner's local lists across every color set (results stay in that folder).
+- The deck score rewards putting strong cards together, which by itself tends to build a bad deck (owner's view). Keep it internal and keep reworking its weight in option ranking so synergy and a working plan win over raw card quality.
 - Calibrate the deck score with the owner on a sample of decks. Synergy leads (0.6) since the owner found strength-led ranking ignored synergy; card strength, roles, curve, and type mix are tiebreaks (`deckScore.weights` in builder-weights.json).
 - Best fit builds every viable style per request; a 60-card build averages about 190 ms on desktop and runs on the main thread until phase 11 moves building to a worker.
 - Role and type-mix parts of the deck score are full in every bulk pool, so they do not separate decks; consider dropping or rescaling them.
@@ -42,8 +43,6 @@ Ranked. The current phase is at the top. Finished phases are removed, not struck
 - Mobile parity for the deck options list on the Build page (phones still build one deck).
 - Mobile parity for the web cleanup round: colored deck actions (Accept green, Back red, Export grey) and the icon sidebar's look in the tab bar.
 - Mobile parity for the second cleanup round: the Remove dialog (Delete or Disassemble), and Settings without copy limits and with Reset above a red Clear.
-- Voltron: commanders that make an Equipment token (Mabel's Cragflame) are not seen as Voltron leaders; tags do not mark it. Consider a derived check.
-- Voltron: Curses (Auras that enchant a player) still count as Voltron enablers; leaving them out needs a type line exclusion in the matcher format.
 - Eval: add a metric for decks that miss their own theme minimums, so a regression like the one fixed in local search shows up.
 - Deck options build on the main thread, one per tick; move to a Web Worker if phones stutter.
 - Mobile parity for the web-only changes of the owner review: column sorting, the Analyze split, multi-select removal, and the deck details expand.

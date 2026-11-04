@@ -218,6 +218,7 @@ export function clauseMatches(card: CardRecord, c: MatcherClause): boolean {
   if (c.anyTypes && !c.anyTypes.some((t) => card.types.includes(t))) return false;
   if (c.excludeTypes && c.excludeTypes.some((t) => card.types.includes(t))) return false;
   if (c.typeLineAny && !c.typeLineAny.some((w) => card.typeLine.includes(w))) return false;
+  if (c.excludeTypeLine && c.excludeTypeLine.some((w) => card.typeLine.includes(w))) return false;
   if (c.minMv !== undefined && card.mv < c.minMv) return false;
   if (c.maxMv !== undefined && card.mv > c.maxMv) return false;
   if (c.derived !== undefined && !evaluateDerived(card, c.derived)) return false;

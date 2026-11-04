@@ -1,5 +1,5 @@
 {
-  "version": "5",
+  "version": "6",
   "rules": [
     {
       "id": "tokens-pump",
@@ -161,6 +161,7 @@
         { "typeLineAny": ["Equipment"] },
         {
           "typeLineAny": ["Aura"],
+          "excludeTypeLine": ["Curse"],
           "excludeTags": [
             "pacifism",
             "banish",
@@ -199,6 +200,7 @@
         { "typeLineAny": ["Equipment"] },
         {
           "typeLineAny": ["Aura"],
+          "excludeTypeLine": ["Curse"],
           "excludeTags": [
             "pacifism",
             "banish",
