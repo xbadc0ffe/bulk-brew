@@ -1,5 +1,5 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { exportBackup, parseBackup, type DeckSize } from '@bulk-brew/core';
+import { exportBackup, parseBackup } from '@bulk-brew/core';
 import {
   APPEARANCE_MODES,
   applyBackup,
@@ -23,47 +23,6 @@ const SWATCH: Record<ThemeColor, string> = {
   R: 'oklch(0.72 0.06 25)',
   G: 'oklch(0.68 0.06 150)',
 };
-
-const COPY_ROWS: { size: DeckSize; label: string }[] = [
-  { size: 60, label: 'Max copies, 60-card' },
-  { size: 40, label: 'Max copies, 40-card' },
-  { size: 20, label: 'Max copies, 20-card packet' },
-];
-
-/** A number field that edits a draft and saves a clamped value on blur or Enter. */
-function CopiesField(props: {
-  id: string;
-  value: number;
-  disabled: boolean;
-  onCommit(n: number): void;
-}) {
-  const { id, value, disabled, onCommit } = props;
-  const [draft, setDraft] = useState<string>();
-  const commit = () => {
-    if (draft === undefined) return;
-    const n = Math.round(Number(draft));
-    if (draft.trim() !== '' && Number.isFinite(n)) onCommit(Math.max(1, Math.min(99, n)));
-    setDraft(undefined);
-  };
-  return (
-    <input
-      id={id}
-      type="number"
-      inputMode="numeric"
-      min={1}
-      max={99}
-      disabled={disabled}
-      value={draft ?? String(value)}
-      onChange={(e) => setDraft(e.target.value)}
-      onBlur={commit}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') commit();
-        if (e.key === 'Escape') setDraft(undefined);
-      }}
-      className="w-14 rounded-[5px] border border-line-strong bg-surface px-2.5 py-[3px] text-center font-mono text-[12.5px] disabled:opacity-50"
-    />
-  );
-}
 
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -89,8 +48,8 @@ function Row({
   return (
     <div className="flex items-center justify-between gap-4 border-b border-surface-2 px-4 py-[11px] last:border-b-0">
       <Label htmlFor={htmlFor} className="flex min-w-0 flex-col gap-0.5">
-        <span>{label}</span>
-        {hint && <span className="text-[11.5px] text-fg-2">{hint}</span>}
+        <span className={ui.label}>{label}</span>
+        {hint && <span className={ui.hint}>{hint}</span>}
       </Label>
       {children}
     </div>
@@ -151,16 +110,6 @@ export function SettingsScreen() {
       <div className="grid gap-x-10 gap-y-5 lg:grid-cols-2">
         <div className="flex flex-col gap-5">
           <Group title="Building">
-            {COPY_ROWS.map(({ size, label }) => (
-              <Row key={size} label={label} htmlFor={`copies-${size}`}>
-                <CopiesField
-                  id={`copies-${size}`}
-                  value={s.maxCopies[size]}
-                  disabled={!ready}
-                  onCommit={(n) => settings.update({ maxCopies: { ...s.maxCopies, [size]: n } })}
-                />
-              </Row>
-            ))}
             <Row label="Include Un-set and acorn cards">
               <Toggle
                 label="Include Un-set and acorn cards"
@@ -210,23 +159,10 @@ export function SettingsScreen() {
               </div>
             </Row>
           </Group>
-          <div>
-            <button
-              type="button"
-              className={`${ui.quiet} text-[12px] underline underline-offset-2`}
-              disabled={!ready}
-              onClick={() => {
-                settings.reset();
-                setMessage('Settings are back to their defaults.');
-              }}
-            >
-              Reset settings to defaults
-            </button>
-          </div>
         </div>
 
         <div className="flex flex-col gap-5">
-          <Group title="Backup">
+          <Group title="Your data">
             <Row label="Export backup" hint="Bulk list, decks, and settings as one file">
               <button type="button" className={ui.small} disabled={!ready} onClick={exportNow}>
                 Export
@@ -254,8 +190,24 @@ export function SettingsScreen() {
                 }}
               />
             </Row>
-            <Row label={<span className="text-fg-1">Clear all data</span>}>
-              <button type="button" className={ui.small} disabled={!ready} onClick={clearAll}>
+            <Row
+              label="Reset settings to defaults"
+              hint="Your bulk list and decks stay as they are"
+            >
+              <button
+                type="button"
+                className={ui.small}
+                disabled={!ready}
+                onClick={() => {
+                  settings.reset();
+                  setMessage('Settings are back to their defaults.');
+                }}
+              >
+                Reset
+              </button>
+            </Row>
+            <Row label="Clear all data" hint="Deletes your bulk list, decks, and settings">
+              <button type="button" className={ui.smallStop} disabled={!ready} onClick={clearAll}>
                 Clear
               </button>
             </Row>

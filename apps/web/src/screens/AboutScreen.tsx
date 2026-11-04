@@ -35,19 +35,19 @@ export function AboutScreen() {
           <h2 className={ui.sectionLabel}>Contact</h2>
           <div className={`${ui.box} divide-y divide-surface-2`}>
             <p className="flex justify-between gap-4 px-4 py-[11px]">
-              <span className="text-fg-1">Website</span>
+              <span className="font-semibold">Website</span>
               <a className={ui.link} href={WEBSITE} target="_blank" rel="noreferrer">
                 badc0ffe.net
               </a>
             </p>
             <p className="flex justify-between gap-4 px-4 py-[11px]">
-              <span className="text-fg-1">Email</span>
+              <span className="font-semibold">Email</span>
               <a className={ui.link} href={`mailto:${EMAIL}`}>
                 {EMAIL}
               </a>
             </p>
             <p className="flex justify-between gap-4 px-4 py-[11px]">
-              <span className="text-fg-1">Source code</span>
+              <span className="font-semibold">Source code</span>
               <a className={ui.link} href={REPO_URL} target="_blank" rel="noreferrer">
                 github.com/xbadc0ffe/bulk-brew
               </a>
@@ -59,7 +59,7 @@ export function AboutScreen() {
           <h2 className={ui.sectionLabel}>Card data</h2>
           <div className={`${ui.box} divide-y divide-surface-2`}>
             <div className="flex flex-col gap-0.5 px-4 py-[11px]">
-              <span>
+              <span className="font-semibold">
                 Scryfall oracle cards · data format v
                 {pack.status === 'ready' ? pack.index.pack.schema : DATA_SCHEMA_VERSION}
               </span>
@@ -72,7 +72,7 @@ export function AboutScreen() {
               </span>
             </div>
             <div className="flex flex-col gap-0.5 px-4 py-[11px]">
-              <span>Updates</span>
+              <span className="font-semibold">Updates</span>
               <span className="text-[11.5px] text-fg-2">
                 New card data arrives with app updates, usually once a week. Reload the page to get
                 the latest.

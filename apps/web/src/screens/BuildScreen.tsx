@@ -98,8 +98,8 @@ function BuildForm() {
 
         <div className="flex items-center justify-between gap-3">
           <span className="flex flex-col">
-            <span className="text-[13px] text-fg-1">Rarities</span>
-            <span className="text-[11.5px] text-fg-2">
+            <span className={ui.label}>Rarities</span>
+            <span className={ui.hint}>
               {rarityKnown
                 ? 'Unchecked rarities stay out of builds'
                 : 'Takes effect with the next card data update'}
@@ -112,27 +112,22 @@ function BuildForm() {
           />
         </div>
 
-        {flow.size === 100 ? (
-          <p className="text-[13px] text-fg-1">One copy of each card, except basic lands.</p>
-        ) : (
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-[13px] text-fg-1">Max copies per card</span>
-            <Stepper
-              max={99}
-              label="Max copies per card"
-              value={flow.maxCopies}
-              min={1}
-              onChange={flow.setMaxCopies}
-            />
-          </div>
-        )}
+        <div className="flex items-center justify-between gap-3">
+          <span className={ui.label}>Max copies per card</span>
+          {/* Commander allows one of each card, so the stepper holds at 1. */}
+          <Stepper
+            label="Max copies per card"
+            value={flow.size === 100 ? 1 : flow.maxCopies}
+            min={1}
+            max={flow.size === 100 ? 1 : 99}
+            onChange={flow.setMaxCopies}
+          />
+        </div>
 
         <label className="flex items-center justify-between gap-3">
           <span className="flex flex-col">
-            <span className="text-[13px] text-fg-1">Infinite basics</span>
-            <span className="text-[11.5px] text-fg-2">
-              Add basics freely instead of using the ones in your bulk list
-            </span>
+            <span className={ui.label}>Infinite basics</span>
+            <span className={ui.hint}>Basic lands do not come from your bulk list</span>
           </span>
           <Toggle
             label="Infinite basics"
@@ -179,7 +174,7 @@ function BuildForm() {
                     } ${can || on ? (on ? '' : 'hover:bg-surface-2') : 'cursor-default opacity-55'}`}
                   >
                     <Pip symbol={c} size={22} />
-                    <span className="text-[12px] font-medium">{COLOR_LABELS[c]}</span>
+                    <span className="text-[12px] font-semibold">{COLOR_LABELS[c]}</span>
                     <span className="text-[10.5px] leading-tight text-fg-2">
                       {s?.colored ?? 0} cards
                     </span>
@@ -388,7 +383,7 @@ function StyleItem(props: {
       } ${checked ? 'bg-surface-2' : ''}`}
     >
       <span className="flex min-w-0 flex-col">
-        <span className="text-[13px] font-medium">{name}</span>
+        <span className="text-[13px] font-semibold">{name}</span>
         <span className="text-[11.5px] whitespace-normal text-fg-2">{description}</span>
       </span>
       <span className="text-[11px] text-fg-1">{state}</span>

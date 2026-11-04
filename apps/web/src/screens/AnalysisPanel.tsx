@@ -100,9 +100,9 @@ export function AnalysisPanel() {
           <span>
             Can build:{' '}
             {sizes.length > 0 ? (
-              <span className="font-medium text-ink">{sizes.join(', ')}</span>
+              <span className="font-semibold text-ink">{sizes.join(', ')}</span>
             ) : (
-              <span className="font-medium text-ink">nothing yet</span>
+              <span className="font-semibold text-ink">nothing yet</span>
             )}
           </span>
         </p>
@@ -129,7 +129,7 @@ export function AnalysisPanel() {
                   className="grid min-h-[54px] grid-cols-[1.3fr_1fr_1fr_1fr] items-center gap-4 border-b border-surface-2 px-[18px] py-2 last:border-b-0"
                 >
                   <div className="flex min-w-0 flex-col gap-0.5">
-                    <span className="text-[13.5px] font-medium">{r.label}</span>
+                    <span className="text-[13.5px] font-semibold">{r.label}</span>
                     <span className="text-[12px] text-fg-2">{descriptions.get(r.archetype)}</span>
                   </div>
                   {DECK_SIZES.map((s) => (

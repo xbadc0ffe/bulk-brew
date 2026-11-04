@@ -34,7 +34,7 @@ export function TextCard({
           <ManaCost cost={face.manaCost} size={15} />
         </span>
       </div>
-      <div className="rounded-md border border-line-strong bg-surface-2 px-2 py-1 text-[12px] leading-tight font-medium">
+      <div className="rounded-md border border-line-strong bg-surface-2 px-2 py-1 text-[12px] leading-tight font-semibold">
         {face.typeLine}
       </div>
       <div

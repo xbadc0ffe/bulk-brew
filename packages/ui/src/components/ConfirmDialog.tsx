@@ -146,7 +146,7 @@ export interface Choice {
   label: string;
   /** A smaller line under the label. */
   detail?: string;
-  tone: 'go' | 'go-soft' | 'stop';
+  tone: 'go' | 'go-soft' | 'stop' | 'stop-soft' | 'neutral';
   onSelect(): void;
 }
 
@@ -154,11 +154,14 @@ const TONE: Record<Choice['tone'], string> = {
   go: 'bg-go text-on-solid',
   'go-soft': 'border border-go bg-go-soft text-go-soft-fg',
   stop: 'bg-stop text-on-solid',
+  'stop-soft': 'border border-stop bg-stop-soft text-stop-soft-fg',
+  neutral: 'bg-neutral text-on-solid',
 };
 
 /**
  * A modal question with answers stacked full width, each in its own color.
- * The first answer takes focus; Escape and the backdrop pick `onCancel`.
+ * The answer at `focus` (the first by default) takes focus; Escape and the
+ * backdrop pick `onCancel`.
  */
 export function ChoiceDialog(props: {
   open: boolean;
@@ -166,12 +169,14 @@ export function ChoiceDialog(props: {
   message: ReactNode;
   choices: Choice[];
   onCancel(): void;
+  /** Index of the answer that takes focus, such as a safe Cancel. */
+  focus?: number;
   variant?: Variant;
 }) {
-  const { open, title, message, choices, variant = 'desktop' } = props;
+  const { open, title, message, choices, focus = 0, variant = 'desktop' } = props;
   const id = useId();
-  const firstRef = useRef<HTMLButtonElement>(null);
-  const cancel = useModal(open, props.onCancel, firstRef);
+  const focusRef = useRef<HTMLButtonElement>(null);
+  const cancel = useModal(open, props.onCancel, focusRef);
   if (!open) return null;
   const isPhone = variant === 'phone';
   return (
@@ -187,7 +192,7 @@ export function ChoiceDialog(props: {
         {choices.map((c, i) => (
           <button
             key={`${c.label}-${c.detail ?? ''}`}
-            ref={i === 0 ? firstRef : undefined}
+            ref={i === focus ? focusRef : undefined}
             type="button"
             onClick={c.onSelect}
             className={`flex w-full flex-col items-center justify-center rounded-lg px-4 hover:brightness-110 ${TONE[c.tone]} ${isPhone ? 'min-h-12 py-2' : 'min-h-11 py-2'}`}

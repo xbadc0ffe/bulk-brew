@@ -66,7 +66,7 @@ export function BackButton({ label, onClick }: { label: string; onClick(): void 
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex items-center gap-1.5 rounded-lg border border-line-strong bg-surface px-3.5 py-2 text-[14px] font-medium text-ink hover:bg-surface-2"
+      className="inline-flex items-center gap-1.5 rounded-lg border border-line-strong bg-surface px-3.5 py-2 text-[14px] font-semibold text-ink hover:bg-surface-2"
     >
       <span aria-hidden className="text-[16px] leading-none">
         ‹
@@ -164,7 +164,7 @@ export function ImportScreen() {
               </div>
             )}
             {dragging && (
-              <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-lg border-2 border-dashed border-ink bg-surface/85 text-[14px] font-medium text-ink">
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-lg border-2 border-dashed border-ink bg-surface/85 text-[14px] font-semibold text-ink">
                 Drop to add the files to the list
               </div>
             )}
@@ -699,7 +699,7 @@ function BulkList() {
                       onClick={() => set('colors', toggle(filters.colors, c.id))}
                       className={`flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-[12.5px] ${
                         on
-                          ? 'border-ink bg-surface font-medium text-ink'
+                          ? 'border-ink bg-surface font-semibold text-ink'
                           : 'border-transparent text-fg-1 hover:bg-surface-2'
                       }`}
                     >
@@ -912,7 +912,7 @@ function BulkList() {
                             type="button"
                             aria-pressed={on}
                             tabIndex={card.id === focusId ? 0 : -1}
-                            className="min-w-0 truncate text-left font-medium"
+                            className="min-w-0 truncate text-left font-semibold"
                             title={card.name}
                             onClick={(ev) => {
                               ev.stopPropagation();

@@ -79,7 +79,12 @@ export function DeckList(props: DeckListProps) {
     <div className="@container">
       <div className={`grid gap-x-8 gap-y-4 ${props.singleColumn ? '' : '@xl:grid-cols-2'}`}>
         {groups.map((g) => (
-          <section key={g.label} aria-label={g.label} className="min-w-0">
+          <section
+            key={g.label}
+            aria-label={g.label}
+            // The one-card Commander group would leave a gap beside a long column.
+            className={`min-w-0 ${g.label === 'Commander' ? 'col-span-full' : ''}`}
+          >
             <h3 className={`flex justify-between border-b border-line pb-[5px] ${ui.sectionLabel}`}>
               <span>{g.label}</span>
               <span className="tabular-nums">{g.count}</span>
@@ -229,7 +234,7 @@ export function DeckExplanation({
             <dl className={`mt-1 flex flex-col gap-1.5 ${small}`}>
               {Object.keys(e.roles).map((id) => (
                 <div key={id}>
-                  <dt className="inline font-medium text-ink">{roleLabel(config, id)}: </dt>
+                  <dt className="inline font-semibold text-ink">{roleLabel(config, id)}: </dt>
                   <dd className="inline">
                     {config.roles.roles.find((r) => r.id === id)?.description}
                   </dd>

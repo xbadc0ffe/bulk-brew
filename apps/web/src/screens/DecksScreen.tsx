@@ -3,10 +3,10 @@ import { COLOR_LABELS, COLORS, pairPackets, type Color, type Deck } from '@bulk-
 import {
   archetypeInfo,
   ChoiceDialog,
+  type Choice,
   ConfirmDialog,
   DeckList,
   deckColors,
-  disassembleQuestion,
   Dropdown,
   landCount,
   MenuItem,
@@ -84,17 +84,140 @@ function toggle<T>(list: T[], id: T): T[] {
   return list.includes(id) ? list.filter((x) => x !== id) : [...list, id];
 }
 
+/**
+ * The deck's name as a button; clicking it turns it into a field. Enter or
+ * leaving the field saves, Escape keeps the old name.
+ */
+function DeckName({ deck, heading }: { deck: Deck; heading?: boolean }) {
+  const { decks } = useAppState();
+  const [draft, setDraft] = useState<string>();
+  const id = `name-${deck.id}`;
+  const done = (save: boolean) => {
+    const next = draft?.trim();
+    if (save && next && next !== deck.name) decks.update({ ...deck, name: next });
+    setDraft(undefined);
+    focusLater(id);
+  };
+  const size = heading ? 'text-[17px]' : 'text-[13px]';
+  if (draft !== undefined) {
+    return (
+      <input
+        autoFocus
+        value={draft}
+        aria-label="Deck name"
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => done(true)}
+        onClick={(e) => e.stopPropagation()}
+        onFocus={(e) => e.target.select()}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') done(true);
+          if (e.key === 'Escape') {
+            e.stopPropagation();
+            done(false);
+          }
+        }}
+        className={`${ui.field} ${size} min-w-64 py-[3px] font-semibold`}
+      />
+    );
+  }
+  const button = (
+    <button
+      id={id}
+      type="button"
+      title="Click to rename"
+      aria-label={`Rename ${deck.name}`}
+      onClick={(e) => {
+        e.stopPropagation();
+        setDraft(deck.name);
+      }}
+      className={`group inline-flex items-baseline gap-1.5 text-left font-semibold ${size}`}
+    >
+      <span className="decoration-fg-3 decoration-dotted underline-offset-4 group-hover:underline">
+        {deck.name}
+      </span>
+      <span aria-hidden className="text-[12px] text-fg-3 opacity-0 group-hover:opacity-100">
+        ✎
+      </span>
+    </button>
+  );
+  return heading ? <h1>{button}</h1> : button;
+}
+
+/** Copies that go back to the bulk list on Disassemble: basics only when the deck took them. */
+function cardTotal(deck: Deck): number {
+  const basics = deck.basicsTaken
+    ? Object.values(deck.basics).reduce((n: number, q) => n + (q ?? 0), 0)
+    : 0;
+  return deck.cards.reduce((n, c) => n + c.qty, basics);
+}
+
+/**
+ * Remove asks how: Delete keeps the bulk list as it is, Disassemble puts the
+ * cards back first. A deck whose cards never left the list only deletes.
+ */
+function RemoveDeckDialog(props: { deck: Deck | undefined; onRemoved(): void; onCancel(): void }) {
+  const { deck, onRemoved, onCancel } = props;
+  const actions = useActions();
+  const remove = (how: 'delete' | 'disassemble') => {
+    if (!deck) return;
+    if (how === 'delete') actions.deleteOnly(deck);
+    else actions.disassemble(deck);
+    onRemoved();
+  };
+  const cancel: Choice = { label: 'Cancel', tone: 'neutral', onSelect: onCancel };
+  const choices: Choice[] = !deck
+    ? []
+    : deck.committed
+      ? [
+          {
+            label: 'Delete',
+            detail: 'Its cards do not go back to your bulk list',
+            tone: 'stop',
+            onSelect: () => remove('delete'),
+          },
+          {
+            label: 'Disassemble',
+            detail: `Put its ${cardTotal(deck)} cards back in your bulk list`,
+            tone: 'stop-soft',
+            onSelect: () => remove('disassemble'),
+          },
+          cancel,
+        ]
+      : [
+          {
+            label: 'Delete',
+            detail: 'Its cards are still in your bulk list',
+            tone: 'stop',
+            onSelect: () => remove('delete'),
+          },
+          cancel,
+        ];
+  return (
+    <ChoiceDialog
+      open={!!deck}
+      title={deck ? `Remove "${deck.name}"?` : ''}
+      message={
+        deck?.committed
+          ? 'Its cards left your bulk list when you accepted it.'
+          : 'You never accepted it, so its cards never left your bulk list.'
+      }
+      choices={choices}
+      focus={choices.length - 1}
+      onCancel={onCancel}
+    />
+  );
+}
+
 function DeckTable({ onOpen }: { onOpen(id: string): void }) {
   const { decks, config, index } = useAppState();
   const nav = useNav();
-  const actions = useActions();
   const [status, setStatus] = useStatus();
   const [colors, setColors] = useState<Color[]>([]);
   const [sizes, setSizes] = useState<number[]>([]);
   const [styles, setStyles] = useState<string[]>([]);
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<DeckSort>(undefined);
-  const [disassembling, setDisassembling] = useState<Deck>();
+  const [removing, setRemoving] = useState<Deck>();
   const list = decks.decks;
 
   const info = useMemo(
@@ -281,32 +404,30 @@ function DeckTable({ onOpen }: { onOpen(id: string): void }) {
                 className="h-12 cursor-pointer border-b border-surface-2 last:border-b-0 hover:bg-surface-2"
               >
                 <td className="pl-[18px]">
-                  <span className="flex gap-0.5">
-                    {info.get(d.id)!.colors.map((c) => (
-                      <Pip key={c} symbol={c} size={18} label={COLOR_LABELS[c]} />
-                    ))}
-                  </span>
-                </td>
-                <td className="pr-3">
                   <button
                     id={`open-${d.id}`}
                     type="button"
-                    className="text-left font-medium"
+                    aria-label={`Open ${d.name}`}
+                    className="flex gap-0.5 rounded"
                     onClick={(e) => {
                       e.stopPropagation();
                       onOpen(d.id);
                     }}
                   >
-                    {d.name}
+                    {info.get(d.id)!.colors.map((c) => (
+                      <Pip key={c} symbol={c} size={18} />
+                    ))}
                   </button>
-                  {!d.committed && (
-                    <span
-                      className={`${ui.badge} ml-2`}
-                      title="Its cards are still in your bulk list"
-                    >
-                      Cards in bulk list
-                    </span>
-                  )}
+                </td>
+                <td className="pr-3">
+                  <span className="flex flex-wrap items-center gap-x-2">
+                    <DeckName deck={d} />
+                    {!d.committed && (
+                      <span className={ui.badge} title="Its cards are still in your bulk list">
+                        Cards in bulk list
+                      </span>
+                    )}
+                  </span>
                 </td>
                 <td className="pr-3 font-mono text-[12px] text-fg-1">{d.size}</td>
                 <td className="pr-3 text-fg-1">{info.get(d.id)!.style}</td>
@@ -314,12 +435,8 @@ function DeckTable({ onOpen }: { onOpen(id: string): void }) {
                 <td className="pr-[18px]" onClick={(e) => e.stopPropagation()}>
                   <span className="flex items-center justify-end gap-2">
                     <ExportMenu deck={d} onStatus={setStatus} label="Export" />
-                    <button
-                      type="button"
-                      className={ui.secondary}
-                      onClick={() => setDisassembling(d)}
-                    >
-                      Disassemble
+                    <button type="button" className={ui.stop} onClick={() => setRemoving(d)}>
+                      Remove
                     </button>
                   </span>
                 </td>
@@ -335,19 +452,15 @@ function DeckTable({ onOpen }: { onOpen(id: string): void }) {
         {status}
       </p>
 
-      <ConfirmDialog
-        open={!!disassembling}
-        title={disassembling ? `Disassemble "${disassembling.name}"?` : ''}
-        message={disassembling ? disassembleQuestion(disassembling) : ''}
-        confirmLabel="Disassemble"
-        onConfirm={() => {
-          const d = disassembling!;
+      <RemoveDeckDialog
+        deck={removing}
+        onRemoved={() => {
+          const d = removing!;
           const next = rows[rows.indexOf(d) + 1] ?? rows[rows.indexOf(d) - 1];
-          actions.disassemble(d);
-          setDisassembling(undefined);
+          setRemoving(undefined);
           focusLater(next ? `open-${next.id}` : 'decks-title');
         }}
-        onCancel={() => setDisassembling(undefined)}
+        onCancel={() => setRemoving(undefined)}
       />
     </div>
   );
@@ -357,45 +470,18 @@ function SavedDeck({ deck, onBack, onPair }: { deck: Deck; onBack(): void; onPai
   const { decks, index } = useAppState();
   const actions = useActions();
   const [status, setStatus] = useStatus();
-  const [renaming, setRenaming] = useState(false);
-  const [name, setName] = useState(deck.name);
-  const [confirm, setConfirm] = useState<'disassemble' | 'delete' | 'accept'>();
+  const [confirm, setConfirm] = useState<'remove' | 'accept'>();
   if (!index) return null;
   const otherPackets = decks.decks.filter(
     (d) => d.size === 20 && d.id !== deck.id && d.color !== deck.color,
   );
-
-  const finishRename = () => {
-    const next = name.trim();
-    if (next && next !== deck.name) decks.update({ ...deck, name: next });
-    else setName(deck.name);
-    setRenaming(false);
-  };
 
   return (
     <>
       <DeckLayout
         deck={deck}
         lead={<BackButton label="Decks" onClick={onBack} />}
-        title={
-          renaming ? (
-            <input
-              autoFocus
-              value={name}
-              aria-label="Deck name"
-              onChange={(e) => setName(e.target.value)}
-              onBlur={finishRename}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') finishRename();
-                if (e.key === 'Escape') {
-                  setName(deck.name);
-                  setRenaming(false);
-                }
-              }}
-              className={`${ui.field} text-[15px] font-semibold`}
-            />
-          ) : undefined
-        }
+        title={<DeckName deck={deck} heading />}
         meta={`${deck.size} cards · ${landCount(deck, index)} lands · saved ${savedLabel(deck.createdAt).toLowerCase()}${deck.committed ? '' : ' · cards in bulk list'}`}
         status={status}
         actions={
@@ -421,66 +507,16 @@ function SavedDeck({ deck, onBack, onPair }: { deck: Deck; onBack(): void; onPai
               </button>
             )}
             <ExportMenu deck={deck} onStatus={setStatus} />
-            <Dropdown
-              label="⋯"
-              ariaLabel="More deck actions"
-              buttonClassName={ui.secondary}
-              align="right"
-            >
-              {(close) => (
-                <>
-                  <MenuItem
-                    onSelect={() => {
-                      close();
-                      setName(deck.name);
-                      setRenaming(true);
-                    }}
-                  >
-                    Rename
-                  </MenuItem>
-                  {deck.committed && (
-                    <MenuItem
-                      onSelect={() => {
-                        close();
-                        setConfirm('delete');
-                      }}
-                    >
-                      Delete without returning cards
-                    </MenuItem>
-                  )}
-                </>
-              )}
-            </Dropdown>
-            <button
-              type="button"
-              className={ui.secondary}
-              onClick={() => setConfirm('disassemble')}
-            >
-              Disassemble
+            <button type="button" className={ui.stop} onClick={() => setConfirm('remove')}>
+              Remove
             </button>
           </>
         }
       />
-      <ConfirmDialog
-        open={confirm === 'disassemble'}
-        title={`Disassemble "${deck.name}"?`}
-        message={disassembleQuestion(deck)}
-        confirmLabel="Disassemble"
-        onConfirm={() => {
+      <RemoveDeckDialog
+        deck={confirm === 'remove' ? deck : undefined}
+        onRemoved={() => {
           setConfirm(undefined);
-          actions.disassemble(deck);
-          onBack();
-        }}
-        onCancel={() => setConfirm(undefined)}
-      />
-      <ConfirmDialog
-        open={confirm === 'delete'}
-        title={`Delete "${deck.name}"?`}
-        message="This deletes the deck without returning its cards. Your bulk list stays as it is."
-        confirmLabel="Delete"
-        onConfirm={() => {
-          setConfirm(undefined);
-          actions.deleteOnly(deck);
           onBack();
         }}
         onCancel={() => setConfirm(undefined)}
@@ -566,7 +602,7 @@ function PairPackets(props: { packet: Deck; onBack(): void; onMerged(id: string)
                   <Pip key={c} symbol={c} size={18} label={COLOR_LABELS[c]} />
                 ))}
               </span>
-              <span className="font-medium">{pair.deck.name}</span>
+              <span className="font-semibold">{pair.deck.name}</span>
               <span className="text-fg-1">· 40 cards</span>
             </p>
             <DeckList

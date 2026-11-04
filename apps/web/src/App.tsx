@@ -78,12 +78,15 @@ function Shell() {
   const [poolSort, setPoolSort] = useState<PoolSort>(undefined);
   const [analyze, setAnalyze] = useState(false);
   const { detail, pool, index, decks, build } = useAppState();
+  const closeDetail = detail.close;
   const nav: Nav = useMemo(
     () => ({
       screen,
       go(next) {
         // Import keeps its text when chosen again.
         if (next === screen && next !== 'import') setVisit((v) => v + 1);
+        // An open card belongs to the screen it was opened on.
+        else if (next !== screen) closeDetail();
         setScreen(next);
       },
       poolFilters,
@@ -93,7 +96,7 @@ function Shell() {
       analyze,
       setAnalyze,
     }),
-    [screen, poolFilters, poolSort, analyze],
+    [screen, poolFilters, poolSort, analyze, closeDetail],
   );
   const cards = useMemo(
     () => (index ? poolSummary(pool.pool, index).cards : undefined),
@@ -143,7 +146,7 @@ function Shell() {
         }`}
       >
         <n.Icon size={30} />
-        <span className="text-[12.5px] leading-none font-medium">{n.label}</span>
+        <span className="text-[12.5px] leading-none font-semibold">{n.label}</span>
         {count !== undefined && (
           <span
             className={`absolute top-1 right-1.5 text-[10.5px] leading-none tabular-nums ${on ? 'text-on-ink' : 'text-fg-2'}`}
@@ -167,7 +170,7 @@ function Shell() {
         aria-current={on ? 'page' : undefined}
         className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-1.5 text-left text-[13px] whitespace-nowrap ${
           on
-            ? 'border-ink bg-ink font-medium text-on-ink'
+            ? 'border-ink bg-ink font-semibold text-on-ink'
             : 'border-line bg-surface text-fg-1 hover:border-line-strong hover:text-ink'
         }`}
       >
@@ -186,7 +189,7 @@ function Shell() {
       <div className="flex h-dvh flex-col bg-canvas text-ink md:flex-row">
         <nav
           aria-label="Main"
-          className="hidden w-[104px] shrink-0 flex-col gap-2 overflow-y-auto border-r border-line bg-surface-2 px-2.5 py-3 md:flex"
+          className="hidden w-[104px] shrink-0 flex-col gap-2 overflow-y-auto border-r border-line bg-rail px-2.5 py-3 md:flex"
         >
           {NAV.map(tile)}
           <div className="mt-auto flex flex-col items-center gap-1 pt-4 text-center">
@@ -201,7 +204,7 @@ function Shell() {
         </nav>
         <nav
           aria-label="Main"
-          className="flex shrink-0 items-center gap-1.5 overflow-x-auto border-b border-line bg-surface-2 px-3 py-2 md:hidden"
+          className="flex shrink-0 items-center gap-1.5 overflow-x-auto border-b border-line bg-rail px-3 py-2 md:hidden"
         >
           {NAV.map(pill)}
         </nav>

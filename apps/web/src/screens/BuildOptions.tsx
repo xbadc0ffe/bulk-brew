@@ -191,7 +191,7 @@ function Chips({ lead, items, strong }: { lead: string; items: string[]; strong?
       {items.map((label) => (
         <span
           key={label}
-          className={`rounded-full px-2 py-[2px] text-[12px] ${strong ? 'border border-line-strong bg-surface font-medium text-ink' : 'bg-surface-2 text-fg-1'}`}
+          className={`rounded-full px-2 py-[2px] text-[12px] ${strong ? 'border border-line-strong bg-surface font-semibold text-ink' : 'bg-surface-2 text-fg-1'}`}
         >
           {label}
         </span>

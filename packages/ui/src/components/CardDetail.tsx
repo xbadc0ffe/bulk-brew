@@ -66,7 +66,7 @@ function FaceBlock({ face, phone }: { face: FaceLike; phone: boolean }) {
         )}
       </header>
       <div className="flex flex-col gap-0.5 border-t border-line px-3.5 py-2">
-        <span className={`${size.type} font-medium`}>{type}</span>
+        <span className={`${size.type} font-semibold`}>{type}</span>
         {subtype && <span className={`${size.sub} text-fg-1 italic`}>{subtype}</span>}
       </div>
       {face.text && (
@@ -161,7 +161,7 @@ export function CardDetail(props: CardDetailProps) {
               type="button"
               className={
                 phone
-                  ? 'min-h-11 shrink-0 px-1 text-[0.9375rem] font-medium text-ink'
+                  ? 'min-h-11 shrink-0 px-1 text-[0.9375rem] font-semibold text-ink'
                   : `${ui.quiet} shrink-0 px-1 text-[16px] leading-none`
               }
               onClick={onClose}
@@ -197,7 +197,7 @@ export function CardDetail(props: CardDetailProps) {
               <li
                 key={t.id}
                 title={t.description}
-                className={`rounded-full border border-line-strong bg-surface font-medium text-ink ${bubble}`}
+                className={`rounded-full border border-line-strong bg-surface font-semibold text-ink ${bubble}`}
               >
                 {t.label}
               </li>

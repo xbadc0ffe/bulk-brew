@@ -69,9 +69,10 @@ export function Toggle(props: {
 }) {
   const { checked, onChange, label, variant = 'desktop', disabled } = props;
   const phone = variant === 'phone';
-  const track = phone ? 'h-6 w-10 rounded-full' : 'h-[18px] w-8 rounded-[9px]';
-  const knob = phone ? 'size-5' : 'size-[14px]';
-  const shift = phone ? 'translate-x-4' : 'translate-x-[14px]';
+  // The desktop switch overhangs its row by 4px top and bottom, so rows keep their height.
+  const track = phone ? 'h-6 w-10 rounded-full' : '-my-1 h-[26px] w-[46px] rounded-[13px]';
+  const knob = phone ? 'size-5' : 'size-[22px]';
+  const shift = phone ? 'translate-x-4' : 'translate-x-5';
   return (
     <button
       type="button"

@@ -27,6 +27,15 @@ describe('deck stats', () => {
     );
   });
 
+  it('puts a commander in a group of its own, first', () => {
+    const lead = deck.cards.find((c) => index.get(c.cardId)!.types.includes('creature'))!;
+    const groups = deckGroups({ ...deck, commander: lead.cardId }, index, CONFIG);
+    expect(groups[0]).toMatchObject({ label: 'Commander', count: lead.qty });
+    expect(groups[0]!.rows.map((r) => r.key)).toEqual([lead.cardId]);
+    const creatures = (g: typeof groups) => g.find((x) => x.label === 'Creatures')?.count ?? 0;
+    expect(creatures(groups)).toBe(creatures(deckGroups(deck, index, CONFIG)) - lead.qty);
+  });
+
   it('shares the colored symbols of the spells, adding up to one', () => {
     const shares = deckColorShares(deck, index);
     let pips = 0;

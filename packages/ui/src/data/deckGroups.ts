@@ -41,7 +41,10 @@ export const TYPE_GROUPS = [
 
 const lowerFirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
 
-/** Deck cards grouped by type, most copies first; basics lead the Lands group. */
+/**
+ * Deck cards grouped by type, most copies first; basics lead the Lands group.
+ * A Commander deck's commander comes first in a group of its own.
+ */
 export function deckGroups(deck: Deck, index: CardIndex, config: BulkBrewConfig): DeckGroup[] {
   const map = new Map<string, DeckRow[]>();
   const add = (label: string, row: DeckRow) => {
@@ -64,19 +67,23 @@ export function deckGroups(deck: Deck, index: CardIndex, config: BulkBrewConfig)
     add('Lands', { key: `basic-${color}`, qty: n, name, card: index.find(name) });
   }
   for (const { dc, card } of sorted) {
-    add(primaryGroup(card), {
+    const lead = dc.cardId === deck.commander;
+    add(lead ? 'Commander' : primaryGroup(card), {
       key: dc.cardId,
       qty: dc.qty,
       name: card.name,
-      why: dc.why ? lowerFirst(dc.why) : undefined,
+      // "Commander" would repeat the group's name.
+      why: dc.why && !lead ? lowerFirst(dc.why) : undefined,
       card,
       printing: dc.printing,
     });
   }
-  return TYPE_GROUPS.filter((g) => map.has(g)).map((label) => {
-    const rows = map.get(label)!;
-    return { label, count: rows.reduce((n, r) => n + r.qty, 0), rows };
-  });
+  return ['Commander', ...TYPE_GROUPS]
+    .filter((g) => map.has(g))
+    .map((label) => {
+      const rows = map.get(label)!;
+      return { label, count: rows.reduce((n, r) => n + r.qty, 0), rows };
+    });
 }
 
 export function landCount(deck: Deck, index: CardIndex): number {

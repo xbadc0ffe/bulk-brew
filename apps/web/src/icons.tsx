@@ -35,12 +35,32 @@ function Stack({ x, y, w, h }: { x: number; y: number; w: number; h: number }) {
   );
 }
 
-/** Bulk List: several stacks of cards. */
+/** A pile of cards seen from the side, like a stack of coins: one slab per card. */
+function Pile({ x, w, shifts }: { x: number; w: number; shifts: number[] }) {
+  const h = 3.4;
+  return (
+    <>
+      {shifts.map((dx, i) => (
+        <rect
+          key={i}
+          x={x + dx}
+          y={28.5 - (i + 1) * h}
+          width={w}
+          height={h}
+          rx={1.1}
+          fill="var(--icon-fill)"
+        />
+      ))}
+    </>
+  );
+}
+
+/** Bulk List: two uneven piles of cards seen from the side. */
 export function StacksIcon({ size = 28 }: { size?: number }) {
   return (
     <Svg size={size}>
-      <Stack x={2.5} y={14} w={11} h={15} />
-      <Stack x={18.5} y={9} w={11} h={20} />
+      <Pile x={1.6} w={12.8} shifts={[0, 0.6, -0.4, 0.5]} />
+      <Pile x={17.4} w={12.8} shifts={[0, -0.5, 0.5, -0.3, 0.6, -0.4, 0.2]} />
     </Svg>
   );
 }
