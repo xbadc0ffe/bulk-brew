@@ -1,0 +1,5303 @@
+{
+  "date": "2026-11-04",
+  "runAt": "2026-11-04T04:52:41.602Z",
+  "sha": "4e1817a",
+  "dirty": false,
+  "dataVersion": "2026-11-03.s2",
+  "configVersion": "t3.c3.r1.a3.s3.l3.w8.k1",
+  "styles": false,
+  "poolFilter": null,
+  "poolNames": [
+    "bulk-black",
+    "bulk-blue",
+    "bulk-green",
+    "bulk-red",
+    "creatures-only-green",
+    "gold-heavy-black",
+    "lands-blue",
+    "thin-red",
+    "tiny-blue",
+    "white-bulk"
+  ],
+  "pools": {
+    "bulk-black": {
+      "decks": 5,
+      "failures": 0,
+      "skipped": 12,
+      "lands": 23,
+      "averageMv": 2.55,
+      "curveDeviation": 5.8,
+      "rolesBelowMin": 0.4,
+      "synergyDensity": 0.96,
+      "filler": 7,
+      "strength": 5.33,
+      "score": 69.62,
+      "uncastable": 0,
+      "sizeErrors": 0,
+      "ms": 49
+    },
+    "bulk-blue": {
+      "decks": 5,
+      "failures": 0,
+      "skipped": 12,
+      "lands": 23.4,
+      "averageMv": 3.08,
+      "curveDeviation": 0.8,
+      "rolesBelowMin": 0.4,
+      "synergyDensity": 0.86,
+      "filler": 6.6,
+      "strength": 5.3,
+      "score": 68.1,
+      "uncastable": 0,
+      "sizeErrors": 0,
+      "ms": 39
+    },
+    "bulk-green": {
+      "decks": 5,
+      "failures": 0,
+      "skipped": 12,
+      "lands": 22.4,
+      "averageMv": 3.1,
+      "curveDeviation": 2.4,
+      "rolesBelowMin": 0.4,
+      "synergyDensity": 0.89,
+      "filler": 9.2,
+      "strength": 5.43,
+      "score": 68.26,
+      "uncastable": 0,
+      "sizeErrors": 0,
+      "ms": 53
+    },
+    "bulk-red": {
+      "decks": 5,
+      "failures": 0,
+      "skipped": 12,
+      "lands": 24.4,
+      "averageMv": 2.92,
+      "curveDeviation": 3.4,
+      "rolesBelowMin": 0.4,
+      "synergyDensity": 0.86,
+      "filler": 6.4,
+      "strength": 5.26,
+      "score": 67.3,
+      "uncastable": 0,
+      "sizeErrors": 0,
+      "ms": 44
+    },
+    "creatures-only-green": {
+      "decks": 5,
+      "failures": 0,
+      "skipped": 12,
+      "lands": 23.8,
+      "averageMv": 2.91,
+      "curveDeviation": 4.4,
+      "rolesBelowMin": 2.2,
+      "synergyDensity": 0.57,
+      "filler": 9.4,
+      "strength": 4.7,
+      "score": 55.06,
+      "uncastable": 0,
+      "sizeErrors": 0,
+      "ms": 7
+    },
+    "gold-heavy-black": {
+      "decks": 8,
+      "failures": 0,
+      "skipped": 9,
+      "lands": 20.75,
+      "averageMv": 2.82,
+      "curveDeviation": 2.5,
+      "rolesBelowMin": 0.25,
+      "synergyDensity": 0.91,
+      "filler": 5.5,
+      "strength": 5.47,
+      "score": 68.43,
+      "uncastable": 0,
+      "sizeErrors": 0,
+      "ms": 33
+    },
+    "lands-blue": {
+      "decks": 5,
+      "failures": 0,
+      "skipped": 12,
+      "lands": 24,
+      "averageMv": 3.11,
+      "curveDeviation": 1.6,
+      "rolesBelowMin": 0.8,
+      "synergyDensity": 0.73,
+      "filler": 10.2,
+      "strength": 5.17,
+      "score": 64,
+      "uncastable": 0,
+      "sizeErrors": 0,
+      "ms": 32
+    },
+    "thin-red": {
+      "decks": 3,
+      "failures": 0,
+      "skipped": 12,
+      "lands": 14.67,
+      "averageMv": 2.42,
+      "curveDeviation": 0,
+      "rolesBelowMin": 0,
+      "synergyDensity": 0.98,
+      "filler": 5,
+      "strength": 4.64,
+      "score": 69.7,
+      "uncastable": 0,
+      "sizeErrors": 0,
+      "ms": 19
+    },
+    "tiny-blue": {
+      "decks": 2,
+      "failures": 0,
+      "skipped": 13,
+      "lands": 12,
+      "averageMv": 2.67,
+      "curveDeviation": 3,
+      "rolesBelowMin": 0.5,
+      "synergyDensity": 0.22,
+      "filler": 1.5,
+      "strength": 5.23,
+      "score": 50.85,
+      "uncastable": 0,
+      "sizeErrors": 0,
+      "ms": 3
+    },
+    "white-bulk": {
+      "decks": 5,
+      "failures": 0,
+      "skipped": 12,
+      "lands": 24.2,
+      "averageMv": 3.03,
+      "curveDeviation": 0.2,
+      "rolesBelowMin": 0.4,
+      "synergyDensity": 1.46,
+      "filler": 8.4,
+      "strength": 5.75,
+      "score": 83.44,
+      "uncastable": 0,
+      "sizeErrors": 0,
+      "ms": 264
+    }
+  },
+  "bySize": {
+    "20": {
+      "decks": 11,
+      "failures": 0,
+      "skipped": 39,
+      "lands": 7.91,
+      "averageMv": 2.69,
+      "curveDeviation": 0.27,
+      "rolesBelowMin": 0.09,
+      "synergyDensity": 1.1,
+      "filler": 1.18,
+      "strength": 5.54,
+      "score": 74.44,
+      "uncastable": 0,
+      "sizeErrors": 0,
+      "ms": 37
+    },
+    "40": {
+      "decks": 11,
+      "failures": 0,
+      "skipped": 39,
+      "lands": 16.09,
+      "averageMv": 2.92,
+      "curveDeviation": 0.91,
+      "rolesBelowMin": 0.18,
+      "synergyDensity": 0.95,
+      "filler": 3.27,
+      "strength": 5.31,
+      "score": 69.75,
+      "uncastable": 0,
+      "sizeErrors": 0,
+      "ms": 47
+    },
+    "60": {
+      "decks": 10,
+      "failures": 0,
+      "skipped": 40,
+      "lands": 22.2,
+      "averageMv": 2.75,
+      "curveDeviation": 0.9,
+      "rolesBelowMin": 0.1,
+      "synergyDensity": 0.92,
+      "filler": 6,
+      "strength": 5.24,
+      "score": 69.06,
+      "uncastable": 0,
+      "sizeErrors": 0,
+      "ms": 77
+    },
+    "100": {
+      "decks": 16,
+      "failures": 0,
+      "skipped": 0,
+      "lands": 35.88,
+      "averageMv": 3.09,
+      "curveDeviation": 6.06,
+      "rolesBelowMin": 1.5,
+      "synergyDensity": 0.67,
+      "filler": 14.94,
+      "strength": 5.06,
+      "score": 60.03,
+      "uncastable": 0,
+      "sizeErrors": 0,
+      "ms": 67
+    }
+  },
+  "overall": {
+    "decks": 48,
+    "failures": 0,
+    "skipped": 118,
+    "lands": 22.08,
+    "averageMv": 2.89,
+    "curveDeviation": 2.48,
+    "rolesBelowMin": 0.58,
+    "synergyDensity": 0.88,
+    "filler": 7.25,
+    "strength": 5.27,
+    "score": 67.44,
+    "uncastable": 0,
+    "sizeErrors": 0,
+    "ms": 58
+  },
+  "skips": [
+    {
+      "pool": "bulk-black",
+      "size": 60,
+      "color": "W",
+      "reason": "needs 18 more spells for a 60-card deck"
+    },
+    {
+      "pool": "bulk-black",
+      "size": 60,
+      "color": "U",
+      "reason": "needs 18 more spells for a 60-card deck"
+    },
+    {
+      "pool": "bulk-black",
+      "size": 60,
+      "color": "R",
+      "reason": "needs 18 more spells for a 60-card deck"
+    },
+    {
+      "pool": "bulk-black",
+      "size": 60,
+      "color": "G",
+      "reason": "needs 18 more spells for a 60-card deck"
+    },
+    {
+      "pool": "bulk-black",
+      "size": 40,
+      "color": "W",
+      "reason": "needs 5 more spells for a 40-card deck"
+    },
+    {
+      "pool": "bulk-black",
+      "size": 40,
+      "color": "U",
+      "reason": "needs 5 more spells for a 40-card deck"
+    },
+    {
+      "pool": "bulk-black",
+      "size": 40,
+      "color": "R",
+      "reason": "needs 5 more spells for a 40-card deck"
+    },
+    {
+      "pool": "bulk-black",
+      "size": 40,
+      "color": "G",
+      "reason": "needs 5 more spells for a 40-card deck"
+    },
+    {
+      "pool": "bulk-black",
+      "size": 20,
+      "color": "W",
+      "reason": "needs 6 more White cards (colorless cards alone do not make a White deck)"
+    },
+    {
+      "pool": "bulk-black",
+      "size": 20,
+      "color": "U",
+      "reason": "needs 6 more Blue cards (colorless cards alone do not make a Blue deck)"
+    },
+    {
+      "pool": "bulk-black",
+      "size": 20,
+      "color": "R",
+      "reason": "needs 6 more Red cards (colorless cards alone do not make a Red deck)"
+    },
+    {
+      "pool": "bulk-black",
+      "size": 20,
+      "color": "G",
+      "reason": "needs 6 more Green cards (colorless cards alone do not make a Green deck)"
+    },
+    {
+      "pool": "bulk-blue",
+      "size": 60,
+      "color": "W",
+      "reason": "needs 20 more spells for a 60-card deck"
+    },
+    {
+      "pool": "bulk-blue",
+      "size": 60,
+      "color": "B",
+      "reason": "needs 20 more spells for a 60-card deck"
+    },
+    {
+      "pool": "bulk-blue",
+      "size": 60,
+      "color": "R",
+      "reason": "needs 20 more spells for a 60-card deck"
+    },
+    {
+      "pool": "bulk-blue",
+      "size": 60,
+      "color": "G",
+      "reason": "needs 20 more spells for a 60-card deck"
+    },
+    {
+      "pool": "bulk-blue",
+      "size": 40,
+      "color": "W",
+      "reason": "needs 7 more spells for a 40-card deck"
+    },
+    {
+      "pool": "bulk-blue",
+      "size": 40,
+      "color": "B",
+      "reason": "needs 7 more spells for a 40-card deck"
+    },
+    {
+      "pool": "bulk-blue",
+      "size": 40,
+      "color": "R",
+      "reason": "needs 7 more spells for a 40-card deck"
+    },
+    {
+      "pool": "bulk-blue",
+      "size": 40,
+      "color": "G",
+      "reason": "needs 7 more spells for a 40-card deck"
+    },
+    {
+      "pool": "bulk-blue",
+      "size": 20,
+      "color": "W",
+      "reason": "needs 6 more White cards (colorless cards alone do not make a White deck)"
+    },
+    {
+      "pool": "bulk-blue",
+      "size": 20,
+      "color": "B",
+      "reason": "needs 6 more Black cards (colorless cards alone do not make a Black deck)"
+    },
+    {
+      "pool": "bulk-blue",
+      "size": 20,
+      "color": "R",
+      "reason": "needs 6 more Red cards (colorless cards alone do not make a Red deck)"
+    },
+    {
+      "pool": "bulk-blue",
+      "size": 20,
+      "color": "G",
+      "reason": "needs 6 more Green cards (colorless cards alone do not make a Green deck)"
+    },
+    {
+      "pool": "bulk-green",
+      "size": 60,
+      "color": "W",
+      "reason": "needs 15 more spells for a 60-card deck"
+    },
+    {
+      "pool": "bulk-green",
+      "size": 60,
+      "color": "U",
+      "reason": "needs 15 more spells for a 60-card deck"
+    },
+    {
+      "pool": "bulk-green",
+      "size": 60,
+      "color": "B",
+      "reason": "needs 15 more spells for a 60-card deck"
+    },
+    {
+      "pool": "bulk-green",
+      "size": 60,
+      "color": "R",
+      "reason": "needs 15 more spells for a 60-card deck"
+    },
+    {
+      "pool": "bulk-green",
+      "size": 40,
+      "color": "W",
+      "reason": "needs 2 more spells for a 40-card deck"
+    },
+    {
+      "pool": "bulk-green",
+      "size": 40,
+      "color": "U",
+      "reason": "needs 2 more spells for a 40-card deck"
+    },
+    {
+      "pool": "bulk-green",
+      "size": 40,
+      "color": "B",
+      "reason": "needs 2 more spells for a 40-card deck"
+    },
+    {
+      "pool": "bulk-green",
+      "size": 40,
+      "color": "R",
+      "reason": "needs 2 more spells for a 40-card deck"
+    },
+    {
+      "pool": "bulk-green",
+      "size": 20,
+      "color": "W",
+      "reason": "needs 6 more White cards (colorless cards alone do not make a White deck)"
+    },
+    {
+      "pool": "bulk-green",
+      "size": 20,
+      "color": "U",
+      "reason": "needs 6 more Blue cards (colorless cards alone do not make a Blue deck)"
+    },
+    {
+      "pool": "bulk-green",
+      "size": 20,
+      "color": "B",
+      "reason": "needs 6 more Black cards (colorless cards alone do not make a Black deck)"
+    },
+    {
+      "pool": "bulk-green",
+      "size": 20,
+      "color": "R",
+      "reason": "needs 6 more Red cards (colorless cards alone do not make a Red deck)"
+    },
+    {
+      "pool": "bulk-red",
+      "size": 60,
+      "color": "W",
+      "reason": "needs 18 more spells for a 60-card deck"
+    },
+    {
+      "pool": "bulk-red",
+      "size": 60,
+      "color": "U",
+      "reason": "needs 18 more spells for a 60-card deck"
+    },
+    {
+      "pool": "bulk-red",
+      "size": 60,
+      "color": "B",
+      "reason": "needs 18 more spells for a 60-card deck"
+    },
+    {
+      "pool": "bulk-red",
+      "size": 60,
+      "color": "G",
+      "reason": "needs 18 more spells for a 60-card deck"
+    },
+    {
+      "pool": "bulk-red",
+      "size": 40,
+      "color": "W",
+      "reason": "needs 5 more spells for a 40-card deck"
+    },
+    {
+      "pool": "bulk-red",
+      "size": 40,
+      "color": "U",
+      "reason": "needs 5 more spells for a 40-card deck"
+    },
+    {
+      "pool": "bulk-red",
+      "size": 40,
+      "color": "B",
+      "reason": "needs 5 more spells for a 40-card deck"
+    },
+    {
+      "pool": "bulk-red",
+      "size": 40,
+      "color": "G",
+      "reason": "needs 5 more spells for a 40-card deck"
+    },
+    {
+      "pool": "bulk-red",
+      "size": 20,
+      "color": "W",
+      "reason": "needs 6 more White cards (colorless cards alone do not make a White deck)"
+    },
+    {
+      "pool": "bulk-red",
+      "size": 20,
+      "color": "U",
+      "reason": "needs 6 more Blue cards (colorless cards alone do not make a Blue deck)"
+    },
+    {
+      "pool": "bulk-red",
+      "size": 20,
+      "color": "B",
+      "reason": "needs 6 more Black cards (colorless cards alone do not make a Black deck)"
+    },
+    {
+      "pool": "bulk-red",
+      "size": 20,
+      "color": "G",
+      "reason": "needs 6 more Green cards (colorless cards alone do not make a Green deck)"
+    },
+    {
+      "pool": "creatures-only-green",
+      "size": 60,
+      "color": "W",
+      "reason": "needs 36 more spells for a 60-card deck"
+    },
+    {
+      "pool": "creatures-only-green",
+      "size": 60,
+      "color": "U",
+      "reason": "needs 36 more spells for a 60-card deck"
+    },
+    {
+      "pool": "creatures-only-green",
+      "size": 60,
+      "color": "B",
+      "reason": "needs 36 more spells for a 60-card deck"
+    },
+    {
+      "pool": "creatures-only-green",
+      "size": 60,
+      "color": "R",
+      "reason": "needs 36 more spells for a 60-card deck"
+    },
+    {
+      "pool": "creatures-only-green",
+      "size": 40,
+      "color": "W",
+      "reason": "needs 23 more spells for a 40-card deck"
+    },
+    {
+      "pool": "creatures-only-green",
+      "size": 40,
+      "color": "U",
+      "reason": "needs 23 more spells for a 40-card deck"
+    },
+    {
+      "pool": "creatures-only-green",
+      "size": 40,
+      "color": "B",
+      "reason": "needs 23 more spells for a 40-card deck"
+    },
+    {
+      "pool": "creatures-only-green",
+      "size": 40,
+      "color": "R",
+      "reason": "needs 23 more spells for a 40-card deck"
+    },
+    {
+      "pool": "creatures-only-green",
+      "size": 20,
+      "color": "W",
+      "reason": "needs 12 more spells for a 20-card deck"
+    },
+    {
+      "pool": "creatures-only-green",
+      "size": 20,
+      "color": "U",
+      "reason": "needs 12 more spells for a 20-card deck"
+    },
+    {
+      "pool": "creatures-only-green",
+      "size": 20,
+      "color": "B",
+      "reason": "needs 12 more spells for a 20-card deck"
+    },
+    {
+      "pool": "creatures-only-green",
+      "size": 20,
+      "color": "R",
+      "reason": "needs 12 more spells for a 20-card deck"
+    },
+    {
+      "pool": "gold-heavy-black",
+      "size": 60,
+      "color": "W",
+      "reason": "needs 33 more spells for a 60-card deck"
+    },
+    {
+      "pool": "gold-heavy-black",
+      "size": 60,
+      "color": "U",
+      "reason": "needs 25 more spells for a 60-card deck"
+    },
+    {
+      "pool": "gold-heavy-black",
+      "size": 60,
+      "color": "G",
+      "reason": "needs 32 more spells for a 60-card deck"
+    },
+    {
+      "pool": "gold-heavy-black",
+      "size": 40,
+      "color": "W",
+      "reason": "needs 20 more spells for a 40-card deck"
+    },
+    {
+      "pool": "gold-heavy-black",
+      "size": 40,
+      "color": "U",
+      "reason": "needs 12 more spells for a 40-card deck"
+    },
+    {
+      "pool": "gold-heavy-black",
+      "size": 40,
+      "color": "G",
+      "reason": "needs 19 more spells for a 40-card deck"
+    },
+    {
+      "pool": "gold-heavy-black",
+      "size": 20,
+      "color": "W",
+      "reason": "needs 10 more spells for a 20-card deck"
+    },
+    {
+      "pool": "gold-heavy-black",
+      "size": 20,
+      "color": "U",
+      "reason": "needs 3 more spells for a 20-card deck"
+    },
+    {
+      "pool": "gold-heavy-black",
+      "size": 20,
+      "color": "G",
+      "reason": "needs 8 more spells for a 20-card deck"
+    },
+    {
+      "pool": "lands-blue",
+      "size": 60,
+      "color": "W",
+      "reason": "needs 36 more spells for a 60-card deck"
+    },
+    {
+      "pool": "lands-blue",
+      "size": 60,
+      "color": "B",
+      "reason": "needs 36 more spells for a 60-card deck"
+    },
+    {
+      "pool": "lands-blue",
+      "size": 60,
+      "color": "R",
+      "reason": "needs 36 more spells for a 60-card deck"
+    },
+    {
+      "pool": "lands-blue",
+      "size": 60,
+      "color": "G",
+      "reason": "needs 36 more spells for a 60-card deck"
+    },
+    {
+      "pool": "lands-blue",
+      "size": 40,
+      "color": "W",
+      "reason": "needs 23 more spells for a 40-card deck"
+    },
+    {
+      "pool": "lands-blue",
+      "size": 40,
+      "color": "B",
+      "reason": "needs 23 more spells for a 40-card deck"
+    },
+    {
+      "pool": "lands-blue",
+      "size": 40,
+      "color": "R",
+      "reason": "needs 23 more spells for a 40-card deck"
+    },
+    {
+      "pool": "lands-blue",
+      "size": 40,
+      "color": "G",
+      "reason": "needs 23 more spells for a 40-card deck"
+    },
+    {
+      "pool": "lands-blue",
+      "size": 20,
+      "color": "W",
+      "reason": "needs 12 more spells for a 20-card deck"
+    },
+    {
+      "pool": "lands-blue",
+      "size": 20,
+      "color": "B",
+      "reason": "needs 12 more spells for a 20-card deck"
+    },
+    {
+      "pool": "lands-blue",
+      "size": 20,
+      "color": "R",
+      "reason": "needs 12 more spells for a 20-card deck"
+    },
+    {
+      "pool": "lands-blue",
+      "size": 20,
+      "color": "G",
+      "reason": "needs 12 more spells for a 20-card deck"
+    },
+    {
+      "pool": "thin-red",
+      "size": 60,
+      "color": "W",
+      "reason": "needs 36 more spells for a 60-card deck"
+    },
+    {
+      "pool": "thin-red",
+      "size": 60,
+      "color": "U",
+      "reason": "needs 36 more spells for a 60-card deck"
+    },
+    {
+      "pool": "thin-red",
+      "size": 60,
+      "color": "B",
+      "reason": "needs 36 more spells for a 60-card deck"
+    },
+    {
+      "pool": "thin-red",
+      "size": 60,
+      "color": "G",
+      "reason": "needs 36 more spells for a 60-card deck"
+    },
+    {
+      "pool": "thin-red",
+      "size": 40,
+      "color": "W",
+      "reason": "needs 23 more spells for a 40-card deck"
+    },
+    {
+      "pool": "thin-red",
+      "size": 40,
+      "color": "U",
+      "reason": "needs 23 more spells for a 40-card deck"
+    },
+    {
+      "pool": "thin-red",
+      "size": 40,
+      "color": "B",
+      "reason": "needs 23 more spells for a 40-card deck"
+    },
+    {
+      "pool": "thin-red",
+      "size": 40,
+      "color": "G",
+      "reason": "needs 23 more spells for a 40-card deck"
+    },
+    {
+      "pool": "thin-red",
+      "size": 20,
+      "color": "W",
+      "reason": "needs 12 more spells for a 20-card deck"
+    },
+    {
+      "pool": "thin-red",
+      "size": 20,
+      "color": "U",
+      "reason": "needs 12 more spells for a 20-card deck"
+    },
+    {
+      "pool": "thin-red",
+      "size": 20,
+      "color": "B",
+      "reason": "needs 12 more spells for a 20-card deck"
+    },
+    {
+      "pool": "thin-red",
+      "size": 20,
+      "color": "G",
+      "reason": "needs 12 more spells for a 20-card deck"
+    },
+    {
+      "pool": "tiny-blue",
+      "size": 60,
+      "color": "W",
+      "reason": "needs 36 more spells for a 60-card deck"
+    },
+    {
+      "pool": "tiny-blue",
+      "size": 60,
+      "color": "U",
+      "reason": "needs 2 more spells for a 60-card deck"
+    },
+    {
+      "pool": "tiny-blue",
+      "size": 60,
+      "color": "B",
+      "reason": "needs 36 more spells for a 60-card deck"
+    },
+    {
+      "pool": "tiny-blue",
+      "size": 60,
+      "color": "R",
+      "reason": "needs 36 more spells for a 60-card deck"
+    },
+    {
+      "pool": "tiny-blue",
+      "size": 60,
+      "color": "G",
+      "reason": "needs 36 more spells for a 60-card deck"
+    },
+    {
+      "pool": "tiny-blue",
+      "size": 40,
+      "color": "W",
+      "reason": "needs 23 more spells for a 40-card deck"
+    },
+    {
+      "pool": "tiny-blue",
+      "size": 40,
+      "color": "B",
+      "reason": "needs 23 more spells for a 40-card deck"
+    },
+    {
+      "pool": "tiny-blue",
+      "size": 40,
+      "color": "R",
+      "reason": "needs 23 more spells for a 40-card deck"
+    },
+    {
+      "pool": "tiny-blue",
+      "size": 40,
+      "color": "G",
+      "reason": "needs 23 more spells for a 40-card deck"
+    },
+    {
+      "pool": "tiny-blue",
+      "size": 20,
+      "color": "W",
+      "reason": "needs 12 more spells for a 20-card deck"
+    },
+    {
+      "pool": "tiny-blue",
+      "size": 20,
+      "color": "B",
+      "reason": "needs 12 more spells for a 20-card deck"
+    },
+    {
+      "pool": "tiny-blue",
+      "size": 20,
+      "color": "R",
+      "reason": "needs 12 more spells for a 20-card deck"
+    },
+    {
+      "pool": "tiny-blue",
+      "size": 20,
+      "color": "G",
+      "reason": "needs 12 more spells for a 20-card deck"
+    },
+    {
+      "pool": "white-bulk",
+      "size": 60,
+      "color": "U",
+      "reason": "needs 30 more spells for a 60-card deck"
+    },
+    {
+      "pool": "white-bulk",
+      "size": 60,
+      "color": "B",
+      "reason": "needs 30 more spells for a 60-card deck"
+    },
+    {
+      "pool": "white-bulk",
+      "size": 60,
+      "color": "R",
+      "reason": "needs 30 more spells for a 60-card deck"
+    },
+    {
+      "pool": "white-bulk",
+      "size": 60,
+      "color": "G",
+      "reason": "needs 30 more spells for a 60-card deck"
+    },
+    {
+      "pool": "white-bulk",
+      "size": 40,
+      "color": "U",
+      "reason": "needs 17 more spells for a 40-card deck"
+    },
+    {
+      "pool": "white-bulk",
+      "size": 40,
+      "color": "B",
+      "reason": "needs 17 more spells for a 40-card deck"
+    },
+    {
+      "pool": "white-bulk",
+      "size": 40,
+      "color": "R",
+      "reason": "needs 17 more spells for a 40-card deck"
+    },
+    {
+      "pool": "white-bulk",
+      "size": 40,
+      "color": "G",
+      "reason": "needs 17 more spells for a 40-card deck"
+    },
+    {
+      "pool": "white-bulk",
+      "size": 20,
+      "color": "U",
+      "reason": "needs 7 more spells for a 20-card deck"
+    },
+    {
+      "pool": "white-bulk",
+      "size": 20,
+      "color": "B",
+      "reason": "needs 7 more spells for a 20-card deck"
+    },
+    {
+      "pool": "white-bulk",
+      "size": 20,
+      "color": "R",
+      "reason": "needs 7 more spells for a 20-card deck"
+    },
+    {
+      "pool": "white-bulk",
+      "size": 20,
+      "color": "G",
+      "reason": "needs 7 more spells for a 20-card deck"
+    }
+  ],
+  "runs": [
+    {
+      "pool": "bulk-black",
+      "size": 60,
+      "color": "B",
+      "style": "best",
+      "ok": true,
+      "archetype": "auras",
+      "ms": 123,
+      "metrics": {
+        "total": 60,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 38,
+        "lands": 22,
+        "nonbasics": 0,
+        "landMin": 20,
+        "landMax": 27,
+        "landsInClamp": true,
+        "averageMv": 2.37,
+        "curve": [
+          0,
+          9,
+          12,
+          12,
+          4,
+          1,
+          0,
+          0
+        ],
+        "curveTargets": [
+          0,
+          8,
+          14,
+          11,
+          3,
+          2,
+          0,
+          0
+        ],
+        "curveDeviation": 1,
+        "creatureShare": 0.632,
+        "instantSorceryShare": 0.105,
+        "noncreaturePermanentShare": 0.263,
+        "typeMixOk": true,
+        "roles": {
+          "removal": {
+            "have": 8,
+            "min": 4,
+            "target": 7
+          },
+          "cardAdvantage": {
+            "have": 5,
+            "min": 2,
+            "target": 5
+          },
+          "cheapInteraction": {
+            "have": 6,
+            "min": 2,
+            "target": 4
+          },
+          "finisher": {
+            "have": 4,
+            "min": 2,
+            "target": 4
+          },
+          "ramp": {
+            "have": 4,
+            "min": 0,
+            "target": 2
+          },
+          "earlyCreature": {
+            "have": 11,
+            "min": 4,
+            "target": 8
+          }
+        },
+        "rolesBelowMin": 0,
+        "rolesBelowTarget": 0,
+        "synergyPairs": 44,
+        "synergyDensity": 1.1,
+        "filler": 10,
+        "strength": 5.45,
+        "score": 74.4,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "bulk-black",
+      "size": 40,
+      "color": "B",
+      "style": "best",
+      "ok": true,
+      "archetype": "auras",
+      "ms": 49,
+      "metrics": {
+        "total": 40,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 25,
+        "lands": 15,
+        "nonbasics": 0,
+        "landMin": 15,
+        "landMax": 18,
+        "landsInClamp": true,
+        "averageMv": 2.32,
+        "curve": [
+          0,
+          6,
+          9,
+          7,
+          2,
+          1,
+          0,
+          0
+        ],
+        "curveTargets": [
+          0,
+          6,
+          9,
+          7,
+          2,
+          1,
+          0,
+          0
+        ],
+        "curveDeviation": 0,
+        "creatureShare": 0.6,
+        "instantSorceryShare": 0.12,
+        "noncreaturePermanentShare": 0.28,
+        "typeMixOk": true,
+        "roles": {
+          "removal": {
+            "have": 6,
+            "min": 3,
+            "target": 5
+          },
+          "cardAdvantage": {
+            "have": 3,
+            "min": 1,
+            "target": 3
+          },
+          "cheapInteraction": {
+            "have": 4,
+            "min": 1,
+            "target": 3
+          },
+          "finisher": {
+            "have": 3,
+            "min": 2,
+            "target": 3
+          },
+          "ramp": {
+            "have": 3,
+            "min": 0,
+            "target": 1
+          },
+          "earlyCreature": {
+            "have": 8,
+            "min": 3,
+            "target": 6
+          }
+        },
+        "rolesBelowMin": 0,
+        "rolesBelowTarget": 0,
+        "synergyPairs": 30,
+        "synergyDensity": 1.164,
+        "filler": 2,
+        "strength": 5.44,
+        "score": 76.2,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "bulk-black",
+      "size": 20,
+      "color": "B",
+      "style": "best",
+      "ok": true,
+      "archetype": "counters",
+      "ms": 38,
+      "metrics": {
+        "total": 20,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 12,
+        "lands": 8,
+        "nonbasics": 0,
+        "landMin": 7,
+        "landMax": 9,
+        "landsInClamp": true,
+        "averageMv": 2.42,
+        "curve": [
+          0,
+          3,
+          4,
+          3,
+          1,
+          1,
+          0,
+          0
+        ],
+        "curveTargets": [
+          0,
+          2,
+          4,
+          3,
+          2,
+          1,
+          0,
+          0
+        ],
+        "curveDeviation": 0,
+        "creatureShare": 0.667,
+        "instantSorceryShare": 0.083,
+        "noncreaturePermanentShare": 0.25,
+        "typeMixOk": true,
+        "roles": {
+          "removal": {
+            "have": 3,
+            "min": 1,
+            "target": 2
+          },
+          "cardAdvantage": {
+            "have": 2,
+            "min": 0,
+            "target": 1
+          },
+          "cheapInteraction": {
+            "have": 2,
+            "min": 1,
+            "target": 2
+          },
+          "finisher": {
+            "have": 2,
+            "min": 1,
+            "target": 2
+          },
+          "ramp": {
+            "have": 2,
+            "min": 0,
+            "target": 1
+          },
+          "earlyCreature": {
+            "have": 4,
+            "min": 2,
+            "target": 4
+          }
+        },
+        "rolesBelowMin": 0,
+        "rolesBelowTarget": 0,
+        "synergyPairs": 16,
+        "synergyDensity": 1.275,
+        "filler": 2,
+        "strength": 5.69,
+        "score": 79.5,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "bulk-black",
+      "size": 100,
+      "color": "B",
+      "style": "best",
+      "commander": "Iron Monger, Sadistic Tycoon",
+      "ok": true,
+      "archetype": "graveyard",
+      "ms": 19,
+      "metrics": {
+        "total": 100,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 65,
+        "lands": 35,
+        "nonbasics": 0,
+        "landMin": 35,
+        "landMax": 40,
+        "landsInClamp": true,
+        "averageMv": 2.83,
+        "curve": [
+          0,
+          12,
+          16,
+          20,
+          8,
+          6,
+          3,
+          0
+        ],
+        "curveTargets": [
+          0,
+          5,
+          13,
+          16,
+          13,
+          8,
+          6,
+          4
+        ],
+        "curveDeviation": 14,
+        "creatureShare": 0.569,
+        "instantSorceryShare": 0.246,
+        "noncreaturePermanentShare": 0.185,
+        "typeMixOk": true,
+        "roles": {
+          "ramp": {
+            "have": 5,
+            "min": 8,
+            "target": 10
+          },
+          "removal": {
+            "have": 15,
+            "min": 6,
+            "target": 9
+          },
+          "cardAdvantage": {
+            "have": 10,
+            "min": 7,
+            "target": 10
+          },
+          "sweeper": {
+            "have": 5,
+            "min": 1,
+            "target": 3
+          },
+          "finisher": {
+            "have": 7,
+            "min": 3,
+            "target": 6
+          },
+          "cheapInteraction": {
+            "have": 4,
+            "min": 2,
+            "target": 4
+          },
+          "earlyCreature": {
+            "have": 14,
+            "min": 3,
+            "target": 6
+          }
+        },
+        "rolesBelowMin": 1,
+        "rolesBelowTarget": 1,
+        "synergyPairs": 44,
+        "synergyDensity": 0.645,
+        "filler": 10,
+        "strength": 5.02,
+        "score": 59,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "bulk-black",
+      "size": 100,
+      "color": "B",
+      "style": "best",
+      "commander": "Isareth the Awakener",
+      "ok": true,
+      "archetype": "graveyard",
+      "ms": 16,
+      "metrics": {
+        "total": 100,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 65,
+        "lands": 35,
+        "nonbasics": 0,
+        "landMin": 35,
+        "landMax": 40,
+        "landsInClamp": true,
+        "averageMv": 2.8,
+        "curve": [
+          0,
+          13,
+          16,
+          19,
+          8,
+          6,
+          3,
+          0
+        ],
+        "curveTargets": [
+          0,
+          5,
+          13,
+          16,
+          13,
+          8,
+          6,
+          4
+        ],
+        "curveDeviation": 14,
+        "creatureShare": 0.569,
+        "instantSorceryShare": 0.231,
+        "noncreaturePermanentShare": 0.2,
+        "typeMixOk": true,
+        "roles": {
+          "ramp": {
+            "have": 5,
+            "min": 8,
+            "target": 10
+          },
+          "removal": {
+            "have": 15,
+            "min": 6,
+            "target": 9
+          },
+          "cardAdvantage": {
+            "have": 10,
+            "min": 7,
+            "target": 10
+          },
+          "sweeper": {
+            "have": 5,
+            "min": 1,
+            "target": 3
+          },
+          "finisher": {
+            "have": 7,
+            "min": 3,
+            "target": 6
+          },
+          "cheapInteraction": {
+            "have": 5,
+            "min": 2,
+            "target": 4
+          },
+          "earlyCreature": {
+            "have": 14,
+            "min": 3,
+            "target": 6
+          }
+        },
+        "rolesBelowMin": 1,
+        "rolesBelowTarget": 1,
+        "synergyPairs": 43,
+        "synergyDensity": 0.629,
+        "filler": 11,
+        "strength": 5.03,
+        "score": 59,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "bulk-blue",
+      "size": 60,
+      "color": "U",
+      "style": "best",
+      "ok": true,
+      "archetype": "spells",
+      "ms": 67,
+      "metrics": {
+        "total": 60,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 39,
+        "lands": 21,
+        "nonbasics": 0,
+        "landMin": 20,
+        "landMax": 27,
+        "landsInClamp": true,
+        "averageMv": 2.51,
+        "curve": [
+          0,
+          9,
+          13,
+          10,
+          4,
+          1,
+          2,
+          0
+        ],
+        "curveTargets": [
+          0,
+          9,
+          14,
+          11,
+          3,
+          2,
+          0,
+          0
+        ],
+        "curveDeviation": 1,
+        "creatureShare": 0.333,
+        "instantSorceryShare": 0.513,
+        "noncreaturePermanentShare": 0.154,
+        "typeMixOk": true,
+        "roles": {
+          "removal": {
+            "have": 8,
+            "min": 4,
+            "target": 7
+          },
+          "cardAdvantage": {
+            "have": 8,
+            "min": 2,
+            "target": 5
+          },
+          "cheapInteraction": {
+            "have": 7,
+            "min": 2,
+            "target": 4
+          },
+          "finisher": {
+            "have": 4,
+            "min": 2,
+            "target": 4
+          },
+          "ramp": {
+            "have": 4,
+            "min": 0,
+            "target": 2
+          },
+          "earlyCreature": {
+            "have": 8,
+            "min": 4,
+            "target": 8
+          }
+        },
+        "rolesBelowMin": 0,
+        "rolesBelowTarget": 0,
+        "synergyPairs": 37,
+        "synergyDensity": 0.928,
+        "filler": 1,
+        "strength": 5.49,
+        "score": 70.5,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "bulk-blue",
+      "size": 40,
+      "color": "U",
+      "style": "best",
+      "ok": true,
+      "archetype": "tokens",
+      "ms": 50,
+      "metrics": {
+        "total": 40,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 24,
+        "lands": 16,
+        "nonbasics": 0,
+        "landMin": 15,
+        "landMax": 18,
+        "landsInClamp": true,
+        "averageMv": 3.38,
+        "curve": [
+          0,
+          2,
+          7,
+          5,
+          4,
+          3,
+          2,
+          1
+        ],
+        "curveTargets": [
+          0,
+          2,
+          6,
+          6,
+          5,
+          3,
+          1,
+          1
+        ],
+        "curveDeviation": 0,
+        "creatureShare": 0.5,
+        "instantSorceryShare": 0.25,
+        "noncreaturePermanentShare": 0.25,
+        "typeMixOk": true,
+        "roles": {
+          "removal": {
+            "have": 5,
+            "min": 3,
+            "target": 5
+          },
+          "cardAdvantage": {
+            "have": 5,
+            "min": 1,
+            "target": 3
+          },
+          "cheapInteraction": {
+            "have": 3,
+            "min": 1,
+            "target": 3
+          },
+          "finisher": {
+            "have": 6,
+            "min": 2,
+            "target": 3
+          },
+          "ramp": {
+            "have": 5,
+            "min": 0,
+            "target": 1
+          },
+          "earlyCreature": {
+            "have": 6,
+            "min": 3,
+            "target": 6
+          }
+        },
+        "rolesBelowMin": 0,
+        "rolesBelowTarget": 0,
+        "synergyPairs": 26,
+        "synergyDensity": 1.004,
+        "filler": 3,
+        "strength": 5.37,
+        "score": 72.3,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "bulk-blue",
+      "size": 20,
+      "color": "U",
+      "style": "best",
+      "ok": true,
+      "archetype": "counters",
+      "ms": 44,
+      "metrics": {
+        "total": 20,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 12,
+        "lands": 8,
+        "nonbasics": 0,
+        "landMin": 7,
+        "landMax": 9,
+        "landsInClamp": true,
+        "averageMv": 2.83,
+        "curve": [
+          0,
+          3,
+          4,
+          2,
+          1,
+          0,
+          1,
+          1
+        ],
+        "curveTargets": [
+          0,
+          2,
+          4,
+          3,
+          2,
+          1,
+          0,
+          0
+        ],
+        "curveDeviation": 0,
+        "creatureShare": 0.5,
+        "instantSorceryShare": 0.25,
+        "noncreaturePermanentShare": 0.25,
+        "typeMixOk": true,
+        "roles": {
+          "removal": {
+            "have": 2,
+            "min": 1,
+            "target": 2
+          },
+          "cardAdvantage": {
+            "have": 1,
+            "min": 0,
+            "target": 1
+          },
+          "cheapInteraction": {
+            "have": 2,
+            "min": 1,
+            "target": 2
+          },
+          "finisher": {
+            "have": 2,
+            "min": 1,
+            "target": 2
+          },
+          "ramp": {
+            "have": 2,
+            "min": 0,
+            "target": 1
+          },
+          "earlyCreature": {
+            "have": 4,
+            "min": 2,
+            "target": 4
+          }
+        },
+        "rolesBelowMin": 0,
+        "rolesBelowTarget": 0,
+        "synergyPairs": 15,
+        "synergyDensity": 1.2,
+        "filler": 3,
+        "strength": 5.02,
+        "score": 75.8,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "bulk-blue",
+      "size": 100,
+      "color": "U",
+      "style": "best",
+      "commander": "Naban, Dean of Iteration",
+      "ok": true,
+      "archetype": "artifacts",
+      "ms": 17,
+      "metrics": {
+        "total": 100,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 64,
+        "lands": 36,
+        "nonbasics": 0,
+        "landMin": 35,
+        "landMax": 40,
+        "landsInClamp": true,
+        "averageMv": 3.33,
+        "curve": [
+          1,
+          7,
+          15,
+          17,
+          10,
+          8,
+          4,
+          2
+        ],
+        "curveTargets": [
+          0,
+          5,
+          13,
+          15,
+          13,
+          8,
+          6,
+          4
+        ],
+        "curveDeviation": 2,
+        "creatureShare": 0.453,
+        "instantSorceryShare": 0.328,
+        "noncreaturePermanentShare": 0.219,
+        "typeMixOk": true,
+        "roles": {
+          "ramp": {
+            "have": 4,
+            "min": 8,
+            "target": 10
+          },
+          "removal": {
+            "have": 11,
+            "min": 6,
+            "target": 9
+          },
+          "cardAdvantage": {
+            "have": 15,
+            "min": 7,
+            "target": 10
+          },
+          "sweeper": {
+            "have": 1,
+            "min": 1,
+            "target": 3
+          },
+          "finisher": {
+            "have": 13,
+            "min": 3,
+            "target": 6
+          },
+          "cheapInteraction": {
+            "have": 7,
+            "min": 2,
+            "target": 4
+          },
+          "earlyCreature": {
+            "have": 8,
+            "min": 3,
+            "target": 6
+          }
+        },
+        "rolesBelowMin": 1,
+        "rolesBelowTarget": 2,
+        "synergyPairs": 39,
+        "synergyDensity": 0.58,
+        "filler": 13,
+        "strength": 5.33,
+        "score": 61,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "bulk-blue",
+      "size": 100,
+      "color": "U",
+      "style": "best",
+      "commander": "Loki, Lord of Misrule",
+      "ok": true,
+      "archetype": "artifacts",
+      "ms": 15,
+      "metrics": {
+        "total": 100,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 64,
+        "lands": 36,
+        "nonbasics": 0,
+        "landMin": 35,
+        "landMax": 40,
+        "landsInClamp": true,
+        "averageMv": 3.36,
+        "curve": [
+          1,
+          7,
+          14,
+          17,
+          11,
+          8,
+          4,
+          2
+        ],
+        "curveTargets": [
+          0,
+          5,
+          13,
+          15,
+          13,
+          8,
+          6,
+          4
+        ],
+        "curveDeviation": 1,
+        "creatureShare": 0.453,
+        "instantSorceryShare": 0.328,
+        "noncreaturePermanentShare": 0.219,
+        "typeMixOk": true,
+        "roles": {
+          "ramp": {
+            "have": 4,
+            "min": 8,
+            "target": 10
+          },
+          "removal": {
+            "have": 11,
+            "min": 6,
+            "target": 9
+          },
+          "cardAdvantage": {
+            "have": 16,
+            "min": 7,
+            "target": 10
+          },
+          "sweeper": {
+            "have": 1,
+            "min": 1,
+            "target": 3
+          },
+          "finisher": {
+            "have": 14,
+            "min": 3,
+            "target": 6
+          },
+          "cheapInteraction": {
+            "have": 6,
+            "min": 2,
+            "target": 4
+          },
+          "earlyCreature": {
+            "have": 7,
+            "min": 3,
+            "target": 6
+          }
+        },
+        "rolesBelowMin": 1,
+        "rolesBelowTarget": 2,
+        "synergyPairs": 39,
+        "synergyDensity": 0.58,
+        "filler": 13,
+        "strength": 5.3,
+        "score": 60.9,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "bulk-green",
+      "size": 60,
+      "color": "G",
+      "style": "best",
+      "ok": true,
+      "archetype": "counters",
+      "ms": 67,
+      "metrics": {
+        "total": 60,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 40,
+        "lands": 20,
+        "nonbasics": 0,
+        "landMin": 20,
+        "landMax": 27,
+        "landsInClamp": true,
+        "averageMv": 3.28,
+        "curve": [
+          0,
+          4,
+          10,
+          11,
+          8,
+          4,
+          1,
+          2
+        ],
+        "curveTargets": [
+          0,
+          3,
+          10,
+          11,
+          8,
+          5,
+          2,
+          1
+        ],
+        "curveDeviation": 0,
+        "creatureShare": 0.525,
+        "instantSorceryShare": 0.2,
+        "noncreaturePermanentShare": 0.275,
+        "typeMixOk": true,
+        "roles": {
+          "removal": {
+            "have": 7,
+            "min": 4,
+            "target": 7
+          },
+          "cardAdvantage": {
+            "have": 5,
+            "min": 2,
+            "target": 5
+          },
+          "cheapInteraction": {
+            "have": 4,
+            "min": 2,
+            "target": 4
+          },
+          "finisher": {
+            "have": 9,
+            "min": 2,
+            "target": 4
+          },
+          "ramp": {
+            "have": 9,
+            "min": 0,
+            "target": 2
+          },
+          "earlyCreature": {
+            "have": 9,
+            "min": 4,
+            "target": 8
+          }
+        },
+        "rolesBelowMin": 0,
+        "rolesBelowTarget": 0,
+        "synergyPairs": 43,
+        "synergyDensity": 0.943,
+        "filler": 3,
+        "strength": 5.62,
+        "score": 71.6,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "bulk-green",
+      "size": 40,
+      "color": "G",
+      "style": "best",
+      "ok": true,
+      "archetype": "landfall",
+      "ms": 78,
+      "metrics": {
+        "total": 40,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 25,
+        "lands": 15,
+        "nonbasics": 0,
+        "landMin": 15,
+        "landMax": 18,
+        "landsInClamp": true,
+        "averageMv": 3.28,
+        "curve": [
+          0,
+          3,
+          5,
+          8,
+          6,
+          1,
+          0,
+          2
+        ],
+        "curveTargets": [
+          0,
+          2,
+          6,
+          7,
+          5,
+          3,
+          1,
+          1
+        ],
+        "curveDeviation": 1,
+        "creatureShare": 0.52,
+        "instantSorceryShare": 0.2,
+        "noncreaturePermanentShare": 0.28,
+        "typeMixOk": true,
+        "roles": {
+          "removal": {
+            "have": 5,
+            "min": 3,
+            "target": 5
+          },
+          "cardAdvantage": {
+            "have": 3,
+            "min": 1,
+            "target": 3
+          },
+          "cheapInteraction": {
+            "have": 2,
+            "min": 1,
+            "target": 3
+          },
+          "finisher": {
+            "have": 6,
+            "min": 2,
+            "target": 3
+          },
+          "ramp": {
+            "have": 6,
+            "min": 0,
+            "target": 1
+          },
+          "earlyCreature": {
+            "have": 6,
+            "min": 3,
+            "target": 6
+          }
+        },
+        "rolesBelowMin": 0,
+        "rolesBelowTarget": 1,
+        "synergyPairs": 30,
+        "synergyDensity": 1.04,
+        "filler": 2,
+        "strength": 5.75,
+        "score": 73.2,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "bulk-green",
+      "size": 20,
+      "color": "G",
+      "style": "best",
+      "ok": true,
+      "archetype": "counters",
+      "ms": 42,
+      "metrics": {
+        "total": 20,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 13,
+        "lands": 7,
+        "nonbasics": 0,
+        "landMin": 7,
+        "landMax": 9,
+        "landsInClamp": true,
+        "averageMv": 2.77,
+        "curve": [
+          0,
+          3,
+          4,
+          3,
+          2,
+          0,
+          0,
+          1
+        ],
+        "curveTargets": [
+          0,
+          2,
+          4,
+          4,
+          2,
+          1,
+          0,
+          0
+        ],
+        "curveDeviation": 0,
+        "creatureShare": 0.615,
+        "instantSorceryShare": 0.154,
+        "noncreaturePermanentShare": 0.231,
+        "typeMixOk": true,
+        "roles": {
+          "removal": {
+            "have": 2,
+            "min": 1,
+            "target": 2
+          },
+          "cardAdvantage": {
+            "have": 1,
+            "min": 0,
+            "target": 1
+          },
+          "cheapInteraction": {
+            "have": 2,
+            "min": 1,
+            "target": 2
+          },
+          "finisher": {
+            "have": 2,
+            "min": 1,
+            "target": 2
+          },
+          "ramp": {
+            "have": 5,
+            "min": 0,
+            "target": 1
+          },
+          "earlyCreature": {
+            "have": 5,
+            "min": 2,
+            "target": 4
+          }
+        },
+        "rolesBelowMin": 0,
+        "rolesBelowTarget": 0,
+        "synergyPairs": 16,
+        "synergyDensity": 1.077,
+        "filler": 0,
+        "strength": 6.07,
+        "score": 76,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "bulk-green",
+      "size": 100,
+      "color": "G",
+      "style": "best",
+      "commander": "Bushmaster, Coiled Henchman",
+      "ok": true,
+      "archetype": "counters",
+      "ms": 41,
+      "metrics": {
+        "total": 100,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 65,
+        "lands": 35,
+        "nonbasics": 0,
+        "landMin": 35,
+        "landMax": 40,
+        "landsInClamp": true,
+        "averageMv": 3.02,
+        "curve": [
+          0,
+          9,
+          16,
+          17,
+          15,
+          6,
+          1,
+          1
+        ],
+        "curveTargets": [
+          0,
+          5,
+          13,
+          16,
+          13,
+          8,
+          6,
+          4
+        ],
+        "curveDeviation": 7,
+        "creatureShare": 0.6,
+        "instantSorceryShare": 0.185,
+        "noncreaturePermanentShare": 0.215,
+        "typeMixOk": true,
+        "roles": {
+          "ramp": {
+            "have": 10,
+            "min": 8,
+            "target": 10
+          },
+          "removal": {
+            "have": 6,
+            "min": 6,
+            "target": 9
+          },
+          "cardAdvantage": {
+            "have": 7,
+            "min": 7,
+            "target": 10
+          },
+          "sweeper": {
+            "have": 0,
+            "min": 1,
+            "target": 3
+          },
+          "finisher": {
+            "have": 10,
+            "min": 3,
+            "target": 6
+          },
+          "cheapInteraction": {
+            "have": 4,
+            "min": 2,
+            "target": 4
+          },
+          "earlyCreature": {
+            "have": 14,
+            "min": 3,
+            "target": 6
+          }
+        },
+        "rolesBelowMin": 1,
+        "rolesBelowTarget": 3,
+        "synergyPairs": 50,
+        "synergyDensity": 0.708,
+        "filler": 16,
+        "strength": 4.89,
+        "score": 60.3,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "bulk-green",
+      "size": 100,
+      "color": "G",
+      "style": "best",
+      "commander": "Nylea, God of the Hunt",
+      "ok": true,
+      "archetype": "bigCreatures",
+      "ms": 38,
+      "metrics": {
+        "total": 100,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 65,
+        "lands": 35,
+        "nonbasics": 0,
+        "landMin": 35,
+        "landMax": 40,
+        "landsInClamp": true,
+        "averageMv": 3.14,
+        "curve": [
+          0,
+          8,
+          15,
+          17,
+          15,
+          7,
+          2,
+          1
+        ],
+        "curveTargets": [
+          0,
+          5,
+          13,
+          16,
+          13,
+          8,
+          6,
+          4
+        ],
+        "curveDeviation": 4,
+        "creatureShare": 0.615,
+        "instantSorceryShare": 0.169,
+        "noncreaturePermanentShare": 0.215,
+        "typeMixOk": true,
+        "roles": {
+          "ramp": {
+            "have": 10,
+            "min": 8,
+            "target": 10
+          },
+          "removal": {
+            "have": 6,
+            "min": 6,
+            "target": 9
+          },
+          "cardAdvantage": {
+            "have": 7,
+            "min": 7,
+            "target": 10
+          },
+          "sweeper": {
+            "have": 0,
+            "min": 1,
+            "target": 3
+          },
+          "finisher": {
+            "have": 11,
+            "min": 3,
+            "target": 6
+          },
+          "cheapInteraction": {
+            "have": 4,
+            "min": 2,
+            "target": 4
+          },
+          "earlyCreature": {
+            "have": 13,
+            "min": 3,
+            "target": 6
+          }
+        },
+        "rolesBelowMin": 1,
+        "rolesBelowTarget": 3,
+        "synergyPairs": 48,
+        "synergyDensity": 0.677,
+        "filler": 25,
+        "strength": 4.83,
+        "score": 60.2,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "bulk-red",
+      "size": 60,
+      "color": "R",
+      "style": "best",
+      "ok": true,
+      "archetype": "tokens",
+      "ms": 74,
+      "metrics": {
+        "total": 60,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 36,
+        "lands": 24,
+        "nonbasics": 0,
+        "landMin": 20,
+        "landMax": 27,
+        "landsInClamp": true,
+        "averageMv": 3.03,
+        "curve": [
+          0,
+          4,
+          10,
+          11,
+          6,
+          3,
+          1,
+          1
+        ],
+        "curveTargets": [
+          0,
+          3,
+          9,
+          10,
+          7,
+          4,
+          2,
+          1
+        ],
+        "curveDeviation": 0,
+        "creatureShare": 0.611,
+        "instantSorceryShare": 0.222,
+        "noncreaturePermanentShare": 0.167,
+        "typeMixOk": true,
+        "roles": {
+          "removal": {
+            "have": 12,
+            "min": 4,
+            "target": 7
+          },
+          "cardAdvantage": {
+            "have": 5,
+            "min": 2,
+            "target": 5
+          },
+          "cheapInteraction": {
+            "have": 5,
+            "min": 2,
+            "target": 4
+          },
+          "finisher": {
+            "have": 4,
+            "min": 2,
+            "target": 4
+          },
+          "ramp": {
+            "have": 1,
+            "min": 0,
+            "target": 2
+          },
+          "earlyCreature": {
+            "have": 8,
+            "min": 4,
+            "target": 8
+          }
+        },
+        "rolesBelowMin": 0,
+        "rolesBelowTarget": 1,
+        "synergyPairs": 39,
+        "synergyDensity": 0.933,
+        "filler": 4,
+        "strength": 5.18,
+        "score": 69.5,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "bulk-red",
+      "size": 40,
+      "color": "R",
+      "style": "best",
+      "ok": true,
+      "archetype": "artifacts",
+      "ms": 47,
+      "metrics": {
+        "total": 40,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 23,
+        "lands": 17,
+        "nonbasics": 0,
+        "landMin": 15,
+        "landMax": 18,
+        "landsInClamp": true,
+        "averageMv": 2.91,
+        "curve": [
+          0,
+          3,
+          7,
+          7,
+          2,
+          3,
+          1,
+          0
+        ],
+        "curveTargets": [
+          0,
+          2,
+          6,
+          6,
+          4,
+          3,
+          1,
+          1
+        ],
+        "curveDeviation": 1,
+        "creatureShare": 0.609,
+        "instantSorceryShare": 0.13,
+        "noncreaturePermanentShare": 0.261,
+        "typeMixOk": true,
+        "roles": {
+          "removal": {
+            "have": 7,
+            "min": 3,
+            "target": 5
+          },
+          "cardAdvantage": {
+            "have": 3,
+            "min": 1,
+            "target": 3
+          },
+          "cheapInteraction": {
+            "have": 4,
+            "min": 1,
+            "target": 3
+          },
+          "finisher": {
+            "have": 3,
+            "min": 2,
+            "target": 3
+          },
+          "ramp": {
+            "have": 1,
+            "min": 0,
+            "target": 1
+          },
+          "earlyCreature": {
+            "have": 6,
+            "min": 3,
+            "target": 6
+          }
+        },
+        "rolesBelowMin": 0,
+        "rolesBelowTarget": 0,
+        "synergyPairs": 27,
+        "synergyDensity": 1.022,
+        "filler": 1,
+        "strength": 5.39,
+        "score": 72.1,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "bulk-red",
+      "size": 20,
+      "color": "R",
+      "style": "best",
+      "ok": true,
+      "archetype": "tokens",
+      "ms": 39,
+      "metrics": {
+        "total": 20,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 12,
+        "lands": 8,
+        "nonbasics": 0,
+        "landMin": 7,
+        "landMax": 9,
+        "landsInClamp": true,
+        "averageMv": 2.58,
+        "curve": [
+          0,
+          3,
+          3,
+          4,
+          0,
+          2,
+          0,
+          0
+        ],
+        "curveTargets": [
+          0,
+          2,
+          4,
+          3,
+          2,
+          1,
+          0,
+          0
+        ],
+        "curveDeviation": 1,
+        "creatureShare": 0.583,
+        "instantSorceryShare": 0.167,
+        "noncreaturePermanentShare": 0.25,
+        "typeMixOk": true,
+        "roles": {
+          "removal": {
+            "have": 2,
+            "min": 1,
+            "target": 2
+          },
+          "cardAdvantage": {
+            "have": 1,
+            "min": 0,
+            "target": 1
+          },
+          "cheapInteraction": {
+            "have": 2,
+            "min": 1,
+            "target": 2
+          },
+          "finisher": {
+            "have": 2,
+            "min": 1,
+            "target": 2
+          },
+          "ramp": {
+            "have": 1,
+            "min": 0,
+            "target": 1
+          },
+          "earlyCreature": {
+            "have": 4,
+            "min": 2,
+            "target": 4
+          }
+        },
+        "rolesBelowMin": 0,
+        "rolesBelowTarget": 0,
+        "synergyPairs": 17,
+        "synergyDensity": 1.25,
+        "filler": 0,
+        "strength": 5.66,
+        "score": 77.5,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "bulk-red",
+      "size": 100,
+      "color": "R",
+      "style": "best",
+      "commander": "Breeches, Eager Pillager",
+      "ok": true,
+      "archetype": "artifacts",
+      "ms": 32,
+      "metrics": {
+        "total": 100,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 63,
+        "lands": 37,
+        "nonbasics": 0,
+        "landMin": 35,
+        "landMax": 40,
+        "landsInClamp": true,
+        "averageMv": 3.1,
+        "curve": [
+          0,
+          9,
+          14,
+          19,
+          10,
+          7,
+          2,
+          2
+        ],
+        "curveTargets": [
+          0,
+          5,
+          13,
+          15,
+          12,
+          8,
+          6,
+          4
+        ],
+        "curveDeviation": 6,
+        "creatureShare": 0.46,
+        "instantSorceryShare": 0.381,
+        "noncreaturePermanentShare": 0.159,
+        "typeMixOk": true,
+        "roles": {
+          "ramp": {
+            "have": 1,
+            "min": 8,
+            "target": 10
+          },
+          "removal": {
+            "have": 20,
+            "min": 6,
+            "target": 9
+          },
+          "cardAdvantage": {
+            "have": 10,
+            "min": 7,
+            "target": 10
+          },
+          "sweeper": {
+            "have": 3,
+            "min": 1,
+            "target": 3
+          },
+          "finisher": {
+            "have": 7,
+            "min": 3,
+            "target": 6
+          },
+          "cheapInteraction": {
+            "have": 12,
+            "min": 2,
+            "target": 4
+          },
+          "earlyCreature": {
+            "have": 9,
+            "min": 3,
+            "target": 6
+          }
+        },
+        "rolesBelowMin": 1,
+        "rolesBelowTarget": 1,
+        "synergyPairs": 42,
+        "synergyDensity": 0.56,
+        "filler": 13,
+        "strength": 5.03,
+        "score": 59,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "bulk-red",
+      "size": 100,
+      "color": "R",
+      "style": "best",
+      "commander": "J. Jonah Jameson",
+      "ok": true,
+      "archetype": "artifacts",
+      "ms": 30,
+      "metrics": {
+        "total": 100,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 64,
+        "lands": 36,
+        "nonbasics": 0,
+        "landMin": 35,
+        "landMax": 40,
+        "landsInClamp": true,
+        "averageMv": 3,
+        "curve": [
+          0,
+          11,
+          14,
+          19,
+          10,
+          6,
+          2,
+          2
+        ],
+        "curveTargets": [
+          0,
+          5,
+          13,
+          15,
+          13,
+          8,
+          6,
+          4
+        ],
+        "curveDeviation": 9,
+        "creatureShare": 0.422,
+        "instantSorceryShare": 0.406,
+        "noncreaturePermanentShare": 0.172,
+        "typeMixOk": true,
+        "roles": {
+          "ramp": {
+            "have": 1,
+            "min": 8,
+            "target": 10
+          },
+          "removal": {
+            "have": 20,
+            "min": 6,
+            "target": 9
+          },
+          "cardAdvantage": {
+            "have": 11,
+            "min": 7,
+            "target": 10
+          },
+          "sweeper": {
+            "have": 3,
+            "min": 1,
+            "target": 3
+          },
+          "finisher": {
+            "have": 6,
+            "min": 3,
+            "target": 6
+          },
+          "cheapInteraction": {
+            "have": 13,
+            "min": 2,
+            "target": 4
+          },
+          "earlyCreature": {
+            "have": 7,
+            "min": 3,
+            "target": 6
+          }
+        },
+        "rolesBelowMin": 1,
+        "rolesBelowTarget": 1,
+        "synergyPairs": 41,
+        "synergyDensity": 0.547,
+        "filler": 14,
+        "strength": 5.06,
+        "score": 58.4,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "creatures-only-green",
+      "size": 60,
+      "color": "G",
+      "style": "best",
+      "ok": true,
+      "archetype": "counters",
+      "ms": 8,
+      "metrics": {
+        "total": 60,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 36,
+        "lands": 24,
+        "nonbasics": 0,
+        "landMin": 20,
+        "landMax": 27,
+        "landsInClamp": true,
+        "averageMv": 3.11,
+        "curve": [
+          0,
+          4,
+          9,
+          10,
+          7,
+          4,
+          2,
+          0
+        ],
+        "curveTargets": [
+          0,
+          3,
+          9,
+          10,
+          7,
+          4,
+          2,
+          1
+        ],
+        "curveDeviation": 0,
+        "creatureShare": 1,
+        "instantSorceryShare": 0,
+        "noncreaturePermanentShare": 0,
+        "typeMixOk": false,
+        "roles": {
+          "removal": {
+            "have": 5,
+            "min": 4,
+            "target": 7
+          },
+          "cardAdvantage": {
+            "have": 7,
+            "min": 2,
+            "target": 5
+          },
+          "cheapInteraction": {
+            "have": 0,
+            "min": 2,
+            "target": 4
+          },
+          "finisher": {
+            "have": 5,
+            "min": 2,
+            "target": 4
+          },
+          "ramp": {
+            "have": 2,
+            "min": 0,
+            "target": 2
+          },
+          "earlyCreature": {
+            "have": 13,
+            "min": 4,
+            "target": 8
+          }
+        },
+        "rolesBelowMin": 1,
+        "rolesBelowTarget": 2,
+        "synergyPairs": 23,
+        "synergyDensity": 0.608,
+        "filler": 6,
+        "strength": 4.68,
+        "score": 57.2,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "creatures-only-green",
+      "size": 40,
+      "color": "G",
+      "style": "best",
+      "ok": true,
+      "archetype": "counters",
+      "ms": 9,
+      "metrics": {
+        "total": 40,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 23,
+        "lands": 17,
+        "nonbasics": 0,
+        "landMin": 15,
+        "landMax": 18,
+        "landsInClamp": true,
+        "averageMv": 3.13,
+        "curve": [
+          0,
+          2,
+          6,
+          7,
+          4,
+          3,
+          1,
+          0
+        ],
+        "curveTargets": [
+          0,
+          2,
+          6,
+          6,
+          4,
+          3,
+          1,
+          1
+        ],
+        "curveDeviation": 0,
+        "creatureShare": 1,
+        "instantSorceryShare": 0,
+        "noncreaturePermanentShare": 0,
+        "typeMixOk": false,
+        "roles": {
+          "removal": {
+            "have": 5,
+            "min": 3,
+            "target": 5
+          },
+          "cardAdvantage": {
+            "have": 5,
+            "min": 1,
+            "target": 3
+          },
+          "cheapInteraction": {
+            "have": 0,
+            "min": 1,
+            "target": 3
+          },
+          "finisher": {
+            "have": 3,
+            "min": 2,
+            "target": 3
+          },
+          "ramp": {
+            "have": 1,
+            "min": 0,
+            "target": 1
+          },
+          "earlyCreature": {
+            "have": 8,
+            "min": 3,
+            "target": 6
+          }
+        },
+        "rolesBelowMin": 1,
+        "rolesBelowTarget": 1,
+        "synergyPairs": 15,
+        "synergyDensity": 0.613,
+        "filler": 5,
+        "strength": 4.68,
+        "score": 58.1,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "creatures-only-green",
+      "size": 20,
+      "color": "G",
+      "style": "best",
+      "ok": true,
+      "archetype": "counters",
+      "ms": 4,
+      "metrics": {
+        "total": 20,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 12,
+        "lands": 8,
+        "nonbasics": 0,
+        "landMin": 7,
+        "landMax": 9,
+        "landsInClamp": true,
+        "averageMv": 2.67,
+        "curve": [
+          0,
+          2,
+          4,
+          3,
+          2,
+          1,
+          0,
+          0
+        ],
+        "curveTargets": [
+          0,
+          2,
+          4,
+          3,
+          2,
+          1,
+          0,
+          0
+        ],
+        "curveDeviation": 0,
+        "creatureShare": 1,
+        "instantSorceryShare": 0,
+        "noncreaturePermanentShare": 0,
+        "typeMixOk": false,
+        "roles": {
+          "removal": {
+            "have": 2,
+            "min": 1,
+            "target": 2
+          },
+          "cardAdvantage": {
+            "have": 4,
+            "min": 0,
+            "target": 1
+          },
+          "cheapInteraction": {
+            "have": 0,
+            "min": 1,
+            "target": 2
+          },
+          "finisher": {
+            "have": 2,
+            "min": 1,
+            "target": 2
+          },
+          "ramp": {
+            "have": 1,
+            "min": 0,
+            "target": 1
+          },
+          "earlyCreature": {
+            "have": 6,
+            "min": 2,
+            "target": 4
+          }
+        },
+        "rolesBelowMin": 1,
+        "rolesBelowTarget": 1,
+        "synergyPairs": 9,
+        "synergyDensity": 0.675,
+        "filler": 0,
+        "strength": 5.16,
+        "score": 61.9,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "creatures-only-green",
+      "size": 100,
+      "color": "G",
+      "style": "best",
+      "commander": "Shang-Chi, Master of Kung Fu",
+      "ok": true,
+      "archetype": "bigCreatures",
+      "ms": 10,
+      "metrics": {
+        "total": 100,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 65,
+        "lands": 35,
+        "nonbasics": 0,
+        "landMin": 35,
+        "landMax": 40,
+        "landsInClamp": true,
+        "averageMv": 2.83,
+        "curve": [
+          0,
+          12,
+          17,
+          16,
+          12,
+          6,
+          2,
+          0
+        ],
+        "curveTargets": [
+          0,
+          5,
+          13,
+          16,
+          13,
+          8,
+          6,
+          4
+        ],
+        "curveDeviation": 11,
+        "creatureShare": 1,
+        "instantSorceryShare": 0,
+        "noncreaturePermanentShare": 0,
+        "typeMixOk": false,
+        "roles": {
+          "ramp": {
+            "have": 17,
+            "min": 8,
+            "target": 10
+          },
+          "removal": {
+            "have": 2,
+            "min": 6,
+            "target": 9
+          },
+          "cardAdvantage": {
+            "have": 5,
+            "min": 7,
+            "target": 10
+          },
+          "sweeper": {
+            "have": 0,
+            "min": 1,
+            "target": 3
+          },
+          "finisher": {
+            "have": 9,
+            "min": 3,
+            "target": 6
+          },
+          "cheapInteraction": {
+            "have": 0,
+            "min": 2,
+            "target": 4
+          },
+          "earlyCreature": {
+            "have": 29,
+            "min": 3,
+            "target": 6
+          }
+        },
+        "rolesBelowMin": 4,
+        "rolesBelowTarget": 4,
+        "synergyPairs": 34,
+        "synergyDensity": 0.472,
+        "filler": 18,
+        "strength": 4.49,
+        "score": 49,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "creatures-only-green",
+      "size": 100,
+      "color": "G",
+      "style": "best",
+      "commander": "Susan Foreman",
+      "ok": true,
+      "archetype": "bigCreatures",
+      "ms": 6,
+      "metrics": {
+        "total": 100,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 65,
+        "lands": 35,
+        "nonbasics": 0,
+        "landMin": 35,
+        "landMax": 40,
+        "landsInClamp": true,
+        "averageMv": 2.83,
+        "curve": [
+          0,
+          12,
+          17,
+          16,
+          12,
+          6,
+          2,
+          0
+        ],
+        "curveTargets": [
+          0,
+          5,
+          13,
+          16,
+          13,
+          8,
+          6,
+          4
+        ],
+        "curveDeviation": 11,
+        "creatureShare": 1,
+        "instantSorceryShare": 0,
+        "noncreaturePermanentShare": 0,
+        "typeMixOk": false,
+        "roles": {
+          "ramp": {
+            "have": 17,
+            "min": 8,
+            "target": 10
+          },
+          "removal": {
+            "have": 2,
+            "min": 6,
+            "target": 9
+          },
+          "cardAdvantage": {
+            "have": 5,
+            "min": 7,
+            "target": 10
+          },
+          "sweeper": {
+            "have": 0,
+            "min": 1,
+            "target": 3
+          },
+          "finisher": {
+            "have": 9,
+            "min": 3,
+            "target": 6
+          },
+          "cheapInteraction": {
+            "have": 0,
+            "min": 2,
+            "target": 4
+          },
+          "earlyCreature": {
+            "have": 29,
+            "min": 3,
+            "target": 6
+          }
+        },
+        "rolesBelowMin": 4,
+        "rolesBelowTarget": 4,
+        "synergyPairs": 34,
+        "synergyDensity": 0.472,
+        "filler": 18,
+        "strength": 4.49,
+        "score": 49.1,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "gold-heavy-black",
+      "size": 60,
+      "color": "B",
+      "style": "best",
+      "ok": true,
+      "archetype": "graveyard",
+      "ms": 68,
+      "metrics": {
+        "total": 60,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 37,
+        "lands": 23,
+        "nonbasics": 0,
+        "landMin": 20,
+        "landMax": 27,
+        "landsInClamp": true,
+        "averageMv": 2.89,
+        "curve": [
+          0,
+          6,
+          10,
+          9,
+          7,
+          4,
+          1,
+          0
+        ],
+        "curveTargets": [
+          0,
+          3,
+          9,
+          10,
+          7,
+          5,
+          2,
+          1
+        ],
+        "curveDeviation": 2,
+        "creatureShare": 0.541,
+        "instantSorceryShare": 0.351,
+        "noncreaturePermanentShare": 0.108,
+        "typeMixOk": true,
+        "roles": {
+          "removal": {
+            "have": 11,
+            "min": 4,
+            "target": 7
+          },
+          "cardAdvantage": {
+            "have": 5,
+            "min": 2,
+            "target": 5
+          },
+          "cheapInteraction": {
+            "have": 4,
+            "min": 2,
+            "target": 4
+          },
+          "finisher": {
+            "have": 5,
+            "min": 2,
+            "target": 4
+          },
+          "ramp": {
+            "have": 3,
+            "min": 0,
+            "target": 2
+          },
+          "earlyCreature": {
+            "have": 8,
+            "min": 4,
+            "target": 8
+          }
+        },
+        "rolesBelowMin": 0,
+        "rolesBelowTarget": 0,
+        "synergyPairs": 45,
+        "synergyDensity": 1.114,
+        "filler": 7,
+        "strength": 5.35,
+        "score": 74,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "gold-heavy-black",
+      "size": 60,
+      "color": "R",
+      "style": "best",
+      "ok": true,
+      "archetype": "graveyard",
+      "ms": 8,
+      "metrics": {
+        "total": 60,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 37,
+        "lands": 23,
+        "nonbasics": 0,
+        "landMin": 20,
+        "landMax": 27,
+        "landsInClamp": true,
+        "averageMv": 2.76,
+        "curve": [
+          0,
+          7,
+          10,
+          9,
+          7,
+          4,
+          0,
+          0
+        ],
+        "curveTargets": [
+          0,
+          3,
+          9,
+          10,
+          7,
+          5,
+          2,
+          1
+        ],
+        "curveDeviation": 4,
+        "creatureShare": 0.405,
+        "instantSorceryShare": 0.405,
+        "noncreaturePermanentShare": 0.189,
+        "typeMixOk": true,
+        "roles": {
+          "removal": {
+            "have": 12,
+            "min": 4,
+            "target": 7
+          },
+          "cardAdvantage": {
+            "have": 8,
+            "min": 2,
+            "target": 5
+          },
+          "cheapInteraction": {
+            "have": 4,
+            "min": 2,
+            "target": 4
+          },
+          "finisher": {
+            "have": 4,
+            "min": 2,
+            "target": 4
+          },
+          "ramp": {
+            "have": 2,
+            "min": 0,
+            "target": 2
+          },
+          "earlyCreature": {
+            "have": 8,
+            "min": 4,
+            "target": 8
+          }
+        },
+        "rolesBelowMin": 0,
+        "rolesBelowTarget": 0,
+        "synergyPairs": 23,
+        "synergyDensity": 0.538,
+        "filler": 9,
+        "strength": 5.31,
+        "score": 59.7,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "gold-heavy-black",
+      "size": 40,
+      "color": "B",
+      "style": "best",
+      "ok": true,
+      "archetype": "graveyard",
+      "ms": 60,
+      "metrics": {
+        "total": 40,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 24,
+        "lands": 16,
+        "nonbasics": 0,
+        "landMin": 15,
+        "landMax": 18,
+        "landsInClamp": true,
+        "averageMv": 2.75,
+        "curve": [
+          0,
+          4,
+          7,
+          6,
+          5,
+          2,
+          0,
+          0
+        ],
+        "curveTargets": [
+          0,
+          2,
+          6,
+          6,
+          5,
+          3,
+          1,
+          1
+        ],
+        "curveDeviation": 1,
+        "creatureShare": 0.625,
+        "instantSorceryShare": 0.208,
+        "noncreaturePermanentShare": 0.167,
+        "typeMixOk": true,
+        "roles": {
+          "removal": {
+            "have": 8,
+            "min": 3,
+            "target": 5
+          },
+          "cardAdvantage": {
+            "have": 5,
+            "min": 1,
+            "target": 3
+          },
+          "cheapInteraction": {
+            "have": 3,
+            "min": 1,
+            "target": 3
+          },
+          "finisher": {
+            "have": 3,
+            "min": 2,
+            "target": 3
+          },
+          "ramp": {
+            "have": 2,
+            "min": 0,
+            "target": 1
+          },
+          "earlyCreature": {
+            "have": 6,
+            "min": 3,
+            "target": 6
+          }
+        },
+        "rolesBelowMin": 0,
+        "rolesBelowTarget": 0,
+        "synergyPairs": 34,
+        "synergyDensity": 1.292,
+        "filler": 5,
+        "strength": 5.53,
+        "score": 78.8,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "gold-heavy-black",
+      "size": 40,
+      "color": "R",
+      "style": "best",
+      "ok": true,
+      "archetype": "graveyard",
+      "ms": 7,
+      "metrics": {
+        "total": 40,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 24,
+        "lands": 16,
+        "nonbasics": 0,
+        "landMin": 15,
+        "landMax": 18,
+        "landsInClamp": true,
+        "averageMv": 2.92,
+        "curve": [
+          0,
+          3,
+          7,
+          5,
+          7,
+          2,
+          0,
+          0
+        ],
+        "curveTargets": [
+          0,
+          2,
+          6,
+          6,
+          5,
+          3,
+          1,
+          1
+        ],
+        "curveDeviation": 1,
+        "creatureShare": 0.417,
+        "instantSorceryShare": 0.333,
+        "noncreaturePermanentShare": 0.25,
+        "typeMixOk": false,
+        "roles": {
+          "removal": {
+            "have": 8,
+            "min": 3,
+            "target": 5
+          },
+          "cardAdvantage": {
+            "have": 6,
+            "min": 1,
+            "target": 3
+          },
+          "cheapInteraction": {
+            "have": 3,
+            "min": 1,
+            "target": 3
+          },
+          "finisher": {
+            "have": 4,
+            "min": 2,
+            "target": 3
+          },
+          "ramp": {
+            "have": 2,
+            "min": 0,
+            "target": 1
+          },
+          "earlyCreature": {
+            "have": 6,
+            "min": 3,
+            "target": 6
+          }
+        },
+        "rolesBelowMin": 0,
+        "rolesBelowTarget": 0,
+        "synergyPairs": 19,
+        "synergyDensity": 0.679,
+        "filler": 3,
+        "strength": 5.43,
+        "score": 63.7,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "gold-heavy-black",
+      "size": 20,
+      "color": "B",
+      "style": "best",
+      "ok": true,
+      "archetype": "lifegain",
+      "ms": 50,
+      "metrics": {
+        "total": 20,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 12,
+        "lands": 8,
+        "nonbasics": 0,
+        "landMin": 7,
+        "landMax": 9,
+        "landsInClamp": true,
+        "averageMv": 2.42,
+        "curve": [
+          0,
+          3,
+          4,
+          2,
+          3,
+          0,
+          0,
+          0
+        ],
+        "curveTargets": [
+          0,
+          2,
+          4,
+          3,
+          2,
+          1,
+          0,
+          0
+        ],
+        "curveDeviation": 0,
+        "creatureShare": 0.583,
+        "instantSorceryShare": 0.167,
+        "noncreaturePermanentShare": 0.25,
+        "typeMixOk": true,
+        "roles": {
+          "removal": {
+            "have": 4,
+            "min": 1,
+            "target": 2
+          },
+          "cardAdvantage": {
+            "have": 3,
+            "min": 0,
+            "target": 1
+          },
+          "cheapInteraction": {
+            "have": 2,
+            "min": 1,
+            "target": 2
+          },
+          "finisher": {
+            "have": 2,
+            "min": 1,
+            "target": 2
+          },
+          "ramp": {
+            "have": 1,
+            "min": 0,
+            "target": 1
+          },
+          "earlyCreature": {
+            "have": 4,
+            "min": 2,
+            "target": 4
+          }
+        },
+        "rolesBelowMin": 0,
+        "rolesBelowTarget": 0,
+        "synergyPairs": 18,
+        "synergyDensity": 1.383,
+        "filler": 1,
+        "strength": 6.06,
+        "score": 83,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "gold-heavy-black",
+      "size": 20,
+      "color": "R",
+      "style": "best",
+      "ok": true,
+      "archetype": "control",
+      "ms": 6,
+      "metrics": {
+        "total": 20,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 12,
+        "lands": 8,
+        "nonbasics": 0,
+        "landMin": 7,
+        "landMax": 9,
+        "landsInClamp": true,
+        "averageMv": 2.67,
+        "curve": [
+          0,
+          3,
+          3,
+          2,
+          3,
+          1,
+          0,
+          0
+        ],
+        "curveTargets": [
+          0,
+          2,
+          4,
+          3,
+          2,
+          1,
+          0,
+          0
+        ],
+        "curveDeviation": 0,
+        "creatureShare": 0.25,
+        "instantSorceryShare": 0.583,
+        "noncreaturePermanentShare": 0.167,
+        "typeMixOk": true,
+        "roles": {
+          "removal": {
+            "have": 4,
+            "min": 2,
+            "target": 3
+          },
+          "cardAdvantage": {
+            "have": 3,
+            "min": 1,
+            "target": 2
+          },
+          "cheapInteraction": {
+            "have": 2,
+            "min": 1,
+            "target": 2
+          },
+          "finisher": {
+            "have": 2,
+            "min": 1,
+            "target": 2
+          },
+          "ramp": {
+            "have": 2,
+            "min": 0,
+            "target": 1
+          },
+          "earlyCreature": {
+            "have": 2,
+            "min": 0,
+            "target": 1
+          },
+          "sweeper": {
+            "have": 1,
+            "min": 0,
+            "target": 0
+          }
+        },
+        "rolesBelowMin": 0,
+        "rolesBelowTarget": 0,
+        "synergyPairs": 10,
+        "synergyDensity": 0.767,
+        "filler": 1,
+        "strength": 5.71,
+        "score": 67.8,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "gold-heavy-black",
+      "size": 100,
+      "color": "BR",
+      "style": "best",
+      "commander": "Totentanz, Swarm Piper",
+      "ok": true,
+      "archetype": "flyers",
+      "ms": 51,
+      "metrics": {
+        "total": 100,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 64,
+        "lands": 36,
+        "nonbasics": 0,
+        "landMin": 35,
+        "landMax": 40,
+        "landsInClamp": true,
+        "averageMv": 3.11,
+        "curve": [
+          0,
+          8,
+          15,
+          18,
+          13,
+          7,
+          1,
+          2
+        ],
+        "curveTargets": [
+          0,
+          5,
+          13,
+          15,
+          13,
+          8,
+          6,
+          4
+        ],
+        "curveDeviation": 5,
+        "creatureShare": 0.578,
+        "instantSorceryShare": 0.328,
+        "noncreaturePermanentShare": 0.094,
+        "typeMixOk": true,
+        "roles": {
+          "ramp": {
+            "have": 2,
+            "min": 8,
+            "target": 10
+          },
+          "removal": {
+            "have": 23,
+            "min": 6,
+            "target": 9
+          },
+          "cardAdvantage": {
+            "have": 10,
+            "min": 7,
+            "target": 10
+          },
+          "sweeper": {
+            "have": 3,
+            "min": 1,
+            "target": 3
+          },
+          "finisher": {
+            "have": 11,
+            "min": 3,
+            "target": 6
+          },
+          "cheapInteraction": {
+            "have": 7,
+            "min": 2,
+            "target": 4
+          },
+          "earlyCreature": {
+            "have": 13,
+            "min": 3,
+            "target": 6
+          }
+        },
+        "rolesBelowMin": 1,
+        "rolesBelowTarget": 1,
+        "synergyPairs": 56,
+        "synergyDensity": 0.781,
+        "filler": 10,
+        "strength": 5.37,
+        "score": 60.9,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "gold-heavy-black",
+      "size": 100,
+      "color": "UB",
+      "style": "best",
+      "commander": "Emet-Selch, Unsundered // Hades, Sorcerer of Eld",
+      "ok": true,
+      "archetype": "graveyard",
+      "ms": 15,
+      "metrics": {
+        "total": 100,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 64,
+        "lands": 36,
+        "nonbasics": 0,
+        "landMin": 35,
+        "landMax": 40,
+        "landsInClamp": true,
+        "averageMv": 3.03,
+        "curve": [
+          0,
+          7,
+          17,
+          18,
+          14,
+          6,
+          1,
+          1
+        ],
+        "curveTargets": [
+          0,
+          5,
+          13,
+          15,
+          13,
+          8,
+          6,
+          4
+        ],
+        "curveDeviation": 7,
+        "creatureShare": 0.563,
+        "instantSorceryShare": 0.359,
+        "noncreaturePermanentShare": 0.078,
+        "typeMixOk": true,
+        "roles": {
+          "ramp": {
+            "have": 1,
+            "min": 8,
+            "target": 10
+          },
+          "removal": {
+            "have": 19,
+            "min": 6,
+            "target": 9
+          },
+          "cardAdvantage": {
+            "have": 11,
+            "min": 7,
+            "target": 10
+          },
+          "sweeper": {
+            "have": 3,
+            "min": 1,
+            "target": 3
+          },
+          "finisher": {
+            "have": 6,
+            "min": 3,
+            "target": 6
+          },
+          "cheapInteraction": {
+            "have": 4,
+            "min": 2,
+            "target": 4
+          },
+          "earlyCreature": {
+            "have": 16,
+            "min": 3,
+            "target": 6
+          }
+        },
+        "rolesBelowMin": 1,
+        "rolesBelowTarget": 1,
+        "synergyPairs": 47,
+        "synergyDensity": 0.686,
+        "filler": 8,
+        "strength": 5.03,
+        "score": 59.5,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "lands-blue",
+      "size": 60,
+      "color": "U",
+      "style": "best",
+      "ok": true,
+      "archetype": "aggro",
+      "ms": 49,
+      "metrics": {
+        "total": 60,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 38,
+        "lands": 22,
+        "nonbasics": 8,
+        "landMin": 20,
+        "landMax": 27,
+        "landsInClamp": true,
+        "averageMv": 2.58,
+        "curve": [
+          0,
+          9,
+          14,
+          10,
+          2,
+          1,
+          0,
+          2
+        ],
+        "curveTargets": [
+          0,
+          8,
+          14,
+          11,
+          3,
+          2,
+          0,
+          0
+        ],
+        "curveDeviation": 1,
+        "creatureShare": 0.711,
+        "instantSorceryShare": 0.184,
+        "noncreaturePermanentShare": 0.105,
+        "typeMixOk": true,
+        "roles": {
+          "removal": {
+            "have": 5,
+            "min": 3,
+            "target": 5
+          },
+          "cardAdvantage": {
+            "have": 7,
+            "min": 0,
+            "target": 2
+          },
+          "cheapInteraction": {
+            "have": 7,
+            "min": 3,
+            "target": 6
+          },
+          "finisher": {
+            "have": 2,
+            "min": 1,
+            "target": 2
+          },
+          "ramp": {
+            "have": 2,
+            "min": 0,
+            "target": 2
+          },
+          "earlyCreature": {
+            "have": 14,
+            "min": 10,
+            "target": 14
+          }
+        },
+        "rolesBelowMin": 0,
+        "rolesBelowTarget": 0,
+        "synergyPairs": 32,
+        "synergyDensity": 0.816,
+        "filler": 8,
+        "strength": 5.21,
+        "score": 67.1,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "lands-blue",
+      "size": 40,
+      "color": "U",
+      "style": "best",
+      "ok": true,
+      "archetype": "midrange",
+      "ms": 43,
+      "metrics": {
+        "total": 40,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 23,
+        "lands": 17,
+        "nonbasics": 6,
+        "landMin": 15,
+        "landMax": 18,
+        "landsInClamp": true,
+        "averageMv": 3.3,
+        "curve": [
+          0,
+          3,
+          7,
+          5,
+          4,
+          2,
+          0,
+          2
+        ],
+        "curveTargets": [
+          0,
+          2,
+          6,
+          6,
+          4,
+          3,
+          1,
+          1
+        ],
+        "curveDeviation": 0,
+        "creatureShare": 0.652,
+        "instantSorceryShare": 0.217,
+        "noncreaturePermanentShare": 0.13,
+        "typeMixOk": true,
+        "roles": {
+          "removal": {
+            "have": 6,
+            "min": 3,
+            "target": 5
+          },
+          "cardAdvantage": {
+            "have": 3,
+            "min": 1,
+            "target": 3
+          },
+          "cheapInteraction": {
+            "have": 3,
+            "min": 1,
+            "target": 3
+          },
+          "finisher": {
+            "have": 3,
+            "min": 2,
+            "target": 3
+          },
+          "ramp": {
+            "have": 2,
+            "min": 0,
+            "target": 1
+          },
+          "earlyCreature": {
+            "have": 7,
+            "min": 3,
+            "target": 6
+          }
+        },
+        "rolesBelowMin": 0,
+        "rolesBelowTarget": 0,
+        "synergyPairs": 21,
+        "synergyDensity": 0.878,
+        "filler": 4,
+        "strength": 5.22,
+        "score": 69,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "lands-blue",
+      "size": 20,
+      "color": "U",
+      "style": "best",
+      "ok": true,
+      "archetype": "midrange",
+      "ms": 36,
+      "metrics": {
+        "total": 20,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 12,
+        "lands": 8,
+        "nonbasics": 3,
+        "landMin": 7,
+        "landMax": 9,
+        "landsInClamp": true,
+        "averageMv": 3.25,
+        "curve": [
+          0,
+          3,
+          4,
+          2,
+          1,
+          0,
+          0,
+          2
+        ],
+        "curveTargets": [
+          0,
+          2,
+          4,
+          3,
+          2,
+          1,
+          0,
+          0
+        ],
+        "curveDeviation": 1,
+        "creatureShare": 0.667,
+        "instantSorceryShare": 0.167,
+        "noncreaturePermanentShare": 0.167,
+        "typeMixOk": true,
+        "roles": {
+          "removal": {
+            "have": 3,
+            "min": 1,
+            "target": 2
+          },
+          "cardAdvantage": {
+            "have": 1,
+            "min": 0,
+            "target": 1
+          },
+          "cheapInteraction": {
+            "have": 3,
+            "min": 1,
+            "target": 2
+          },
+          "finisher": {
+            "have": 2,
+            "min": 1,
+            "target": 2
+          },
+          "ramp": {
+            "have": 2,
+            "min": 0,
+            "target": 1
+          },
+          "earlyCreature": {
+            "have": 4,
+            "min": 2,
+            "target": 4
+          }
+        },
+        "rolesBelowMin": 0,
+        "rolesBelowTarget": 0,
+        "synergyPairs": 14,
+        "synergyDensity": 1.117,
+        "filler": 2,
+        "strength": 5.49,
+        "score": 74,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "lands-blue",
+      "size": 100,
+      "color": "U",
+      "style": "best",
+      "commander": "Alrund, God of the Cosmos // Hakka, Whispering Raven",
+      "ok": true,
+      "archetype": "midrange",
+      "ms": 16,
+      "metrics": {
+        "total": 100,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 64,
+        "lands": 36,
+        "nonbasics": 7,
+        "landMin": 35,
+        "landMax": 40,
+        "landsInClamp": true,
+        "averageMv": 3.19,
+        "curve": [
+          0,
+          8,
+          15,
+          17,
+          13,
+          7,
+          2,
+          2
+        ],
+        "curveTargets": [
+          0,
+          5,
+          13,
+          15,
+          13,
+          8,
+          6,
+          4
+        ],
+        "curveDeviation": 3,
+        "creatureShare": 0.422,
+        "instantSorceryShare": 0.313,
+        "noncreaturePermanentShare": 0.266,
+        "typeMixOk": true,
+        "roles": {
+          "ramp": {
+            "have": 3,
+            "min": 8,
+            "target": 10
+          },
+          "removal": {
+            "have": 9,
+            "min": 6,
+            "target": 9
+          },
+          "cardAdvantage": {
+            "have": 19,
+            "min": 7,
+            "target": 10
+          },
+          "sweeper": {
+            "have": 0,
+            "min": 1,
+            "target": 3
+          },
+          "finisher": {
+            "have": 5,
+            "min": 3,
+            "target": 6
+          },
+          "cheapInteraction": {
+            "have": 8,
+            "min": 2,
+            "target": 4
+          },
+          "earlyCreature": {
+            "have": 10,
+            "min": 3,
+            "target": 6
+          }
+        },
+        "rolesBelowMin": 2,
+        "rolesBelowTarget": 3,
+        "synergyPairs": 29,
+        "synergyDensity": 0.438,
+        "filler": 18,
+        "strength": 4.97,
+        "score": 55.5,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "lands-blue",
+      "size": 100,
+      "color": "U",
+      "style": "best",
+      "commander": "Ms. Marvel, Kamala Khan",
+      "ok": true,
+      "archetype": "midrange",
+      "ms": 14,
+      "metrics": {
+        "total": 100,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 63,
+        "lands": 37,
+        "nonbasics": 7,
+        "landMin": 35,
+        "landMax": 40,
+        "landsInClamp": true,
+        "averageMv": 3.25,
+        "curve": [
+          0,
+          6,
+          15,
+          18,
+          13,
+          7,
+          2,
+          2
+        ],
+        "curveTargets": [
+          0,
+          5,
+          13,
+          15,
+          12,
+          8,
+          6,
+          4
+        ],
+        "curveDeviation": 3,
+        "creatureShare": 0.413,
+        "instantSorceryShare": 0.317,
+        "noncreaturePermanentShare": 0.27,
+        "typeMixOk": true,
+        "roles": {
+          "ramp": {
+            "have": 3,
+            "min": 8,
+            "target": 10
+          },
+          "removal": {
+            "have": 9,
+            "min": 6,
+            "target": 9
+          },
+          "cardAdvantage": {
+            "have": 18,
+            "min": 7,
+            "target": 10
+          },
+          "sweeper": {
+            "have": 0,
+            "min": 1,
+            "target": 3
+          },
+          "finisher": {
+            "have": 5,
+            "min": 3,
+            "target": 6
+          },
+          "cheapInteraction": {
+            "have": 8,
+            "min": 2,
+            "target": 4
+          },
+          "earlyCreature": {
+            "have": 9,
+            "min": 3,
+            "target": 6
+          }
+        },
+        "rolesBelowMin": 2,
+        "rolesBelowTarget": 3,
+        "synergyPairs": 27,
+        "synergyDensity": 0.413,
+        "filler": 19,
+        "strength": 4.96,
+        "score": 54.4,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "thin-red",
+      "size": 60,
+      "color": "R",
+      "style": "best",
+      "ok": true,
+      "archetype": "aggro",
+      "ms": 14,
+      "metrics": {
+        "total": 60,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 39,
+        "lands": 21,
+        "nonbasics": 0,
+        "landMin": 20,
+        "landMax": 27,
+        "landsInClamp": true,
+        "averageMv": 2.44,
+        "curve": [
+          0,
+          8,
+          15,
+          10,
+          4,
+          1,
+          1,
+          0
+        ],
+        "curveTargets": [
+          0,
+          9,
+          14,
+          11,
+          3,
+          2,
+          0,
+          0
+        ],
+        "curveDeviation": 0,
+        "creatureShare": 0.59,
+        "instantSorceryShare": 0.231,
+        "noncreaturePermanentShare": 0.179,
+        "typeMixOk": true,
+        "roles": {
+          "removal": {
+            "have": 7,
+            "min": 3,
+            "target": 5
+          },
+          "cardAdvantage": {
+            "have": 5,
+            "min": 0,
+            "target": 2
+          },
+          "cheapInteraction": {
+            "have": 6,
+            "min": 3,
+            "target": 6
+          },
+          "finisher": {
+            "have": 4,
+            "min": 1,
+            "target": 2
+          },
+          "ramp": {
+            "have": 4,
+            "min": 0,
+            "target": 2
+          },
+          "earlyCreature": {
+            "have": 14,
+            "min": 10,
+            "target": 14
+          }
+        },
+        "rolesBelowMin": 0,
+        "rolesBelowTarget": 0,
+        "synergyPairs": 36,
+        "synergyDensity": 0.815,
+        "filler": 10,
+        "strength": 4.39,
+        "score": 65.1,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "thin-red",
+      "size": 40,
+      "color": "R",
+      "style": "best",
+      "ok": true,
+      "archetype": "aggro",
+      "ms": 21,
+      "metrics": {
+        "total": 40,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 25,
+        "lands": 15,
+        "nonbasics": 0,
+        "landMin": 15,
+        "landMax": 18,
+        "landsInClamp": true,
+        "averageMv": 2.24,
+        "curve": [
+          0,
+          6,
+          10,
+          6,
+          3,
+          0,
+          0,
+          0
+        ],
+        "curveTargets": [
+          0,
+          6,
+          9,
+          7,
+          2,
+          1,
+          0,
+          0
+        ],
+        "curveDeviation": 0,
+        "creatureShare": 0.6,
+        "instantSorceryShare": 0.2,
+        "noncreaturePermanentShare": 0.2,
+        "typeMixOk": true,
+        "roles": {
+          "removal": {
+            "have": 6,
+            "min": 2,
+            "target": 4
+          },
+          "cardAdvantage": {
+            "have": 4,
+            "min": 0,
+            "target": 1
+          },
+          "cheapInteraction": {
+            "have": 6,
+            "min": 2,
+            "target": 4
+          },
+          "finisher": {
+            "have": 3,
+            "min": 1,
+            "target": 2
+          },
+          "ramp": {
+            "have": 3,
+            "min": 0,
+            "target": 1
+          },
+          "earlyCreature": {
+            "have": 9,
+            "min": 7,
+            "target": 9
+          }
+        },
+        "rolesBelowMin": 0,
+        "rolesBelowTarget": 0,
+        "synergyPairs": 27,
+        "synergyDensity": 0.976,
+        "filler": 4,
+        "strength": 4.76,
+        "score": 69.9,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "thin-red",
+      "size": 20,
+      "color": "R",
+      "style": "best",
+      "ok": true,
+      "archetype": "spells",
+      "ms": 21,
+      "metrics": {
+        "total": 20,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 12,
+        "lands": 8,
+        "nonbasics": 0,
+        "landMin": 7,
+        "landMax": 9,
+        "landsInClamp": true,
+        "averageMv": 2.58,
+        "curve": [
+          0,
+          2,
+          5,
+          2,
+          2,
+          1,
+          0,
+          0
+        ],
+        "curveTargets": [
+          0,
+          2,
+          4,
+          3,
+          2,
+          1,
+          0,
+          0
+        ],
+        "curveDeviation": 0,
+        "creatureShare": 0.5,
+        "instantSorceryShare": 0.333,
+        "noncreaturePermanentShare": 0.167,
+        "typeMixOk": true,
+        "roles": {
+          "removal": {
+            "have": 3,
+            "min": 1,
+            "target": 2
+          },
+          "cardAdvantage": {
+            "have": 2,
+            "min": 0,
+            "target": 1
+          },
+          "cheapInteraction": {
+            "have": 3,
+            "min": 1,
+            "target": 2
+          },
+          "finisher": {
+            "have": 2,
+            "min": 1,
+            "target": 2
+          },
+          "ramp": {
+            "have": 2,
+            "min": 0,
+            "target": 1
+          },
+          "earlyCreature": {
+            "have": 4,
+            "min": 2,
+            "target": 4
+          }
+        },
+        "rolesBelowMin": 0,
+        "rolesBelowTarget": 0,
+        "synergyPairs": 16,
+        "synergyDensity": 1.158,
+        "filler": 1,
+        "strength": 4.76,
+        "score": 74.1,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "tiny-blue",
+      "size": 40,
+      "color": "U",
+      "style": "best",
+      "ok": true,
+      "archetype": "aristocrats",
+      "ms": 3,
+      "metrics": {
+        "total": 40,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 24,
+        "lands": 16,
+        "nonbasics": 0,
+        "landMin": 15,
+        "landMax": 18,
+        "landsInClamp": true,
+        "averageMv": 2.75,
+        "curve": [
+          0,
+          5,
+          7,
+          7,
+          1,
+          2,
+          2,
+          0
+        ],
+        "curveTargets": [
+          0,
+          2,
+          6,
+          6,
+          5,
+          3,
+          1,
+          1
+        ],
+        "curveDeviation": 5,
+        "creatureShare": 0.583,
+        "instantSorceryShare": 0.292,
+        "noncreaturePermanentShare": 0.125,
+        "typeMixOk": true,
+        "roles": {
+          "removal": {
+            "have": 1,
+            "min": 3,
+            "target": 5
+          },
+          "cardAdvantage": {
+            "have": 8,
+            "min": 1,
+            "target": 3
+          },
+          "cheapInteraction": {
+            "have": 3,
+            "min": 1,
+            "target": 3
+          },
+          "finisher": {
+            "have": 4,
+            "min": 2,
+            "target": 3
+          },
+          "ramp": {
+            "have": 2,
+            "min": 0,
+            "target": 1
+          },
+          "earlyCreature": {
+            "have": 6,
+            "min": 3,
+            "target": 6
+          }
+        },
+        "rolesBelowMin": 1,
+        "rolesBelowTarget": 1,
+        "synergyPairs": 4,
+        "synergyDensity": 0.15,
+        "filler": 3,
+        "strength": 5.03,
+        "score": 47.4,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "tiny-blue",
+      "size": 20,
+      "color": "U",
+      "style": "best",
+      "ok": true,
+      "archetype": "artifacts",
+      "ms": 3,
+      "metrics": {
+        "total": 20,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 12,
+        "lands": 8,
+        "nonbasics": 0,
+        "landMin": 7,
+        "landMax": 9,
+        "landsInClamp": true,
+        "averageMv": 2.58,
+        "curve": [
+          0,
+          3,
+          3,
+          4,
+          0,
+          2,
+          0,
+          0
+        ],
+        "curveTargets": [
+          0,
+          2,
+          4,
+          3,
+          2,
+          1,
+          0,
+          0
+        ],
+        "curveDeviation": 1,
+        "creatureShare": 0.833,
+        "instantSorceryShare": 0.167,
+        "noncreaturePermanentShare": 0,
+        "typeMixOk": true,
+        "roles": {
+          "removal": {
+            "have": 1,
+            "min": 1,
+            "target": 2
+          },
+          "cardAdvantage": {
+            "have": 5,
+            "min": 0,
+            "target": 1
+          },
+          "cheapInteraction": {
+            "have": 2,
+            "min": 1,
+            "target": 2
+          },
+          "finisher": {
+            "have": 2,
+            "min": 1,
+            "target": 2
+          },
+          "ramp": {
+            "have": 2,
+            "min": 0,
+            "target": 1
+          },
+          "earlyCreature": {
+            "have": 4,
+            "min": 2,
+            "target": 4
+          }
+        },
+        "rolesBelowMin": 0,
+        "rolesBelowTarget": 1,
+        "synergyPairs": 4,
+        "synergyDensity": 0.3,
+        "filler": 0,
+        "strength": 5.42,
+        "score": 54.3,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "white-bulk",
+      "size": 60,
+      "color": "W",
+      "style": "best",
+      "ok": true,
+      "archetype": "auras",
+      "ms": 291,
+      "metrics": {
+        "total": 60,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 38,
+        "lands": 22,
+        "nonbasics": 0,
+        "landMin": 20,
+        "landMax": 27,
+        "landsInClamp": true,
+        "averageMv": 2.55,
+        "curve": [
+          0,
+          8,
+          13,
+          10,
+          3,
+          3,
+          1,
+          0
+        ],
+        "curveTargets": [
+          0,
+          8,
+          14,
+          11,
+          3,
+          2,
+          0,
+          0
+        ],
+        "curveDeviation": 0,
+        "creatureShare": 0.5,
+        "instantSorceryShare": 0.184,
+        "noncreaturePermanentShare": 0.316,
+        "typeMixOk": true,
+        "roles": {
+          "removal": {
+            "have": 7,
+            "min": 4,
+            "target": 7
+          },
+          "cardAdvantage": {
+            "have": 7,
+            "min": 2,
+            "target": 5
+          },
+          "cheapInteraction": {
+            "have": 4,
+            "min": 2,
+            "target": 4
+          },
+          "finisher": {
+            "have": 5,
+            "min": 2,
+            "target": 4
+          },
+          "ramp": {
+            "have": 2,
+            "min": 0,
+            "target": 2
+          },
+          "earlyCreature": {
+            "have": 10,
+            "min": 4,
+            "target": 8
+          }
+        },
+        "rolesBelowMin": 0,
+        "rolesBelowTarget": 0,
+        "synergyPairs": 53,
+        "synergyDensity": 1.355,
+        "filler": 2,
+        "strength": 5.74,
+        "score": 81.5,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "white-bulk",
+      "size": 40,
+      "color": "W",
+      "style": "best",
+      "ok": true,
+      "archetype": "tokens",
+      "ms": 151,
+      "metrics": {
+        "total": 40,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 23,
+        "lands": 17,
+        "nonbasics": 0,
+        "landMin": 15,
+        "landMax": 18,
+        "landsInClamp": true,
+        "averageMv": 3.17,
+        "curve": [
+          0,
+          3,
+          7,
+          4,
+          4,
+          3,
+          1,
+          1
+        ],
+        "curveTargets": [
+          0,
+          2,
+          6,
+          6,
+          4,
+          3,
+          1,
+          1
+        ],
+        "curveDeviation": 1,
+        "creatureShare": 0.565,
+        "instantSorceryShare": 0.217,
+        "noncreaturePermanentShare": 0.217,
+        "typeMixOk": true,
+        "roles": {
+          "removal": {
+            "have": 5,
+            "min": 3,
+            "target": 5
+          },
+          "cardAdvantage": {
+            "have": 3,
+            "min": 1,
+            "target": 3
+          },
+          "cheapInteraction": {
+            "have": 3,
+            "min": 1,
+            "target": 3
+          },
+          "finisher": {
+            "have": 4,
+            "min": 2,
+            "target": 3
+          },
+          "ramp": {
+            "have": 2,
+            "min": 0,
+            "target": 1
+          },
+          "earlyCreature": {
+            "have": 5,
+            "min": 3,
+            "target": 6
+          }
+        },
+        "rolesBelowMin": 0,
+        "rolesBelowTarget": 1,
+        "synergyPairs": 38,
+        "synergyDensity": 1.596,
+        "filler": 4,
+        "strength": 5.86,
+        "score": 86.5,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "white-bulk",
+      "size": 20,
+      "color": "W",
+      "style": "best",
+      "ok": true,
+      "archetype": "counters",
+      "ms": 123,
+      "metrics": {
+        "total": 20,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 12,
+        "lands": 8,
+        "nonbasics": 0,
+        "landMin": 7,
+        "landMax": 9,
+        "landsInClamp": true,
+        "averageMv": 2.83,
+        "curve": [
+          0,
+          2,
+          5,
+          2,
+          1,
+          1,
+          0,
+          1
+        ],
+        "curveTargets": [
+          0,
+          2,
+          4,
+          3,
+          2,
+          1,
+          0,
+          0
+        ],
+        "curveDeviation": 0,
+        "creatureShare": 0.583,
+        "instantSorceryShare": 0.167,
+        "noncreaturePermanentShare": 0.25,
+        "typeMixOk": true,
+        "roles": {
+          "removal": {
+            "have": 2,
+            "min": 1,
+            "target": 2
+          },
+          "cardAdvantage": {
+            "have": 1,
+            "min": 0,
+            "target": 1
+          },
+          "cheapInteraction": {
+            "have": 2,
+            "min": 1,
+            "target": 2
+          },
+          "finisher": {
+            "have": 2,
+            "min": 1,
+            "target": 2
+          },
+          "ramp": {
+            "have": 1,
+            "min": 0,
+            "target": 1
+          },
+          "earlyCreature": {
+            "have": 4,
+            "min": 2,
+            "target": 4
+          }
+        },
+        "rolesBelowMin": 0,
+        "rolesBelowTarget": 0,
+        "synergyPairs": 24,
+        "synergyDensity": 1.908,
+        "filler": 3,
+        "strength": 5.95,
+        "score": 94.9,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "white-bulk",
+      "size": 100,
+      "color": "W",
+      "style": "best",
+      "commander": "Dion, Bahamut's Dominant // Bahamut, Warden of Light",
+      "ok": true,
+      "archetype": "tokens",
+      "ms": 396,
+      "metrics": {
+        "total": 100,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 63,
+        "lands": 37,
+        "nonbasics": 0,
+        "landMin": 35,
+        "landMax": 40,
+        "landsInClamp": true,
+        "averageMv": 3.3,
+        "curve": [
+          0,
+          7,
+          14,
+          16,
+          13,
+          7,
+          4,
+          2
+        ],
+        "curveTargets": [
+          0,
+          5,
+          13,
+          15,
+          12,
+          8,
+          6,
+          4
+        ],
+        "curveDeviation": 0,
+        "creatureShare": 0.46,
+        "instantSorceryShare": 0.238,
+        "noncreaturePermanentShare": 0.302,
+        "typeMixOk": true,
+        "roles": {
+          "ramp": {
+            "have": 2,
+            "min": 8,
+            "target": 10
+          },
+          "removal": {
+            "have": 10,
+            "min": 6,
+            "target": 9
+          },
+          "cardAdvantage": {
+            "have": 10,
+            "min": 7,
+            "target": 10
+          },
+          "sweeper": {
+            "have": 3,
+            "min": 1,
+            "target": 3
+          },
+          "finisher": {
+            "have": 8,
+            "min": 3,
+            "target": 6
+          },
+          "cheapInteraction": {
+            "have": 4,
+            "min": 2,
+            "target": 4
+          },
+          "earlyCreature": {
+            "have": 8,
+            "min": 3,
+            "target": 6
+          }
+        },
+        "rolesBelowMin": 1,
+        "rolesBelowTarget": 1,
+        "synergyPairs": 81,
+        "synergyDensity": 1.241,
+        "filler": 12,
+        "strength": 5.63,
+        "score": 77,
+        "castable": true,
+        "offenders": []
+      }
+    },
+    {
+      "pool": "white-bulk",
+      "size": 100,
+      "color": "W",
+      "style": "best",
+      "commander": "Danitha Capashen, Paragon",
+      "ok": true,
+      "archetype": "artifacts",
+      "ms": 357,
+      "metrics": {
+        "total": 100,
+        "exactSize": true,
+        "copyLimitOk": true,
+        "colorLegal": true,
+        "spells": 63,
+        "lands": 37,
+        "nonbasics": 0,
+        "landMin": 35,
+        "landMax": 40,
+        "landsInClamp": true,
+        "averageMv": 3.29,
+        "curve": [
+          0,
+          7,
+          14,
+          17,
+          12,
+          7,
+          4,
+          2
+        ],
+        "curveTargets": [
+          0,
+          5,
+          13,
+          15,
+          12,
+          8,
+          6,
+          4
+        ],
+        "curveDeviation": 0,
+        "creatureShare": 0.492,
+        "instantSorceryShare": 0.19,
+        "noncreaturePermanentShare": 0.317,
+        "typeMixOk": true,
+        "roles": {
+          "ramp": {
+            "have": 2,
+            "min": 8,
+            "target": 10
+          },
+          "removal": {
+            "have": 9,
+            "min": 6,
+            "target": 9
+          },
+          "cardAdvantage": {
+            "have": 10,
+            "min": 7,
+            "target": 10
+          },
+          "sweeper": {
+            "have": 3,
+            "min": 1,
+            "target": 3
+          },
+          "finisher": {
+            "have": 9,
+            "min": 3,
+            "target": 6
+          },
+          "cheapInteraction": {
+            "have": 5,
+            "min": 2,
+            "target": 4
+          },
+          "earlyCreature": {
+            "have": 7,
+            "min": 3,
+            "target": 6
+          }
+        },
+        "rolesBelowMin": 1,
+        "rolesBelowTarget": 1,
+        "synergyPairs": 79,
+        "synergyDensity": 1.217,
+        "filler": 21,
+        "strength": 5.55,
+        "score": 77.3,
+        "castable": true,
+        "offenders": []
+      }
+    }
+  ]
+}
