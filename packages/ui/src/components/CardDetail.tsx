@@ -208,7 +208,7 @@ export function CardDetail(props: CardDetailProps) {
 
       {general.length > 0 && (
         <section className="flex flex-col gap-1.5">
-          <h3 className={label}>Roles and styles</h3>
+          <h3 className={label}>Roles and archetypes</h3>
           <ul className="flex flex-wrap gap-1.5">
             {general.map((t) => (
               <li key={t.label} className={`rounded-full bg-surface-2 text-fg-1 ${bubble}`}>

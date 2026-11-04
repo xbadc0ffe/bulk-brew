@@ -20,6 +20,8 @@ Midrange is the fallback when no synergy theme is viable.
 
 ## Synergy archetypes
 
+The app shows each archetype by its label; four labels differ from the id: spells is Spellslinger, auras is Voltron, flyers is Evasion, and bigCreatures is Ramp.
+
 Minimums are enabler and payoff counts the pool must hold for the theme to be viable at each size. They sit a little above what the finished deck needs so the builder has choices.
 
 | Id           | Enablers                                           | Payoffs                                                                                 | 60 / 40 / 20 minimums (enablers, payoffs) |
@@ -39,7 +41,7 @@ Minimums are enabler and payoff counts the pool must hold for the theme to be vi
 | mill         | Cards that mill the opponent                       | Cards that reward milling                                                               | 12,1 / 8,1 / 5,1 (blue, black)            |
 | enchantments | Enchantments                                       | Enchantment payoffs and engines                                                         | 10,3 / 6,2 / 3,1                          |
 
-Every theme card counts toward viability. Theme cards with a card strength of at least 3 (see [Card strength](card-strength.md)) count toward the scan margin that ranks themes, and the theme pass fills its minimums from them first, using weaker theme cards only when it runs out. Ramp into big creatures uses the two-peaked ramp curve.
+Every theme card counts toward viability. Theme cards with a card strength of at least 3 (see [Card strength](card-strength.md)) count toward the scan margin that ranks themes, and the theme pass fills its minimums from them first, using weaker theme cards only when it runs out. Ramp uses the two-peaked ramp curve.
 
 Notes from the tag scan:
 
@@ -47,7 +49,7 @@ Notes from the tag scan:
 - Tagger has no tag for "whenever a creature you control dies" alone. The aristocrats payoff uses `death-trigger` minus `death-trigger-self`, plus `blood-artist-ability`, which catches Zulaport Cutthroat even though it also triggers on itself.
 - Prowess creatures are found by keyword because the tag for it covers only a handful of cards.
 - Auras and equipment have no reliable tag, so the enabler is the type line.
-- Flyers payoffs leave out combat tricks that grant flying and one-turn team pumps: those help any creature deck and made Flyers look deep in every white pool.
+- Evasion payoffs leave out combat tricks that grant flying and one-turn team pumps: those help any creature deck and made Evasion look deep in every white pool.
 
 ## Secondary styles
 

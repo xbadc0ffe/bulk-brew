@@ -297,13 +297,18 @@ describe('best fit', () => {
     expect(score!.total).toBeLessThanOrEqual(100);
     const note = r.explanation.notes.find((n) => n.startsWith('Compared '));
     expect(note).toBeDefined();
-    const kept = Number(/\((\d+\.\d) of 100\)/.exec(note!)![1]);
-    const others = [...note!.split('Next:')[1]!.matchAll(/ (\d+\.\d)(?=,|\.$)/g)].map((m) =>
-      Number(m[1]),
-    );
+    // Scores stay out of the note; rebuild each runner-up it names and compare.
+    expect(note).not.toMatch(/\d+\.\d/);
+    const others = note!
+      .split('Next: ')[1]!
+      .replace(/\.$/, '')
+      .split(', ')
+      .filter((label) => !label.endsWith(' more'))
+      .map((label) => CONFIG.archetypes.archetypes.find((a) => a.label === label)!.id);
     expect(others.length).toBeGreaterThan(0);
-    expect(kept).toBe(score!.total);
-    for (const o of others) expect(kept).toBeGreaterThanOrEqual(o);
+    for (const id of others) {
+      expect(build(60, id).explanation.score!.total).toBeLessThanOrEqual(score!.total);
+    }
   });
 
   it('builds only the requested style when it is viable', () => {

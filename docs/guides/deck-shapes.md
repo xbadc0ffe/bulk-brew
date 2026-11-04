@@ -23,7 +23,7 @@ Each profile is the share of nonland spells at mana value 1, 2, 3, 4, 5, 6, and 
 | midrange  | 0.08 | 0.25 | 0.27 | 0.20 | 0.12 | 0.05 | 0.03 | Midrange and most synergy themes    |
 | control   | 0.06 | 0.20 | 0.24 | 0.20 | 0.14 | 0.09 | 0.07 | Control                             |
 | jumpstart | 0.14 | 0.30 | 0.28 | 0.17 | 0.08 | 0.03 | 0.00 | Every 20-card packet                |
-| ramp      | 0.06 | 0.28 | 0.18 | 0.14 | 0.17 | 0.11 | 0.06 | Ramp into big creatures             |
+| ramp      | 0.06 | 0.28 | 0.18 | 0.14 | 0.17 | 0.11 | 0.06 | Ramp                                |
 | commander | 0.08 | 0.20 | 0.24 | 0.20 | 0.13 | 0.09 | 0.06 | Every 100-card Commander deck       |
 
 Why these shapes: a two-drop is the most important slot in any deck, so every profile peaks at two or three. Aggro front-loads because it wants to spend all its mana every turn from turn one, and keeps only about one spell in seven at four or more: its noncreature spells should clear blockers, pump, or protect rather than wait in hand. Ramp has two peaks: cheap mana sources at two, then the threats they power out at five and six, with a thin middle. Control shifts weight to four and above because it plans to survive to the late game and win with fewer, bigger cards. Zero-cost spells count in the one slot. The tolerance of one card per bucket (`tolerances.curve`) means the builder does not chase exact counts.

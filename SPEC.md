@@ -50,7 +50,7 @@ Decks use one to five colors. Mono-color stays the builder's strongest mode; eve
 6. **Clear pool** and **delete deck** are one action each with a confirmation. **Disassemble** returns a deck's cards to the pool and deletes it; delete without returning is in the deck's menu. Accepting is refused, with a count, when the pool no longer holds all of the deck's cards.
 7. **Pair** two 20-card packets of different colors from a packet's view: a what-if preview of the combined 40-card deck, and **Merge**, which replaces both packets with one deck (packets still in the pool are taken out of it first).
 
-Basic lands are unlimited by default and need not be imported; imported basics are kept as pasted. The Unlimited basic lands switch lives on the Build form. Nonbasic lands are always tracked.
+Basic lands are unlimited by default and need not be imported; imported basics are kept as pasted. The Infinite basics switch lives on the Build form. Nonbasic lands are always tracked.
 
 The Bulk List filters by color, type, subtype, mana value (a comparison and a value), short tags, and subtags, sorts by any column, can select several cards to remove at once, and can open the pool analysis under the list. Short tags ("Removal", "Draw", "+1/+1") come from `config/display-tags.json`; subtags are the config's role and style labels; the card detail also lists the raw Scryfall tags.
 
@@ -59,7 +59,7 @@ The Bulk List filters by color, type, subtype, mana value (a comparison and a va
 Defaults live in `config/settings.defaults.json`.
 
 - Max copies per card, per deck size (60: 4, 40: 4, 20: 2), set on the Build form under the deck size. 100 is always singleton.
-- Unlimited basics (on), set on the Build form.
+- Infinite basics (on), set on the Build form.
 - Rarities the builder may use (all four by default), set on the Build form. Basic lands and cards with no known rarity are never filtered out.
 - Include Un-set and acorn cards (off).
 - Show card art (off on first launch, remembered).
@@ -184,7 +184,7 @@ A deck with cards grouped by type, basics by color, and a `BuildExplanation`: ar
 
 The Build page has settings on the left and deck options on the right.
 
-- **Settings**: deck size (100, 60, 40, 20); under it max copies per card, rarities (a drop-down with a checkbox for common, uncommon, rare, and mythic, all on by default), and unlimited basics; then colors (one or more), primary style, and secondary style. Both styles are drop-downs that default to best fit and show viable and near-miss labels as the Style choice does today. The secondary style unlocks once a primary style is picked and lists only styles that can be supported alongside it.
+- **Settings**, in this order: deck size (100, 60, 40, 20), rarities (a drop-down with a checkbox for common, uncommon, rare, and mythic, all on by default), max copies per card, infinite basics, colors (one or more), primary archetype, and secondary archetype. Both archetype choices are drop-downs that default to best fit and show viable and near-miss labels. The secondary archetype unlocks once a primary archetype is picked and lists only archetypes that can be supported alongside it.
 - **Options**: larger cards on the right, one per deck option, with the deck's colors, styles, a strength rating, and a short summary (curve, creature and spell counts, mana notes). Ranked by deck score plus a bonus for using every picked color (and, from phase 12, for meeting the secondary style), so a much stronger option that drops a color can still lead (`buildOptions` in builder-weights.json).
 - **Fit**: options stay inside the request but need not use all of it. Every option uses only picked colors (any non-empty subset). A picked primary style is required: every option honors it, and when no deck can, the right side says that no decks meet the settings and offers a Clear settings button (inline, not a popup). The secondary style is best effort, and an option that could not meet it is marked as such. An option that uses everything picked ranks above an equally strong one that drops something. Styles and colors that were not picked never appear.
 - **Generation**: options are ideas, each built from the full pool, so one option's cards stay available to the next. They build one at a time, one per browser tick so the page stays responsive, and appear as they finish, re-sorted by rank, with a progress indicator while work remains. Builds take turns across the color subsets, so smaller color sets get built too. The count is capped in config, an option that shares most of its cards with a stronger one is dropped, and without a picked primary style at most two options share a style. Opening an option or leaving the Build screen pauses the work; returning resumes it. Settings and finished options survive moving between screens.
@@ -268,6 +268,7 @@ Resolved questions, kept so they are not reopened by accident.
 - Colors: one to five colors in every size; mono stays the strongest mode; more colors are allowed even though they build worse. Packet pairing stays.
 - Deckbuilding guidance from outside material is restated in our own words in `docs/guides/` and config, with no source names in the repo.
 - Game Changers are not filtered out.
+- The app says archetype where the code and config say style (`style`, `secondary`, styleBonus). Labels can change freely; ids stay, so saved decks and eval results keep working.
 - Tribal is a secondary style, not a primary one. A secondary style needs a primary style; a second theme needs half its minimums, a shape can only follow a themed primary, and a tribe needs members and type payoffs (`builderWeights.secondary`).
 - Name: Bulk Brew, repo `bulk-brew`. An unrelated dormant repo shares the name; not a concern.
 - Result actions: Accept (with a confirmation), Reject, and Export. A short-lived Save deck and Remove from pool pair from the design pass was dropped after owner review; decks saved without accepting show "Not accepted" and can still be accepted.

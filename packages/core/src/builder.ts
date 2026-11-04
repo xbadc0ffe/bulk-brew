@@ -201,10 +201,10 @@ function resolveSecondary(
   }
   const a = config.archetypes.archetypes.find((x) => x.id === id);
   if (!a || a.id === primary.id)
-    return { note: `Ignored the secondary style ${secondaryLabel(config, id)}.` };
+    return { note: `Ignored the secondary archetype ${secondaryLabel(config, id)}.` };
   if (a.kind === 'composition') {
     if (primary.kind === 'composition')
-      return { note: `${a.label} cannot be a secondary style under ${primary.label}.` };
+      return { note: `${a.label} cannot be a secondary archetype under ${primary.label}.` };
     return {
       theme: {
         id,
@@ -1220,9 +1220,9 @@ export function buildDeck(
       tryList = [a];
       styleBuilt = true;
     } else {
-      const why = report?.notes.join('; ') ?? 'unknown style';
+      const why = report?.notes.join('; ') ?? 'unknown archetype';
       notes.push(
-        `Style "${a?.label ?? request.style}" is not viable here (${why}); picked the best fit instead.`,
+        `Archetype "${a?.label ?? request.style}" is not viable here (${why}); picked the best fit instead.`,
       );
     }
   }
@@ -1239,7 +1239,7 @@ export function buildDeck(
 
   // A secondary style only means something next to a picked primary style.
   if (request.secondary && !request.style)
-    notes.push('A secondary style needs a primary style; built the best fit without it.');
+    notes.push('A secondary archetype needs a primary archetype; built the best fit without it.');
 
   // A commander pulls best fit toward the styles its own text enables or rewards.
   const commanderFacts = commander ? factsFor(index, config, commander) : undefined;
@@ -1282,16 +1282,15 @@ export function buildDeck(
   if (!best) throw firstError;
   if (tried.length > 1) {
     const rest = tried.filter((at) => at !== best).sort((a, b) => b.score.total - a.score.total);
-    const shown = rest
-      .slice(0, 3)
-      .map((at) => `${at.archetype.label} ${at.score.total.toFixed(1)}`);
+    // Scores stay internal; the note names the runners-up in order.
+    const shown = rest.slice(0, 3).map((at) => at.archetype.label);
     if (rest.length > 3) shown.push(`${rest.length - 3} more`);
     const favored =
       rankOf(best) > best.score.total && rest.some((at) => at.score.total > best!.score.total);
     notes.push(
       favored
-        ? `Compared ${tried.length} styles and kept ${best.archetype.label} (${best.score.total.toFixed(1)} of 100), a style ${shortName(commander!.name)} leads. Next: ${shown.join(', ')}.`
-        : `Compared ${tried.length} styles and kept the strongest, ${best.archetype.label} (${best.score.total.toFixed(1)} of 100). Next: ${shown.join(', ')}.`,
+        ? `Compared ${tried.length} archetypes and kept ${best.archetype.label}, an archetype ${shortName(commander!.name)} leads. Next: ${shown.join(', ')}.`
+        : `Compared ${tried.length} archetypes and kept the strongest, ${best.archetype.label}. Next: ${shown.join(', ')}.`,
     );
   }
   const { archetype, ctx, state, lands, plan, mana, score } = best;
@@ -1316,7 +1315,7 @@ export function buildDeck(
       ]
         .filter(Boolean)
         .join(' and ');
-      notes.push(`Could not fully fit the secondary style ${sec.label}: ${short}.`);
+      notes.push(`Could not fully fit the secondary archetype ${sec.label}: ${short}.`);
     }
   }
   notes.push(...best.notes, ...mana.notes);

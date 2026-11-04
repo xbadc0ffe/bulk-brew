@@ -123,11 +123,11 @@ function BuildForm() {
 
         <div className={phone.group}>
           <ToggleRow
-            label="Unlimited basic lands"
+            label="Infinite basics"
             hint="Add basics freely instead of using the ones in your bulk list"
           >
             <Toggle
-              label="Unlimited basic lands"
+              label="Infinite basics"
               checked={settings.settings.unlimitedBasics}
               disabled={!settings.loaded}
               onChange={(v) => settings.update({ unlimitedBasics: v })}
@@ -181,12 +181,12 @@ function BuildForm() {
         </section>
 
         <section className="flex flex-col gap-2">
-          <h2 className={phone.groupLabel}>Style</h2>
+          <h2 className={phone.groupLabel}>Archetype</h2>
           {scan?.possible ? (
-            <div role="radiogroup" aria-label="Style" className={phone.group}>
+            <div role="radiogroup" aria-label="Archetype" className={phone.group}>
               <StyleRow
                 name="Best fit"
-                description="Let the builder pick the strongest style"
+                description="Let the builder pick the strongest archetype"
                 checked={flow.style === undefined}
                 onSelect={() => flow.setStyle(undefined)}
               />

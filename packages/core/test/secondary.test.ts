@@ -104,9 +104,9 @@ describe('secondary styles', () => {
       index,
       CONFIG,
     );
-    expect(shapes.explanation.notes.join(' ')).toMatch(/cannot be a secondary style/);
+    expect(shapes.explanation.notes.join(' ')).toMatch(/cannot be a secondary archetype/);
     expect(shapes.explanation.secondary).toBeUndefined();
     const alone = buildDeck({ ...request, secondary: 'tokens' }, bigPool(), index, CONFIG);
-    expect(alone.explanation.notes.join(' ')).toMatch(/needs a primary style/);
+    expect(alone.explanation.notes.join(' ')).toMatch(/needs a primary archetype/);
   });
 });

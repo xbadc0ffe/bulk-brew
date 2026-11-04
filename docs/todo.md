@@ -38,7 +38,7 @@ Ranked. The current phase is at the top. Finished phases are removed, not struck
 
 - Commander: Partner, Background, and similar pairs; colorless commanders (need Wastes); a role for answers to artifacts and enchantments; prefer ramp that costs less than the commander; extra copies of a commander whose text allows any number; the phone layout (phones do not offer 100 yet).
 - Mobile: secondary style picker (phones build with the primary style only).
-- Tribes: multi-word creature types such as "Time Lord" split into two words; Blink as a style needs a way to detect enter-the-battlefield value.
+- Tribes: multi-word creature types such as "Time Lord" split into two words.
 - Mobile parity for the deck options list on the Build page (phones still build one deck).
 - Deck options build on the main thread, one per tick; move to a Web Worker if phones stutter.
 - Mobile parity for the web-only changes of the owner review: column sorting, the Analyze split, multi-select removal, and the deck details expand.

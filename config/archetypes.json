@@ -202,7 +202,7 @@
     {
       "kind": "synergy",
       "id": "spells",
-      "label": "Spells matter",
+      "label": "Spellslinger",
       "description": "Lots of instants and sorceries, with creatures that grow or trigger when you cast them.",
       "curveProfile": "aggro",
       "typeMixOverrides": { "creatureMin": 0.3, "creatureMax": 0.55, "instantSorceryMin": 0.35 },
@@ -274,7 +274,7 @@
     {
       "kind": "synergy",
       "id": "auras",
-      "label": "Auras and equipment",
+      "label": "Voltron",
       "description": "Suit up a few creatures and get paid for attaching things.",
       "curveProfile": "aggro",
       "enablers": [{ "typeLineAny": ["Aura", "Equipment"] }],
@@ -300,7 +300,7 @@
     {
       "kind": "synergy",
       "id": "flyers",
-      "label": "Flyers",
+      "label": "Evasion",
       "description": "Evasive creatures and ways to make them hit harder.",
       "curveProfile": "aggro",
       "enablers": [{ "derived": "evasiveCreature" }],
@@ -387,7 +387,7 @@
     {
       "kind": "synergy",
       "id": "bigCreatures",
-      "label": "Ramp into big creatures",
+      "label": "Ramp",
       "description": "Cheap mana sources that power out large threats early.",
       "curveProfile": "ramp",
       "enablers": [{ "derived": "cheapManaSource" }],

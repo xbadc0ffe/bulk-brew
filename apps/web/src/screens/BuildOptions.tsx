@@ -28,7 +28,7 @@ export function OptionsPanel(props: { options: DeckOptions; onClear(): void }) {
     return (
       <Centered header={header}>
         <p className="text-ink">No decks meet these settings.</p>
-        <p>None of the picked colors can build the picked primary style.</p>
+        <p>None of the picked colors can build the picked primary archetype.</p>
         <button type="button" className={`${ui.secondary} mt-2`} onClick={onClear}>
           Clear settings
         </button>

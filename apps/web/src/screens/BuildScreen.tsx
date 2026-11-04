@@ -95,21 +95,6 @@ function BuildForm() {
           <p className="text-[12px] text-fg-2">{sizeLine(flow.size, flow.maxCopies)}</p>
         </div>
 
-        {flow.size === 100 ? (
-          <p className="text-[13px] text-fg-1">One copy of each card, except basic lands.</p>
-        ) : (
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-[13px] text-fg-1">Max copies per card</span>
-            <Stepper
-              max={99}
-              label="Max copies per card"
-              value={flow.maxCopies}
-              min={1}
-              onChange={flow.setMaxCopies}
-            />
-          </div>
-        )}
-
         <div className="flex items-center justify-between gap-3">
           <span className="flex flex-col">
             <span className="text-[13px] text-fg-1">Rarities</span>
@@ -126,15 +111,30 @@ function BuildForm() {
           />
         </div>
 
+        {flow.size === 100 ? (
+          <p className="text-[13px] text-fg-1">One copy of each card, except basic lands.</p>
+        ) : (
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-[13px] text-fg-1">Max copies per card</span>
+            <Stepper
+              max={99}
+              label="Max copies per card"
+              value={flow.maxCopies}
+              min={1}
+              onChange={flow.setMaxCopies}
+            />
+          </div>
+        )}
+
         <label className="flex items-center justify-between gap-3">
           <span className="flex flex-col">
-            <span className="text-[13px] text-fg-1">Unlimited basic lands</span>
+            <span className="text-[13px] text-fg-1">Infinite basics</span>
             <span className="text-[11.5px] text-fg-2">
               Add basics freely instead of using the ones in your bulk list
             </span>
           </span>
           <Toggle
-            label="Unlimited basic lands"
+            label="Infinite basics"
             checked={settings.settings.unlimitedBasics}
             disabled={!settings.loaded}
             onChange={(v) => settings.update({ unlimitedBasics: v })}
@@ -197,28 +197,28 @@ function BuildForm() {
         )}
 
         <div className="flex flex-col gap-2">
-          <h2 className={ui.sectionLabel}>Primary style</h2>
+          <h2 className={ui.sectionLabel}>Primary archetype</h2>
           <StylePicker
-            label="Primary style"
+            label="Primary archetype"
             value={flow.style}
             emptyLabel="Best fit"
-            emptyDescription="Show the strongest decks of any style"
+            emptyDescription="Show the strongest decks of any archetype"
             choices={choices}
             disabled={flow.colors.length === 0}
             onChange={flow.setStyle}
           />
-          <h2 className={`${ui.sectionLabel} mt-2`}>Secondary style</h2>
+          <h2 className={`${ui.sectionLabel} mt-2`}>Secondary archetype</h2>
           {flow.style ? (
             <StylePicker
-              label="Secondary style"
+              label="Secondary archetype"
               value={flow.secondary}
               emptyLabel="None"
-              emptyDescription="Build around the primary style alone"
+              emptyDescription="Build around the primary archetype alone"
               choices={secondaryStyleChoices(config, options.scans, flow.style)}
               onChange={flow.setSecondary}
             />
           ) : (
-            <p className="text-[12px] text-fg-2">Pick a primary style first.</p>
+            <p className="text-[12px] text-fg-2">Pick a primary archetype first.</p>
           )}
         </div>
       </section>
