@@ -6,6 +6,7 @@ Ranked. The current phase is at the top. Finished phases are removed, not struck
 
 - Capacitor project around `apps/mobile`, bundled data pack and config, over-the-air data update.
 - Pick the bundle identifier with the user (for example com.<name>.bulkbrew).
+- Home-screen icon: put `apps/mobile/resources/app-icon-light.png` and `app-icon-dark.png` in the AppIcon set (Any and Dark appearances); see the README there.
 - Storage: confirm IndexedDB persistence in the WebView or move the key-value store to the Filesystem plugin.
 
 ## Builder follow-ups
