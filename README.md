@@ -8,7 +8,7 @@ Everything runs on your device. There is no account, no server, and nothing you 
 
 **Try it:** https://xbadc0ffe.github.io/bulk-brew/
 
-**Status:** working v1. Import decklists or ManaBox, Moxfield, and Deckbox CSV exports, keep a bulk list you can filter, sort, and analyze, build decks of 60, 40, or 20 cards in one to five colors, or 100-card Commander decks, from ranked options with a primary and secondary style and a rarity filter, each with an explanation, accept them to take their cards out of the list, export or copy decklists, pair and merge two packets, back everything up to a file, and browse card details with optional art. Light, dark, and six theme colors. The web app works offline once loaded. The phone layout builds a single deck for now; the iOS app comes later. See [SPEC.md](SPEC.md) for the plan and the decisions behind it.
+**Status:** working v1. Import decklists or ManaBox, Moxfield, and Deckbox CSV exports, keep a bulk list you can filter, sort, and analyze (with the strongest decks it can build at every size), build decks of 60, 40, or 20 cards in one to five colors, or 100-card Commander decks, from ranked options with a primary and secondary style and a rarity filter, each with an explanation, accept them to take their cards out of the list, export or copy decklists, pair and merge two packets, back everything up to a file, and browse card details with optional art. Light, dark, and six theme colors. The web app works offline once loaded. The phone layout builds a single deck for now; the iOS app comes later. See [SPEC.md](SPEC.md) for the plan and the decisions behind it.
 
 ## How it works
 

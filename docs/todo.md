@@ -14,6 +14,7 @@ Ranked. The current phase is at the top. Finished phases are removed, not struck
 - Multi-color: split cards count only their first half's pips; pathway lands (land // land) count for both colors; Thriving lands count for every deck color in 3+ color decks; fetch lands without the `tutor-land-basic` tag (true fetches) are not used for fixing.
 - Eval: `npm run eval -- --dir test-bulk --combine --colors all` runs the owner's local lists across every color set (results stay in that folder).
 - The deck score rewards putting strong cards together, which by itself tends to build a bad deck (owner's view). Keep it internal and keep reworking its weight in option ranking so synergy and a working plan win over raw card quality.
+- Castability scores 1.0 for four and five-color decks in a five-color pool (for example a four-color 20-card packet), so more colors only add synergy and win on score. The Analyze pane defaults to two colors per deck because of it; a castability term that grows with the number of colors would let it show any colors.
 - Calibrate the deck score with the owner on a sample of decks. Synergy leads (0.6) since the owner found strength-led ranking ignored synergy; card strength, roles, curve, and type mix are tiebreaks (`deckScore.weights` in builder-weights.json).
 - Best fit builds every viable style per request; a 60-card build averages about 190 ms on desktop and runs on the main thread until phase 11 moves building to a worker.
 - Role and type-mix parts of the deck score are full in every bulk pool, so they do not separate decks; consider dropping or rescaling them.
@@ -47,8 +48,9 @@ Ranked. The current phase is at the top. Finished phases are removed, not struck
 - Voltron: nine Auras that enchant a player but are not Curses (Archnemesis, Grievous Wound, Overencumbered, Paradox Haze, Psychic Possession, Shadow of the Second Sun, Tenuous Truce, Wheel of Sun and Moon, Volrath's Motion Sensor) still count as enablers. A tag overlay entry (applied at the next data build) or a check on "Enchant player" text would catch them.
 - Mobile parity for the second cleanup round: the Remove dialog (Delete or Disassemble), and Settings without copy limits and with Reset above a red Clear.
 - Eval: add a metric for decks that miss their own theme minimums, so a regression like the one fixed in local search shows up.
-- Deck options build on the main thread, one per tick; move to a Web Worker if phones stutter.
+- Deck options build on the main thread, one per tick; move to a Web Worker if phones stutter. The Analyze pane's worker (`bestDecks.worker.ts` with `poolPack`) is the model.
 - Mobile parity for the web-only changes of the owner review: column sorting, the Analyze split, multi-select removal, and the deck details expand.
+- Mobile parity for the rebuilt Analyze pane (best decks from the worker, color depth, breakdown); phones still show the per-color archetype table from `analysisRows`.
 - Tune `config/display-tags.json` after use; Blink and -1/-1 match few cards, Artifacts and Graveyard match many.
 
 ## App follow-ups

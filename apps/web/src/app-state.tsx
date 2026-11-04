@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import {
   CONFIG,
   useAppearance,
+  useBestDecks,
   useBuildFlow,
   useCardDetail,
   useCommanderList,
@@ -59,6 +60,15 @@ export function AppStateProvider({ kv, children }: { kv: KeyValueStore; children
     style: build.style,
     paused: !buildVisible || build.result !== undefined || build.commander !== undefined,
   });
+  // The best-deck search runs only while the Analyze pane shows.
+  const [analysisVisible, setAnalysisVisible] = useState(false);
+  const bestDecks = useBestDecks({
+    index,
+    config: CONFIG,
+    pool: pool.pool,
+    settings: settings.settings,
+    active: analysisVisible && pool.loaded && settings.loaded,
+  });
   const detail = useCardDetail();
   const value: AppState = {
     kv,
@@ -74,6 +84,8 @@ export function AppStateProvider({ kv, children }: { kv: KeyValueStore; children
     options,
     commanders,
     setBuildVisible,
+    bestDecks,
+    setAnalysisVisible,
     detail,
   };
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

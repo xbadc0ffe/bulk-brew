@@ -10,6 +10,7 @@ import type { CardIndex } from './pack.ts';
 import { scanPool } from './scan.ts';
 import {
   COLORS,
+  type ArchetypeReport,
   type BuildResult,
   type Color,
   type DeckSize,
@@ -62,6 +63,15 @@ export function colorSubsets(colors: readonly Color[]): Color[][] {
   });
 }
 
+/** Styles most worth building first: themes, then by how deep they run in the pool. */
+export function byStylePromise(a: ArchetypeReport, b: ArchetypeReport): number {
+  return (
+    Number(b.kind === 'synergy') - Number(a.kind === 'synergy') ||
+    b.margin - a.margin ||
+    (a.archetype < b.archetype ? -1 : a.archetype > b.archetype ? 1 : 0)
+  );
+}
+
 /**
  * Plan the builds for a request. Each color subset lists its viable styles,
  * themes first by how deep they run, then the plain shapes; the plan takes
@@ -87,12 +97,7 @@ export function planOptions(
     if (!scan.possible) continue;
     const styles = scan.archetypes
       .filter((a) => a.viable && (!req.primary || a.archetype === req.primary))
-      .sort(
-        (a, b) =>
-          Number(b.kind === 'synergy') - Number(a.kind === 'synergy') ||
-          b.margin - a.margin ||
-          (a.archetype < b.archetype ? -1 : a.archetype > b.archetype ? 1 : 0),
-      );
+      .sort(byStylePromise);
     if (styles.length === 0) continue;
     perSubset.push(
       styles.map((a) => ({

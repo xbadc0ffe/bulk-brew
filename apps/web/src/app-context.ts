@@ -2,6 +2,7 @@ import { createContext, useContext } from 'react';
 import type { BulkBrewConfig, CardIndex } from '@bulk-brew/core';
 import type {
   AppearanceState,
+  BestDecks,
   BuildFlow,
   CardDetailState,
   CommanderList,
@@ -36,6 +37,10 @@ export interface AppState {
   commanders: CommanderList;
   /** The Build screen reports when it shows, so options only build while it does. */
   setBuildVisible(visible: boolean): void;
+  /** The strongest decks at each size, searched in a worker while the Analyze pane shows. */
+  bestDecks: BestDecks;
+  /** The Analyze pane reports when it shows, so the search only runs while it does. */
+  setAnalysisVisible(visible: boolean): void;
   /** The card shown in the detail panel, openable from any screen. */
   detail: CardDetailState;
 }

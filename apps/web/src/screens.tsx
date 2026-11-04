@@ -785,7 +785,8 @@ function BulkList() {
               <button
                 type="button"
                 aria-pressed={analyze}
-                className={analyze ? ui.primary : ui.secondary}
+                // Glows while closed to invite a look; pressed in while open.
+                className={`${ui.info} ${analyze ? 'shadow-[inset_0_2px_5px_rgb(0_0_0/0.35)]' : 'animate-glow motion-reduce:animate-none'}`}
                 onClick={() => setAnalyze(!analyze)}
               >
                 Analyze

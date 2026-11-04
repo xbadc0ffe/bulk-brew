@@ -54,7 +54,7 @@ A color gives access to its cards, not a share of the deck. The builder takes th
 
 Basic lands are unlimited by default and need not be imported; imported basics are kept as pasted. The Infinite basics switch lives on the Build form. Nonbasic lands are always tracked.
 
-The Bulk List filters by color, type, subtype, mana value (a comparison and a value), short tags, and subtags, sorts by any column, can select several cards to remove at once, and can open the pool analysis under the list. Short tags ("Removal", "Draw", "+1/+1") come from `config/display-tags.json`; subtags are the config's role and style labels; the card detail also lists the raw Scryfall tags.
+The Bulk List filters by color, type, subtype, mana value (a comparison and a value), short tags, and subtags, sorts by any column, can select several cards to remove at once, and can open the pool analysis under the list (see Analyze pane). Short tags ("Removal", "Draw", "+1/+1") come from `config/display-tags.json`; subtags are the config's role and style labels; the card detail also lists the raw Scryfall tags.
 
 ### Settings
 
@@ -195,6 +195,16 @@ The Build page has settings on the left and deck options on the right.
   - **Primary archetype** also works before a commander is picked. Its choices are the styles the listed commanders lead (a synergy style their own text rewards or feeds; Aggro, Midrange, and Control suit every commander), viable when some leader's colors can build it and short when none can (still pickable, to see who leads it). Picking one keeps the commanders that lead it and groups them as Can build, Checking, and Not enough cards. A commander whose colors cannot build the style goes straight to Not enough cards; the rest get a full build in the background, one per browser tick and best first, and move up or down as each finishes (`commanderCanBuild`: the deck keeps the style and meets its enabler and payoff minimums). Checks are kept until the pool or settings change and pause while a commander is picked.
   - Picked colors and styles stay when a commander is picked, changed, or accepted, and when switching between 100 and the other sizes; the styles then lead the commander's options.
 
+## Analyze pane (phase 14)
+
+The blue Analyze button on the Bulk List (it glows softly while the pane is closed) opens the pane under the list. It shows what the pool can build and what it holds. The web app has it; the phone layout still shows the per-color archetype table.
+
+- **Best decks**: the strongest decks found so far for Commander, 60, 40, and 20, five each, picked from the whole pool (two decks can share cards). A color limit (up to one to five colors per deck, two by default) filters them; the deck score can rate four and five-color decks as fully castable, so without the limit many-color decks crowd out the ones that play best. Each row shows the colors, the deck's name, creatures, lands, and a note when the mana is stretched; the score is not shown. Picking one opens it on the Build page like any deck option, with the form set to its size, colors, and commander, best fit, and the stored copy limit, so Back lands on options like it.
+- **Search** (`bestDeckSearch` in `packages/core/src/best-decks.ts`): at 60, 40, and 20 it scans every color set and plans one build per viable style (each color set's most promising style first, then each one's next, fewer colors first in each turn); at 100 it builds best fit under every commander with enough cards for the 99. Results are ranked like deck options with no picked colors (no all-colors bonus), at most two per style, near copies dropped, except that each commander keeps its deck since commanders of the same colors draw on the same cards. Every color limit keeps its own ranked list, so changing the limit is instant.
+- **Background**: the search runs in a Web Worker while the pane shows, so the Bulk List never stalls on a build (a Commander build takes up to a second). Each size gets equal time, one scan or build per step. The worker gets only the pool's cards and the basic lands (`poolPack`), which build the same decks as the full pack. Closing the pane or leaving the Bulk List pauses it; results are kept until the pool or the build settings change, which starts over. A 2,700-card five-color list checks about 1,500 decks in about a minute on desktop, with the first decks showing within two seconds.
+- **Colors**: for each color and pair, the spells a deck in those colors can use (from the scans), the largest deck it can build, and for pairs the nonbasic lands that make both colors.
+- **Breakdown** (`poolStats`), all in copies: spells by color class and mana value (0 through 6 or more) as a shaded table with totals; card types, each card under its main type, and other subtypes (Aura, Equipment, Vehicle, and so on); the builder's roles by color class; creature types with the copies of cards that reward each. Rarity, sets, and prices are left out: they do not change which deck to build.
+
 ## Commander (phase 13)
 
 - **Legality**: the commander must be allowed by the format (a legendary creature card, Vehicle, or Spacecraft with power and toughness, or text that says it can be your commander; partner and background pairs later). Cards banned or not legal in Commander stay out of the commander list and the 99. Every card fits inside the commander's color identity. Singleton except basics and cards whose text allows more.
@@ -254,6 +264,7 @@ npm workspaces monorepo, TypeScript throughout.
 | 11    | Build page: settings left, ranked deck options right, background worker, state kept                             | done                              |
 | 12    | Styles: primary and secondary styles, tribal as a secondary style, new styles                                   | done                              |
 | 13    | Commander: 100-card singleton, commander candidates and tiers, commander-anchored builds                        | done                              |
+| 14    | Analyze pane: best decks at every size from a background worker, color depth, pool breakdown                    | done                              |
 | Later | Batch balanced mode, offline image download                                                                     |                                   |
 
 ## Decisions
@@ -283,5 +294,6 @@ Resolved questions, kept so they are not reopened by accident.
 - Short display tags live in `config/display-tags.json`, matched with the same matcher format as roles plus role and style references. They are for showing and filtering only; the builder never reads them, so they are not part of the config version a deck records.
 - Pairing packets is a what-if view from a packet; Merge replaces both packets with one 40-card deck. Basics return on disassembly only if both packets took them.
 - Appearance lives in `localStorage`, outside `Settings` and backups, so no settings format changed.
+- The Analyze pane's deck search runs in a Web Worker on a pack of only the pool's cards and basics; the Build page's options still build on the main thread, one per tick.
 - Near miss is a display label only: not viable, the size is buildable, and at most 3 cards short in total (`NEAR_MISS_SHORTFALL` in `packages/ui/src/data/analysis.ts`). The builder never reads it.
 - Plain-language card tags are the config's role labels and style (archetype) labels, not raw Scryfall tags; the raw tags stay behind a disclosure.

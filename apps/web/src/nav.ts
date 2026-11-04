@@ -15,6 +15,9 @@ export interface Nav {
   /** Whether the analysis panel is open under the Bulk List. */
   analyze: boolean;
   setAnalyze(open: boolean): void;
+  /** Most colors a deck may have in the analysis's best decks, 1 to 5. */
+  analysisColors: number;
+  setAnalysisColors(n: number): void;
 }
 
 export const NavContext = createContext<Nav | undefined>(undefined);

@@ -3,7 +3,8 @@
 // or Chrome) over the DevTools protocol. Drives the main loop a person uses:
 // load, paste a list, import it, open the Bulk List, open the strongest deck
 // option, leave and come back, accept it (which removes its cards), confirm
-// the list shrank, and see the deck on Decks.
+// the list shrank, see the deck on Decks, then open the Analyze pane and
+// open its strongest deck.
 //
 // Usage: node scripts/smoke-web.mjs [appUrl] [poolFile] [outDir]
 //   appUrl   default http://localhost:4173/ (a `vite preview` of the web build)
@@ -255,6 +256,17 @@ try {
   await click('^Decks');
   log('decks', oneLine(await waitForText(/1 saved/), 160));
   await shot('4-decks');
+
+  // Analyze searches for the best decks in a worker while it shows; open the strongest one.
+  await click('^Bulk List');
+  await waitForText(/unique/);
+  await click('^Analyze$');
+  log('analyze', (await waitForText(/Checked [\d,]+ decks?/, 180000)).match(/Checked[^\n]*/)[0]);
+  await shot('5-analyze');
+  await click('\\d+ creatures? · \\d+ lands');
+  log('analyze-deck', oneLine(await waitForText(/Accept/, 10000), 160));
+  await click('^Back$');
+  log('analyze-back', oneLine(await waitForText(/Deck options/, 10000), 120));
 
   if (pageErrors > 0) throw new Error(`${pageErrors} page or console errors`);
   log('done', `ok, screenshots in ${path.relative(ROOT, outDir) || '.'}`);

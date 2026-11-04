@@ -58,6 +58,12 @@ export interface BuildFlow {
   buildSettings: Settings;
   /** Show a finished build, such as a deck option, as the result. */
   open(result: BuildResult): void;
+  /**
+   * Show a deck built elsewhere with the stored settings, such as one the
+   * Analyze pane found: the form takes its size, colors, and commander, with
+   * best fit and the stored copy limit, so Back lands on options like it.
+   */
+  openBuilt(result: BuildResult): void;
   /** Clear colors and styles, keeping size and copies. */
   clearChoices(): void;
   /** Copy limit for this build; starts at the setting for the size. */
@@ -209,6 +215,22 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
     },
     [maxCopies],
   );
+  const openBuilt = useCallback(
+    (r: BuildResult) => {
+      const d = r.deck;
+      setSizeState(d.size);
+      setColorsState(normalizeColors(d.colors ?? [d.color]));
+      setCommanderState(d.commander);
+      setStyleState(undefined);
+      setSecondaryState(undefined);
+      setOverride(undefined);
+      setResult(r);
+      setResultMaxCopies(settings.maxCopies[d.size]);
+      setError(undefined);
+      setAccepted(undefined);
+    },
+    [settings],
+  );
   const clearChoices = useCallback(() => {
     setCommanderState(undefined);
     setColorsState([]);
@@ -318,6 +340,7 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
     setCommander,
     buildSettings,
     open,
+    openBuilt,
     clearChoices,
     maxCopies,
     setMaxCopies,

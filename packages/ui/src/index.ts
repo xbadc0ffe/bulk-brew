@@ -42,6 +42,23 @@ export {
 } from './data/useCommanderList.ts';
 export { usePoolScans } from './data/usePoolScans.ts';
 export {
+  useBestDecks,
+  BEST_DECKS_SHOWN,
+  type BestDecks,
+  type BestDecksSize,
+  type ColorDepth,
+} from './data/useBestDecks.ts';
+export {
+  poolStats,
+  COLOR_PAIRS,
+  MV_BUCKETS,
+  STAT_COLORS,
+  type CreatureTypeCount,
+  type NamedCount,
+  type PoolStats,
+  type RoleRow,
+} from './data/poolStats.ts';
+export {
   useAppearance,
   readAppearance,
   APPEARANCE_KEY,

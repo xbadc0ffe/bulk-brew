@@ -77,6 +77,8 @@ function Shell() {
   const [poolFilters, setPoolFilters] = useState<PoolFilters>(EMPTY_FILTERS);
   const [poolSort, setPoolSort] = useState<PoolSort>(undefined);
   const [analyze, setAnalyze] = useState(false);
+  // Two colors by default: the deck score can favor decks of more colors than build well.
+  const [analysisColors, setAnalysisColors] = useState(2);
   const { detail, pool, index, decks, build } = useAppState();
   const closeDetail = detail.close;
   const nav: Nav = useMemo(
@@ -95,8 +97,10 @@ function Shell() {
       setPoolSort,
       analyze,
       setAnalyze,
+      analysisColors,
+      setAnalysisColors,
     }),
-    [screen, poolFilters, poolSort, analyze, closeDetail],
+    [screen, poolFilters, poolSort, analyze, analysisColors, closeDetail],
   );
   const cards = useMemo(
     () => (index ? poolSummary(pool.pool, index).cards : undefined),
