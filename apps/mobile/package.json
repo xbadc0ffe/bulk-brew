@@ -1,6 +1,6 @@
 {
   "name": "@bulk-brew/mobile",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "private": true,
   "description": "Bulk Brew phone and tablet app. Runs in a browser during development and ships to iOS through Capacitor.",
   "license": "MIT",
