@@ -102,8 +102,8 @@ export interface CardRecord {
   /** Scryfall's popularity rank among Commander decks; 1 is the most played. Absent when unranked. */
   rank?: number;
   /**
-   * Rarity of the printing Scryfall chose as the card's default. Other
-   * printings may differ. Absent in schema 1 packs.
+   * Lowest rarity among the card's paper printings, as rarity-based formats
+   * count it. Absent in schema 1 packs.
    */
   rarity?: Rarity;
   /** Function and synergy tags: Scryfall Tagger slugs plus the local overlay. */

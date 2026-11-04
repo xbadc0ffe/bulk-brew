@@ -1,12 +1,14 @@
 // Orchestrates one pipeline run: raw bulk files in, data pack and manifest out.
 
 import { createHash } from 'node:crypto';
+import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { gzipSync } from 'node:zlib';
 import {
   DATA_SCHEMA_VERSION,
   type CardRecord,
+  type Rarity,
   type DataManifest,
   type DataPack,
 } from '@bulk-brew/core';
@@ -15,6 +17,7 @@ import type { ScryfallCard, TaggerTag } from './scryfall.ts';
 import { isPlayable, toCardRecord } from './transform.ts';
 import { buildTagMap } from './tags.ts';
 import { applyOverlay, type TagOverlay } from './overlay.ts';
+import { lowestRarities } from './rarity.ts';
 
 export interface BuildOptions {
   rawDir: string;
@@ -65,6 +68,15 @@ export async function buildPack(opts: BuildOptions): Promise<BuildReport> {
   const tags = await readAll<TaggerTag>(path.join(opts.rawDir, 'oracle_tags.jsonl.gz'));
   const tagMap = buildTagMap(tags);
 
+  const printingsPath = path.join(opts.rawDir, 'default_cards.jsonl.gz');
+  let lowest: Map<string, Rarity> | undefined;
+  if (existsSync(printingsPath)) {
+    log('reading printings for lowest rarity');
+    lowest = await lowestRarities(printingsPath);
+  } else {
+    log("no default_cards file: rarity comes from each card's default printing");
+  }
+
   log('reading cards');
   const cards: CardRecord[] = [];
   const idByName = new Map<string, string>();
@@ -77,6 +89,8 @@ export async function buildPack(opts: BuildOptions): Promise<BuildReport> {
       continue;
     }
     const rec = toCardRecord(card, []);
+    const low = lowest?.get(rec.id);
+    if (low) rec.rarity = low;
     cards.push(rec);
     // First playable, non-Un-set card wins a name; Un-set only fills a gap.
     const existing = idByName.get(rec.name);

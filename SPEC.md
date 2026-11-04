@@ -80,7 +80,9 @@ Scryfall bulk data, downloaded by `scripts/fetch-scryfall-bulk.mjs` into the git
 - `oracle_tags`: Scryfall Tagger function and synergy tags. About 4,600 tags, 240,000 taggings, 36,000 tagged cards. Tags form a tree through `parent_ids`. Tagging weights are flat in practice (99.7% are "median"), so tags are treated as boolean and any weighting comes from config.
 - `rulings`: development reference only. Never bundled. If a card detail view ever shows rulings, they load from Scryfall on demand.
 
-Not used: default cards, all cards, unique artwork, art tags. Imports resolve by name against oracle cards, so per-printing data is not needed.
+- `default_cards`: one entry per printing, read only to find each card's lowest rarity across its paper printings. Nothing per printing is shipped.
+
+Not used: all cards, unique artwork, art tags. Imports resolve by name against oracle cards.
 
 A local tag overlay in `config/tag-overlay.json` fixes and gap-fills tags at pipeline time.
 
@@ -94,7 +96,7 @@ Name resolution handles full multi-face names ("A // B"), front-face-only names,
 
 The shipped database is one compact JSON file, gzip-compressed by the host. Shape: `DataPack` in `packages/core/src/types.ts`. Per card: oracle id, name, layout, mana cost, mana value, type line, oracle text, colors, color identity, keywords, power, toughness, loyalty, produced mana, normalized types, derived `entersTapped` and `unset` flags, tags, faces, and the default printing's image id. The 2026-11-02 pack holds 34,168 cards: 23 MB raw, 5.4 MB compressed.
 
-Schema 2 (phase 9) adds, from the same Scryfall oracle file: Commander legality (banned or not legal), the Game Changer flag, Scryfall's popularity rank (one signal in the card strength score), and the rarity of the card's default printing (special and bonus stored as rare). Rarity belongs to a printing, so a card reprinted at another rarity uses its default printing's rarity. The core reads schema 1 and 2 during the move, treating the new fields as absent in schema 1. Decks record `CardIndex.dataVersion`, the pack date plus the schema from 2 on, so packs of different schemas never share a data version.
+Schema 2 (phase 9) adds Commander legality (banned or not legal), the Game Changer flag, Scryfall's popularity rank (one signal in the card strength score), and rarity. Rarity is the lowest rarity among the card's paper printings, the way rarity-based formats count it (special and bonus stored as rare); when the printings file is missing, the default printing's rarity stands in. The core reads schema 1 and 2 during the move, treating the new fields as absent in schema 1. Decks record `CardIndex.dataVersion`, the pack date plus the schema from 2 on, so packs of different schemas never share a data version.
 
 The pack is served under one fixed name, `data/cards.json`, and the service worker answers from its cache first. So every release of the core must read the previous schema as well as the current one: a returning user may load the old cached pack once before the new one arrives.
 

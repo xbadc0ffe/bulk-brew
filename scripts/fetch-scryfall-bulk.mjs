@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const RAW_DIR = path.join(ROOT, 'data', 'raw');
 const META_PATH = path.join(RAW_DIR, 'bulk-meta.json');
-const BULK_TYPES = ['oracle_cards', 'oracle_tags', 'rulings'];
+const BULK_TYPES = ['oracle_cards', 'oracle_tags', 'rulings', 'default_cards'];
 const USER_AGENT = 'bulk-brew/0.1 (+https://github.com/xbadc0ffe/bulk-brew)';
 const HEADERS = { 'User-Agent': USER_AGENT, Accept: 'application/json' };
 const PAUSE_MS = 150;
