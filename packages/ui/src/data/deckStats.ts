@@ -1,6 +1,6 @@
 import {
   COLORS,
-  normalizeColors,
+  isMdfcLand,
   pipDemand,
   primaryGroup,
   type CardIndex,
@@ -19,14 +19,16 @@ export interface ColorShare {
 
 /**
  * Colored mana symbols in the spells' costs, by color: the same count the
- * mana base is built from, so hybrid symbols go to the deck's main color.
+ * mana base is built from. Spell//land cards count as spells, and hybrid
+ * symbols go to the deck's main color.
  */
 export function deckColorShares(deck: Deck, index: CardIndex): ColorShare[] {
-  const prefer = normalizeColors(deck.colors ?? [deck.color]);
+  // Main color first, as the deck records it; not WUBRG order.
+  const prefer = deck.colors ?? [deck.color];
   const pips: Partial<Record<Color, number>> = {};
   for (const dc of deck.cards) {
     const card = index.get(dc.cardId);
-    if (!card || card.types.includes('land')) continue;
+    if (!card || (card.types.includes('land') && !isMdfcLand(card))) continue;
     for (const [c, n] of Object.entries(pipDemand(card, prefer)) as [Color, number][]) {
       pips[c] = (pips[c] ?? 0) + n * dc.qty;
     }

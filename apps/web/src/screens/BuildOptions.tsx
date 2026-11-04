@@ -202,7 +202,7 @@ function Chips({ lead, items, strong }: { lead: string; items: string[]; strong?
 
 /** Commanders in the bulk list, best first, grouped by tier. Picking one starts the options. */
 function CommanderList() {
-  const { build: flow, commanders, index, settings } = useAppState();
+  const { build: flow, commanders, index } = useAppState();
   const list = commanders.list;
   if (!list || !index) {
     return (
@@ -247,17 +247,15 @@ function CommanderList() {
                   const card = index.get(c.id);
                   if (!card) return null;
                   return (
-                    <li key={c.id}>
-                      <button
-                        type="button"
-                        onClick={() => flow.setCommander(c.id)}
-                        className="flex h-full w-full flex-col gap-3.5 rounded-xl border border-line bg-surface p-3 text-left hover:border-line-strong hover:bg-surface-2"
-                      >
-                        {/* The image carries the name visually; keep it in the text for search and screen readers. */}
-                        {settings.settings.showArt && <span className="sr-only">{c.name}</span>}
-                        <CommanderCard card={card} />
-                        <CommanderDetails c={c} />
-                      </button>
+                    <li
+                      key={c.id}
+                      className="relative flex flex-col gap-3.5 rounded-xl border border-line bg-surface p-3 hover:border-line-strong hover:bg-surface-2"
+                    >
+                      <CommanderCard card={card} />
+                      <CommanderDetails c={c} />
+                      <Cover onClick={() => flow.setCommander(c.id)}>
+                        Pick {c.name} as commander
+                      </Cover>
                     </li>
                   );
                 })}
@@ -328,12 +326,7 @@ function OptionCard({ option, onOpen }: { option: DeckOption; onOpen(): void }) 
   const roles = Object.entries(explanation.roles);
   const left = missing.map((c) => COLOR_LABELS[c].toLowerCase()).join(' and ');
   return (
-    <button
-      type="button"
-      onClick={onOpen}
-      aria-label={`${title}${secondary && !secondary.met ? `, ${secondary.label} not fully met` : ''}${missing.length > 0 ? `, leaves out ${left}` : ''}${stretched ? ', mana is stretched' : ''}`}
-      className="flex h-full w-full flex-col gap-4 rounded-lg border border-line bg-surface p-4 text-left hover:border-line-strong hover:bg-surface-2"
-    >
+    <div className="relative flex h-full flex-col gap-4 rounded-lg border border-line bg-surface p-4 hover:border-line-strong hover:bg-surface-2">
       <span className="flex min-w-0 flex-col gap-1">
         <span className="flex items-center gap-1">
           {colors.map((c) => (
@@ -376,6 +369,19 @@ function OptionCard({ option, onOpen }: { option: DeckOption; onOpen(): void }) 
         </span>
       )}
       {synergy && <span className="text-[12px] text-fg-1">{synergy}</span>}
+      <Cover onClick={onOpen}>Open {title}</Cover>
+    </div>
+  );
+}
+
+/**
+ * A button laid over a whole card, so the card's content stays ordinary
+ * content for screen readers while a click anywhere picks it.
+ */
+function Cover({ onClick, children }: { onClick(): void; children: ReactNode }) {
+  return (
+    <button type="button" onClick={onClick} className="absolute inset-0 rounded-[inherit]">
+      <span className="sr-only">{children}</span>
     </button>
   );
 }

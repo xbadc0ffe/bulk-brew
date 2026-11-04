@@ -216,9 +216,9 @@ try {
   // A screen-reader line announces the finished list.
   log('options', oneLine(await waitForText(/deck options? ready/, 60000), 160));
   await shot('3-build-options');
-  // Every option card shows a mana curve; the first card is the strongest.
+  // Each option card has an Open button over it; the first card is the strongest.
   const openStrongest = async () => {
-    await click('Mana curve', 'first');
+    await click('^Open ', 'first');
     return waitForText(/Accept/, 30000);
   };
   log('deck', oneLine(await openStrongest(), 160));

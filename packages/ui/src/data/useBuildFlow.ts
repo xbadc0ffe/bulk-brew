@@ -103,6 +103,16 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
   const [building, setBuilding] = useState(false);
   const [accepted, setAccepted] = useState<Deck>();
 
+  // A commander that left the pool (its kept deck was accepted from Decks, or
+  // a backup replaced the pool) is no longer picked; the commander list returns.
+  if (commander && pool.loaded && (pool.pool.entries[commander]?.qty ?? 0) <= 0) {
+    setCommanderState(undefined);
+    setColorsState([]);
+    setStyleState(undefined);
+    setSecondaryState(undefined);
+    setResult(undefined);
+  }
+
   const stored = settings.maxCopies[size];
   const maxCopies =
     override && override.size === size && override.base === stored ? override.value : stored;

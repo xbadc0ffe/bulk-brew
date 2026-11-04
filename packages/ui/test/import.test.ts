@@ -29,4 +29,10 @@ describe('combineImportTexts', () => {
       [3, 'Llanowar Elves'],
     ]);
   });
+
+  it('drops a set name a decklist could not read, keeping the card', () => {
+    const csv = 'Count,Name,Set\n2,Llanowar Elves,Core Set 2019\n';
+    const text = combineImportTexts(['1 Opt', csv]);
+    expect(text).toBe('1 Opt\n2 Llanowar Elves');
+  });
 });

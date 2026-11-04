@@ -82,12 +82,18 @@ function lineText(line: ParsedLine, name: string): string {
   return `${line.qty} ${name}${printing}`;
 }
 
+const SET_CODE = /^[A-Za-z0-9]{2,6}$/;
+
 /** A CSV export rewritten as decklist lines, so it can sit next to other text. */
 function asDecklist(text: string): string {
   const parsed = parseImportText(text);
   if (parsed.format === 'decklist') return text.trimEnd();
   return [
-    ...parsed.lines.map((l) => ({ at: l.line, text: lineText(l, l.name) })),
+    ...parsed.lines.map((l) => ({
+      at: l.line,
+      // A decklist reads only short set codes; a set name would end up in the card name.
+      text: l.set && !SET_CODE.test(l.set) ? `${l.qty} ${l.name}` : lineText(l, l.name),
+    })),
     ...parsed.skipped.map((l) => ({ at: l.line, text: l.raw })),
   ]
     .sort((a, b) => a.at - b.at)
@@ -140,7 +146,10 @@ export function useImport(
 
   const addFiles = useCallback(async (files: readonly File[]) => {
     if (files.length === 0) return;
-    const texts = await Promise.all(files.map(readFileText));
+    // A dropped folder or unreadable file is skipped, not allowed to sink the rest.
+    const read = await Promise.allSettled(files.map(readFileText));
+    const texts = read.flatMap((r) => (r.status === 'fulfilled' ? [r.value] : []));
+    if (texts.length === 0) return;
     setTextRaw((current) => combineImportTexts([current, ...texts]));
     setDone(undefined);
   }, []);
