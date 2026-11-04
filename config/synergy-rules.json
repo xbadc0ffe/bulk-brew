@@ -1,5 +1,5 @@
 {
-  "version": "6",
+  "version": "7",
   "rules": [
     {
       "id": "tokens-pump",
@@ -172,7 +172,8 @@
           ]
         },
         {
-          "anyTags": ["tutor-artifact-equipment", "tutor-enchantment-aura", "pseudo-equipment"]
+          "anyTags": ["tutor-artifact-equipment", "tutor-enchantment-aura", "pseudo-equipment"],
+          "excludeTags": ["tutor-aura-curse"]
         }
       ],
       "payoff": [

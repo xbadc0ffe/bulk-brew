@@ -55,9 +55,9 @@ export interface MatcherClause {
   anyTypes?: CardType[];
   /** Card has none of these normalized types. */
   excludeTypes?: CardType[];
-  /** Type line contains at least one of these words (subtypes such as "Aura"). */
+  /** The front face's type line contains at least one of these words (subtypes such as "Aura"). */
   typeLineAny?: string[];
-  /** Type line contains none of these words, such as "Curse" for Auras that enchant a player. */
+  /** The front face's type line contains none of these words, such as "Curse" for Auras that enchant a player. */
   excludeTypeLine?: string[];
   derived?: DerivedPredicate;
   minMv?: number;

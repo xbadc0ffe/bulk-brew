@@ -145,6 +145,11 @@ describe('cardMatches', () => {
     const voltronAura = [{ typeLineAny: ['Aura'], excludeTypeLine: ['Curse'] }];
     expect(cardMatches(aura, voltronAura)).toBe(true);
     expect(cardMatches(curse, voltronAura)).toBe(false);
+    // Only the front face counts: a friendly Aura with a Curse back face stays in.
+    const grace = { ...aura, typeLine: 'Enchantment — Aura // Enchantment — Aura Curse' };
+    expect(cardMatches(grace, voltronAura)).toBe(true);
+    const witch = card({ name: 'Witch', typeLine: 'Creature — Human // Enchantment — Aura Curse' });
+    expect(cardMatches(witch, voltronAura)).toBe(false);
     expect(cardMatches(bird, [{ anyTags: ['evasion'], excludeTags: ['evasion'] }])).toBe(false);
     expect(cardMatches(bird, [{ derived: 'evasiveCreature' }])).toBe(true);
     expect(cardMatches(bolt, [{ derived: 'evasiveCreature' }])).toBe(false);

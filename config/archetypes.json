@@ -1,5 +1,5 @@
 {
-  "version": "7",
+  "version": "8",
   "archetypes": [
     {
       "kind": "composition",
@@ -292,7 +292,8 @@
           ]
         },
         {
-          "anyTags": ["tutor-artifact-equipment", "tutor-enchantment-aura", "pseudo-equipment"]
+          "anyTags": ["tutor-artifact-equipment", "tutor-enchantment-aura", "pseudo-equipment"],
+          "excludeTags": ["tutor-aura-curse"]
         }
       ],
       "payoffs": [

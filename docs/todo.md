@@ -42,6 +42,7 @@ Ranked. The current phase is at the top. Finished phases are removed, not struck
 - Tribes: multi-word creature types such as "Time Lord" split into two words.
 - Mobile parity for the deck options list on the Build page (phones still build one deck).
 - Mobile parity for the web cleanup round: colored deck actions (Accept green, Back red, Export grey) and the icon sidebar's look in the tab bar.
+- Voltron: nine Auras that enchant a player but are not Curses (Archnemesis, Grievous Wound, Overencumbered, Paradox Haze, Psychic Possession, Shadow of the Second Sun, Tenuous Truce, Wheel of Sun and Moon, Volrath's Motion Sensor) still count as enablers. A tag overlay entry (applied at the next data build) or a check on "Enchant player" text would catch them.
 - Mobile parity for the second cleanup round: the Remove dialog (Delete or Disassemble), and Settings without copy limits and with Reset above a red Clear.
 - Eval: add a metric for decks that miss their own theme minimums, so a regression like the one fixed in local search shows up.
 - Deck options build on the main thread, one per tick; move to a Web Worker if phones stutter.

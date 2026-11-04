@@ -1,7 +1,7 @@
 {
   "name": "Bulk Brew",
   "short_name": "Bulk Brew",
-  "description": "Turn a pile of bulk Magic: The Gathering cards into playable mono-color decks.",
+  "description": "Turn a pile of bulk Magic: The Gathering cards into playable decks.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
