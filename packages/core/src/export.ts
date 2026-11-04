@@ -68,10 +68,9 @@ export function deckToDecklist(deck: Deck, index: CardIndex, config?: BulkBrewCo
     counts.set('Lands', (counts.get('Lands') ?? 0) + basicCount);
   }
 
-  // Every color in the deck, so a merged two-packet deck names both.
-  const colors = new Set<Color>([deck.color]);
+  // The deck's own colors, plus the basics it runs, so a merged two-packet deck names both.
+  const colors = new Set<Color>(deck.colors ?? [deck.color]);
   for (const [c, n] of Object.entries(deck.basics)) if ((n ?? 0) > 0) colors.add(c as Color);
-  for (const dc of deck.cards) for (const c of index.get(dc.cardId)?.identity ?? []) colors.add(c);
   const colorText = COLORS.filter((c) => colors.has(c))
     .map((c) => COLOR_LABELS[c])
     .join(' and ');

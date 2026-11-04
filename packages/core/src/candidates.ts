@@ -13,9 +13,11 @@ import {
   isLand,
   isMdfcLand,
   manaSourceKind,
+  needsCommander,
   type ManaSourceKind,
 } from './matchers.ts';
 import type { CardIndex } from './pack.ts';
+import { identityWithin, isCommanderSize, normalizeColors, playableWith } from './colors.ts';
 import { cardStrength } from './strength.ts';
 import type { CardRecord, Color, DeckSize, Pool, PrintingHint, Settings } from './types.ts';
 
@@ -157,8 +159,10 @@ export function preferredCopies(
   return n;
 }
 
-export function fitsColor(card: CardRecord, color: Color): boolean {
-  return card.identity.every((c) => c === color);
+/** Whether a card fits a deck of these colors and size: castability, or identity for Commander. */
+export function fitsColors(card: CardRecord, colors: readonly Color[], size: DeckSize): boolean {
+  if (isCommanderSize(size)) return identityWithin(card, colors);
+  return playableWith(card, colors) && !needsCommander(card);
 }
 
 /**
@@ -171,9 +175,10 @@ export function listCandidates(
   index: CardIndex,
   config: BulkBrewConfig,
   settings: Settings,
-  color: Color,
+  colors: Color | readonly Color[],
   size: DeckSize,
 ): Candidate[] {
+  const deckColors = normalizeColors(typeof colors === 'string' ? [colors] : colors);
   const limit = maxCopiesFor(settings, config, size);
   const caps = templateFor(config, size).copyCaps;
   const rarities = settings.rarities?.length ? new Set(settings.rarities) : undefined;
@@ -185,8 +190,8 @@ export function listCandidates(
     const card = index.get(id);
     if (!card) continue;
     if (card.unset && !settings.includeUnsets) continue;
-    if (!fitsColor(card, color)) continue;
-    // Mono-color decks run basics of their color, which cannot make the {C} these cards demand.
+    if (!fitsColors(card, deckColors, size)) continue;
+    // Decks run basics of their colors, which cannot make the {C} these cards demand.
     if (hasColorlessPip(card)) continue;
     const facts = factsFor(index, config, card);
     if (facts.basic && settings.unlimitedBasics) continue;

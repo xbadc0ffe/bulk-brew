@@ -37,6 +37,7 @@ describe('validateConfig', () => {
       curve: 0,
       typeMix: 0,
       synergy: 0,
+      castability: 0,
     };
     c.builderWeights.bestFit = { synergyCandidates: -1, compositionCandidates: 2.5 };
     const problems = validateConfig(c);

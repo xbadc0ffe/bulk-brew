@@ -24,9 +24,19 @@ import {
   chooseManaBase,
   ManaBaseError,
   planLandCount,
+  type ColorPlan,
   type ManaBase,
   type SpellCopies,
 } from './lands.ts';
+import {
+  colorsLabel,
+  identityWithin,
+  isCommanderSize,
+  normalizeColors,
+  pipDemand,
+  playableWith,
+  sourcesNeeded,
+} from './colors.ts';
 import type { CardIndex } from './pack.ts';
 import {
   countCopies,
@@ -36,10 +46,10 @@ import {
   scanCandidates,
 } from './scan.ts';
 import {
-  COLOR_LABELS,
   type BuildExplanation,
   type BuildRequest,
   type BuildResult,
+  type Color,
   type Deck,
   type DeckScore,
   type DeckCard,
@@ -70,7 +80,8 @@ export function isFillerPick(why: string | undefined, fillsRole: boolean): boole
 }
 
 /** Why a copy was picked, which also decides what gets trimmed first. */
-type PickKind = 'roleMin' | 'theme' | 'roleTarget' | 'typeMin' | 'curve' | 'filler' | 'swap';
+type PickKind =
+  'roleMin' | 'colorMin' | 'theme' | 'roleTarget' | 'typeMin' | 'curve' | 'filler' | 'swap';
 
 /** Trim order: filler goes first; role minimums go only as a last resort. */
 const TRIM_ORDER: PickKind[] = [
@@ -80,6 +91,7 @@ const TRIM_ORDER: PickKind[] = [
   'swap',
   'roleTarget',
   'theme',
+  'colorMin',
   'roleMin',
 ];
 
@@ -117,6 +129,9 @@ interface Ctx {
   roleLabels: Map<string, string>;
   /** Spell candidates in card id order. */
   spells: Candidate[];
+  plan: ColorPlan;
+  /** Card strength points taken off spells that strain the mana base (multi-color only). */
+  penalty: Map<string, number>;
 }
 
 interface Tally {
@@ -131,6 +146,8 @@ interface Tally {
   themeHits: number;
   /** Sum of card strength over every copy. */
   strength: number;
+  /** Sum of cast penalties over every copy. */
+  castPen: number;
 }
 
 function bump(map: Map<string, number>, key: string, by: number): void {
@@ -149,6 +166,7 @@ function emptyTally(): Tally {
     rulePayoffs: new Map(),
     themeHits: 0,
     strength: 0,
+    castPen: 0,
   };
 }
 
@@ -156,8 +174,15 @@ function themeIdOf(ctx: Ctx): string | undefined {
   return ctx.archetype.kind === 'synergy' ? ctx.archetype.id : undefined;
 }
 
-function addToTally(t: Tally, f: CardFacts, qty: number, themeId: string | undefined): void {
+function addToTally(
+  t: Tally,
+  f: CardFacts,
+  qty: number,
+  themeId: string | undefined,
+  pen: number,
+): void {
   t.total += qty;
+  t.castPen += pen * qty;
   t.curve[f.bucket]! += qty;
   if (f.creature) t.creatures += qty;
   if (f.instantOrSorcery) t.instSorc += qty;
@@ -174,25 +199,26 @@ function addToTally(t: Tally, f: CardFacts, qty: number, themeId: string | undef
 function tally(state: State, ctx: Ctx): Tally {
   const t = emptyTally();
   const themeId = themeIdOf(ctx);
-  for (const { cand, qty } of state.chosen.values()) addToTally(t, cand.facts, qty, themeId);
+  for (const { cand, qty } of state.chosen.values())
+    addToTally(t, cand.facts, qty, themeId, ctx.penalty.get(cand.facts.card.id) ?? 0);
   return t;
 }
 
-/** A copy of a tally with one more copy of a card. */
-function tallyWith(t: Tally, f: CardFacts, themeId: string | undefined): Tally {
-  const n: Tally = {
-    ...t,
-    curve: t.curve.slice(),
-    roles: new Map(t.roles),
-    ruleEnablers: new Map(t.ruleEnablers),
-    rulePayoffs: new Map(t.rulePayoffs),
-  };
-  addToTally(n, f, 1, themeId);
-  return n;
+const TARGETS_CACHE = new WeakMap<number[], Map<number, number[]>>();
+
+/**
+ * Curve targets per bucket 1 through 7 for a slot count, rounded so they sum
+ * to the slots. Cached per shape and slot count; callers must not change the result.
+ */
+export function curveTargets(shape: number[], slots: number): number[] {
+  let bySlots = TARGETS_CACHE.get(shape);
+  if (!bySlots) TARGETS_CACHE.set(shape, (bySlots = new Map()));
+  let out = bySlots.get(slots);
+  if (!out) bySlots.set(slots, (out = computeTargets(shape, slots)));
+  return out;
 }
 
-/** Curve targets per bucket 1 through 7 for a slot count, rounded so they sum to the slots. */
-export function curveTargets(shape: number[], slots: number): number[] {
+function computeTargets(shape: number[], slots: number): number[] {
   const raw = shape.map((s) => s * slots);
   const floors = raw.map((r) => Math.floor(r));
   let remainder = slots - floors.reduce((a, b) => a + b, 0);
@@ -236,7 +262,7 @@ function objectiveOf(t: Tally, slots: number, ctx: Ctx): number {
     s += w.synergyDensity * ctx.synergyScale * rule.weight * Math.min(e, p);
   }
   s += w.themeHit * t.themeHits;
-  s += w.cardStrength * t.strength;
+  s += w.cardStrength * (t.strength - t.castPen);
   return s;
 }
 
@@ -311,6 +337,7 @@ export function compareCandidates(
   b: Candidate,
   tiebreaks: readonly Tiebreak[],
   themeHits: (c: Candidate) => number,
+  strengthOf: (c: Candidate) => number = (c) => c.facts.strength,
 ): number {
   for (const key of tiebreaks) {
     let d = 0;
@@ -319,7 +346,7 @@ export function compareCandidates(
         d = themeHits(a) - themeHits(b);
         break;
       case 'strength':
-        d = a.facts.strength - b.facts.strength;
+        d = strengthOf(a) - strengthOf(b);
         break;
       case 'statsPerMana':
         d = statsPerMana(a) - statsPerMana(b);
@@ -367,7 +394,13 @@ function pickBest(
     const better =
       d > 0 ||
       (d === 0 &&
-        compareCandidates(cand, best, ctx.weights.tiebreaks, (c) => themeHitsOf(c, ctx)) > 0);
+        compareCandidates(
+          cand,
+          best,
+          ctx.weights.tiebreaks,
+          (c) => themeHitsOf(c, ctx),
+          (c) => c.facts.strength - (ctx.penalty.get(c.facts.card.id) ?? 0),
+        ) > 0);
     if (better) best = cand;
   }
   if (!best) return false;
@@ -520,9 +553,26 @@ function fillAny(state: State, ctx: Ctx): void {
   }
 }
 
+/** Every color of a multi-color deck gets at least its minimum of spells of that color. */
+function fillColorMinimums(state: State, ctx: Ctx): void {
+  if (ctx.plan.colors.length < 2) return;
+  const key = String(ctx.template.size) as '60' | '40' | '20';
+  const want = ctx.config.landRules.colors.minCardsPerColor[key] ?? 0;
+  for (const color of ctx.plan.colors) {
+    const has = (c: Candidate) => c.facts.card.colors.includes(color);
+    const count = () => {
+      let n = 0;
+      for (const { cand, qty } of state.chosen.values()) if (has(cand)) n += qty;
+      return n;
+    };
+    while (count() < want && pickBest(state, ctx, has, (c) => describeWhy(c, ctx), 'colorMin'));
+  }
+}
+
 function fillAll(state: State, ctx: Ctx): void {
   fillRoles(state, ctx, 'min', 'roleMin');
   fillTheme(state, ctx);
+  fillColorMinimums(state, ctx);
   fillRoles(state, ctx, 'target', 'roleTarget');
   fillTypeMinimums(state, ctx);
   fillCurve(state, ctx);
@@ -587,7 +637,11 @@ function localSearch(state: State, ctx: Ctx): number {
           base = tally(state, ctx);
         }
         if (!canAdd(state, ctx, cand, base)) continue;
-        const val = objectiveOf(tallyWith(base, cand.facts, themeId), state.slots, ctx);
+        // Score the swap by adding the copy to the tally and taking it back out.
+        const pen = ctx.penalty.get(cand.facts.card.id) ?? 0;
+        addToTally(base, cand.facts, 1, themeId, pen);
+        const val = objectiveOf(base, state.slots, ctx);
+        addToTally(base, cand.facts, -1, themeId, pen);
         if (val > best + 1e-9) {
           addOne(state, cand, describeWhy(cand, ctx), 'swap');
           best = val;
@@ -610,8 +664,43 @@ function clamp01(n: number): number {
   return Math.min(1, Math.max(0, n));
 }
 
-/** Deck score: card strength, role coverage, curve, type mix, and synergy, each 0 to 1. */
-function scoreDeck(state: State, ctx: Ctx): DeckScore {
+/**
+ * Share of spell copies the mana base casts on curve: for each color a spell
+ * asks for, the deck has at least the sources that color's target chance needs.
+ */
+function castability(state: State, ctx: Ctx, mana: ManaBase, lands: number): number {
+  const plan = ctx.plan;
+  const prefer = [plan.main, ...plan.colors.filter((c) => c !== plan.main)];
+  const chance = ctx.config.landRules.colors.castChance;
+  const size = ctx.template.size;
+  let ok = 0;
+  let all = 0;
+  for (const { cand, qty } of state.chosen.values()) {
+    const card = cand.facts.card;
+    const demand = pipDemand(card, prefer);
+    let fine = true;
+    for (const c of plan.colors) {
+      const pips = demand[c] ?? 0;
+      if (pips === 0) continue;
+      const target = plan.colors.length === 1 ? chance.main : chance[plan.role[c] ?? 'secondary'];
+      const need = sourcesNeeded(
+        size,
+        lands,
+        pips,
+        Math.ceil(card.mv),
+        target,
+        isCommanderSize(size),
+      );
+      if ((mana.sources[c] ?? 0) < need) fine = false;
+    }
+    all += qty;
+    if (fine) ok += qty;
+  }
+  return all > 0 ? ok / all : 1;
+}
+
+/** Deck score: synergy, card strength, roles, curve, type mix, and castability, each 0 to 1. */
+function scoreDeck(state: State, ctx: Ctx, mana: ManaBase, lands: number): DeckScore {
   const t = tally(state, ctx);
   const cfg = ctx.weights.deckScore;
   const slots = Math.max(1, state.slots);
@@ -654,14 +743,16 @@ function scoreDeck(state: State, ctx: Ctx): DeckScore {
   }
   const synergy = clamp01(pairs / spells / cfg.synergyReference);
 
+  const cast = castability(state, ctx, mana, lands);
   const w = cfg.weights;
-  const sumW = w.strength + w.roles + w.curve + w.typeMix + w.synergy;
+  const sumW = w.strength + w.roles + w.curve + w.typeMix + w.synergy + w.castability;
   const weighted =
     w.strength * strength +
     w.roles * roles +
     w.curve * curve +
     w.typeMix * typeMix +
-    w.synergy * synergy;
+    w.synergy * synergy +
+    w.castability * cast;
   const r3 = (n: number) => Math.round(n * 1000) / 1000;
   return {
     total: Math.round((1000 * weighted) / sumW) / 10,
@@ -670,6 +761,7 @@ function scoreDeck(state: State, ctx: Ctx): DeckScore {
     curve: r3(curve),
     typeMix: r3(typeMix),
     synergy: r3(synergy),
+    castability: r3(cast),
   };
 }
 
@@ -698,6 +790,66 @@ export function bestFitCandidates(scan: ScanReport, config: BulkBrewConfig): Arc
   return [...synergy, ...composition].map((r) => byId.get(r.archetype)!);
 }
 
+/**
+ * The main color carries the most weight among the candidates (strength
+ * times copies of spells asking for it); a color carrying much less than the
+ * main one is a splash.
+ */
+export function colorPlan(
+  cands: Candidate[],
+  colors: readonly Color[],
+  config: BulkBrewConfig,
+): ColorPlan {
+  const list = normalizeColors(colors);
+  const weight = new Map<Color, number>(list.map((c) => [c, 0]));
+  for (const cand of cands) {
+    if (!cand.facts.spell) continue;
+    const d = pipDemand(cand.facts.card, list);
+    for (const c of list) {
+      if ((d[c] ?? 0) > 0)
+        weight.set(c, weight.get(c)! + Math.max(0, cand.facts.strength) * cand.preferred);
+    }
+  }
+  const main = list.reduce((a, b) => (weight.get(b)! > weight.get(a)! ? b : a));
+  const role: ColorPlan['role'] = {};
+  const cut = config.landRules.colors.splashShare * weight.get(main)!;
+  for (const c of list) {
+    role[c] = c === main ? 'main' : weight.get(c)! < cut ? 'splash' : 'secondary';
+  }
+  return { colors: [main, ...list.filter((c) => c !== main)], main, role };
+}
+
+/** Strength points off for spells that ask a lot of a secondary or splash color. */
+export function castPenalties(
+  cands: Candidate[],
+  plan: ColorPlan,
+  config: BulkBrewConfig,
+): Map<string, number> {
+  const out = new Map<string, number>();
+  if (plan.colors.length < 2) return out;
+  const p = config.builderWeights.castability;
+  for (const cand of cands) {
+    if (!cand.facts.spell) continue;
+    const card = cand.facts.card;
+    const demand = pipDemand(card, plan.colors);
+    let pen = 0;
+    for (const c of plan.colors) {
+      if (c === plan.main) continue;
+      const k = demand[c] ?? 0;
+      if (k === 0) continue;
+      const early = card.mv <= 2;
+      if (plan.role[c] === 'splash') {
+        pen += p.splashPip * k + (k >= 2 ? p.splashDouble : 0) + (early ? p.splashEarly : 0);
+      } else {
+        pen +=
+          p.secondaryPip * k + (k >= 2 ? p.doubleSecondary : 0) + (early ? p.earlySecondary : 0);
+      }
+    }
+    if (pen > 0) out.set(card.id, pen);
+  }
+  return out;
+}
+
 /** One complete spell build for one archetype, before the mana base is picked. */
 interface Attempt {
   archetype: Archetype;
@@ -718,8 +870,10 @@ function attempt(
   request: BuildRequest,
   index: CardIndex,
   colorLabel: string,
+  plan: ColorPlan,
+  penalty: Map<string, number>,
 ): Attempt {
-  const { size, color, settings } = request;
+  const { size, settings } = request;
   const ctx: Ctx = {
     config,
     template,
@@ -731,6 +885,8 @@ function attempt(
     synergyScale: archetype.kind === 'synergy' ? archetype.synergyWeight : 1,
     roleLabels: new Map(config.roles.roles.map((r) => [r.id, r.label])),
     spells: cands.filter((c) => c.facts.spell),
+    plan,
+    penalty,
   };
   const notes: string[] = [];
 
@@ -744,7 +900,7 @@ function attempt(
     notes.push(`Improved by ${swaps} swap${swaps === 1 ? '' : 's'} after the first pass.`);
   }
   lands = refitLands(state, ctx, lands, size);
-  let plan = planLandCount(template, spellCopies(state), config.landRules.mdfc);
+  let landPlan = planLandCount(template, spellCopies(state), config.landRules.mdfc);
 
   // A thin pool may not fill every slot: pad with lands up to the clamp.
   if (state.order.length < state.slots) {
@@ -756,17 +912,26 @@ function attempt(
     }
     lands += short;
     state.slots = size - lands;
-    plan = planLandCount(template, spellCopies(state), config.landRules.mdfc);
+    landPlan = planLandCount(template, spellCopies(state), config.landRules.mdfc);
     notes.push(`Ran out of fitting spells; added ${short} extra land${short === 1 ? '' : 's'}.`);
   }
   let mana: ManaBase;
   try {
-    mana = chooseManaBase(lands, cands, color, config, settings, size, index);
+    mana = chooseManaBase(lands, cands, plan, spellCopies(state), config, settings, size, index);
   } catch (err) {
     if (err instanceof ManaBaseError) throw new BuildError(err.message);
     throw err;
   }
-  return { archetype, ctx, state, lands, plan, mana, score: scoreDeck(state, ctx), notes };
+  return {
+    archetype,
+    ctx,
+    state,
+    lands,
+    plan: landPlan,
+    mana,
+    score: scoreDeck(state, ctx, mana, lands),
+    notes,
+  };
 }
 
 /**
@@ -779,11 +944,13 @@ export function buildDeck(
   index: CardIndex,
   config: BulkBrewConfig,
 ): BuildResult {
-  const { size, color, settings } = request;
+  const { size, settings } = request;
+  const colors = normalizeColors(request.colors);
+  if (colors.length === 0) throw new BuildError('Pick at least one color.');
   const template = templateFor(config, size);
-  const cands = listCandidates(pool, index, config, settings, color, size);
-  const scan = scanCandidates(cands, config, settings, size, color);
-  const colorLabel = COLOR_LABELS[color];
+  const cands = listCandidates(pool, index, config, settings, colors, size);
+  const scan = scanCandidates(cands, config, settings, size, colors);
+  const colorLabel = colorsLabel(colors);
   if (!scan.possible) {
     throw new BuildError(
       `Not enough ${colorLabel} cards for a ${size}-card deck: ${scan.notes.join('; ')}.`,
@@ -812,13 +979,26 @@ export function buildDeck(
     tryList = [fallback];
   }
 
+  const colorPlanned = colorPlan(cands, colors, config);
+  const penalty = castPenalties(cands, colorPlanned, config);
+
   // Ties keep the earlier candidate: themes come first, so a theme beats a plain shape it ties.
   let best: Attempt | undefined;
   let firstError: unknown;
   const tried: Attempt[] = [];
   for (const a of tryList) {
     try {
-      const at = attempt(a, template, cands, config, request, index, colorLabel);
+      const at = attempt(
+        a,
+        template,
+        cands,
+        config,
+        request,
+        index,
+        colorLabel,
+        colorPlanned,
+        penalty,
+      );
       tried.push(at);
       if (!best || at.score.total > best.score.total) best = at;
     } catch (err) {
@@ -887,13 +1067,14 @@ export function buildDeck(
     cards.push(dc);
   }
 
-  const total = cards.reduce((n, c) => n + c.qty, 0) + mana.basics;
+  const basicCount = Object.values(mana.basics).reduce((n, q) => n + (q ?? 0), 0);
+  const total = cards.reduce((n, c) => n + c.qty, 0) + basicCount;
   if (total !== size) throw new Error(`builder produced ${total} cards for a ${size}-card deck`);
   const limit = maxCopiesFor(settings, config, size);
   for (const dc of cards) {
     const card = index.get(dc.cardId)!;
-    if (!card.identity.every((c) => c === color))
-      throw new Error(`builder chose off-color ${card.name}`);
+    const fits = isCommanderSize(size) ? identityWithin(card, colors) : playableWith(card, colors);
+    if (!fits) throw new Error(`builder chose off-color ${card.name}`);
     if (dc.qty > limit) throw new Error(`builder exceeded the copy limit on ${card.name}`);
   }
   if (lands < template.landFormula.min || lands > template.landFormula.max) {
@@ -929,6 +1110,7 @@ export function buildDeck(
       averageMv: plan.averageMv,
       cheapManaSources: plan.cheapManaSources,
       nonbasics: nonbasicCount,
+      ...(colors.length > 1 ? { sources: mana.sources } : {}),
     },
     synergies,
     notes,
@@ -939,10 +1121,11 @@ export function buildDeck(
     id: request.id ?? '',
     name: `${colorLabel} ${archetype.label} ${size}`,
     size,
-    color,
+    color: colorPlanned.main,
+    ...(colors.length > 1 ? { colors: colorPlanned.colors } : {}),
     archetype: archetype.id,
     cards,
-    basics: mana.basics > 0 ? { [color]: mana.basics } : {},
+    basics: Object.fromEntries(Object.entries(mana.basics).filter(([, q]) => (q ?? 0) > 0)),
     committed: false,
     createdAt: request.createdAt ?? '',
     configVersion: configVersion(config),

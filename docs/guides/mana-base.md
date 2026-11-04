@@ -56,6 +56,25 @@ Every nonbasic in the pool that fits the color is scored:
 
 Lands scoring below 0.5 stay out. Nonbasics take at most 40% of the land count, and colorless-only lands are capped at 4, 2, and 1 by size, because a mono-color deck that cannot cast its spells on time loses to its own mana base. Within the allowed share the highest scores go in and basics fill the rest.
 
+## Multi-color decks
+
+A deck of two to five colors has a main color (the one its candidates lean on most) and secondary colors; a color carrying less than 35% of the main color's weight is a splash (`landRules.colors.splashShare`).
+
+**Picking spells.** Spells that strain the mana lose card strength points while the builder picks (`builderWeights.castability`): each pip of a secondary color costs 0.25, a double pip of one 0.75 more, and a secondary pip on a one- or two-drop 0.4 more. Splash pips cost 0.6 each, with 2 more for a double pip and 1 more for an early play. Each color must also hold at least 4, 3, or 2 spells in a 60, 40, or 20-card deck (`minCardsPerColor`).
+
+**How many sources a color wants.** For every spell, the builder works out how many lands of that color it needs to cast the spell on curve, given the deck made its land drops, and the most demanding spell sets the want. The target chance is 90% for the main color, 85% for secondary colors, and 75% for a splash (`castChance`). The math is a hypergeometric draw over the deck, the lands, and the sources; some values at 90%, on the play:
+
+| Deck               | One pip turn 1 | One pip turn 2 | One pip turn 3 | Two pips turn 2 | Two pips turn 3 | Two pips turn 4 |
+| ------------------ | -------------- | -------------- | -------------- | --------------- | --------------- | --------------- |
+| 60 cards, 24 lands | 15             | 13             | 11             | 20              | 17              | 15              |
+| 40 cards, 17 lands | 10             | 9              | 7              | 14              | 12              | 10              |
+
+So two colors work on basics when double pips stay in the main color, and three or more colors need fixing or a light splash.
+
+**Which lands count.** A land is a source of a color when it taps for that color directly: from its basic land types, or from an ability that costs only {T} (life payments are fine) and does not limit what the mana may be spent on. Filter lands ("{1}, {T}: Add one mana of any color") and restricted mana do not count. A land that fetches a basic counts for every deck color it can find, but only once the deck holds a basic of that color, and only in multi-color decks; a mono-color deck does not use it, since a basic does the same job without the slow turn. Lands and rocks that work only with a commander (Command Tower, Arcane Signet) are never candidates outside Commander.
+
+**Choosing lands.** Nonbasics score +2 for making a deck color and +1.5 for each further deck color; entering tapped costs only 0.5 in a multi-color deck, where fixing is worth a slow turn. Nonbasics may take up to 60%, 70%, 75%, or 80% of the lands for two to five colors, and lands that enter tapped (fetch lands included) at most 25%, 35%, 40%, or 45%. Basics then go one at a time to the color furthest below its want, and once every color has what it wants, by colored pips. The deck notes list each color's sources and say when a color is stretched.
+
 ## Modal cards with a land face
 
 A modal double-faced card whose back is a land counts as a land in the mana base and still sits in the spell curve. It earns the credit above because it is a land when needed and a spell when not. Transforming cards do not get this treatment; their back face is never cast.

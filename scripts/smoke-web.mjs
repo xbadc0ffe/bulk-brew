@@ -185,14 +185,15 @@ try {
 
   await click('^Build$');
   await click('^60$');
-  // The color tile reads "W White 754 · 60/40/20".
-  await click('White\\d');
+  // Color tiles read like "W White 754 · 60/40/20". SMOKE_COLORS picks several, such as "White,Blue".
+  const colorNames = (process.env.SMOKE_COLORS ?? 'White').split(',');
+  for (const name of colorNames) await click(`${name}\\d`);
   // Open the rarity drop-down so the form screenshot shows it, then close it.
   await click('^All rarities');
   await waitForText(/Mythic/, 5000);
   await shot('3-build-form');
   await click('^All rarities');
-  await click('^Build 60-card white deck$');
+  await click(`^Build 60-card ${colorNames.join('-').toLowerCase()} deck$`);
   log('deck', oneLine(await waitForText(/Accept/, 30000), 160));
   await shot('3-deck');
 

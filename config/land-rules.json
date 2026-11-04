@@ -1,5 +1,5 @@
 {
-  "version": "1",
+  "version": "2",
   "basics": {
     "names": { "W": "Plains", "U": "Island", "B": "Swamp", "R": "Mountain", "G": "Forest" }
   },
@@ -14,5 +14,14 @@
   },
   "mdfc": {
     "landFaceCountsAsLand": true
+  },
+  "colors": {
+    "castChance": { "main": 0.9, "secondary": 0.85, "splash": 0.75 },
+    "splashShare": 0.35,
+    "minCardsPerColor": { "60": 4, "40": 3, "20": 2 },
+    "nonbasicMaxShare": { "2": 0.6, "3": 0.7, "4": 0.75, "5": 0.8 },
+    "producesExtraDeckColor": 1.5,
+    "entersTappedMulticolor": -0.5,
+    "tappedMaxShare": { "2": 0.25, "3": 0.35, "4": 0.4, "5": 0.45 }
   }
 }

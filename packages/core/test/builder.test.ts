@@ -139,7 +139,7 @@ describe('curveTargets', () => {
 });
 
 function build(size: DeckSize, style?: string) {
-  const base = { size, color: 'W' as const, settings: SETTINGS, id: 'test', createdAt: 't' };
+  const base = { size, colors: ['W' as const], settings: SETTINGS, id: 'test', createdAt: 't' };
   return buildDeck(style ? { ...base, style } : base, bigPool(), index, CONFIG);
 }
 
@@ -191,17 +191,17 @@ describe('buildDeck', () => {
 
   it('throws a plain-language error on a thin pool', () => {
     expect(() =>
-      buildDeck({ size: 60, color: 'W', settings: SETTINGS }, thinPool(), index, CONFIG),
+      buildDeck({ size: 60, colors: ['W'], settings: SETTINGS }, thinPool(), index, CONFIG),
     ).toThrow(BuildError);
     expect(() =>
-      buildDeck({ size: 60, color: 'U', settings: SETTINGS }, bigPool(), index, CONFIG),
+      buildDeck({ size: 60, colors: ['U'], settings: SETTINGS }, bigPool(), index, CONFIG),
     ).toThrow(/Blue/);
   });
 
   it('builds creature-only pools at every size by relaxing type caps in the last pass', () => {
     for (const size of [60, 40, 20] as const) {
       const r = buildDeck(
-        { size, color: 'W', settings: SETTINGS, id: 't', createdAt: 't' },
+        { size, colors: ['W'], settings: SETTINGS, id: 't', createdAt: 't' },
         creaturePool(),
         index,
         CONFIG,
@@ -331,7 +331,7 @@ describe('copy guidelines', () => {
 
     // Six legends with four copies each: 24 copies for 23 spell slots, so the guideline bends.
     const tight = buildDeck(
-      { size: 40, color: 'W', settings: SETTINGS, id: 't', createdAt: 't' },
+      { size: 40, colors: ['W'], settings: SETTINGS, id: 't', createdAt: 't' },
       { entries, updatedAt: 't' },
       idx,
       CONFIG,
@@ -341,7 +341,7 @@ describe('copy guidelines', () => {
 
     // With the full fixture pool beside them, no legend needs a third copy.
     const roomy = buildDeck(
-      { size: 40, color: 'W', settings: SETTINGS, id: 't', createdAt: 't' },
+      { size: 40, colors: ['W'], settings: SETTINGS, id: 't', createdAt: 't' },
       { entries: { ...bigPool().entries, ...entries }, updatedAt: 't' },
       idx,
       CONFIG,
@@ -398,7 +398,7 @@ describe('legendary lands', () => {
     const pool = bigPool();
     pool.entries['legend-land'] = { cardId: 'legend-land', qty: 4 };
     const r = buildDeck(
-      { size: 60, color: 'W', settings: SETTINGS, id: 't', createdAt: 't' },
+      { size: 60, colors: ['W'], settings: SETTINGS, id: 't', createdAt: 't' },
       pool,
       new CardIndex(pack),
       CONFIG,

@@ -142,9 +142,9 @@ Versioned data files in `config/`, typed and validated by `packages/core/src/con
 
 ## Archetype scan
 
-Scan the pool and report, per color and per deck size, which archetypes are viable, with enabler and payoff counts (synergy archetypes) or role and curve counts (composition archetypes), plus how close near-misses are. The builder uses the scan as its seed step and the Build screen shows it to guide the style choice.
+Scan the pool and report, per color set and per deck size, which archetypes are viable, with enabler and payoff counts (synergy archetypes) or role and curve counts (composition archetypes), plus how close near-misses are. The builder uses the scan as its seed step and the Build screen shows it to guide the style choice.
 
-A deck is possible when the pool has enough spells for the slots and at least half of those slots can be cards of the deck color (`MIN_COLORED_SHARE`); colorless cards fit every color but cannot make a color's deck on their own. Cards with a {C} pip are excluded, since basics cannot pay for them. Every theme card counts toward viability; only theme cards at or above the card strength bar (`themeMinStrength`) count toward the margin, so a theme made of weak cards ranks low without being ruled out. The Build screen shows colored counts on the color buttons and the reason a color is unavailable.
+A deck is possible when the pool has enough spells for the slots and at least half of those slots can be cards of the deck colors (`MIN_COLORED_SHARE`); colorless cards fit every color but cannot make a color's deck on their own. A multi-color deck also needs `minCardsPerColor` spells of each of its colors. Cards with a {C} pip are excluded, since basics cannot pay for them. Every theme card counts toward viability; only theme cards at or above the card strength bar (`themeMinStrength`) count toward the margin, so a theme made of weak cards ranks low without being ruled out. The Build screen shows colored counts on the color buttons and the reason a color is unavailable.
 
 ## Builder
 
@@ -157,10 +157,10 @@ Pool, deck size, colors, optional primary and secondary style, commander (100 on
 1. **Candidates**: pool cards that fit the colors (see Colors), honoring the Un-set setting and copy limits, and excluding cards with a {C} pip. Guidelines from `docs/guides/` (2 copies of legendary and six-plus cards, type caps, the theme strength bar) shape the passes but bend in the last filler passes when the pool runs out of other cards. Magic rules and the user's settings (copy limit, colors, rarities) never bend.
 2. **Archetype**: the preferred style if viable. Best fit builds every viable style and keeps the one whose finished deck scores highest; the scan margin alone measures how deep a theme is, not how strong its deck is.
 3. **Reserve lands**: start from the template's base land count so the spell count is known.
-4. **Fill spells** in passes with per-type caps so no category floods the deck: role minimums, theme enablers and payoffs to their minimums, role targets, type mix minimums, curve fill toward the profile, then filler. The last filler pass ignores type caps so a creature-only pool still fills the deck.
+4. **Fill spells** in passes with per-type caps so no category floods the deck: role minimums, theme enablers and payoffs to their minimums, each color's minimum (multi-color), role targets, type mix minimums, curve fill toward the profile, then filler. Multi-color decks first pick a main color and mark weak colors as splashes; spells that ask a lot of a secondary or splash color lose strength points while picking (see `docs/guides/mana-base.md`). The last filler pass ignores type caps so a creature-only pool still fills the deck.
 5. **Size the mana base** from the spells actually chosen: a base count per size, raised by average mana value, lowered per cheap mana source, clamped to a range. Credits per source kind and cost are in the template; dorks earn slightly less than rocks because they die to removal, and dorks still count as creatures in the curve. If the land count moved, trim the least important picks or re-fill, until the count is stable.
 6. **Improve** with bounded local search: swap a chosen card for an unchosen candidate when the objective improves, then re-fit the land count again.
-7. **Nonbasics and basics** per land rules.
+7. **Nonbasics and basics** per land rules. Multi-color decks size each color's sources from what its spells need to cast on curve and split the basics to match.
 8. **Validate**: exact size, copy limits, color identity, land count inside the clamp.
 
 Constants live in `config/deck-templates.json` and are explained in `docs/guides/deck-shapes.md`.
@@ -245,8 +245,8 @@ npm workspaces monorepo, TypeScript throughout.
 | 7b    | Design pass: Claude Design restyles both apps from `docs/DESIGN_BRIEF.md`                                       | done                              |
 | 8     | iOS app: Capacitor project, bundled data, over-the-air data updates, TestFlight                                 | on hold until the owner starts it |
 | 9     | Deck strength: data pack schema 2, card strength and deck scores, best fit by building, guide-based config pass | done                              |
-| 10    | Colors: one to five colors, castability candidates, pip-based mana bases, fixing, saved deck migration          | next                              |
-| 11    | Build page: settings left, ranked deck options right, background worker, state kept                             |                                   |
+| 10    | Colors: one to five colors, castability candidates, pip-based mana bases, fixing, saved deck migration          | done                              |
+| 11    | Build page: settings left, ranked deck options right, background worker, state kept                             | next                              |
 | 12    | Styles: primary and secondary styles, tribal as a secondary style, new styles                                   |                                   |
 | 13    | Commander: 100-card singleton, commander candidates and tiers, commander-anchored builds                        |                                   |
 | Later | Batch balanced mode, offline image download                                                                     |                                   |

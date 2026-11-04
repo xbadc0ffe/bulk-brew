@@ -4,7 +4,9 @@ import {
   buildDeck,
   commitDeck,
   newDeckId,
+  normalizeColors,
   scanAll,
+  scanPool,
   type BuildResult,
   type BulkBrewConfig,
   type CardIndex,
@@ -32,7 +34,13 @@ export interface BuildFlowInput {
 export interface BuildFlow {
   size: DeckSize;
   setSize(size: DeckSize): void;
+  /** Picked colors in WUBRG order; the build uses every one. */
+  colors: Color[];
+  /** Add or remove one color. */
+  toggleColor(color: Color): void;
+  /** The first picked color, for screens that work with one. */
   color: Color | undefined;
+  /** Pick exactly this one color. */
   setColor(color: Color): void;
   /** Archetype id, or undefined for best fit. */
   style: string | undefined;
@@ -42,7 +50,7 @@ export interface BuildFlow {
   setMaxCopies(n: number): void;
   /** Scan of every color for the current size and copy limit. */
   sizeScans: Record<Color, ScanReport> | undefined;
-  /** Scan of the chosen color. */
+  /** Scan of the picked colors together. */
   colorScan: ScanReport | undefined;
   result: BuildResult | undefined;
   /** Copy limit the current result was built with. */
@@ -69,7 +77,8 @@ export interface BuildFlow {
 export function useBuildFlow(input: BuildFlowInput): BuildFlow {
   const { index, config, pool, settings, decks, scans } = input;
   const [size, setSizeState] = useState<DeckSize>(60);
-  const [color, setColorState] = useState<Color>();
+  const [colors, setColorsState] = useState<Color[]>([]);
+  const color = colors[0];
   const [style, setStyleState] = useState<string>();
   /** A copy limit for this build, valid only while the size and stored setting match. */
   const [override, setOverride] = useState<{ size: DeckSize; base: number; value: number }>();
@@ -94,7 +103,11 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
     if (buildSettings === settings && scans) return scans[size];
     return scanAll(pool.pool, index, config, buildSettings, size);
   }, [index, pool.pool, config, buildSettings, settings, scans, size]);
-  const colorScan = color && sizeScans ? sizeScans[color] : undefined;
+  const colorScan = useMemo(() => {
+    if (!index || colors.length === 0) return undefined;
+    if (colors.length === 1) return sizeScans?.[colors[0]!];
+    return scanPool(pool.pool, index, config, buildSettings, size, colors);
+  }, [index, colors, sizeScans, pool.pool, config, buildSettings, size]);
 
   const reject = useCallback(() => {
     setResult(undefined);
@@ -110,7 +123,17 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
   );
   const setColor = useCallback(
     (c: Color) => {
-      setColorState(c);
+      setColorsState([c]);
+      setStyleState(undefined);
+      reject();
+    },
+    [reject],
+  );
+  const toggleColor = useCallback(
+    (c: Color) => {
+      setColorsState((cs) =>
+        normalizeColors(cs.includes(c) ? cs.filter((x) => x !== c) : [...cs, c]),
+      );
       setStyleState(undefined);
       reject();
     },
@@ -133,12 +156,12 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
 
   // Run the build on the next tick so the working state can paint first.
   useEffect(() => {
-    if (!building || !index || !color) return;
+    if (!building || !index || colors.length === 0) return;
     const handle = setTimeout(() => {
       try {
         const request = style
-          ? { size, color, settings: buildSettings, style }
-          : { size, color, settings: buildSettings };
+          ? { size, colors, settings: buildSettings, style }
+          : { size, colors, settings: buildSettings };
         setResult(buildDeck(request, pool.pool, index, config));
         setResultMaxCopies(maxCopies);
         setError(undefined);
@@ -150,9 +173,9 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
       }
     }, 0);
     return () => clearTimeout(handle);
-  }, [building, index, color, size, style, buildSettings, maxCopies, pool.pool, config]);
+  }, [building, index, colors, size, style, buildSettings, maxCopies, pool.pool, config]);
 
-  const canBuild = Boolean(index && color && colorScan?.possible && !building);
+  const canBuild = Boolean(index && colors.length > 0 && colorScan?.possible && !building);
 
   const build = useCallback(() => {
     if (!canBuild) return;
@@ -189,6 +212,8 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
   return {
     size,
     setSize,
+    colors,
+    toggleColor,
     color,
     setColor,
     style,

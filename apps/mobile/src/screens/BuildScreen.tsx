@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { COLORS, COLOR_LABELS, RARITIES, type DeckSize } from '@bulk-brew/core';
+import { COLORS, COLOR_LABELS, colorsLabel, RARITIES, type DeckSize } from '@bulk-brew/core';
 import {
   archetypeInfo,
   archetypeViability,
@@ -52,7 +52,7 @@ function BuildForm() {
   // Schema 1 packs carry no rarity, so the filter cannot act until the data is refreshed.
   const rarityKnown = (index?.pack.schema ?? 2) >= 2;
   const scan = flow.colorScan;
-  const colorName = flow.color ? COLOR_LABELS[flow.color] : undefined;
+  const colorName = flow.colors.length > 0 ? colorsLabel(flow.colors) : undefined;
   const styles = scan
     ? scan.archetypes
         .map((a) => ({ a, state: archetypeViability(a, scan) }))
@@ -132,12 +132,13 @@ function BuildForm() {
         </div>
 
         <section className="flex flex-col gap-2">
-          <h2 className={phone.groupLabel}>Color</h2>
-          <div role="group" aria-label="Color" className="grid grid-cols-5 gap-1.5">
+          <h2 className={phone.groupLabel}>Colors</h2>
+          <div role="group" aria-label="Colors" className="grid grid-cols-5 gap-1.5">
             {COLORS.map((c) => {
               const s = flow.sizeScans?.[c];
-              const can = s?.possible ?? false;
-              const on = flow.color === c;
+              // Any color with cards of its own can join a set; the set's scan decides the rest.
+              const can = (s?.colored ?? 0) > 0;
+              const on = flow.colors.includes(c);
               const sizes = scans ? buildableSizes(scans, c) : [];
               return (
                 <button
@@ -145,9 +146,9 @@ function BuildForm() {
                   type="button"
                   aria-pressed={on}
                   aria-disabled={!can}
-                  aria-label={`${COLOR_LABELS[c]}, ${s?.candidates ?? 0} candidates, ${can ? `builds ${sizes.join(', ')}` : `cannot build ${flow.size}`}`}
+                  aria-label={`${COLOR_LABELS[c]}, ${s?.candidates ?? 0} candidates, ${sizes.length > 0 ? `builds ${sizes.join(', ')}` : 'builds no size alone'}`}
                   onClick={() => {
-                    if (can && !on) flow.setColor(c);
+                    if (can || on) flow.toggleColor(c);
                   }}
                   className={`flex min-w-0 flex-col items-center gap-1 rounded-lg border px-0.5 pt-2.5 pb-2 ${
                     on ? 'border-ink bg-surface' : 'border-line'
@@ -163,9 +164,9 @@ function BuildForm() {
               );
             })}
           </div>
-          {flow.color && scan && !scan.possible && (
+          {colorName && scan && !scan.possible && (
             <p className="text-[0.75rem] text-fg-2">
-              {COLOR_LABELS[flow.color]} cannot build a {flow.size}-card deck:{' '}
+              {colorName} cannot build a {flow.size}-card deck:{' '}
               {scanShortfall(scan) ?? 'not enough cards'}.
             </p>
           )}

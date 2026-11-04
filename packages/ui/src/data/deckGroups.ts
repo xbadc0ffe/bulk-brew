@@ -111,11 +111,11 @@ export function archetypeInfo(
 }
 
 /** The deck's colors in WUBRG order: its cards' colors plus its basics. */
-export function deckColors(deck: Deck, index: CardIndex): Color[] {
-  const set = new Set<Color>();
+export function deckColors(deck: Deck, _index?: CardIndex): Color[] {
+  // The deck's own colors plus the basics it runs; card identity would let a
+  // hybrid card add a color the deck does not play.
+  const set = new Set<Color>(deck.colors ?? [deck.color]);
   for (const [c, n] of Object.entries(deck.basics)) if ((n ?? 0) > 0) set.add(c as Color);
-  for (const dc of deck.cards) for (const c of index.get(dc.cardId)?.identity ?? []) set.add(c);
-  if (set.size === 0) set.add(deck.color);
   return COLORS.filter((c) => set.has(c));
 }
 

@@ -1,5 +1,5 @@
 {
-  "version": "3",
+  "version": "5",
   "objective": {
     "curveDeviation": 1.0,
     "typeMixDeviation": 1.0,
@@ -14,10 +14,25 @@
     "maxSwapsPerPass": 200
   },
   "deckScore": {
-    "weights": { "strength": 0.15, "roles": 0.1, "curve": 0.1, "typeMix": 0.05, "synergy": 0.6 },
+    "weights": {
+      "strength": 0.15,
+      "roles": 0.1,
+      "curve": 0.1,
+      "typeMix": 0.05,
+      "synergy": 0.6,
+      "castability": 0.3
+    },
     "strengthRange": [3, 7],
     "shapeSlack": 0.5,
     "synergyReference": 2
   },
-  "bestFit": { "synergyCandidates": 20, "compositionCandidates": 3 }
+  "bestFit": { "synergyCandidates": 20, "compositionCandidates": 3 },
+  "castability": {
+    "secondaryPip": 0.25,
+    "doubleSecondary": 0.75,
+    "earlySecondary": 0.4,
+    "splashPip": 0.6,
+    "splashDouble": 2,
+    "splashEarly": 1
+  }
 }

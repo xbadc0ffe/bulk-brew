@@ -2,13 +2,6 @@
 
 Ranked. The current phase is at the top. Finished phases are removed, not struck through.
 
-## Phase 10: Colors
-
-- Color sets through the request, scan, deck, explanation, and saved decks (migrate stored decks and backups from one color).
-- Candidates by castability for 60, 40, 20 (unlocks hybrid); identity for 100.
-- Pip analysis, per-color source targets from a probability in config, basics split, multi-color lands and fixers scored, main, secondary, and splash colors.
-- Owner to upload the multi-color and nonbasic land lists as eval pools.
-
 ## Phase 11: Build page
 
 - Settings left, ranked deck options right, background worker, pause on open, state kept. See SPEC "Build options". Web first, then mobile.
@@ -32,6 +25,8 @@ Ranked. The current phase is at the top. Finished phases are removed, not struck
 
 ## Builder follow-ups
 
+- Multi-color: split cards count only their first half's pips; pathway lands (land // land) count for both colors; Thriving lands count for every deck color in 3+ color decks; fetch lands without the `tutor-land-basic` tag (true fetches) are not used for fixing.
+- Eval: `npm run eval -- --dir test-bulk --combine --colors all` runs the owner's local lists across every color set (results stay in that folder).
 - Calibrate the deck score with the owner on a sample of decks. Synergy leads (0.6) since the owner found strength-led ranking ignored synergy; card strength, roles, curve, and type mix are tiebreaks (`deckScore.weights` in builder-weights.json).
 - Best fit builds every viable style per request; a 60-card build averages about 190 ms on desktop and runs on the main thread until phase 11 moves building to a worker.
 - Role and type-mix parts of the deck score are full in every bulk pool, so they do not separate decks; consider dropping or rescaling them.

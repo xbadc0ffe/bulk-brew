@@ -7,7 +7,7 @@ The reasoning behind the numbers in `config/`. Each guide names the config file 
 | [Deck shapes](deck-shapes.md)     | `deck-templates.json`, `curve-profiles.json`, `builder-weights.json` |
 | [Colors](colors.md)               | Which archetypes to expect per color; `archetypes.json` color limits |
 | [Archetypes](archetypes.md)       | `archetypes.json`, `roles.json`, `synergy-rules.json`                |
-| [Mana base](mana-base.md)         | `deck-templates.json` land formula, `land-rules.json`                |
+| [Mana base](mana-base.md)         | `deck-templates.json` land formula, `land-rules.json`, castability   |
 | [Jumpstart packets](jumpstart.md) | The 20-card template and curve profile                               |
 | [Card strength](card-strength.md) | `card-strength.json`, `builder-weights.json` deck score and best fit |
 

@@ -84,6 +84,11 @@ export function parseBackup(json: string): Backup {
     const where = `deck "${deck.name}"`;
     if (![60, 40, 20].includes(deck.size as number)) fail(`${where} has a bad size`);
     if (!COLORS.includes(deck.color as never)) fail(`${where} has a bad color`);
+    if (
+      deck.colors !== undefined &&
+      (!Array.isArray(deck.colors) || !deck.colors.every((c) => COLORS.includes(c as never)))
+    )
+      fail(`${where} has a bad color list`);
     if (!Array.isArray(deck.cards)) fail(`${where} has no card list`);
     for (const card of deck.cards) {
       if (!isRecord(card) || typeof card.cardId !== 'string' || !isCount(card.qty))

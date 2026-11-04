@@ -29,10 +29,16 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '.
 function main(): number {
   const [poolPath, colorArg, sizeArg, style] = process.argv.slice(2);
   if (!poolPath || !colorArg) {
-    console.error('usage: npm run demo:build -- <pool.txt> <W|U|B|R|G> [60|40|20] [style]');
+    console.error(
+      'usage: npm run demo:build -- <pool.txt> <colors, such as W or WU> [60|40|20] [style]',
+    );
     return 2;
   }
-  const color = colorArg.toUpperCase() as Color;
+  const colors = [...colorArg.toUpperCase()] as Color[];
+  if (colors.length === 0 || colors.some((c) => !'WUBRG'.includes(c))) {
+    console.error(`colors must be letters from WUBRG, such as W or WU; got "${colorArg}"`);
+    return 2;
+  }
   const size = (sizeArg ? Number(sizeArg) : 60) as DeckSize;
 
   const t0 = Date.now();
@@ -57,9 +63,9 @@ function main(): number {
   );
 
   const t2 = Date.now();
-  const scan = scanPool(pool, index, config, settings, size, color);
+  const scan = scanPool(pool, index, config, settings, size, colors);
   console.log(
-    `scan ${color} ${size}: ${scan.candidates} spell copies (${scan.distinct} distinct), ${scan.lands} lands, ${scan.spellSlots} slots, possible=${scan.possible} (${Date.now() - t2} ms)`,
+    `scan ${colors.join('')} ${size}: ${scan.candidates} spell copies (${scan.distinct} distinct), ${scan.lands} lands, ${scan.spellSlots} slots, possible=${scan.possible} (${Date.now() - t2} ms)`,
   );
   for (const a of scan.archetypes) {
     const counts =
@@ -74,8 +80,8 @@ function main(): number {
   const t3 = Date.now();
   try {
     const request = style
-      ? { size, color, settings, style, id: 'demo', createdAt: 'demo' }
-      : { size, color, settings, id: 'demo', createdAt: 'demo' };
+      ? { size, colors, settings, style, id: 'demo', createdAt: 'demo' }
+      : { size, colors, settings, id: 'demo', createdAt: 'demo' };
     const result = buildDeck(request, pool, index, config);
     const ms = Date.now() - t3;
     console.log(`\nbuilt "${result.deck.name}" in ${ms} ms\n`);

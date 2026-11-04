@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { COLORS, COLOR_LABELS, RARITIES, type DeckSize } from '@bulk-brew/core';
+import { COLORS, COLOR_LABELS, colorsLabel, RARITIES, type DeckSize } from '@bulk-brew/core';
 import {
   archetypeInfo,
   archetypeViability,
@@ -56,7 +56,7 @@ function BuildForm() {
   const { build: flow, scans, config, settings, index } = useAppState();
   // Schema 1 packs carry no rarity, so the filter cannot act until the data is refreshed.
   const rarityKnown = (index?.pack.schema ?? 2) >= 2;
-  const colorName = flow.color ? COLOR_LABELS[flow.color] : undefined;
+  const colorName = flow.colors.length > 0 ? colorsLabel(flow.colors) : undefined;
   const scan = flow.colorScan;
   const styles = scan
     ? scan.archetypes
@@ -142,21 +142,24 @@ function BuildForm() {
         </label>
 
         <div className="flex flex-col gap-2">
-          <h2 className={ui.sectionLabel}>Color</h2>
-          <div role="group" aria-label="Color" className="grid grid-cols-5 gap-1.5">
+          <h2 className={ui.sectionLabel}>Colors</h2>
+          <div role="group" aria-label="Colors" className="grid grid-cols-5 gap-1.5">
             {COLORS.map((c) => {
               const s = flow.sizeScans?.[c];
-              const can = s?.possible ?? false;
-              const on = flow.color === c;
+              // Any color with cards of its own can join a set; the set's scan decides the rest.
+              const can = (s?.colored ?? 0) > 0;
+              const on = flow.colors.includes(c);
               return (
                 <button
                   key={c}
                   type="button"
                   aria-pressed={on}
                   aria-disabled={!can}
-                  title={can ? undefined : s?.notes.join('; ')}
+                  title={
+                    can ? undefined : `No ${COLOR_LABELS[c].toLowerCase()} cards in your bulk list`
+                  }
                   onClick={() => {
-                    if (can && !on) flow.setColor(c);
+                    if (can || on) flow.toggleColor(c);
                   }}
                   className={`flex min-w-0 flex-col items-center gap-1 rounded-md border px-1 pt-2.5 pb-2 text-center ${
                     on ? 'border-ink bg-surface' : 'border-line'
@@ -165,15 +168,16 @@ function BuildForm() {
                   <Pip symbol={c} size={22} />
                   <span className="text-[12px] font-medium">{COLOR_LABELS[c]}</span>
                   <span className="text-[10.5px] leading-tight text-fg-2">
-                    {s?.candidates ?? 0} · {can ? sizesText(scans, c) : `no ${flow.size}`}
+                    {s?.candidates ?? 0} ·{' '}
+                    {s?.possible ? sizesText(scans, c) : `no ${flow.size} alone`}
                   </span>
                 </button>
               );
             })}
           </div>
-          {flow.color && scan && !scan.possible && (
+          {colorName && scan && !scan.possible && (
             <p className="text-[12px] text-fg-2">
-              {COLOR_LABELS[flow.color]} cannot build a {flow.size}-card deck:{' '}
+              {colorName} cannot build a {flow.size}-card deck:{' '}
               {scanShortfall(scan) ?? 'not enough cards'}.
             </p>
           )}

@@ -88,6 +88,15 @@ export function hasColorlessPip(card: CardRecord): boolean {
   return manaCostsOf(card).some((cost) => /\{C\}/i.test(cost));
 }
 
+/** Cards whose mana or effect depends on a commander do nothing outside Commander. */
+export function needsCommander(card: CardRecord): boolean {
+  let text = card.text.replace(/\([^)]*\)/g, '');
+  // Cards name themselves in their text; "Benalish Commander" is not about a commander.
+  for (const name of [card.name, ...(card.faces ?? []).map((f) => f.name)])
+    text = text.split(name).join('');
+  return /\bcommander\b/i.test(text);
+}
+
 export function isMdfcLand(card: CardRecord): boolean {
   return card.layout === 'modal_dfc' && isLand(card) && !/^Land\b/.test(card.typeLine);
 }

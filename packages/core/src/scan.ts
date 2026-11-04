@@ -12,6 +12,7 @@ import {
   type TypeMix,
 } from './config.ts';
 import { listCandidates, type Candidate } from './candidates.ts';
+import { colorsLabel, normalizeColors } from './colors.ts';
 import type { CardIndex } from './pack.ts';
 import {
   COLOR_LABELS,
@@ -82,7 +83,7 @@ function reportSynergy(
   config: BulkBrewConfig,
   cands: Candidate[],
   template: DeckTemplate,
-  color: Color,
+  colors: readonly Color[],
   possible: boolean,
 ): ArchetypeReport {
   const key = String(template.size) as SizeKey;
@@ -97,7 +98,7 @@ function reportSynergy(
   const strongEnablers = countCopies(cands, (c) => isEnabler(c) && c.facts.strength >= bar);
   const strongPayoffs = countCopies(cands, (c) => isPayoff(c) && c.facts.strength >= bar);
   const notes: string[] = [];
-  const colorOk = !a.colors || a.colors.includes(color);
+  const colorOk = !a.colors || colors.some((c) => a.colors!.includes(c));
   if (!colorOk) notes.push(`${a.label} does not work in this color`);
   if (enablers < want.enablers)
     notes.push(`needs ${plural(want.enablers - enablers, `more ${a.label} enabler`)}`);
@@ -155,8 +156,11 @@ export function scanCandidates(
   config: BulkBrewConfig,
   settings: Settings,
   size: DeckSize,
-  color: Color,
+  colorsIn: Color | readonly Color[],
 ): ScanReport {
+  const colors = normalizeColors(typeof colorsIn === 'string' ? [colorsIn] : colorsIn);
+  const color = colors[0]!;
+  const label = colorsLabel(colors);
   const template = templateFor(config, size);
   const spellSlots = size - template.baseLands;
   let spells = 0;
@@ -187,8 +191,16 @@ export function scanCandidates(
     notes.push(`needs ${plural(spellSlots - spells, 'more spell')} for a ${size}-card deck`);
   } else if (colored < coloredMin) {
     notes.push(
-      `needs ${plural(coloredMin - colored, `more ${COLOR_LABELS[color]} card`)} (colorless cards alone do not make a ${COLOR_LABELS[color]} deck)`,
+      `needs ${plural(coloredMin - colored, `more ${label} card`)} (colorless cards alone do not make a ${label} deck)`,
     );
+  } else if (colors.length > 1) {
+    // Each color of a multi-color deck must bring enough of its own cards.
+    const per = config.landRules.colors.minCardsPerColor[String(size) as SizeKey] ?? 0;
+    for (const c of colors) {
+      const n = countCopies(cands, (x) => x.facts.card.colors.includes(c));
+      if (n < per)
+        notes.push(`needs ${plural(per - n, `more ${COLOR_LABELS[c]} card`)} for a ${label} deck`);
+    }
   } else if (creatures === spells && creatures >= spellSlots) {
     notes.push('all creatures: the deck will lean on combat with no spells');
   }
@@ -198,11 +210,12 @@ export function scanCandidates(
   const possible = !notes.some((n) => n.startsWith('needs '));
   const archetypes = config.archetypes.archetypes.map((a) =>
     a.kind === 'synergy'
-      ? reportSynergy(a, config, cands, template, color, possible)
+      ? reportSynergy(a, config, cands, template, colors, possible)
       : reportComposition(a, cands, config, template, spells, spellSlots, possible),
   );
   return {
     color,
+    colors,
     size,
     candidates: spells,
     colored,
@@ -221,14 +234,14 @@ export function scanPool(
   config: BulkBrewConfig,
   settings: Settings,
   size: DeckSize,
-  color: Color,
+  colors: Color | readonly Color[],
 ): ScanReport {
   return scanCandidates(
-    listCandidates(pool, index, config, settings, color, size),
+    listCandidates(pool, index, config, settings, colors, size),
     config,
     settings,
     size,
-    color,
+    colors,
   );
 }
 

@@ -10,6 +10,7 @@ import {
   effectiveQuotas,
   effectiveTypeMix,
   factsFor,
+  fitsColors,
   isFillerPick,
   manaCostsOf,
   maxCopiesFor,
@@ -69,29 +70,36 @@ export interface DeckMetrics {
   offenders: string[];
 }
 
-function payable(cost: string, color: Color): boolean {
-  for (const m of cost.matchAll(/\{([^}]+)\}/g)) {
-    const sym = m[1]!.toUpperCase();
-    // {C} needs colorless mana specifically, which basics of a color cannot make.
-    if (sym === 'C') return false;
-    if (sym.includes('/')) {
-      const parts = sym.split('/');
-      if (parts.includes('P')) continue;
-      if (parts.some((p) => p === color || /^\d+$/.test(p))) continue;
-      return false;
-    }
-    if ((COLORS as readonly string[]).includes(sym) && sym !== color) return false;
-  }
-  return true;
-}
-
 /**
  * Whether every cost on the card, on every face, can be paid by basics of the
- * deck color. Hybrid symbols pass when one side fits; Phyrexian symbols can be
- * paid with life; generic and X costs always pass.
+ * deck colors. Hybrid symbols pass when one side fits; Phyrexian symbols can
+ * be paid with life; generic and X costs always pass. {C} never passes.
  */
+export function castableWith(card: CardRecord, colors: readonly Color[]): boolean {
+  return manaCostsOf(card).every((cost) => {
+    for (const m of cost.matchAll(/\{([^}]+)\}/g)) {
+      const sym = m[1]!.toUpperCase();
+      if (sym === 'C') return false;
+      if (sym.includes('/')) {
+        const parts = sym.split('/');
+        if (parts.includes('P')) continue;
+        if (parts.some((p) => (colors as readonly string[]).includes(p) || /^\d+$/.test(p)))
+          continue;
+        return false;
+      }
+      if (
+        (COLORS as readonly string[]).includes(sym) &&
+        !(colors as readonly string[]).includes(sym)
+      )
+        return false;
+    }
+    return true;
+  });
+}
+
+/** Single-color form kept for callers that check one color. */
 export function castableIn(card: CardRecord, color: Color): boolean {
-  return manaCostsOf(card).every((cost) => payable(cost, color));
+  return castableWith(card, [color]);
 }
 
 function round(n: number, places = 3): number {
@@ -112,6 +120,7 @@ export function deckMetrics(
   const shape = curveProfileFor(config, effectiveCurveProfile(template, archetype)).shape;
   const limit = maxCopiesFor(settings, config, deck.size);
   const quotaRoles = new Set(Object.keys(quotas));
+  const deckColors = deck.colors ?? [deck.color];
 
   let spells = 0;
   let nonbasics = 0;
@@ -135,7 +144,7 @@ export function deckMetrics(
     if (!card) continue;
     total += dc.qty;
     if (dc.qty > limit) copyLimitOk = false;
-    if (!card.identity.every((c) => c === deck.color)) colorLegal = false;
+    if (!fitsColors(card, deckColors, deck.size)) colorLegal = false;
     const f = factsFor(index, config, card);
     if (f.spell) {
       spells += dc.qty;
@@ -155,7 +164,7 @@ export function deckMetrics(
       for (const r of f.roles) roleHave.set(r, (roleHave.get(r) ?? 0) + dc.qty);
       for (const r of f.ruleEnabler) ruleE.set(r, (ruleE.get(r) ?? 0) + dc.qty);
       for (const r of f.rulePayoff) ruleP.set(r, (ruleP.get(r) ?? 0) + dc.qty);
-      if (!castableIn(card, deck.color)) offenders.push(card.name);
+      if (!castableWith(card, deckColors)) offenders.push(card.name);
     } else if (f.land) {
       nonbasics += dc.qty;
     }

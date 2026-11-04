@@ -219,6 +219,23 @@ export interface LandRulesConfig {
   mdfc: {
     landFaceCountsAsLand: boolean;
   };
+  /** Multi-color decks: how sure each color role must be to cast on curve, and land rules. */
+  colors: {
+    /** Target chance to cast a spell on curve, by the role of the color it asks for. */
+    castChance: { main: number; secondary: number; splash: number };
+    /** A non-main color carrying less than this share of the main color's weight is a splash. */
+    splashShare: number;
+    /** Each color of a multi-color deck holds at least this many spells. */
+    minCardsPerColor: Record<SizeKey, number>;
+    /** Largest share of the land count nonbasics may take, by number of deck colors (2 to 5). */
+    nonbasicMaxShare: Record<string, number>;
+    /** Added per deck color a land makes beyond the first. */
+    producesExtraDeckColor: number;
+    /** Tapped lands cost less in multi-color decks, where fixing is worth a slow turn. */
+    entersTappedMulticolor: number;
+    /** Largest share of the land count that may enter tapped (fetch lands included), by number of deck colors. */
+    tappedMaxShare: Record<string, number>;
+  };
 }
 
 export interface BuilderWeightsConfig {
@@ -239,7 +256,14 @@ export interface BuilderWeightsConfig {
   };
   /** Weights of the deck score parts and how each part is scaled. */
   deckScore: {
-    weights: { strength: number; roles: number; curve: number; typeMix: number; synergy: number };
+    weights: {
+      strength: number;
+      roles: number;
+      curve: number;
+      typeMix: number;
+      synergy: number;
+      castability: number;
+    };
     /** Average card strength mapped to 0 and 1. */
     strengthRange: [number, number];
     /** Curve or type-mix misses, as a share of spell slots, that score zero. */
@@ -249,6 +273,19 @@ export interface BuilderWeightsConfig {
   };
   /** How many viable archetypes best fit builds and compares. */
   bestFit: { synergyCandidates: number; compositionCandidates: number };
+  /**
+   * Pick penalties, in card strength points, for spells that strain a
+   * multi-color mana base: pips of a secondary or splash color, double pips,
+   * and early plays that need the color on turn one or two.
+   */
+  castability: {
+    secondaryPip: number;
+    doubleSecondary: number;
+    earlySecondary: number;
+    splashPip: number;
+    splashDouble: number;
+    splashEarly: number;
+  };
 }
 
 export interface StrengthEffect {
@@ -665,7 +702,7 @@ export function validateConfig(c: BulkBrewConfig): string[] {
   }
 
   const ds = bw.deckScore;
-  for (const k of ['strength', 'roles', 'curve', 'typeMix', 'synergy'] as const) {
+  for (const k of ['strength', 'roles', 'curve', 'typeMix', 'synergy', 'castability'] as const) {
     const v = ds?.weights?.[k];
     if (!isNum(v) || v < 0)
       problems.push(`builderWeights.deckScore.weights.${k}: must be a non-negative number`);
@@ -696,6 +733,45 @@ export function validateConfig(c: BulkBrewConfig): string[] {
     problems.push(
       'builderWeights.bestFit: synergyCandidates and compositionCandidates must be whole numbers, at least one in total',
     );
+
+  const cast = bw.castability;
+  for (const k of [
+    'secondaryPip',
+    'doubleSecondary',
+    'earlySecondary',
+    'splashPip',
+    'splashDouble',
+    'splashEarly',
+  ] as const) {
+    if (!isNum(cast?.[k]) || cast[k] < 0)
+      problems.push(`builderWeights.castability.${k}: must be a non-negative number`);
+  }
+  const lc = c.landRules.colors;
+  for (const k of ['main', 'secondary', 'splash'] as const) {
+    const v = lc?.castChance?.[k];
+    if (!isNum(v) || v <= 0 || v >= 1)
+      problems.push(`landRules.colors.castChance.${k}: must be between 0 and 1`);
+  }
+  if (!isNum(lc?.splashShare) || lc.splashShare < 0 || lc.splashShare > 1)
+    problems.push('landRules.colors.splashShare: must be between 0 and 1');
+  for (const key of ['60', '40', '20'] as const) {
+    if (!isNum(lc?.minCardsPerColor?.[key]) || lc.minCardsPerColor[key] < 0)
+      problems.push(`landRules.colors.minCardsPerColor.${key}: must be a non-negative number`);
+  }
+  for (const n of ['2', '3', '4', '5']) {
+    const v = lc?.nonbasicMaxShare?.[n];
+    if (!isNum(v) || v < 0 || v > 1)
+      problems.push(`landRules.colors.nonbasicMaxShare.${n}: must be between 0 and 1`);
+  }
+  if (!isNum(lc?.producesExtraDeckColor))
+    problems.push('landRules.colors.producesExtraDeckColor: must be a number');
+  if (!isNum(lc?.entersTappedMulticolor))
+    problems.push('landRules.colors.entersTappedMulticolor: must be a number');
+  for (const n of ['2', '3', '4', '5']) {
+    const v = lc?.tappedMaxShare?.[n];
+    if (!isNum(v) || v < 0 || v > 1)
+      problems.push(`landRules.colors.tappedMaxShare.${n}: must be between 0 and 1`);
+  }
 
   const cs = c.cardStrength;
   for (const k of [

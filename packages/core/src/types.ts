@@ -165,7 +165,10 @@ export interface Deck {
   id: string;
   name: string;
   size: DeckSize;
+  /** The main color. Mono decks have only this; older saved decks always do. */
   color: Color;
+  /** Every deck color, main first, when the deck has more than one. */
+  colors?: Color[];
   archetype: string;
   /** Spells and nonbasic lands. */
   cards: DeckCard[];
@@ -193,7 +196,8 @@ export interface Settings {
 
 export interface BuildRequest {
   size: DeckSize;
-  color: Color;
+  /** One to five colors. The builder uses every one of them. */
+  colors: Color[];
   /** Preferred archetype id. Used when viable, otherwise the strongest viable one. */
   style?: string;
   settings: Settings;
@@ -218,6 +222,8 @@ export interface DeckScore {
   typeMix: number;
   /** Weighted enabler and payoff pairs per spell against the config reference. */
   synergy: number;
+  /** Share of spells the mana base casts on curve at the color's target chance. Absent on older decks. */
+  castability?: number;
 }
 
 /** Why the builder made the deck it made. Also the builder's debugging output. */
@@ -235,6 +241,8 @@ export interface BuildExplanation {
     averageMv: number;
     cheapManaSources: number;
     nonbasics: number;
+    /** Lands that make each deck color (multi-color decks). */
+    sources?: Partial<Record<Color, number>>;
   };
   synergies: string[];
   notes: string[];
@@ -262,7 +270,9 @@ export interface ArchetypeReport {
 }
 
 export interface ScanReport {
+  /** The first color of the set; the only one for mono scans. */
   color: Color;
+  colors: Color[];
   size: DeckSize;
   /** Available spell copies that fit the color. */
   candidates: number;

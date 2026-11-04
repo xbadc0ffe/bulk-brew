@@ -13,7 +13,12 @@ const index = new CardIndex(PACK);
 describe('poolShortfall', () => {
   it('is zero for a fresh build and counts what a commit already took', () => {
     const pool = bigPool();
-    const { deck } = buildDeck({ size: 40, color: 'W', settings: SETTINGS }, pool, index, CONFIG);
+    const { deck } = buildDeck(
+      { size: 40, colors: ['W'], settings: SETTINGS },
+      pool,
+      index,
+      CONFIG,
+    );
     expect(poolShortfall(pool, deck, SETTINGS, index, CONFIG)).toBe(0);
     // A pool holding exactly the deck: one commit empties it, a second would be short every card.
     const exact = {
@@ -31,7 +36,7 @@ describe('poolShortfall', () => {
   it('counts basics only when basics are tracked', () => {
     const pool = bigPool();
     const tracked = { ...SETTINGS, unlimitedBasics: false };
-    const { deck } = buildDeck({ size: 40, color: 'W', settings: tracked }, pool, index, CONFIG);
+    const { deck } = buildDeck({ size: 40, colors: ['W'], settings: tracked }, pool, index, CONFIG);
     const noPlains = { ...pool, entries: { ...pool.entries } };
     delete noPlains.entries['plains'];
     const basics = deck.basics.W ?? 0;

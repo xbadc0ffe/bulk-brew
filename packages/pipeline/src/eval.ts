@@ -1,7 +1,8 @@
 // Evaluation runner: build decks from every fixture pool, score them with
 // the automatic metrics, record the results, and show deltas against the
 // previous comparable run.
-// Usage: npm run eval [-- --styles] [--pools <substring>] [--out <file>]
+// Usage: npm run eval [-- --styles] [--pools <substring>] [--colors pairs|all] [--out <file>]
+//        npm run eval -- --dir <folder> [--combine]   (a local folder, results written there)
 // Exits 1 when any build fails or any deck breaks a hard invariant.
 
 import { execFileSync } from 'node:child_process';
@@ -15,6 +16,7 @@ import {
   CardIndex,
   COLORS,
   configVersion,
+  normalizeColors,
   emptyPool,
   parseDecklist,
   parsePack,
@@ -39,7 +41,8 @@ const SIZES: DeckSize[] = [60, 40, 20];
 export interface DeckRun {
   pool: string;
   size: DeckSize;
-  color: Color;
+  /** Color letters in WUBRG order, such as "W" or "WU". */
+  color: string;
   /** Requested style, or "best" for best fit. */
   style: string;
   ok: boolean;
@@ -53,7 +56,7 @@ export interface DeckRun {
 export interface Skip {
   pool: string;
   size: DeckSize;
-  color: Color;
+  color: string;
   reason: string;
 }
 
@@ -83,6 +86,8 @@ export interface Results {
   dataVersion: string;
   configVersion: string;
   styles: boolean;
+  /** Color sets beyond mono: "pairs" or "all". Absent for mono-only runs. */
+  colors?: string;
   /** Substring passed with --pools, or null for a full run. */
   poolFilter: string | null;
   poolNames: string[];
@@ -143,13 +148,17 @@ function summarize(runs: DeckRun[], skips: Skip[]): Summary {
   };
 }
 
-function loadPool(file: string, index: CardIndex): { pool: Pool; unresolved: number } {
-  const text = readFileSync(file, 'utf8');
-  const report = resolveLines(parseDecklist(text).lines, index, { suggest: false });
-  return {
-    pool: addToPool(emptyPool('eval'), toPoolEntries(report.resolved), 'eval'),
-    unresolved: report.unresolved.length,
-  };
+function loadPool(files: string[], index: CardIndex): { pool: Pool; unresolved: number } {
+  let pool = emptyPool('eval');
+  let unresolved = 0;
+  for (const file of files) {
+    const report = resolveLines(parseDecklist(readFileSync(file, 'utf8')).lines, index, {
+      suggest: false,
+    });
+    pool = addToPool(pool, toPoolEntries(report.resolved), 'eval');
+    unresolved += report.unresolved.length;
+  }
+  return { pool, unresolved };
 }
 
 function row(name: string, s: Summary): string {
@@ -162,7 +171,11 @@ const HEADER = [
 ].join('\n');
 
 /** Latest earlier full run with the same styles flag, by runAt. */
-function previousResults(styles: boolean, exclude: string): Results | undefined {
+function previousResults(
+  styles: boolean,
+  colors: string | undefined,
+  exclude: string,
+): Results | undefined {
   if (!existsSync(RESULTS_DIR)) return undefined;
   let best: Results | undefined;
   for (const f of readdirSync(RESULTS_DIR)) {
@@ -174,6 +187,7 @@ function previousResults(styles: boolean, exclude: string): Results | undefined 
       continue;
     }
     if (typeof r.runAt !== 'string' || r.styles !== styles || r.poolFilter) continue;
+    if ((r.colors ?? undefined) !== colors) continue;
     if (!best || r.runAt > best.runAt) best = r;
   }
   return best;
@@ -233,9 +247,26 @@ function printDeltas(previous: Results, current: Results): void {
   }
 }
 
+/** Every color set of the given sizes, in WUBRG order. */
+function colorSets(spread: string | undefined): Color[][] {
+  const max = spread === 'all' ? 5 : spread === 'pairs' ? 2 : 1;
+  const out: Color[][] = [];
+  const walk = (start: number, set: Color[]) => {
+    if (set.length > 0) out.push(set);
+    if (set.length === max) return;
+    for (let i = start; i < COLORS.length; i++) walk(i + 1, [...set, COLORS[i]!]);
+  };
+  walk(0, []);
+  return out.sort((a, b) => a.length - b.length);
+}
+
 function main(): number {
   const styles = process.argv.includes('--styles');
   const poolFilter = arg('pools') ?? null;
+  const spread = arg('colors');
+  const dir = arg('dir');
+  const combine = process.argv.includes('--combine');
+  const poolsDir = dir ? path.resolve(dir) : POOLS_DIR;
   const t0 = Date.now();
   const packPath = path.join(ROOT, 'data', 'packs', PACK_FILE);
   if (!existsSync(packPath)) {
@@ -257,25 +288,34 @@ function main(): number {
     `pack ${pack.version} (${pack.cardCount} cards), config ${configVersion(config)}, loaded in ${Date.now() - t0} ms`,
   );
 
-  const files = readdirSync(POOLS_DIR)
+  const files = readdirSync(poolsDir)
     .filter((f) => f.endsWith('.txt') && (!poolFilter || f.includes(poolFilter)))
     .sort();
   if (files.length === 0) {
-    console.error('no pools found in eval/pools');
+    console.error(`no pools found in ${path.relative(ROOT, poolsDir) || poolsDir}`);
     return 1;
   }
+  // One pool per file, or every file as one pool (a collection split by color).
+  const poolsToRun: { name: string; files: string[] }[] = combine
+    ? [{ name: path.basename(poolsDir), files }]
+    : files.map((f) => ({ name: f.replace(/\.txt$/, ''), files: [f] }));
+  const sets = colorSets(spread);
 
   const runs: DeckRun[] = [];
   const skips: Skip[] = [];
   const poolNames: string[] = [];
-  for (const file of files) {
-    const name = file.replace(/\.txt$/, '');
+  for (const { name, files: group } of poolsToRun) {
     poolNames.push(name);
-    const { pool, unresolved } = loadPool(path.join(POOLS_DIR, file), index);
+    const { pool, unresolved } = loadPool(
+      group.map((f) => path.join(poolsDir, f)),
+      index,
+    );
     if (unresolved > 0) console.log(`${name}: ${unresolved} unresolved lines ignored`);
     for (const size of SIZES) {
-      for (const color of COLORS) {
-        const scan = scanPool(pool, index, config, settings, size, color);
+      for (const set of sets) {
+        const colors = normalizeColors(set);
+        const color = colors.join('');
+        const scan = scanPool(pool, index, config, settings, size, colors);
         if (!scan.possible) {
           skips.push({ pool: name, size, color, reason: scan.notes.join('; ') });
           continue;
@@ -287,7 +327,7 @@ function main(): number {
         for (const style of styleIds) {
           const request = {
             size,
-            color,
+            colors,
             settings,
             id: `${name}-${size}-${color}-${style}`,
             createdAt: 'eval',
@@ -342,10 +382,20 @@ function main(): number {
   const date = runAt.slice(0, 10);
   const sha = git(['rev-parse', '--short', 'HEAD']) ?? 'nogit';
   const dirty = workingTreeDirty();
-  const stem = [date, sha, dirty && 'dirty', styles && 'styles', poolFilter && 'partial']
+  const stem = [
+    date,
+    sha,
+    dirty && 'dirty',
+    styles && 'styles',
+    spread && `colors-${spread}`,
+    poolFilter && 'partial',
+    dir && 'local',
+  ]
     .filter(Boolean)
     .join('-');
-  const outFile = uniquePath(path.resolve(arg('out') ?? path.join(RESULTS_DIR, `${stem}.json`)));
+  // Local folders keep their results beside the pools, out of the committed baselines.
+  const resultsDir = dir ? poolsDir : RESULTS_DIR;
+  const outFile = uniquePath(path.resolve(arg('out') ?? path.join(resultsDir, `${stem}.json`)));
   const results: Results = {
     date,
     runAt,
@@ -354,7 +404,8 @@ function main(): number {
     dataVersion: index.dataVersion,
     configVersion: configVersion(config),
     styles,
-    poolFilter,
+    ...(spread ? { colors: spread } : {}),
+    poolFilter: dir ? `dir:${path.basename(poolsDir)}` : poolFilter,
     poolNames,
     pools,
     bySize,
@@ -397,7 +448,7 @@ function main(): number {
     }
   }
 
-  const previous = previousResults(styles, outFile);
+  const previous = dir ? undefined : previousResults(styles, spread, outFile);
   if (previous) printDeltas(previous, results);
   else console.log('\nno earlier full run with the same options to compare against');
 
