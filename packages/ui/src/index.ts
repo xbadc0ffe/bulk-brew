@@ -46,17 +46,14 @@ export {
   BEST_DECKS_SHOWN,
   type BestDecks,
   type BestDecksSize,
-  type ColorDepth,
 } from './data/useBestDecks.ts';
 export {
   poolStats,
-  COLOR_PAIRS,
   MV_BUCKETS,
   STAT_COLORS,
-  type CreatureTypeCount,
-  type NamedCount,
+  type ColorCounts,
+  type ColorRow,
   type PoolStats,
-  type RoleRow,
 } from './data/poolStats.ts';
 export {
   useAppearance,

@@ -48,7 +48,7 @@ Both apps support light and dark mode. No external fonts, CDNs, or trackers; eve
 - Filters: color, type, mana value, text search. Sort by name, mana value, color, quantity.
 - Card detail: image when art is on, oracle text, type line, tags in plain language ("removal", "makes tokens"). Edit quantity, remove.
 - Actions: clear pool (confirm), export pool as text, backup.
-- Analyze (web): a blue button with a soft glow opens a pane under the list. Best decks for Commander, 60, 40, and 20 (five each, found by a background search that keeps going while the pane is open, with an "up to N colors" choice); tiles for each color and pair with its spells, the largest deck it builds, and its dual lands; spells by color and mana value and roles by color as shaded tables; card types with other subtypes; creature types with their payoffs. Picking a deck opens it on the Build page.
+- Analyze (web): a blue button with a soft glow opens a pane under the list. Recommended decks for Commander, 60, 40, and 20 (five each, name and colors only, found by a background search that keeps going while the pane is open, with a max colors per deck choice); picking one opens it on the Build page. Then a color pie with a legend (and a closed disclosure counting multicolor cards in each of their colors), spells by color and mana value with color rows that chart picked colors as bars, and shaded by-color tables for card types, roles, creature types, and subtypes.
 - Empty state that leads to Import.
 
 ### Build

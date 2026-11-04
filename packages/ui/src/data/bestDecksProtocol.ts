@@ -35,19 +35,8 @@ export interface SizeUpdate {
   error?: string;
 }
 
-/** A scan of one color or pair at one size, for the color depth tiles. */
-export interface DepthUpdate {
-  /** Color letters, such as "W" or "WU". */
-  key: string;
-  size: DeckSize;
-  /** Spell copies a deck in these colors can use. */
-  spells: number;
-  possible: boolean;
-}
-
 export interface FromWorker {
   type: 'update';
   job: number;
   sizes: Partial<Record<DeckSize, SizeUpdate>>;
-  depth: DepthUpdate[];
 }

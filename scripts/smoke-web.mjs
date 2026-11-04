@@ -263,7 +263,8 @@ try {
   await click('^Analyze$');
   log('analyze', (await waitForText(/Checked [\d,]+ decks?/, 180000)).match(/Checked[^\n]*/)[0]);
   await shot('5-analyze');
-  await click('\\d+ creatures? · \\d+ lands');
+  // Deck rows read like "1White Tokens": the rank, then the name.
+  await click('^1[A-Za-z]');
   log('analyze-deck', oneLine(await waitForText(/Accept/, 10000), 160));
   await click('^Back$');
   log('analyze-back', oneLine(await waitForText(/Deck options/, 10000), 120));

@@ -42,6 +42,9 @@
   --pip-r-fg: oklch(0.32 0.1 30);
   --pip-g: oklch(0.78 0.09 150);
   --pip-g-fg: oklch(0.28 0.07 150);
+  /* Multicolor and colorless, for charts of the five colors. */
+  --pip-m: oklch(0.8 0.12 85);
+  --pip-c: oklch(0.8 0.008 260);
 }
 [data-theme='W'] {
   --bg: oklch(0.955 0.035 88);
@@ -142,6 +145,8 @@
   --pip-r-fg: oklch(0.16 0.04 30);
   --pip-g: oklch(0.62 0.12 150);
   --pip-g-fg: oklch(0.16 0.04 150);
+  --pip-m: oklch(0.72 0.12 85);
+  --pip-c: oklch(0.62 0.008 260);
 }
 [data-mode='dark'][data-theme='W'] {
   --bg: oklch(0.11 0.02 88);
@@ -255,14 +260,14 @@
 
 /* A slow blue pulse around the Analyze button. */
 @theme {
-  --animate-glow: glow 2.4s ease-in-out infinite;
+  --animate-glow: glow 3s ease-in-out infinite;
   @keyframes glow {
     0%,
     100% {
-      box-shadow: 0 0 4px 1px color-mix(in oklch, var(--info) 35%, transparent);
+      box-shadow: 0 0 2px 0 color-mix(in oklch, var(--info) 25%, transparent);
     }
     50% {
-      box-shadow: 0 0 16px 5px color-mix(in oklch, var(--info) 70%, transparent);
+      box-shadow: 0 0 8px 2px color-mix(in oklch, var(--info) 45%, transparent);
     }
   }
 }

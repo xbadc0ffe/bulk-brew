@@ -31,21 +31,9 @@ export interface BestDecksSize {
   error?: string;
 }
 
-/** What the scans say about one color or pair. */
-export interface ColorDepth {
-  /** Spell copies a 60-card deck in these colors can use, once scanned. */
-  spells: number | undefined;
-  /** Whether each of 60, 40, and 20 can be built, as the scans come in. */
-  possible: Partial<Record<DeckSize, boolean>>;
-}
-
 export interface BestDecks {
   sizes: Record<DeckSize, BestDecksSize>;
-  /** Keyed by color letters such as "W" or "WU". */
-  depth: ReadonlyMap<string, ColorDepth>;
   built: number;
-  /** Builds planned so far; grows while sizes are still being scanned. */
-  planned: number;
   working: boolean;
   /** The worker could not start or stopped. */
   error: string | undefined;
@@ -55,7 +43,6 @@ interface Found {
   key: string;
   job: number;
   sizes: Record<DeckSize, BestDecksSize>;
-  depth: Map<string, ColorDepth>;
   error?: string;
 }
 
@@ -75,18 +62,7 @@ function merge(found: Found, msg: FromWorker): Found {
     const { options, ...rest } = u;
     sizes[size] = { ...sizes[size], ...rest, options: options ?? sizes[size].options };
   }
-  let depth = found.depth;
-  if (msg.depth.length > 0) {
-    depth = new Map(depth);
-    for (const d of msg.depth) {
-      const cur = depth.get(d.key) ?? { spells: undefined, possible: {} };
-      depth.set(d.key, {
-        spells: d.size === 60 ? d.spells : cur.spells,
-        possible: { ...cur.possible, [d.size]: d.possible },
-      });
-    }
-  }
-  return { ...found, sizes, depth };
+  return { ...found, sizes };
 }
 
 /**
@@ -133,9 +109,7 @@ export function useBestDecks(input: {
       const current = job.current;
       job.current = { ...current, key: '' };
       setFound((f) => ({
-        ...(f?.job === current.id
-          ? f
-          : { key: current.key, job: current.id, sizes: emptySizes(), depth: new Map() }),
+        ...(f?.job === current.id ? f : { key: current.key, job: current.id, sizes: emptySizes() }),
         error: message,
       }));
     };
@@ -153,9 +127,7 @@ export function useBestDecks(input: {
         if (msg.job !== current.id) return;
         setFound((f) =>
           merge(
-            f?.job === msg.job
-              ? f
-              : { key: current.key, job: msg.job, sizes: emptySizes(), depth: new Map() },
+            f?.job === msg.job ? f : { key: current.key, job: msg.job, sizes: emptySizes() },
             msg,
           ),
         );
@@ -197,17 +169,11 @@ export function useBestDecks(input: {
     const current = found?.key === key ? found : undefined;
     const sizes = current?.sizes ?? emptySizes();
     let built = 0;
-    let planned = 0;
-    for (const s of BEST_DECK_SIZES) {
-      built += sizes[s].built;
-      planned += sizes[s].planned ?? 0;
-    }
+    for (const s of BEST_DECK_SIZES) built += sizes[s].built;
     const error = current?.error;
     return {
       sizes,
-      depth: current?.depth ?? new Map(),
       built,
-      planned,
       working: !error && BEST_DECK_SIZES.some((s) => !sizes[s].done),
       error,
     };

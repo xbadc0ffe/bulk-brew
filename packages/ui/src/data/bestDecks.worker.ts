@@ -10,7 +10,7 @@ import {
   type BestDeckSearch,
   type DeckSize,
 } from '@bulk-brew/core';
-import type { DepthUpdate, FromWorker, SizeUpdate, ToWorker } from './bestDecksProtocol.ts';
+import type { FromWorker, SizeUpdate, ToWorker } from './bestDecksProtocol.ts';
 
 const ctx = self as unknown as {
   onmessage: ((e: MessageEvent<ToWorker>) => void) | null;
@@ -32,7 +32,6 @@ interface Run {
   optionsDirty: Set<DeckSize>;
   /** The keys of the decks last sent per size, to skip changes below the ones shown. */
   sent: Map<DeckSize, string>;
-  depth: DepthUpdate[];
   urgent: boolean;
   lastPost: number;
 }
@@ -55,7 +54,6 @@ ctx.onmessage = (e) => {
       dirty: new Set(),
       optionsDirty: new Set(),
       sent: new Map(),
-      depth: [],
       urgent: false,
       lastPost: 0,
     };
@@ -91,13 +89,6 @@ function tick(): void {
     else if (step.kind === 'built' && step.changed) {
       const keys = shownKeys(next, r.shown);
       if (keys !== r.sent.get(next.size)) r.optionsDirty.add(next.size);
-    } else if (step.kind === 'scan' && step.colors.length <= 2) {
-      r.depth.push({
-        key: step.colors.join(''),
-        size: next.size,
-        spells: step.scan.candidates,
-        possible: step.scan.possible,
-      });
     }
   } catch (err) {
     r.errors.set(next.size, String(err));
@@ -153,10 +144,9 @@ function flush(r: Run, force: boolean): void {
     const s = r.searches.find((x) => x.size === size);
     if (s) r.sent.set(size, shownKeys(s, r.shown));
   }
-  ctx.postMessage({ type: 'update', job: r.job, sizes, depth: r.depth });
+  ctx.postMessage({ type: 'update', job: r.job, sizes });
   r.dirty.clear();
   r.optionsDirty.clear();
-  r.depth = [];
   r.urgent = false;
   r.lastPost = now;
 }

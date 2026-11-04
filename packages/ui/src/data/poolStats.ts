@@ -1,18 +1,13 @@
 import {
-  COLORS,
-  colorSubsets,
   creatureTypes,
   factsFor,
-  landColors,
   primaryGroup,
   type BulkBrewConfig,
   type CardIndex,
   type CardRecord,
-  type Color,
   type Pool,
 } from '@bulk-brew/core';
 import { TYPE_GROUPS } from './deckGroups.ts';
-import type { TypeCount } from './deckStats.ts';
 import { colorKey, type ColorKey } from './poolView.ts';
 
 /** Color classes in the order the analysis lists them, as on the Bulk List's color filter. */
@@ -21,41 +16,36 @@ export const STAT_COLORS: readonly ColorKey[] = ['W', 'U', 'B', 'R', 'G', 'C', '
 /** Mana value columns: 0 through 5, then 6 or more. */
 export const MV_BUCKETS = ['0', '1', '2', '3', '4', '5', '6+'] as const;
 
-export interface RoleRow {
+export type ColorCounts = Record<ColorKey, number>;
+
+/** One row of a by-color table: copies of something in each color class. */
+export interface ColorRow {
   id: string;
   label: string;
-  byColor: Record<ColorKey, number>;
+  byColor: ColorCounts;
   total: number;
-}
-
-export interface NamedCount {
-  name: string;
-  count: number;
-}
-
-export interface CreatureTypeCount extends NamedCount {
-  /** Copies of cards that reward this type (tagged as its typal payoffs). */
-  payoffs: number;
 }
 
 /** The Analyze pane's breakdown of the bulk list. Every count is copies. */
 export interface PoolStats {
+  /** Every card by color class (from its color identity), lands included. */
+  colors: ColorCounts;
+  /** Every card counted once in each of its colors; colorless cards under C, and M stays 0. */
+  eachColor: ColorCounts;
   /** Spells (everything but lands) by color class and mana value bucket. */
   curve: Record<ColorKey, number[]>;
-  /** Copies of each card type, a card counted once under its main type. */
-  types: TypeCount[];
-  /** The builder's roles by color class, in config order; roles no card fills are left out. */
-  roles: RoleRow[];
+  /** Card types in decklist order, a card counted once under its main type. */
+  types: ColorRow[];
+  /** The builder's roles, in config order; roles no card fills are left out. */
+  roles: ColorRow[];
   /** Creature types, most copies first. Changelings are counted apart. */
-  creatureTypes: CreatureTypeCount[];
+  creatureTypes: ColorRow[];
   changelings: number;
-  /** Subtypes of other spells and permanents, such as Aura, Equipment, and Vehicle. */
-  otherSubtypes: NamedCount[];
-  /** Nonbasic lands that make both colors of a pair, keyed by color letters such as "WU". */
-  fixing: Record<string, number>;
+  /** Subtypes of other spells and permanents, such as Aura, Equipment, and Vehicle, most first. */
+  subtypes: ColorRow[];
 }
 
-const zeros = (): Record<ColorKey, number> => ({ W: 0, U: 0, B: 0, R: 0, G: 0, C: 0, M: 0 });
+const zeros = (): ColorCounts => ({ W: 0, U: 0, B: 0, R: 0, G: 0, C: 0, M: 0 });
 
 /** Face types whose subtypes are not worth listing as other subtypes. */
 const SKIP_FACE = /\b(Creature|Kindred|Land|Planeswalker)\b/;
@@ -71,24 +61,38 @@ function otherSubtypesOf(card: CardRecord): string[] {
   return [...out];
 }
 
-const byCount = (a: NamedCount, b: NamedCount) => b.count - a.count || a.name.localeCompare(b.name);
-
-/** Two-color sets in WUBRG order: WU, WB, WR, WG, UB, and so on. */
-export const COLOR_PAIRS: readonly Color[][] = colorSubsets(COLORS).filter((s) => s.length === 2);
+/** Rows counted by id, then per color class. */
+class Tally {
+  private readonly rows = new Map<string, ColorCounts>();
+  add(id: string, key: ColorKey, n: number): void {
+    let row = this.rows.get(id);
+    if (!row) this.rows.set(id, (row = zeros()));
+    row[key] += n;
+  }
+  get(id: string): ColorRow | undefined {
+    const byColor = this.rows.get(id);
+    if (!byColor) return undefined;
+    return { id, label: id, byColor, total: STAT_COLORS.reduce((t, c) => t + byColor[c], 0) };
+  }
+  /** Every row, most copies first, then by name. */
+  byTotal(): ColorRow[] {
+    return [...this.rows.keys()]
+      .map((id) => this.get(id)!)
+      .sort((a, b) => b.total - a.total || a.label.localeCompare(b.label));
+  }
+}
 
 export function poolStats(pool: Pool, index: CardIndex, config: BulkBrewConfig): PoolStats {
+  const colors = zeros();
+  const eachColor = zeros();
   const curve = Object.fromEntries(STAT_COLORS.map((c) => [c, MV_BUCKETS.map(() => 0)])) as Record<
     ColorKey,
     number[]
   >;
-  const types = new Map<string, number>();
-  const roles = new Map<string, Record<ColorKey, number>>();
-  const tribes = new Map<string, number>();
-  const others = new Map<string, number>();
-  const tags = new Map<string, number>();
-  const fixing: Record<string, number> = Object.fromEntries(
-    COLOR_PAIRS.map((p) => [p.join(''), 0]),
-  );
+  const types = new Tally();
+  const roles = new Tally();
+  const tribes = new Tally();
+  const subtypes = new Tally();
   let changelings = 0;
 
   for (const entry of Object.values(pool.entries)) {
@@ -96,56 +100,34 @@ export function poolStats(pool: Pool, index: CardIndex, config: BulkBrewConfig):
     const n = entry.qty;
     if (!card || n <= 0) continue;
     const key = colorKey(card);
+    colors[key] += n;
+    if (card.identity.length === 0) eachColor.C += n;
+    for (const c of card.identity) eachColor[c] += n;
     const group = primaryGroup(card);
-    types.set(group, (types.get(group) ?? 0) + n);
-    for (const t of card.tags) tags.set(t, (tags.get(t) ?? 0) + n);
-
-    if (group === 'Lands') {
-      if (card.typeLine.includes('Basic')) continue;
-      for (const pair of COLOR_PAIRS)
-        if (landColors(card, pair, 60).length === 2) fixing[pair.join('')]! += n;
-      continue;
-    }
+    types.add(group, key, n);
+    if (group === 'Lands') continue;
 
     curve[key][Math.min(6, Math.max(0, Math.floor(card.mv)))]! += n;
-    for (const id of factsFor(index, config, card).roles) {
-      let row = roles.get(id);
-      if (!row) roles.set(id, (row = zeros()));
-      row[key] += n;
-    }
+    for (const id of factsFor(index, config, card).roles) roles.add(id, key, n);
     if (card.keywords.includes('Changeling')) changelings += n;
-    else for (const t of creatureTypes(card)) tribes.set(t, (tribes.get(t) ?? 0) + n);
-    for (const s of otherSubtypesOf(card)) others.set(s, (others.get(s) ?? 0) + n);
+    else for (const t of creatureTypes(card)) tribes.add(t, key, n);
+    for (const s of otherSubtypesOf(card)) subtypes.add(s, key, n);
   }
 
-  const roleRows: RoleRow[] = [];
+  const roleRows: ColorRow[] = [];
   for (const r of config.roles.roles) {
-    const byColor = roles.get(r.id);
-    if (!byColor) continue;
-    roleRows.push({
-      id: r.id,
-      label: r.label,
-      byColor,
-      total: STAT_COLORS.reduce((t, c) => t + byColor[c], 0),
-    });
+    const row = roles.get(r.id);
+    if (row) roleRows.push({ ...row, label: r.label });
   }
 
   return {
+    colors,
+    eachColor,
     curve,
-    types: TYPE_GROUPS.filter((g) => types.has(g)).map((label) => ({
-      label,
-      count: types.get(label)!,
-    })),
+    types: TYPE_GROUPS.flatMap((g) => types.get(g) ?? []),
     roles: roleRows,
-    creatureTypes: [...tribes]
-      .map(([name, count]) => ({
-        name,
-        count,
-        payoffs: tags.get(`typal-${name.toLowerCase()}`) ?? 0,
-      }))
-      .sort(byCount),
+    creatureTypes: tribes.byTotal(),
     changelings,
-    otherSubtypes: [...others].map(([name, count]) => ({ name, count })).sort(byCount),
-    fixing,
+    subtypes: subtypes.byTotal(),
   };
 }
