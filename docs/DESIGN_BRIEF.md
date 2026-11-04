@@ -47,7 +47,7 @@ Both apps support light and dark mode. No external fonts, CDNs, or trackers; eve
 Settings on the left, deck options on the right (desktop; phones keep a single build until parity).
 
 - Deck size: 100 (Commander), 60, 40, 20, with one line describing the selected size. Phones offer 60, 40, and 20 until parity.
-- In order: a rarities drop-down with a checkbox per rarity, max copies per card (at 100, a line saying one copy of each), and infinite basics.
+- In order: a rarities drop-down with a checkbox per rarity, max copies per card (at 100, the stepper held at 1), and infinite basics.
 - Colors: five toggles, any number picked, each showing how many cards of that color the pool has. At 100 the toggles give way to a line: the colors come from the commander.
 - Primary archetype drop-down: best fit by default, then the archetypes any subset of the picked colors can build, with viability labels; near misses show what is missing and cannot be picked. Secondary archetype drop-down, unlocked by a primary archetype.
 - Options: cards ranked strongest first in as many columns as fit, each with the deck's name and description, a color wheel with each color's share, the mana curve, copies per card type, role coverage, a mana warning when a color is stretched, and the top synergy. No strength number is shown. They arrive one by one with a progress line; picking one opens the deck view with Accept (green), Back (red), and Export (grey). Accept asks Confirm and remove the cards, Confirm and keep them in the bulk list, or Decline.
@@ -60,10 +60,10 @@ The same view serves a fresh build and a saved deck.
 
 - Decklist grouped by type with counts; basics listed by color. Mana costs shown as symbols.
 - Mana curve as a small bar chart. Land count with its reasoning in one line ("24 lands: average cost 2.9, 3 cheap mana sources").
-- Explanation panel: archetype and what it does, role coverage against targets (removal 6 of 6, card draw 3 of 4), key synergies in plain words, notes.
+- Explanation panel: archetype and what it does, role coverage against targets (removal 6 of 6, card draw 3 of 4) led by the archetype's own cards (Voltron enablers 13 of 13), key synergies in plain words, notes.
 - Each card can reveal "why this card": the role or synergy slot it filled, or that it is filler.
 - Actions on a fresh build: Accept (saves and removes cards from the pool), Try another style, Discard, Export, Copy.
-- Actions on a saved deck: rename, export as text, copy to clipboard, delete (with a "return cards to the pool" checkbox).
+- Actions on a saved deck: click the name to rename it; Export; a red Remove that asks Delete (cards stay out of the pool), Disassemble (cards go back), or Cancel.
 - A badge shows whether the deck's cards were removed from the pool.
 
 ### Decks
@@ -75,9 +75,9 @@ The same view serves a fresh build and a saved deck.
 
 ### Settings
 
-- Max copies per deck size. Unlimited basics. Include Un-set cards. Show card art.
+- Include Un-set cards. Show card art. Copy limits and basics are set on Build. Labels are bold; the detail line under them is not. Switches are large without making rows taller.
 - Card data: version date, and on mobile a "check for card updates" action with progress and result.
-- Backup: export everything (pool, decks, settings) as a file; restore from a file; clear all data (confirm).
+- Your data: export everything (pool, decks, settings) as a file; restore from a file; reset settings to defaults; a red Clear all data (confirm).
 - About: app version, the Fan Content and Scryfall notices from `ATTRIBUTION.md`, license, link to the repo.
 
 ## Flows
@@ -126,8 +126,8 @@ A plain, functional interface already implements every screen above, so the desi
 - Pool: color filters, search, sort (name, mana value, color, quantity), header counts, quantity buttons, export, clear. The web table only renders rows near the viewport for large pools.
 - Build (desktop): settings beside ranked deck options; an option opens the deck view with Accept, Back, and Export. Phones: size, colors, archetype list, Build, then the deck view.
 - Deck view: cards grouped by type, mana symbols, optional "why each card is here", curve bars, land reasoning, roles, synergies, notes.
-- Decks: list, open, rename, export, delete with "return cards to the pool", pair two packets with Copy.
-- Settings: copy limits, basics, Un-sets, card art, backup export and restore, clear all data, card data version, About with the attribution notices.
+- Decks: list, open, rename by clicking the name, export, Remove (Delete or Disassemble), pair two packets with Copy.
+- Settings: Un-sets, card art, appearance, backup export and restore, reset settings, clear all data, card data version, About with the attribution notices.
 - Card detail: opened from any card row. Web shows a right-hand panel; phones show a full-screen sheet; tablets show a side panel. With art on, lists show small thumbnails and the detail shows the whole card.
 - Mobile shell: bottom tab bar on phones; from 768 px a side rail, and Build shows the form beside the result.
 - Web app: installable, works offline after the first load through a service worker.

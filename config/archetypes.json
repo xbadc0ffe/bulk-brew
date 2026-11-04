@@ -1,5 +1,5 @@
 {
-  "version": "4",
+  "version": "5",
   "archetypes": [
     {
       "kind": "composition",
@@ -277,18 +277,27 @@
       "label": "Voltron",
       "description": "Suit up a few creatures and get paid for attaching things.",
       "curveProfile": "aggro",
-      "enablers": [{ "typeLineAny": ["Aura", "Equipment"] }],
+      "enablers": [
+        { "typeLineAny": ["Equipment"] },
+        { "typeLineAny": ["Aura"], "excludeTags": ["pacifism", "banish", "ransom"] },
+        {
+          "anyTags": ["tutor-artifact-equipment", "tutor-enchantment-aura", "pseudo-equipment"]
+        }
+      ],
       "payoffs": [
         {
           "anyTags": [
             "synergy-aura",
             "synergy-equipment",
-            "synergy-enchantment",
             "heroic",
-            "enchantment-engine"
+            "exalted",
+            "cost-reducer-equip-ability",
+            "cost-reducer-aura",
+            "cost-reducer-equipment",
+            "affinity-for-equipment"
           ]
         },
-        { "anyKeywords": ["Hexproof"], "types": ["creature"] }
+        { "anyKeywords": ["Hexproof", "Double strike"], "types": ["creature"] }
       ],
       "minimums": {
         "60": { "enablers": 8, "payoffs": 4 },

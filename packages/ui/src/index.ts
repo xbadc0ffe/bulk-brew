@@ -112,8 +112,10 @@ export {
 } from './components/DeckStats.tsx';
 export {
   deckColorShares,
+  deckStyleRows,
   deckTypeCounts,
   type ColorShare,
+  type StyleRow,
   type TypeCount,
 } from './data/deckStats.ts';
 export {

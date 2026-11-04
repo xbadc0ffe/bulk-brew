@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   cardMatches,
+  isCommanderFinisher,
   isFinisher,
   isMdfcLand,
   manaSourceKind,
@@ -52,6 +53,27 @@ describe('derived predicates', () => {
         }),
       ),
     ).toBe(true);
+  });
+
+  it('asks more of a Commander finisher than of a big threat', () => {
+    // A five-mana 4/4 flyer is a big threat, but not enough at 40 life.
+    const patron = card({ name: 'Patron', mv: 5, power: '4', keywords: ['Flying'] });
+    expect(isFinisher(patron)).toBe(true);
+    expect(isCommanderFinisher(patron)).toBe(false);
+    expect(isCommanderFinisher(card({ name: 'Huge', mv: 7, power: '7' }))).toBe(true);
+    expect(
+      isCommanderFinisher(card({ name: 'Wurm', mv: 6, power: '5', keywords: ['Trample'] })),
+    ).toBe(true);
+    expect(isCommanderFinisher(card({ name: 'Ogre', mv: 5, power: '5' }))).toBe(false);
+    expect(
+      isCommanderFinisher(
+        card({ name: 'Striker', mv: 4, power: '3', keywords: ['Flying', 'Double strike'] }),
+      ),
+    ).toBe(true);
+    const walker = (mv: number) =>
+      card({ name: `Walker ${mv}`, mv, typeLine: 'Planeswalker', types: ['planeswalker'] });
+    expect(isCommanderFinisher(walker(4))).toBe(false);
+    expect(isCommanderFinisher(walker(5))).toBe(true);
   });
 
   it('classifies cheap mana sources by kind and cost', () => {

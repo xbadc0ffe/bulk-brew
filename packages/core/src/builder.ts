@@ -785,13 +785,19 @@ function localSearch(state: State, ctx: Ctx): number {
           base = tally(state, ctx);
         }
         if (!canAdd(state, ctx, cand, base)) continue;
-        // A swap may not take the secondary style below the minimums its fill reached.
+        // A swap may not take the primary or secondary style below the minimums its fill reached.
         const outFlags = ctx.themeFlags.get(outId) ?? 0;
         const inFlags = ctx.themeFlags.get(cand.facts.card.id) ?? 0;
         const tw = ctx.themeWant;
         const drops = (bit: number, have: number, want: number) =>
           (outFlags & bit) !== 0 && (inFlags & bit) === 0 && have + 1 >= want && have < want;
-        if (drops(THEME_SE, base.se, tw.se) || drops(THEME_SP, base.sp, tw.sp)) continue;
+        if (
+          drops(THEME_PE, base.pe, tw.pe) ||
+          drops(THEME_PP, base.pp, tw.pp) ||
+          drops(THEME_SE, base.se, tw.se) ||
+          drops(THEME_SP, base.sp, tw.sp)
+        )
+          continue;
         // Score the swap by adding the copy to the tally and taking it back out.
         const pen = ctx.penalty.get(cand.facts.card.id) ?? 0;
         const theme = ctx.themeValue.get(cand.facts.card.id) ?? 0;
@@ -1445,4 +1451,76 @@ export function buildDeck(
     explanation,
   };
   return { deck, explanation };
+}
+
+/** A deck's theme cards against what its archetype asks for. */
+export interface StyleCount {
+  /** Archetype id, or "tribal:<type>" for a tribe. */
+  id: string;
+  label: string;
+  tribal: boolean;
+  enablers: { have: number; want: number };
+  payoffs: { have: number; want: number };
+}
+
+/**
+ * Enablers and payoffs of the deck's primary archetype and of its secondary
+ * one (a theme or a tribe), counted the way the builder counts them: spells
+ * only, commander left out, against the minimums for the deck's size. Shapes
+ * such as Aggro have no theme cards and give nothing.
+ */
+export function styleCounts(deck: Deck, index: CardIndex, config: BulkBrewConfig): StyleCount[] {
+  // Merged packets record "a+b"; neither part's minimums fit 40 cards.
+  const primary = config.archetypes.archetypes.find((a) => a.id === deck.archetype);
+  if (!primary) return [];
+  const cands: { cand: Candidate; qty: number }[] = [];
+  for (const dc of deck.cards) {
+    const card = index.get(dc.cardId);
+    if (!card || dc.cardId === deck.commander) continue;
+    const facts = factsFor(index, config, card);
+    if (facts.spell)
+      cands.push({ cand: { facts, available: dc.qty, preferred: dc.qty }, qty: dc.qty });
+  }
+  const count = (
+    id: string,
+    label: string,
+    tribal: boolean,
+    isEnabler: (c: Candidate) => boolean,
+    isPayoff: (c: Candidate) => boolean,
+    want: { enablers: number; payoffs: number },
+  ): StyleCount => {
+    let e = 0;
+    let p = 0;
+    for (const { cand, qty } of cands) {
+      if (isEnabler(cand)) e += qty;
+      if (isPayoff(cand)) p += qty;
+    }
+    return {
+      id,
+      label,
+      tribal,
+      enablers: { have: e, want: want.enablers },
+      payoffs: { have: p, want: want.payoffs },
+    };
+  };
+  const out: StyleCount[] = [];
+  if (primary.kind === 'synergy') {
+    out.push(
+      count(
+        primary.id,
+        primary.label,
+        false,
+        (c) => c.facts.enablerOf.includes(primary.id),
+        (c) => c.facts.payoffOf.includes(primary.id),
+        minimumsFor(config, primary, deck.size),
+      ),
+    );
+  }
+  const sec = resolveSecondary(deck.secondary, primary, config, deck.size).theme;
+  if (sec && sec.kind !== 'composition') {
+    out.push(
+      count(sec.id, sec.label, sec.kind === 'tribal', sec.isEnabler, sec.isPayoff, sec.want),
+    );
+  }
+  return out;
 }

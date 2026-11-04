@@ -3,6 +3,8 @@ import {
   isMdfcLand,
   pipDemand,
   primaryGroup,
+  styleCounts,
+  type BulkBrewConfig,
   type CardIndex,
   type Color,
   type Deck,
@@ -59,4 +61,30 @@ export function deckTypeCounts(deck: Deck, index: CardIndex): TypeCount[] {
     label,
     count: counts.get(label)!,
   }));
+}
+
+export interface StyleRow {
+  key: string;
+  label: string;
+  have: number;
+  want: number;
+}
+
+/**
+ * Rows for the Roles bars: the deck's archetype cards against what the
+ * archetype asks for, such as "Voltron enablers 13/13". Shapes like Aggro
+ * have none; a tribe shows its creatures and the cards that reward them.
+ */
+export function deckStyleRows(deck: Deck, index: CardIndex, config: BulkBrewConfig): StyleRow[] {
+  return styleCounts(deck, index, config).flatMap((s) => {
+    const name = s.tribal ? s.id.slice('tribal:'.length) : s.label;
+    return [
+      {
+        key: `${s.id}:enablers`,
+        label: s.tribal ? `${name} creatures` : `${name} enablers`,
+        ...s.enablers,
+      },
+      { key: `${s.id}:payoffs`, label: `${name} payoffs`, ...s.payoffs },
+    ];
+  });
 }

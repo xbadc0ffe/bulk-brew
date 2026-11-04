@@ -44,14 +44,14 @@ Limited-style decks are more creature heavy because games are decided in combat.
 
 Jobs a deck must cover regardless of theme. Each has a minimum the builder treats as a hard shortfall and a target it tries to reach. Definitions live in `config/roles.json`; counts for the midrange baseline:
 
-| Role             | 60 min / target | 40 min / target | 20 min / target | What counts                                                |
-| ---------------- | --------------- | --------------- | --------------- | ---------------------------------------------------------- |
-| removal          | 4 / 7           | 3 / 5           | 1 / 2           | Spot removal, creature removal, planeswalker removal       |
-| cardAdvantage    | 2 / 5           | 1 / 3           | 0 / 1           | Draw, cantrips, loot and rummage, draw engines             |
-| cheapInteraction | 2 / 4           | 1 / 3           | 1 / 2           | Tricks, protection, counters, cheap removal at two or less |
-| finisher         | 2 / 4           | 2 / 3           | 1 / 2           | Big bodies, big flyers, planeswalkers (derived)            |
-| ramp             | 0 / 2           | 0 / 1           | 0 / 1           | Dorks, rocks, land fetchers costing three or less          |
-| earlyCreature    | 4 / 8           | 3 / 6           | 2 / 4           | Creatures costing one or two                               |
+| Role             | 60 min / target | 40 min / target | 20 min / target | What counts                                                  |
+| ---------------- | --------------- | --------------- | --------------- | ------------------------------------------------------------ |
+| removal          | 4 / 7           | 3 / 5           | 1 / 2           | Spot removal, creature removal, planeswalker removal         |
+| cardAdvantage    | 2 / 5           | 1 / 3           | 0 / 1           | Draw, cantrips, loot and rummage, draw engines               |
+| cheapInteraction | 2 / 4           | 1 / 3           | 1 / 2           | Tricks, protection, counters, cheap removal at two or less   |
+| finisher         | 2 / 4           | 2 / 3           | 1 / 2           | Big threats: big bodies, big flyers, planeswalkers (derived) |
+| ramp             | 0 / 2           | 0 / 1           | 0 / 1           | Dorks, rocks, land fetchers costing three or less            |
+| earlyCreature    | 4 / 8           | 3 / 6           | 2 / 4           | Creatures costing one or two                                 |
 
 A sweeper role exists but only control asks for it. Evasive threat is defined for the flyers theme and future quotas.
 

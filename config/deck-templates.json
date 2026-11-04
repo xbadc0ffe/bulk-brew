@@ -1,5 +1,5 @@
 {
-  "version": "3",
+  "version": "4",
   "templates": {
     "100": {
       "size": 100,
@@ -32,7 +32,7 @@
         "removal": { "min": 6, "target": 9 },
         "cardAdvantage": { "min": 7, "target": 10 },
         "sweeper": { "min": 1, "target": 3 },
-        "finisher": { "min": 3, "target": 6 },
+        "commanderFinisher": { "min": 2, "target": 5 },
         "cheapInteraction": { "min": 2, "target": 4 },
         "earlyCreature": { "min": 3, "target": 6 }
       },

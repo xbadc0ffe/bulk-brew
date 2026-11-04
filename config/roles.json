@@ -1,5 +1,5 @@
 {
-  "version": "1",
+  "version": "2",
   "roles": [
     {
       "id": "removal",
@@ -58,9 +58,21 @@
     },
     {
       "id": "finisher",
-      "label": "Finisher",
-      "description": "A threat that ends the game on its own: a big body, a big flyer, or a planeswalker.",
+      "label": "Big threat",
+      "description": "A threat the opponent must answer: a big body, a big flyer, or a planeswalker.",
       "match": [{ "derived": "finisher" }]
+    },
+    {
+      "id": "commanderFinisher",
+      "label": "Finisher",
+      "description": "Ends a Commander game: an overrun, an extra combat, another way to win, or a huge or evasive threat.",
+      "match": [
+        { "derived": "commanderFinisher" },
+        {
+          "anyTags": ["overrun", "extra-combat-phase", "alternate-win-condition"],
+          "excludeTypes": ["land"]
+        }
+      ]
     },
     {
       "id": "ramp",

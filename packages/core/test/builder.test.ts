@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { listCandidates, maxCopiesFor } from '../src/candidates.ts';
 import { templateFor } from '../src/config.ts';
-import { BuildError, buildDeck, compareCandidates, curveTargets } from '../src/builder.ts';
+import {
+  BuildError,
+  buildDeck,
+  compareCandidates,
+  curveTargets,
+  styleCounts,
+} from '../src/builder.ts';
 import { commitDeck, newDeckId, returnDeck } from '../src/decks.ts';
 import { deckToDecklist, pairPackets } from '../src/export.ts';
 import { planLandCount } from '../src/lands.ts';
@@ -181,6 +187,18 @@ describe('buildDeck', () => {
       expect(count.have, role).toBeGreaterThanOrEqual(min);
     }
     expect(r.deck.cards.some((c) => c.why?.includes('Tokens'))).toBe(true);
+  });
+
+  it('keeps a picked style at its minimums through the swaps', () => {
+    for (const size of [60, 40, 20] as const) {
+      const [tokens, ...rest] = styleCounts(build(size, 'tokens').deck, index, CONFIG);
+      expect(rest).toEqual([]);
+      expect(tokens).toMatchObject({ id: 'tokens', label: 'Tokens', tribal: false });
+      expect(tokens!.enablers.have, `${size} enablers`).toBeGreaterThanOrEqual(
+        tokens!.enablers.want,
+      );
+      expect(tokens!.payoffs.have, `${size} payoffs`).toBeGreaterThanOrEqual(tokens!.payoffs.want);
+    }
   });
 
   it('falls back with a note when the style is not viable', () => {

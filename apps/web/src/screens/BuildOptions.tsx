@@ -14,6 +14,7 @@ import {
   ColorBreakdown,
   CurveChart,
   deckColorShares,
+  deckStyleRows,
   deckTypeCounts,
   Pip,
   RoleBar,
@@ -323,6 +324,10 @@ function OptionCard({ option, onOpen }: { option: DeckOption; onOpen(): void }) 
   const title = `${colorsLabel(colors)} ${style.label}${secondary ? ` with ${secondary.label}` : ''}`;
   const shares = useMemo(() => (index ? deckColorShares(deck, index) : []), [deck, index]);
   const types = useMemo(() => (index ? deckTypeCounts(deck, index) : []), [deck, index]);
+  const styles = useMemo(
+    () => (index ? deckStyleRows(deck, index, config) : []),
+    [deck, index, config],
+  );
   const roles = Object.entries(explanation.roles);
   const left = missing.map((c) => COLOR_LABELS[c].toLowerCase()).join(' and ');
   return (
@@ -343,10 +348,13 @@ function OptionCard({ option, onOpen }: { option: DeckOption; onOpen(): void }) 
       <Part label="Card types">
         <TypeBreakdown counts={types} />
       </Part>
-      {roles.length > 0 && (
+      {(styles.length > 0 || roles.length > 0) && (
         <Part label="Roles">
           <span className="text-[12.5px]">
             <RoleBars>
+              {styles.map((r) => (
+                <RoleBar key={r.key} label={r.label} have={r.have} want={r.want} />
+              ))}
               {roles.map(([id, c]) => (
                 <RoleBar
                   key={id}

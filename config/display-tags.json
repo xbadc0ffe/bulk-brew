@@ -1,5 +1,5 @@
 {
-  "version": "1",
+  "version": "2",
   "tags": [
     {
       "id": "removal",
@@ -48,8 +48,8 @@
     {
       "id": "finisher",
       "label": "Finisher",
-      "description": "A big threat that can close out a game.",
-      "roles": ["finisher"]
+      "description": "Can close out a game, even a Commander game at 40 life.",
+      "roles": ["commanderFinisher"]
     },
     {
       "id": "control",

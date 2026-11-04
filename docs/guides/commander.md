@@ -22,7 +22,7 @@ Partner, Background, and similar pairs, and colorless commanders, are not suppor
 | Card advantage    | 7   | 10     | Multiplayer games run long; a deck that draws keeps up. Cantrips are smoothing, not draw. |
 | Removal           | 6   | 9      | Answers for the threats three opponents bring.                                            |
 | Sweepers          | 1   | 3      | Fewer in a go-wide deck, which loses more to its own sweepers.                            |
-| Finishers         | 3   | 6      | Big bodies, evasive threats, and planeswalkers that end the game.                         |
+| Finishers         | 2   | 5      | Overruns, extra combats, other ways to win, and threats big enough for 40 life.           |
 | Cheap interaction | 2   | 4      | Tricks and protection at two mana or less.                                                |
 | Early creatures   | 3   | 6      | Plays on the first turns.                                                                 |
 

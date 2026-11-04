@@ -47,7 +47,7 @@ Decks use one to five colors. Mono-color stays the builder's strongest mode; eve
 3. **Build** from the pool. The Build page shows deck options ranked by strength (see Build options); opening one shows the full decklist with an explanation.
 4. **Accept** (after a confirmation) saves the deck and takes its cards out of the pool (the `committed` flag). **Reject** drops the result and returns to the form with every choice kept. **Export** copies or downloads the list. A result survives moving between screens until it is accepted or rejected.
 5. **Build again** from what is left, until the pool runs out of a color.
-6. **Clear pool** and **delete deck** are one action each with a confirmation. **Disassemble** returns a deck's cards to the pool and deletes it; delete without returning is in the deck's menu. Accepting is refused, with a count, when the pool no longer holds all of the deck's cards.
+6. **Clear pool** is one action with a confirmation. A saved deck's **Remove** asks how: **Delete** leaves the pool as it is, **Disassemble** returns the deck's cards to the pool and then deletes it, and a deck whose cards never left the pool only offers Delete. Clicking a deck's name renames it, on the deck list or the deck page. Accepting is refused, with a count, when the pool no longer holds all of the deck's cards.
 7. **Pair** two 20-card packets of different colors from a packet's view: a what-if preview of the combined 40-card deck, and **Merge**, which replaces both packets with one deck (packets still in the pool are taken out of it first).
 
 Basic lands are unlimited by default and need not be imported; imported basics are kept as pasted. The Infinite basics switch lives on the Build form. Nonbasic lands are always tracked.
@@ -58,7 +58,7 @@ The Bulk List filters by color, type, subtype, mana value (a comparison and a va
 
 Defaults live in `config/settings.defaults.json`.
 
-- Max copies per card, per deck size (60: 4, 40: 4, 20: 2), set on the Build form under the deck size. 100 is always singleton.
+- Max copies per card, per deck size (60: 4, 40: 4, 20: 2), set on the Build form under the deck size; Settings does not list them. 100 is always singleton: the stepper stays on the form, held at 1.
 - Infinite basics (on), set on the Build form.
 - Rarities the builder may use (all four by default), set on the Build form. Basic lands and cards with no known rarity are never filtered out.
 - Include Un-set and acorn cards (off).
@@ -159,7 +159,7 @@ Pool, deck size, colors, optional primary and secondary style, commander (100 on
 3. **Reserve lands**: start from the template's base land count so the spell count is known.
 4. **Fill spells** in passes with per-type caps so no category floods the deck: role minimums, theme enablers and payoffs to their minimums, each color's minimum (multi-color), role targets, type mix minimums, curve fill toward the profile, then filler. Multi-color decks first pick a main color and mark weak colors as splashes; spells that ask a lot of a secondary or splash color lose strength points while picking (see `docs/guides/mana-base.md`). The last filler pass ignores type caps so a creature-only pool still fills the deck.
 5. **Size the mana base** from the spells actually chosen: a base count per size, raised by average mana value, lowered per cheap mana source, clamped to a range. Credits per source kind and cost are in the template; dorks earn slightly less than rocks because they die to removal, and dorks still count as creatures in the curve. If the land count moved, trim the least important picks or re-fill, until the count is stable.
-6. **Improve** with bounded local search: swap a chosen card for an unchosen candidate when the objective improves, then re-fit the land count again.
+6. **Improve** with bounded local search: swap a chosen card for an unchosen candidate when the objective improves, then re-fit the land count again. A swap may not take the primary or the secondary style below the minimums its fill reached.
 7. **Nonbasics and basics** per land rules. Multi-color decks size each color's sources from what its spells need to cast on curve and split the basics to match.
 8. **Validate**: exact size, copy limits, color identity, land count inside the clamp.
 
@@ -173,7 +173,7 @@ Phase 9 adds a **card strength score** and a **deck score**. Card strength is co
 
 ### Output
 
-A deck with cards grouped by type, basics by color, and a `BuildExplanation`: archetype, curve, role counts against targets, land reasoning, key synergies, notes. Each card also carries provenance (which role or synergy slot it filled, or filler), shown as "why this card" in the deck view and used for debugging.
+A deck with cards grouped by type, basics by color, and a `BuildExplanation`: archetype, curve, role counts against targets, land reasoning, key synergies, notes. The Roles bars on screen also count the deck's theme cards, such as Voltron enablers and payoffs against the style's minimums, from the saved deck and the current config (`styleCounts`). Each card also carries provenance (which role or synergy slot it filled, or filler), shown as "why this card" in the deck view and used for debugging.
 
 ### Modes
 
@@ -184,7 +184,7 @@ A deck with cards grouped by type, basics by color, and a `BuildExplanation`: ar
 
 The Build page has settings on the left and deck options on the right.
 
-- **Settings**, in this order: deck size (100, 60, 40, 20), rarities (a drop-down with a checkbox for common, uncommon, rare, and mythic, all on by default), max copies per card, infinite basics, colors (one or more), primary archetype, and secondary archetype. Both archetype choices are drop-downs that default to best fit and show viable and near-miss labels. The secondary archetype unlocks once a primary archetype is picked and lists only archetypes that can be supported alongside it.
+- **Settings**, in this order: deck size (100, 60, 40, 20), rarities (a drop-down with a checkbox for common, uncommon, rare, and mythic, all on by default), max copies per card (held at 1 for 100), infinite basics, colors (one or more), primary archetype, and secondary archetype. Both archetype choices are drop-downs that default to best fit and show viable and near-miss labels. The secondary archetype unlocks once a primary archetype is picked and lists only archetypes that can be supported alongside it.
 - **Options**: cards on the right, as many columns as fit (three on a 1920-pixel window), one per deck option: title and description, a color wheel with each color's share of the colored mana symbols, the mana curve, copies of each card type, role coverage, and mana notes. The deck score ranks the options but is never shown. Ranked by deck score plus a bonus for using every picked color (and, from phase 12, for meeting the secondary style), so a much stronger option that drops a color can still lead (`buildOptions` in builder-weights.json).
 - **Fit**: options stay inside the request but need not use all of it. Every option uses only picked colors (any non-empty subset). A picked primary style is required: every option honors it, and when no deck can, the right side says that no decks meet the settings and offers a Clear settings button (inline, not a popup). The secondary style is best effort, and an option that could not meet it is marked as such. An option that uses everything picked ranks above an equally strong one that drops something. Styles and colors that were not picked never appear.
 - **Generation**: options are ideas, each built from the full pool, so one option's cards stay available to the next. They build one at a time, one per browser tick so the page stays responsive, and appear as they finish, re-sorted by rank, with a progress indicator while work remains. Builds take turns across the color subsets, so smaller color sets get built too. The count is capped in config, an option that shares most of its cards with a stronger one is dropped, and without a picked primary style at most two options share a style. Opening an option or leaving the Build screen pauses the work; returning resumes it. Settings and finished options survive moving between screens.
@@ -194,7 +194,7 @@ The Build page has settings on the left and deck options on the right.
 
 - **Legality**: the commander must be allowed by the format (a legendary creature card, Vehicle, or Spacecraft with power and toughness, or text that says it can be your commander; partner and background pairs later). Cards banned or not legal in Commander stay out of the commander list and the 99. Every card fits inside the commander's color identity. Singleton except basics and cards whose text allows more.
 - **Candidates and tiers**: top, good, and possible (see `docs/guides/commander.md`), ranked by how many pool cards fit its identity, whether its own text rewards a style the pool supports or a creature type it holds, its mana value, and its colors against the fixing in the pool. Game Changers are allowed; bulk rarely holds many. Partner and Background pairs and colorless commanders are not supported yet.
-- **Template**: 35 to 40 lands (37 to start), 10 ramp, 10 card draw (cantrips do not count), 9 removal, 3 sweepers, and the rest for the theme, so lands plus ramp land near 45 to 47. Every Commander deck uses the `commander` curve profile. The commander counts as one card toward each role it fills, so the deck still works when it is off the table. Numbers live in `deck-templates.json` and the `commander` block of `builder-weights.json`; the reasoning is in `docs/guides/commander.md`.
+- **Template**: 35 to 40 lands (37 to start), 10 ramp, 10 card draw (cantrips do not count), 9 removal, 3 sweepers, 5 finishers, and the rest for the theme, so lands plus ramp land near 45 to 47. Every Commander deck uses the `commander` curve profile. The commander counts as one card toward each role it fills, so the deck still works when it is off the table. Numbers live in `deck-templates.json` and the `commander` block of `builder-weights.json`; the reasoning is in `docs/guides/commander.md`.
 
 ## Jumpstart packets
 
@@ -269,6 +269,7 @@ Resolved questions, kept so they are not reopened by accident.
 - Deckbuilding guidance from outside material is restated in our own words in `docs/guides/` and config, with no source names in the repo.
 - Game Changers are not filtered out.
 - The app says archetype where the code and config say style (`style`, `secondary`, styleBonus). Labels can change freely; ids stay, so saved decks and eval results keep working.
+- Finisher means a card that can end a Commander game at 40 life: an overrun, an extra combat, another way to win, a planeswalker costing five or more, a creature with seven or more power, an evasive or trampling one with five or more, or an evasive double striker. Only the 100-card template asks for finishers. The 60, 40, and 20-card templates ask for big threats (big bodies, big flyers, planeswalkers), the role id `finisher` kept so saved decks still read.
 - Deck scores stay internal: no strength number on screen or in builder notes, since raw scores invite the wrong comparisons.
 - The deck list groups cards by exact type (creatures, planeswalkers, instants, sorceries, artifacts, enchantments, battles, lands), the same groups the Card types breakdown counts.
 - Tribal is a secondary style, not a primary one. A secondary style needs a primary style; a second theme needs half its minimums, a shape can only follow a themed primary, and a tribe needs members and type payoffs (`builderWeights.secondary`).

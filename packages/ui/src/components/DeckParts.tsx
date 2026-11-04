@@ -5,7 +5,7 @@ import { CurveChart, RoleBar, RoleBars, type Variant } from './controls.tsx';
 import { ColorBreakdown, TypeBreakdown } from './DeckStats.tsx';
 import { ManaCost } from '../ManaCost.tsx';
 import { archetypeInfo, deckGroups } from '../data/deckGroups.ts';
-import { deckColorShares, deckTypeCounts } from '../data/deckStats.ts';
+import { deckColorShares, deckStyleRows, deckTypeCounts } from '../data/deckStats.ts';
 import { ui } from '../styles.ts';
 
 export interface DeckListProps {
@@ -172,6 +172,10 @@ export function DeckExplanation({
   const [notesOpen, setNotes] = useState(false);
   const shares = useMemo(() => (index ? deckColorShares(deck, index) : undefined), [deck, index]);
   const types = useMemo(() => (index ? deckTypeCounts(deck, index) : undefined), [deck, index]);
+  const styles = useMemo(
+    () => (index ? deckStyleRows(deck, index, config) : []),
+    [deck, index, config],
+  );
   const notes = notesOpen || detailed;
   const e = deck.explanation;
   const phone = variant === 'phone';
@@ -222,10 +226,13 @@ export function DeckExplanation({
           {e.lands.nonbasics > 0 && `, ${e.lands.nonbasics} nonbasic`}.
         </p>
       </section>
-      {Object.keys(e.roles).length > 0 && (
+      {(styles.length > 0 || Object.keys(e.roles).length > 0) && (
         <section className="flex flex-col gap-1.5">
           <h3 className={label}>Roles</h3>
           <RoleBars>
+            {styles.map((r) => (
+              <RoleBar key={r.key} label={r.label} have={r.have} want={r.want} />
+            ))}
             {Object.entries(e.roles).map(([id, c]) => (
               <RoleBar key={id} label={roleLabel(config, id)} have={c.have} want={c.want} />
             ))}

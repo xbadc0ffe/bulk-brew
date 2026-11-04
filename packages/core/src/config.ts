@@ -6,10 +6,17 @@ import type { CardType, Color, DeckSize } from './types.ts';
 
 /** Facts tags cannot express. Implemented in matchers.ts. */
 export type DerivedPredicate =
-  'finisher' | 'cheapManaSource' | 'evasiveCreature' | 'mdfcLand' | 'basicLand' | 'nonbasicLand';
+  | 'finisher'
+  | 'commanderFinisher'
+  | 'cheapManaSource'
+  | 'evasiveCreature'
+  | 'mdfcLand'
+  | 'basicLand'
+  | 'nonbasicLand';
 
 export const DERIVED_PREDICATES: readonly DerivedPredicate[] = [
   'finisher',
+  'commanderFinisher',
   'cheapManaSource',
   'evasiveCreature',
   'mdfcLand',

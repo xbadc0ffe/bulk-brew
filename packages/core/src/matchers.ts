@@ -57,6 +57,23 @@ export function isFinisher(card: CardRecord): boolean {
   return card.mv >= 4 && p >= 3 && isEvasiveCreature(card);
 }
 
+/**
+ * A threat that ends a Commander game, where each opponent starts at 40: a
+ * planeswalker costing five or more, a creature with seven or more power, an
+ * evasive or trampling creature with five or more, or an evasive double
+ * striker with three or more. Overruns and extra combats come from tags in
+ * roles.json.
+ */
+export function isCommanderFinisher(card: CardRecord): boolean {
+  if (card.types.includes('planeswalker')) return card.mv >= 5;
+  if (!isCreature(card)) return false;
+  const p = powerValue(card);
+  if (p >= 7) return true;
+  const evasive = isEvasiveCreature(card) || card.keywords.includes('Trample');
+  if (evasive && p >= 5) return true;
+  return evasive && p >= 3 && card.keywords.includes('Double strike');
+}
+
 export type ManaSourceKind = 'rock' | 'dork' | 'landRamp';
 
 /** Nonland mana source costing 3 or less, for the land formula. */
@@ -177,6 +194,8 @@ export function evaluateDerived(card: CardRecord, predicate: DerivedPredicate): 
   switch (predicate) {
     case 'finisher':
       return isFinisher(card);
+    case 'commanderFinisher':
+      return isCommanderFinisher(card);
     case 'cheapManaSource':
       return manaSourceKind(card) !== undefined;
     case 'evasiveCreature':

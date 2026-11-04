@@ -1,5 +1,5 @@
 {
-  "version": "3",
+  "version": "4",
   "rules": [
     {
       "id": "tokens-pump",
@@ -157,17 +157,27 @@
     {
       "id": "auras",
       "note": "Auras and equipment plus cards that reward attaching them.",
-      "enabler": [{ "typeLineAny": ["Aura", "Equipment"] }],
+      "enabler": [
+        { "typeLineAny": ["Equipment"] },
+        { "typeLineAny": ["Aura"], "excludeTags": ["pacifism", "banish", "ransom"] },
+        {
+          "anyTags": ["tutor-artifact-equipment", "tutor-enchantment-aura", "pseudo-equipment"]
+        }
+      ],
       "payoff": [
         {
           "anyTags": [
             "synergy-aura",
             "synergy-equipment",
-            "synergy-enchantment",
             "heroic",
-            "enchantment-engine"
+            "exalted",
+            "cost-reducer-equip-ability",
+            "cost-reducer-aura",
+            "cost-reducer-equipment",
+            "affinity-for-equipment"
           ]
-        }
+        },
+        { "anyKeywords": ["Double strike"], "types": ["creature"] }
       ],
       "weight": 1.0
     },
@@ -175,7 +185,10 @@
       "id": "auras-hexproof",
       "note": "Hexproof creatures are safe places to put auras and equipment.",
       "enabler": [{ "anyKeywords": ["Hexproof"], "types": ["creature"] }],
-      "payoff": [{ "typeLineAny": ["Aura", "Equipment"] }],
+      "payoff": [
+        { "typeLineAny": ["Equipment"] },
+        { "typeLineAny": ["Aura"], "excludeTags": ["pacifism", "banish", "ransom"] }
+      ],
       "weight": 0.6
     },
     {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildDeck } from '../src/builder.ts';
+import { buildDeck, styleCounts } from '../src/builder.ts';
 import { CardIndex } from '../src/pack.ts';
 import { scanPool, secondaryChoices, tribesOf } from '../src/scan.ts';
 import { listCandidates } from '../src/candidates.ts';
@@ -84,6 +84,15 @@ describe('secondary styles', () => {
       .filter((c) => c.cardId.startsWith('bird') || c.cardId === 'shifter')
       .reduce((n, c) => n + c.qty, 0);
     expect(members).toBeGreaterThanOrEqual(CONFIG.builderWeights.secondary.tribal['60'].enablers);
+    const counts = styleCounts(r.deck, index, CONFIG);
+    expect(counts.map((s) => [s.id, s.tribal])).toEqual([
+      ['tokens', false],
+      ['tribal:Bird', true],
+    ]);
+    expect(counts[1]!.enablers).toEqual({
+      have: members,
+      want: CONFIG.builderWeights.secondary.tribal['60'].enablers,
+    });
   });
 
   it('lets a shape lead the curve under a themed primary', () => {
