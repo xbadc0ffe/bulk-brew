@@ -27,6 +27,9 @@ desktop.ini
 # Browser smoke test output
 .smoke/
 
+# The owner's personal bulk lists, used for local testing only
+test-bulk/
+
 # Claude Code local settings
 .claude/settings.local.json
 
