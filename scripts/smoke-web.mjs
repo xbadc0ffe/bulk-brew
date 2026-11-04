@@ -185,23 +185,25 @@ try {
 
   await click('^Build$');
   await click('^60$');
-  // Color tiles read like "W White 754 · 60/40/20". SMOKE_COLORS picks several, such as "White,Blue".
+  // Color tiles read like "W White 754 cards". SMOKE_COLORS picks several, such as "White,Blue".
   const colorNames = (process.env.SMOKE_COLORS ?? 'White').split(',');
   for (const name of colorNames) await click(`${name}\\d`);
   // Open the rarity drop-down so the form screenshot shows it, then close it.
   await click('^All rarities');
   await waitForText(/Mythic/, 5000);
-  await shot('3-build-form');
   await click('^All rarities');
-  await click(`^Build 60-card ${colorNames.join('-').toLowerCase()} deck$`);
+  // Options build in the background; wait for them to finish, then open the strongest.
+  log('options', oneLine(await waitForText(/options?, strongest first/, 60000), 160));
+  await shot('3-build-options');
+  await click('strength', 'first');
   log('deck', oneLine(await waitForText(/Accept/, 30000), 160));
   await shot('3-deck');
 
   await click('^Bulk List');
   await waitForText(/unique/);
   await click('^Build$');
-  await waitForText(/Reject/, 5000);
-  log('navigation', 'built deck survived a trip to the Bulk List');
+  await waitForText(/Back to options/, 5000);
+  log('navigation', 'opened deck survived a trip to the Bulk List');
 
   await click('^Accept$');
   // The confirmation's own Accept button comes last.

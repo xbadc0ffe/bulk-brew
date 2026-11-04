@@ -4,6 +4,7 @@ import type {
   AppearanceState,
   BuildFlow,
   CardDetailState,
+  DeckOptions,
   DecksState,
   KeyValueStore,
   PackState,
@@ -28,6 +29,10 @@ export interface AppState {
   scans: ScansBySize | undefined;
   /** Build screen state, kept here so it survives navigation. */
   build: BuildFlow;
+  /** Deck options for the Build page, built in the background and kept across screens. */
+  options: DeckOptions;
+  /** The Build screen reports when it shows, so options only build while it does. */
+  setBuildVisible(visible: boolean): void;
   /** The card shown in the detail panel, openable from any screen. */
   detail: CardDetailState;
 }

@@ -1,9 +1,10 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
   CONFIG,
   useAppearance,
   useBuildFlow,
   useCardDetail,
+  useDeckOptions,
   useDecks,
   usePack,
   usePool,
@@ -31,6 +32,20 @@ export function AppStateProvider({ kv, children }: { kv: KeyValueStore; children
     decks,
     scans,
   });
+  // Options build only while the Build screen shows and no deck is open.
+  const [buildVisible, setBuildVisible] = useState(false);
+  const options = useDeckOptions({
+    enabled: true,
+    index,
+    config: CONFIG,
+    pool: pool.pool,
+    settings: build.buildSettings,
+    size: build.size,
+    colors: build.colors,
+    primary: build.style,
+    secondary: build.secondary,
+    paused: !buildVisible || build.result !== undefined,
+  });
   const detail = useCardDetail();
   const value: AppState = {
     kv,
@@ -43,6 +58,8 @@ export function AppStateProvider({ kv, children }: { kv: KeyValueStore; children
     decks,
     scans,
     build,
+    options,
+    setBuildVisible,
     detail,
   };
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

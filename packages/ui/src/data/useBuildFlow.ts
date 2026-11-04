@@ -42,9 +42,18 @@ export interface BuildFlow {
   color: Color | undefined;
   /** Pick exactly this one color. */
   setColor(color: Color): void;
-  /** Archetype id, or undefined for best fit. */
+  /** Primary style (archetype id), or undefined for best fit. */
   style: string | undefined;
   setStyle(style: string | undefined): void;
+  /** Secondary style, only once a primary style is picked. */
+  secondary: string | undefined;
+  setSecondary(style: string | undefined): void;
+  /** The settings a build uses: the stored ones with this build's copy limit. */
+  buildSettings: Settings;
+  /** Show a finished build, such as a deck option, as the result. */
+  open(result: BuildResult): void;
+  /** Clear colors and styles, keeping size and copies. */
+  clearChoices(): void;
   /** Copy limit for this build; starts at the setting for the size. */
   maxCopies: number;
   setMaxCopies(n: number): void;
@@ -80,6 +89,7 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
   const [colors, setColorsState] = useState<Color[]>([]);
   const color = colors[0];
   const [style, setStyleState] = useState<string>();
+  const [secondary, setSecondaryState] = useState<string>();
   /** A copy limit for this build, valid only while the size and stored setting match. */
   const [override, setOverride] = useState<{ size: DeckSize; base: number; value: number }>();
   const [result, setResult] = useState<BuildResult>();
@@ -125,6 +135,7 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
     (c: Color) => {
       setColorsState([c]);
       setStyleState(undefined);
+      setSecondaryState(undefined);
       reject();
     },
     [reject],
@@ -134,7 +145,6 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
       setColorsState((cs) =>
         normalizeColors(cs.includes(c) ? cs.filter((x) => x !== c) : [...cs, c]),
       );
-      setStyleState(undefined);
       reject();
     },
     [reject],
@@ -142,10 +152,33 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
   const setStyle = useCallback(
     (s: string | undefined) => {
       setStyleState(s);
+      setSecondaryState(undefined);
       reject();
     },
     [reject],
   );
+  const setSecondary = useCallback(
+    (s: string | undefined) => {
+      setSecondaryState(s);
+      reject();
+    },
+    [reject],
+  );
+  const open = useCallback(
+    (r: BuildResult) => {
+      setResult(r);
+      setResultMaxCopies(maxCopies);
+      setError(undefined);
+      setAccepted(undefined);
+    },
+    [maxCopies],
+  );
+  const clearChoices = useCallback(() => {
+    setColorsState([]);
+    setStyleState(undefined);
+    setSecondaryState(undefined);
+    reject();
+  }, [reject]);
   const setMaxCopies = useCallback(
     (n: number) => {
       setOverride({ size, base: stored, value: Math.max(1, Math.min(99, Math.floor(n))) });
@@ -218,6 +251,11 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
     setColor,
     style,
     setStyle,
+    secondary,
+    setSecondary,
+    buildSettings,
+    open,
+    clearChoices,
     maxCopies,
     setMaxCopies,
     sizeScans,

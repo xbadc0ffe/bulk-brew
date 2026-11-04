@@ -1,5 +1,5 @@
 {
-  "version": "5",
+  "version": "6",
   "objective": {
     "curveDeviation": 1.0,
     "typeMixDeviation": 1.0,
@@ -27,6 +27,14 @@
     "synergyReference": 2
   },
   "bestFit": { "synergyCandidates": 20, "compositionCandidates": 3 },
+  "buildOptions": {
+    "maxBuilds": 36,
+    "maxOptions": 12,
+    "allColorsBonus": 4,
+    "secondaryBonus": 3,
+    "duplicateShare": 0.6,
+    "maxPerStyle": 2
+  },
   "castability": {
     "secondaryPip": 0.25,
     "doubleSecondary": 0.75,

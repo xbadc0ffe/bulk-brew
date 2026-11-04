@@ -63,6 +63,7 @@ export {
 export { useSettings, type SettingsState } from './data/useSettings.ts';
 export { useDecks, type DecksState } from './data/useDecks.ts';
 export { useBuildFlow, type BuildFlow, type BuildFlowInput } from './data/useBuildFlow.ts';
+export { useDeckOptions, type DeckOptions, type DeckOptionsInput } from './data/useDeckOptions.ts';
 export { useCardDetail, type CardDetailState, type OpenCard } from './data/useCardDetail.ts';
 export { useWindowedRows, type WindowedRows } from './data/useWindowedRows.ts';
 export { useMediaQuery } from './data/useMediaQuery.ts';

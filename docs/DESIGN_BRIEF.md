@@ -44,11 +44,14 @@ Both apps support light and dark mode. No external fonts, CDNs, or trackers; eve
 
 ### Build
 
-- Deck size choice: 60, 40, 20, with one line each describing the style.
-- Color choice: five colors, each showing how many candidate cards the pool has for it and whether a deck of the chosen size is possible.
-- Style choice: "best fit" by default, plus the archetypes the scan found viable for that color and size, each with a short description and a viability indicator. Near-misses show what is missing ("needs 3 more token makers").
-- Advanced: override max copies for this build.
-- Build button. Building is fast, under a couple of seconds, so a brief working state is enough.
+Settings on the left, deck options on the right (desktop; phones keep a single build until parity).
+
+- Deck size: 60, 40, 20 (100 Commander later), with one line describing the selected size.
+- Max copies per card, a rarities drop-down with a checkbox per rarity, and unlimited basic lands.
+- Colors: five toggles, any number picked, each showing how many cards of that color the pool has.
+- Primary style drop-down: best fit by default, then the styles any subset of the picked colors can build, with viability labels; near misses show what is missing and cannot be picked. Secondary style drop-down, unlocked by a primary style.
+- Options: cards ranked strongest first, each with the deck's colors, name, a strength number and bar, a small curve, spell and land counts, a mana warning when a color is stretched, and the top synergy. They arrive one by one with a progress line; picking one opens the deck view with Accept, Back to options, and Export.
+- Empty and failure states: no colors picked; no decks meet the settings, with a Clear settings button.
 
 ### Deck result and deck view
 
@@ -120,7 +123,7 @@ A plain, functional interface already implements every screen above, so the desi
 
 - Import: paste or choose a file; decklists and ManaBox, Moxfield, and Deckbox CSV exports are detected automatically; a resolution report with suggestions.
 - Pool: color filters, search, sort (name, mana value, color, quantity), header counts, quantity buttons, export, clear. The web table only renders rows near the viewport for large pools.
-- Build: size, color with candidate counts, style list with viability notes, build, then the deck view with Accept, Try another style, Discard, Export, and Copy.
+- Build (desktop): settings beside ranked deck options; an option opens the deck view with Accept, Back to options, and Export. Phones: size, colors, style list, Build, then the deck view.
 - Deck view: cards grouped by type, mana symbols, optional "why each card is here", curve bars, land reasoning, roles, synergies, notes.
 - Decks: list, open, rename, export, delete with "return cards to the pool", pair two packets with Copy.
 - Settings: copy limits, basics, Un-sets, card art, backup export and restore, clear all data, card data version, About with the attribution notices.

@@ -16,6 +16,7 @@ export * from './lands.ts';
 export * from './colors.ts';
 export * from './strength.ts';
 export * from './builder.ts';
+export * from './options.ts';
 export * from './decks.ts';
 export * from './export.ts';
 export * from './csv.ts';

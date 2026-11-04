@@ -273,6 +273,21 @@ export interface BuilderWeightsConfig {
   };
   /** How many viable archetypes best fit builds and compares. */
   bestFit: { synergyCandidates: number; compositionCandidates: number };
+  /** Deck options on the Build page. */
+  buildOptions: {
+    /** Most builds planned for one set of settings. */
+    maxBuilds: number;
+    /** Most options shown. */
+    maxOptions: number;
+    /** Rank points for an option that uses every picked color. */
+    allColorsBonus: number;
+    /** Rank points for an option that also meets the picked secondary style. */
+    secondaryBonus: number;
+    /** An option sharing at least this share of its spells with a stronger one is dropped. */
+    duplicateShare: number;
+    /** Without a picked primary style, at most this many options of any one style. */
+    maxPerStyle: number;
+  };
   /**
    * Pick penalties, in card strength points, for spells that strain a
    * multi-color mana base: pips of a secondary or splash color, double pips,
@@ -733,6 +748,19 @@ export function validateConfig(c: BulkBrewConfig): string[] {
     problems.push(
       'builderWeights.bestFit: synergyCandidates and compositionCandidates must be whole numbers, at least one in total',
     );
+
+  const bo = bw.buildOptions;
+  for (const k of ['maxBuilds', 'maxOptions', 'maxPerStyle'] as const) {
+    const v = bo?.[k];
+    if (!isNum(v) || !Number.isInteger(v) || v < 1)
+      problems.push(`builderWeights.buildOptions.${k}: must be a whole number of at least 1`);
+  }
+  for (const k of ['allColorsBonus', 'secondaryBonus'] as const) {
+    if (!isNum(bo?.[k]) || bo[k] < 0)
+      problems.push(`builderWeights.buildOptions.${k}: must be a non-negative number`);
+  }
+  if (!isNum(bo?.duplicateShare) || bo.duplicateShare <= 0 || bo.duplicateShare > 1)
+    problems.push('builderWeights.buildOptions.duplicateShare: must be above 0 and at most 1');
 
   const cast = bw.castability;
   for (const k of [

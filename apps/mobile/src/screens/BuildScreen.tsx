@@ -73,6 +73,10 @@ function BuildForm() {
             Saved &quot;{flow.accepted.name}&quot; and removed its cards from your bulk list.
           </p>
         )}
+        <p className={phone.note}>
+          The phone layout builds the single strongest deck for your picks. The ranked list of deck
+          options is on the desktop layout for now and comes to phones next.
+        </p>
         <section className="flex flex-col gap-2">
           <h2 className={phone.groupLabel}>Deck size</h2>
           <Segmented
@@ -148,7 +152,10 @@ function BuildForm() {
                   aria-disabled={!can}
                   aria-label={`${COLOR_LABELS[c]}, ${s?.candidates ?? 0} candidates, ${sizes.length > 0 ? `builds ${sizes.join(', ')}` : 'builds no size alone'}`}
                   onClick={() => {
-                    if (can || on) flow.toggleColor(c);
+                    if (!can && !on) return;
+                    // The phone form lists only styles the colors can build, so a color change clears the style.
+                    flow.toggleColor(c);
+                    flow.setStyle(undefined);
                   }}
                   className={`flex min-w-0 flex-col items-center gap-1 rounded-lg border px-0.5 pt-2.5 pb-2 ${
                     on ? 'border-ink bg-surface' : 'border-line'

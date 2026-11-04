@@ -1,10 +1,16 @@
-import { useState } from 'react';
-import { COLORS, COLOR_LABELS, colorsLabel, RARITIES, type DeckSize } from '@bulk-brew/core';
+import { useEffect, useState } from 'react';
 import {
-  archetypeInfo,
+  COLORS,
+  COLOR_LABELS,
+  colorsLabel,
+  RARITIES,
+  type DeckSize,
+  type ScanReport,
+} from '@bulk-brew/core';
+import {
   archetypeViability,
-  buildableSizes,
   ConfirmDialog,
+  Dropdown,
   Pip,
   RarityPicker,
   Segmented,
@@ -13,10 +19,10 @@ import {
   Toggle,
   ui,
   useStatus,
-  type ScansBySize,
 } from '@bulk-brew/ui';
 import { useAppState } from '../app-context.ts';
 import { PackGate } from '../screens.tsx';
+import { OptionsPanel } from './BuildOptions.tsx';
 import { DeckLayout, ExportMenu } from './DeckLayout.tsx';
 
 const SIZES: { id: DeckSize; label: string }[] = [
@@ -42,34 +48,22 @@ export function BuildScreen() {
 }
 
 function Build() {
-  const { build: flow } = useAppState();
+  const { build: flow, setBuildVisible } = useAppState();
+  // Options build only while this screen shows.
+  useEffect(() => {
+    setBuildVisible(true);
+    return () => setBuildVisible(false);
+  }, [setBuildVisible]);
   return flow.result ? <BuildResultView /> : <BuildForm />;
 }
 
-function sizesText(scans: ScansBySize | undefined, color: (typeof COLORS)[number]): string {
-  if (!scans) return '';
-  const sizes = buildableSizes(scans, color);
-  return sizes.length ? sizes.join('/') : 'none';
-}
-
 function BuildForm() {
-  const { build: flow, scans, config, settings, index } = useAppState();
+  const { build: flow, config, settings, index, options } = useAppState();
   // Schema 1 packs carry no rarity, so the filter cannot act until the data is refreshed.
   const rarityKnown = (index?.pack.schema ?? 2) >= 2;
   const colorName = flow.colors.length > 0 ? colorsLabel(flow.colors) : undefined;
   const scan = flow.colorScan;
-  const styles = scan
-    ? scan.archetypes
-        .map((a) => ({ a, state: archetypeViability(a, scan) }))
-        .filter((x) => x.state !== 'none')
-        .sort((x, y) => (x.state === y.state ? 0 : x.state === 'viable' ? -1 : 1))
-    : [];
-  const label = flow.building
-    ? 'Building…'
-    : colorName
-      ? `Build ${flow.size}-card ${colorName.toLowerCase()} deck`
-      : `Build ${flow.size}-card deck`;
-  const sizes = flow.color && scans ? buildableSizes(scans, flow.color) : [];
+  const choices = styleChoices(config, options.scans);
 
   return (
     <div className="flex h-full flex-col overflow-y-auto md:flex-row md:overflow-hidden">
@@ -78,11 +72,12 @@ function BuildForm() {
           Build
         </h1>
         {flow.accepted && (
-          <p role="status" className={`${ui.error} leading-[1.5]`}>
-            Saved &quot;{flow.accepted.name}&quot; and removed its cards from your bulk list. Build
-            another from what is left.
+          <p role="status" className={ui.error}>
+            Saved &quot;{flow.accepted.name}&quot; and removed its cards from your bulk list. The
+            deck options are rebuilt from what is left.
           </p>
         )}
+        {flow.error && <p className={ui.error}>{flow.error}</p>}
 
         <div className="flex flex-col gap-2">
           <h2 className={ui.sectionLabel}>Deck size</h2>
@@ -118,10 +113,7 @@ function BuildForm() {
           </span>
           <RarityPicker
             value={settings.settings.rarities ?? RARITIES}
-            onChange={(rarities) => {
-              settings.update({ rarities });
-              flow.reject();
-            }}
+            onChange={(rarities) => settings.update({ rarities })}
             buttonClassName={`${ui.secondary} whitespace-nowrap`}
           />
         </div>
@@ -154,7 +146,7 @@ function BuildForm() {
                   key={c}
                   type="button"
                   aria-pressed={on}
-                  aria-disabled={!can}
+                  aria-disabled={!can && !on}
                   title={
                     can ? undefined : `No ${COLOR_LABELS[c].toLowerCase()} cards in your bulk list`
                   }
@@ -163,89 +155,163 @@ function BuildForm() {
                   }}
                   className={`flex min-w-0 flex-col items-center gap-1 rounded-md border px-1 pt-2.5 pb-2 text-center ${
                     on ? 'border-ink bg-surface' : 'border-line'
-                  } ${can ? (on ? '' : 'hover:bg-surface-2') : 'cursor-default opacity-55'}`}
+                  } ${can || on ? (on ? '' : 'hover:bg-surface-2') : 'cursor-default opacity-55'}`}
                 >
                   <Pip symbol={c} size={22} />
                   <span className="text-[12px] font-medium">{COLOR_LABELS[c]}</span>
                   <span className="text-[10.5px] leading-tight text-fg-2">
-                    {s?.candidates ?? 0} ·{' '}
-                    {s?.possible ? sizesText(scans, c) : `no ${flow.size} alone`}
+                    {s?.colored ?? 0} cards
                   </span>
                 </button>
               );
             })}
           </div>
-          {colorName && scan && !scan.possible && (
-            <p className="text-[12px] text-fg-2">
-              {colorName} cannot build a {flow.size}-card deck:{' '}
-              {scanShortfall(scan) ?? 'not enough cards'}.
-            </p>
-          )}
+          <p className="text-[12px] text-fg-2">
+            {colorName
+              ? scan && !scan.possible && flow.colors.length > 1
+                ? `${colorName} together falls short (${scanShortfall(scan) ?? 'not enough cards'}); options use fewer of these colors.`
+                : `Options use ${flow.colors.length > 1 ? 'any of these colors' : 'this color'}.`
+              : 'Pick one or more colors. Options can use any of them.'}
+          </p>
         </div>
 
         <div className="flex flex-col gap-2">
-          <h2 className={ui.sectionLabel}>Style</h2>
-          {scan?.possible ? (
-            <div role="radiogroup" aria-label="Style" className="rounded-md border border-line">
-              <StyleRow
-                name="Best fit"
-                description="Let the builder pick the strongest style"
-                checked={flow.style === undefined}
-                onSelect={() => flow.setStyle(undefined)}
-              />
-              {styles.map(({ a, state }) => (
-                <StyleRow
-                  key={a.archetype}
-                  name={a.label}
-                  description={
-                    state === 'viable'
-                      ? archetypeInfo(config, a.archetype).description
-                      : capitalize(a.notes.join(', '))
-                  }
-                  state={state === 'viable' ? 'Viable' : 'Near miss'}
-                  disabled={state !== 'viable'}
-                  checked={flow.style === a.archetype}
-                  onSelect={() => flow.setStyle(a.archetype)}
-                />
-              ))}
-            </div>
+          <h2 className={ui.sectionLabel}>Primary style</h2>
+          <StylePicker
+            label="Primary style"
+            value={flow.style}
+            emptyLabel="Best fit"
+            emptyDescription="Show the strongest decks of any style"
+            choices={choices}
+            disabled={flow.colors.length === 0}
+            onChange={flow.setStyle}
+          />
+          <h2 className={`${ui.sectionLabel} mt-2`}>Secondary style</h2>
+          {flow.style ? (
+            <p className="text-[12px] text-fg-2">Secondary styles arrive with the next update.</p>
           ) : (
-            <p className="text-[12px] text-fg-2">Pick a color to see the styles it can build.</p>
+            <p className="text-[12px] text-fg-2">Pick a primary style first.</p>
           )}
-        </div>
-
-        <div className="sticky bottom-0 -mx-6 -mb-[22px] mt-auto flex flex-col gap-2 border-t border-line bg-surface px-6 pt-3 pb-[22px]">
-          {flow.error && <p className="text-[13px] text-ink">{flow.error}</p>}
-          <button
-            type="button"
-            className={`${ui.primary} h-10 w-full text-[14px]`}
-            disabled={!flow.canBuild}
-            onClick={flow.build}
-          >
-            {label}
-          </button>
         </div>
       </section>
 
-      <div className="flex flex-1 flex-col items-center justify-center gap-1 p-8 text-center text-[13px] text-fg-2">
-        <p>Your deck appears here.</p>
-        <p>
-          {!colorName || !scan
-            ? 'Pick a size and a color to start.'
-            : sizes.length === 3
-              ? `${colorName} has ${scan.candidates} candidates and builds all three sizes.`
-              : sizes.length > 0
-                ? `${colorName} has ${scan.candidates} candidates and builds ${sizes.join(' and ')}.`
-                : `${colorName} has ${scan.candidates} candidates, not enough for a deck yet.`}
-        </p>
-      </div>
+      <OptionsPanel
+        options={options}
+        onClear={() => {
+          flow.clearChoices();
+          requestAnimationFrame(() => document.getElementById('build-title')?.focus());
+        }}
+      />
     </div>
   );
 }
 
-const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+interface StyleChoice {
+  id: string;
+  label: string;
+  description: string;
+  state: 'viable' | 'near';
+}
 
-function StyleRow(props: {
+/**
+ * Styles worth offering for the picked colors: the best viability any subset
+ * of them reaches, viable first. Near misses show what they lack and cannot
+ * be picked, as on the old form.
+ */
+function styleChoices(
+  config: ReturnType<typeof useAppState>['config'],
+  scans: ReadonlyMap<string, ScanReport>,
+): StyleChoice[] {
+  const out: StyleChoice[] = [];
+  for (const a of config.archetypes.archetypes) {
+    let best: StyleChoice | undefined;
+    for (const scan of scans.values()) {
+      const report = scan.archetypes.find((r) => r.archetype === a.id);
+      if (!report) continue;
+      const state = archetypeViability(report, scan);
+      if (state === 'viable') {
+        best = { id: a.id, label: a.label, description: a.description, state };
+        break;
+      }
+      if (state === 'near' && !best) {
+        best = {
+          id: a.id,
+          label: a.label,
+          description: capitalize(report.notes.join(', ')),
+          state,
+        };
+      }
+    }
+    if (best) out.push(best);
+  }
+  return out.sort((x, y) => (x.state === y.state ? 0 : x.state === 'viable' ? -1 : 1));
+}
+
+function StylePicker(props: {
+  label: string;
+  value: string | undefined;
+  emptyLabel: string;
+  emptyDescription: string;
+  choices: StyleChoice[];
+  disabled?: boolean;
+  onChange(id: string | undefined): void;
+}) {
+  const { label, value, emptyLabel, emptyDescription, choices, disabled, onChange } = props;
+  const { config } = useAppState();
+  // A picked style stays shown even when the current colors cannot build it.
+  const current = choices.find((c) => c.id === value);
+  const picked = value ? config.archetypes.archetypes.find((a) => a.id === value) : undefined;
+  const shown = current?.label ?? (picked ? `${picked.label} (not available)` : emptyLabel);
+  if (disabled) {
+    return (
+      <button
+        type="button"
+        disabled
+        aria-label={`${label}: ${shown}`}
+        className={`${ui.secondary} justify-between`}
+      >
+        {shown} <span aria-hidden>▾</span>
+      </button>
+    );
+  }
+  return (
+    <Dropdown
+      label={`${shown} ▾`}
+      ariaLabel={`${label}: ${shown}`}
+      buttonClassName={`${ui.secondary} w-full justify-between`}
+    >
+      {(close) => (
+        <div role="menu" aria-label={label} className="flex w-[340px] flex-col">
+          <StyleItem
+            name={emptyLabel}
+            description={emptyDescription}
+            checked={value === undefined}
+            onSelect={() => {
+              close();
+              onChange(undefined);
+            }}
+          />
+          {choices.map((c) => (
+            <StyleItem
+              key={c.id}
+              name={c.label}
+              description={c.description}
+              state={c.state === 'viable' ? 'Viable' : 'Near miss'}
+              checked={value === c.id}
+              disabled={c.state !== 'viable'}
+              onSelect={() => {
+                close();
+                onChange(c.id);
+              }}
+            />
+          ))}
+        </div>
+      )}
+    </Dropdown>
+  );
+}
+
+function StyleItem(props: {
   name: string;
   description: string;
   state?: string;
@@ -255,35 +321,32 @@ function StyleRow(props: {
 }) {
   const { name, description, state, checked, disabled, onSelect } = props;
   return (
-    <label
-      className={`grid grid-cols-[16px_1fr_auto] items-center gap-2.5 border-b border-surface-2 px-3 py-[9px] last:border-b-0 has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-ink ${
-        disabled ? 'opacity-55' : 'cursor-pointer hover:bg-surface-2'
-      }`}
+    <button
+      type="button"
+      role="menuitemradio"
+      aria-checked={checked}
+      aria-disabled={disabled || undefined}
+      onClick={disabled ? undefined : onSelect}
+      className={`grid grid-cols-[1fr_auto] items-center gap-2.5 rounded px-2.5 py-2 text-left ${
+        disabled ? 'cursor-default opacity-55' : 'hover:bg-surface-2'
+      } ${checked ? 'bg-surface-2' : ''}`}
     >
-      <input
-        type="radio"
-        name="style"
-        className="peer sr-only"
-        checked={checked}
-        disabled={disabled}
-        onChange={onSelect}
-      />
-      <span
-        aria-hidden
-        className={`size-3.5 rounded-full border-[1.5px] border-ink ${checked ? 'bg-ink shadow-[inset_0_0_0_2px_var(--surface)]' : ''}`}
-      />
       <span className="flex min-w-0 flex-col">
         <span className="text-[13px] font-medium">{name}</span>
-        <span className="text-[11.5px] text-fg-2">{description}</span>
+        <span className="text-[11.5px] whitespace-normal text-fg-2">{description}</span>
       </span>
       <span className="text-[11px] text-fg-1">{state}</span>
-    </label>
+    </button>
   );
 }
 
-/** The result view goes away after Accept or Reject; land on the form's heading. */
+const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/** The deck view goes away after Accept or Back; land on the options' heading, or the form's. */
 function focusForm() {
-  requestAnimationFrame(() => document.getElementById('build-title')?.focus());
+  requestAnimationFrame(() =>
+    (document.getElementById('options-title') ?? document.getElementById('build-title'))?.focus(),
+  );
 }
 
 function BuildResultView() {
@@ -320,7 +383,7 @@ function BuildResultView() {
                 focusForm();
               }}
             >
-              Reject
+              Back to options
             </button>
             <ExportMenu deck={deck} onStatus={setStatus} label="Export ▾" />
           </>

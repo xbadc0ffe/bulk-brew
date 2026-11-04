@@ -2,10 +2,6 @@
 
 Ranked. The current phase is at the top. Finished phases are removed, not struck through.
 
-## Phase 11: Build page
-
-- Settings left, ranked deck options right, background worker, pause on open, state kept. See SPEC "Build options". Web first, then mobile.
-
 ## Phase 12: Styles
 
 - Primary and secondary styles; secondary viability given the primary.
@@ -51,6 +47,8 @@ Ranked. The current phase is at the top. Finished phases are removed, not struck
 
 ## Owner review follow-ups
 
+- Mobile parity for the deck options list on the Build page (phones still build one deck).
+- Deck options build on the main thread, one per tick; move to a Web Worker if phones stutter.
 - Mobile parity for the web-only changes of the owner review: column sorting, the Analyze split, multi-select removal, and the deck details expand.
 - Tune `config/display-tags.json` after use; Blink and -1/-1 match few cards, Artifacts and Graveyard match many.
 - Decks saved with the short-lived Save deck show "Not accepted"; drop that path once no such decks remain.
