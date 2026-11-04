@@ -1,5 +1,5 @@
 {
-  "version": "4",
+  "version": "5",
   "rules": [
     {
       "id": "tokens-pump",
@@ -159,7 +159,17 @@
       "note": "Auras and equipment plus cards that reward attaching them.",
       "enabler": [
         { "typeLineAny": ["Equipment"] },
-        { "typeLineAny": ["Aura"], "excludeTags": ["pacifism", "banish", "ransom"] },
+        {
+          "typeLineAny": ["Aura"],
+          "excludeTags": [
+            "pacifism",
+            "banish",
+            "ransom",
+            "lockdown-creature",
+            "control-changing-effects",
+            "removal-toughness"
+          ]
+        },
         {
           "anyTags": ["tutor-artifact-equipment", "tutor-enchantment-aura", "pseudo-equipment"]
         }
@@ -187,7 +197,17 @@
       "enabler": [{ "anyKeywords": ["Hexproof"], "types": ["creature"] }],
       "payoff": [
         { "typeLineAny": ["Equipment"] },
-        { "typeLineAny": ["Aura"], "excludeTags": ["pacifism", "banish", "ransom"] }
+        {
+          "typeLineAny": ["Aura"],
+          "excludeTags": [
+            "pacifism",
+            "banish",
+            "ransom",
+            "lockdown-creature",
+            "control-changing-effects",
+            "removal-toughness"
+          ]
+        }
       ],
       "weight": 0.6
     },

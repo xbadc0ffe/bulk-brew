@@ -785,12 +785,12 @@ function localSearch(state: State, ctx: Ctx): number {
           base = tally(state, ctx);
         }
         if (!canAdd(state, ctx, cand, base)) continue;
-        // A swap may not take the primary or secondary style below the minimums its fill reached.
+        // A swap may not take a theme card away while the style is at or below its minimum.
         const outFlags = ctx.themeFlags.get(outId) ?? 0;
         const inFlags = ctx.themeFlags.get(cand.facts.card.id) ?? 0;
         const tw = ctx.themeWant;
         const drops = (bit: number, have: number, want: number) =>
-          (outFlags & bit) !== 0 && (inFlags & bit) === 0 && have + 1 >= want && have < want;
+          (outFlags & bit) !== 0 && (inFlags & bit) === 0 && have < want;
         if (
           drops(THEME_PE, base.pe, tw.pe) ||
           drops(THEME_PP, base.pp, tw.pp) ||

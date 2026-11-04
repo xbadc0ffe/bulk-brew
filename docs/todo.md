@@ -43,6 +43,7 @@ Ranked. The current phase is at the top. Finished phases are removed, not struck
 - Mobile parity for the web cleanup round: colored deck actions (Accept green, Back red, Export grey) and the icon sidebar's look in the tab bar.
 - Mobile parity for the second cleanup round: the Remove dialog (Delete or Disassemble), and Settings without copy limits and with Reset above a red Clear.
 - Voltron: commanders that make an Equipment token (Mabel's Cragflame) are not seen as Voltron leaders; tags do not mark it. Consider a derived check.
+- Voltron: Curses (Auras that enchant a player) still count as Voltron enablers; leaving them out needs a type line exclusion in the matcher format.
 - Eval: add a metric for decks that miss their own theme minimums, so a regression like the one fixed in local search shows up.
 - Deck options build on the main thread, one per tick; move to a Web Worker if phones stutter.
 - Mobile parity for the web-only changes of the owner review: column sorting, the Analyze split, multi-select removal, and the deck details expand.

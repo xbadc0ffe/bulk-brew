@@ -1,5 +1,5 @@
 {
-  "version": "5",
+  "version": "6",
   "archetypes": [
     {
       "kind": "composition",
@@ -279,7 +279,17 @@
       "curveProfile": "aggro",
       "enablers": [
         { "typeLineAny": ["Equipment"] },
-        { "typeLineAny": ["Aura"], "excludeTags": ["pacifism", "banish", "ransom"] },
+        {
+          "typeLineAny": ["Aura"],
+          "excludeTags": [
+            "pacifism",
+            "banish",
+            "ransom",
+            "lockdown-creature",
+            "control-changing-effects",
+            "removal-toughness"
+          ]
+        },
         {
           "anyTags": ["tutor-artifact-equipment", "tutor-enchantment-aura", "pseudo-equipment"]
         }

@@ -18,7 +18,7 @@ The `jumpstart` profile is 14% ones, 30% twos, 28% threes, 17% fours, 8% fives, 
 
 ## Self-contained
 
-Every card in a packet must work with only the packet's own color. The builder already restricts candidates to that color's identity plus colorless cards, so no gold cards or off-color activations sneak in. Themes are chosen with lower minimums (for example 3 token makers and 1 payoff), and the role quotas ask for at least one removal spell, one cheap trick, one finisher, and two early creatures, so the packet stands on its own when paired with anything.
+Every card in a packet must work with only the packet's own color. The builder already restricts candidates to that color's identity plus colorless cards, so no gold cards or off-color activations sneak in. Themes are chosen with lower minimums (for example 3 token makers and 1 payoff), and the role quotas ask for at least one removal spell, one cheap trick, one big threat, and two early creatures, so the packet stands on its own when paired with anything.
 
 ## Pairing
 

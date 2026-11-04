@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { COLOR_LABELS, COLORS, pairPackets, type Color, type Deck } from '@bulk-brew/core';
 import {
   archetypeInfo,
@@ -92,11 +92,12 @@ function DeckName({ deck, heading }: { deck: Deck; heading?: boolean }) {
   const { decks } = useAppState();
   const [draft, setDraft] = useState<string>();
   const id = `name-${deck.id}`;
-  const done = (save: boolean) => {
+  // Enter and Escape hand focus back to the name; leaving the field leaves it where it went.
+  const done = (save: boolean, refocus: boolean) => {
     const next = draft?.trim();
     if (save && next && next !== deck.name) decks.update({ ...deck, name: next });
     setDraft(undefined);
-    focusLater(id);
+    if (refocus) focusLater(id);
   };
   const size = heading ? 'text-[17px]' : 'text-[13px]';
   if (draft !== undefined) {
@@ -106,14 +107,14 @@ function DeckName({ deck, heading }: { deck: Deck; heading?: boolean }) {
         value={draft}
         aria-label="Deck name"
         onChange={(e) => setDraft(e.target.value)}
-        onBlur={() => done(true)}
+        onBlur={() => done(true, false)}
         onClick={(e) => e.stopPropagation()}
         onFocus={(e) => e.target.select()}
         onKeyDown={(e) => {
-          if (e.key === 'Enter') done(true);
+          if (e.key === 'Enter') done(true, true);
           if (e.key === 'Escape') {
             e.stopPropagation();
-            done(false);
+            done(false, true);
           }
         }}
         className={`${ui.field} ${size} min-w-64 py-[3px] font-semibold`}
@@ -186,7 +187,7 @@ function RemoveDeckDialog(props: { deck: Deck | undefined; onRemoved(): void; on
       : [
           {
             label: 'Delete',
-            detail: 'Its cards are still in your bulk list',
+            detail: 'Your bulk list stays as it is',
             tone: 'stop',
             onSelect: () => remove('delete'),
           },
@@ -199,7 +200,7 @@ function RemoveDeckDialog(props: { deck: Deck | undefined; onRemoved(): void; on
       message={
         deck?.committed
           ? 'Its cards left your bulk list when you accepted it.'
-          : 'You never accepted it, so its cards never left your bulk list.'
+          : 'Its cards are still in your bulk list.'
       }
       choices={choices}
       focus={choices.length - 1}
@@ -218,6 +219,8 @@ function DeckTable({ onOpen }: { onOpen(id: string): void }) {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<DeckSort>(undefined);
   const [removing, setRemoving] = useState<Deck>();
+  // A click on the row that ends a rename only saves the name; it does not open the deck.
+  const endingRename = useRef(false);
   const list = decks.decks;
 
   const info = useMemo(
@@ -400,7 +403,15 @@ function DeckTable({ onOpen }: { onOpen(id: string): void }) {
             {rows.map((d) => (
               <tr
                 key={d.id}
-                onClick={() => onOpen(d.id)}
+                onMouseDown={(e) => {
+                  const active = document.activeElement;
+                  endingRename.current =
+                    active instanceof HTMLInputElement && e.currentTarget.contains(active);
+                }}
+                onClick={() => {
+                  if (endingRename.current) endingRename.current = false;
+                  else onOpen(d.id);
+                }}
                 className="h-12 cursor-pointer border-b border-surface-2 last:border-b-0 hover:bg-surface-2"
               >
                 <td className="pl-[18px]">
