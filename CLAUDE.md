@@ -46,6 +46,7 @@ Card facts, rules text, and tag meanings come from the data files and `docs/rule
 - User-facing text: plain language, no em-dashes.
 - Comments are short and say why, not what.
 - Commit messages: a plain title in the imperative, optional body. Bump `version` in `package.json` in its own commit when a shipped change lands.
+- Versions are `<year>.<major>.<minor>`: the two-digit year the version was made, a major that only grows (it never resets with the year), and a minor that resets with each major. A shipped change bumps the minor; the owner decides when the major moves. The root, web, mobile, and ui packages share the version.
 - Line endings LF, two-space indent, single quotes (Prettier enforces).
 
 ## Running and verifying
