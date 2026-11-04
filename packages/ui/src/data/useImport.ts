@@ -50,8 +50,8 @@ export interface ImportPreview {
 export interface ImportState {
   text: string;
   setText(text: string): void;
-  /** Read a chosen or dropped file into the text box. */
-  loadFile(file: File): Promise<void>;
+  /** Add chosen or dropped files to the bottom of the text box. */
+  addFiles(files: readonly File[]): Promise<void>;
   parsed: ParseResult;
   format: ImportFormat;
   /** Copies across all readable lines. */
@@ -80,6 +80,30 @@ function lineText(line: ParsedLine, name: string): string {
     ? ` (${line.set.toUpperCase()})${line.collectorNumber ? ` ${line.collectorNumber}` : ''}`
     : '';
   return `${line.qty} ${name}${printing}`;
+}
+
+/** A CSV export rewritten as decklist lines, so it can sit next to other text. */
+function asDecklist(text: string): string {
+  const parsed = parseImportText(text);
+  if (parsed.format === 'decklist') return text.trimEnd();
+  return [
+    ...parsed.lines.map((l) => ({ at: l.line, text: lineText(l, l.name) })),
+    ...parsed.skipped.map((l) => ({ at: l.line, text: l.raw })),
+  ]
+    .sort((a, b) => a.at - b.at)
+    .map((l) => l.text)
+    .join('\n');
+}
+
+/**
+ * The text box after adding files: each text goes below the last. One text
+ * alone stays as it is; several are joined as decklist lines, because the
+ * format is read from the whole box and a CSV header mid-box would break it.
+ */
+export function combineImportTexts(texts: readonly string[]): string {
+  const parts = texts.filter((t) => t.trim() !== '');
+  if (parts.length <= 1) return parts[0] ?? '';
+  return parts.map(asDecklist).join('\n');
 }
 
 export function useImport(
@@ -114,12 +138,12 @@ export function useImport(
     setDone(undefined);
   }, []);
 
-  const loadFile = useCallback(
-    async (file: File) => {
-      setText(await readFileText(file));
-    },
-    [setText],
-  );
+  const addFiles = useCallback(async (files: readonly File[]) => {
+    if (files.length === 0) return;
+    const texts = await Promise.all(files.map(readFileText));
+    setTextRaw((current) => combineImportTexts([current, ...texts]));
+    setDone(undefined);
+  }, []);
 
   const preview = useMemo((): ImportPreview | undefined => {
     if (!report) return undefined;
@@ -217,7 +241,7 @@ export function useImport(
   return {
     text,
     setText,
-    loadFile,
+    addFiles,
     parsed,
     format: parsed.format,
     totalCards,

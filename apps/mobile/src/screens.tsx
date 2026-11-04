@@ -588,17 +588,17 @@ export function ImportScreen() {
             className="min-h-11 text-ink underline"
             onClick={() => fileInput.current?.click()}
           >
-            Choose file
+            Choose files
           </button>
           <input
             ref={fileInput}
             type="file"
             accept=".txt,.csv,.tsv,.dec,text/plain,text/csv"
+            multiple
             className="sr-only"
             tabIndex={-1}
             onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) void imp.loadFile(file);
+              void imp.addFiles(Array.from(e.target.files ?? []));
               e.target.value = '';
             }}
           />

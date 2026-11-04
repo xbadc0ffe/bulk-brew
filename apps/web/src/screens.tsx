@@ -99,11 +99,13 @@ export function ImportScreen() {
     </button>
   );
 
+  // Only file drags are caught; dragging text inside the box keeps its usual behavior.
+  const hasFiles = (e: DragEvent) => e.dataTransfer.types.includes('Files');
   const onDrop = (e: DragEvent) => {
+    if (!hasFiles(e)) return;
     e.preventDefault();
     setDragging(false);
-    const file = e.dataTransfer.files[0];
-    if (file) void imp.loadFile(file);
+    void imp.addFiles(Array.from(e.dataTransfer.files));
   };
 
   return (
@@ -116,42 +118,65 @@ export function ImportScreen() {
       <div className="grid min-h-0 flex-1 overflow-y-auto lg:grid-cols-2 lg:overflow-hidden">
         <section className="flex min-h-[520px] flex-col gap-3.5 border-line px-8 py-6 lg:min-h-0 lg:border-r">
           <p className="text-[13px] leading-[1.5] text-fg-1">
-            Paste a decklist or collection export, or drop a text file. Accepted lines:{' '}
+            Paste a decklist or collection export, or drop text files into the box. Accepted lines:{' '}
             <code className={ui.code}>4 Lightning Bolt</code>{' '}
             <code className={ui.code}>4x Lightning Bolt</code>{' '}
             <code className={ui.code}>4 Lightning Bolt (M10) 146</code>. CSV exports from ManaBox,
-            Moxfield, and Deckbox work too.
+            Moxfield, and Deckbox work too. Each file goes below what is already there.
           </p>
-          <textarea
-            value={imp.text}
-            onChange={(e) => imp.setText(e.target.value)}
-            aria-label="Card list"
-            placeholder={'4 Lightning Bolt (M10) 146\n2 Llanowar Elves\n10 Forest'}
-            spellCheck={false}
-            className="min-h-48 flex-1 resize-none rounded-lg border border-line-strong bg-surface px-3.5 py-3 font-mono text-[12.5px] leading-[1.7] placeholder:text-fg-3"
-          />
           <div
+            className="relative flex min-h-48 flex-1"
             onDragOver={(e) => {
+              if (!hasFiles(e)) return;
               e.preventDefault();
+              e.dataTransfer.dropEffect = 'copy';
               setDragging(true);
             }}
-            onDragLeave={() => setDragging(false)}
+            onDragLeave={(e) => {
+              if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragging(false);
+            }}
             onDrop={onDrop}
-            className={`rounded-lg border border-dashed border-line-strong p-3.5 text-center text-[13px] text-fg-2 ${dragging ? 'bg-surface-2' : ''}`}
           >
-            Drop a .txt or .csv file here, or{' '}
-            <button type="button" className={ui.link} onClick={() => fileInput.current?.click()}>
-              choose a file
-            </button>
+            <textarea
+              value={imp.text}
+              onChange={(e) => imp.setText(e.target.value)}
+              aria-label="Card list"
+              aria-describedby={imp.text ? undefined : 'import-hint'}
+              spellCheck={false}
+              className="w-full flex-1 resize-none rounded-lg border border-line-strong bg-surface px-3.5 py-3 font-mono text-[12.5px] leading-[1.7]"
+            />
+            {!imp.text && (
+              // Stands in for a placeholder, since a placeholder cannot hold the file link.
+              <div
+                id="import-hint"
+                className="pointer-events-none absolute inset-0 border border-transparent px-3.5 py-3 font-mono text-[12.5px] leading-[1.7] whitespace-pre-wrap text-fg-3"
+              >
+                {
+                  '4 Lightning Bolt (M10) 146\n2 Llanowar Elves\n10 Forest\n-\nDrop .txt or .csv files here, or '
+                }
+                <button
+                  type="button"
+                  className="pointer-events-auto text-fg-1 underline underline-offset-2 hover:text-ink"
+                  onClick={() => fileInput.current?.click()}
+                >
+                  choose files
+                </button>
+              </div>
+            )}
+            {dragging && (
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-lg border-2 border-dashed border-ink bg-surface/85 text-[14px] font-medium text-ink">
+                Drop to add the files to the list
+              </div>
+            )}
             <input
               ref={fileInput}
               type="file"
               accept=".txt,.csv,.tsv,.dec,text/plain,text/csv"
+              multiple
               className="sr-only"
               tabIndex={-1}
               onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) void imp.loadFile(file);
+                void imp.addFiles(Array.from(e.target.files ?? []));
                 e.target.value = '';
               }}
             />
