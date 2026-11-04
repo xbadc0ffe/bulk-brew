@@ -35,6 +35,8 @@ Targets: a static client-side web app and an iOS app, built together on one core
 
 Decks use one to five colors. Mono-color stays the builder's strongest mode; every added color makes a deck harder to build well, and the app says so rather than refusing.
 
+A color gives access to its cards, not a share of the deck. The builder takes the cards that best serve the style from any of the colors and does not aim for an even split: the deck leans on its main color, the other colors bring what they add, and at 60, 40, and 20 a picked color may be left out entirely (options try every subset). The only floor is a few spells per color (`minCardsPerColor`), so a deck named for a color holds some of it. A Commander deck must stay inside its commander's colors but need not use them evenly. For example, from the owner's 5,300-card test lists a Black-Green deck came out 19 black and 14 green spells, and a Black-Red-Green commander deck 26, 19, and 14.
+
 - **60, 40, 20**: a card is a candidate when every mana symbol in its costs and rules text can be paid by the deck's colors (hybrid symbols when either half fits), so hybrid cards work in mono decks. Colorless cards are always eligible. Phase 10.
 - **100**: candidates are cards whose color identity fits inside the commander's, as the format requires.
 - Multi-color decks have a main color (may hold double pips), secondary colors (single pips), and optionally a light splash (a few single-pip cards costing three or more). Colored source counts per color come from a probability target in config: the chance to cast each spell on curve given the land drops were made.

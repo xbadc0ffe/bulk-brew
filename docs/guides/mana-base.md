@@ -60,7 +60,9 @@ Lands scoring below 0.5 stay out. Nonbasics take at most 40% of the land count, 
 
 A deck of two to five colors has a main color (the one its candidates lean on most) and secondary colors; a color carrying less than 35% of the main color's weight is a splash (`landRules.colors.splashShare`).
 
-**Picking spells.** Spells that strain the mana lose card strength points while the builder picks (`builderWeights.castability`): each pip of a secondary color costs 0.25, a double pip of one 0.75 more, and a secondary pip on a one- or two-drop 0.4 more. Splash pips cost 0.6 each, with 2 more for a double pip and 1 more for an early play. Each color must also hold at least 4, 3, or 2 spells in a 60, 40, or 20-card deck (`minCardsPerColor`).
+The colors are access, not a quota. Nothing splits the spells evenly between them: the builder picks for the style and the curve, the castability costs below push it toward the main color, and the lands follow the pips the chosen spells ask for. The per-color minimum is a floor so that a deck named for a color holds some of it, not a target.
+
+**Picking spells.** Spells that strain the mana lose card strength points while the builder picks (`builderWeights.castability`): each pip of a secondary color costs 0.25, a double pip of one 0.75 more, and a secondary pip on a one- or two-drop 0.4 more. Splash pips cost 0.6 each, with 2 more for a double pip and 1 more for an early play. Each color must also hold at least 4, 3, or 2 spells in a 60, 40, or 20-card deck, and 8 in a Commander deck (`minCardsPerColor`).
 
 **How many sources a color wants.** For every spell, the builder works out how many lands of that color it needs to cast the spell on curve, given the deck made its land drops, and the most demanding spell sets the want. The target chance is 90% for the main color, 85% for secondary colors, and 75% for a splash (`castChance`). The math is a hypergeometric draw over the deck, the lands, and the sources; some values at 90%, on the play:
 
