@@ -945,8 +945,9 @@ function BulkList() {
                             {subtype}
                           </td>
                           <td className="pr-6" title={tags.map((t) => t.label).join(', ')}>
-                            {/* Bubbles that do not fit wrap onto a hidden line, so none is cut. */}
-                            <span className="flex h-[20px] min-w-0 flex-wrap items-center gap-1 overflow-hidden">
+                            {/* Bubbles that do not fit wrap onto a hidden line, so none is cut. The
+                                box is one bubble tall (11px text, 1px padding, 2px borders). */}
+                            <span className="flex h-[24px] min-w-0 flex-wrap items-center gap-1 overflow-hidden">
                               {tags.map((t) => (
                                 <span
                                   key={t.id}
