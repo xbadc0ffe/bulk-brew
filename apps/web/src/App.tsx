@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import {
   CardDetail,
   EMPTY_FILTERS,
@@ -11,6 +11,7 @@ import {
 import { version } from '../package.json';
 import { AppStateProvider } from './app-state.tsx';
 import { useAppState } from './app-context.ts';
+import { FanIcon, GearIcon, InfoIcon, StackIcon, StacksIcon } from './icons.tsx';
 import { NavContext, type Nav, type ScreenId } from './nav.ts';
 import { ImportScreen, PoolScreen } from './screens.tsx';
 import { AboutScreen } from './screens/AboutScreen.tsx';
@@ -31,12 +32,12 @@ export function App() {
   );
 }
 
-const NAV: { screen: ScreenId; label: string }[] = [
-  { screen: 'pool', label: 'Bulk List' },
-  { screen: 'build', label: 'Build' },
-  { screen: 'decks', label: 'Decks' },
-  { screen: 'settings', label: 'Settings' },
-  { screen: 'about', label: 'About' },
+const NAV: { screen: ScreenId; label: string; Icon: (p: { size?: number }) => ReactNode }[] = [
+  { screen: 'pool', label: 'Bulk List', Icon: StacksIcon },
+  { screen: 'build', label: 'Build', Icon: FanIcon },
+  { screen: 'decks', label: 'Decks', Icon: StackIcon },
+  { screen: 'settings', label: 'Settings', Icon: GearIcon },
+  { screen: 'about', label: 'About', Icon: InfoIcon },
 ];
 
 /** Card detail over the right edge, for cards opened outside the Bulk List. */
@@ -76,7 +77,7 @@ function Shell() {
   const [poolFilters, setPoolFilters] = useState<PoolFilters>(EMPTY_FILTERS);
   const [poolSort, setPoolSort] = useState<PoolSort>(undefined);
   const [analyze, setAnalyze] = useState(false);
-  const { detail, pool, index, decks } = useAppState();
+  const { detail, pool, index, decks, build } = useAppState();
   const nav: Nav = useMemo(
     () => ({
       screen,
@@ -118,21 +119,53 @@ function Shell() {
               ? SettingsScreen
               : AboutScreen;
 
-  const item = (n: (typeof NAV)[number], compact: boolean) => {
+  const choose = (next: ScreenId) => {
+    detail.close();
+    // Build while a deck is open goes back to the options, like the Back button.
+    if (next === 'build' && screen === 'build' && build.result) build.reject();
+    nav.go(next);
+  };
+
+  /** Sidebar tile: icon over label, with the count in the corner. */
+  const tile = (n: (typeof NAV)[number]) => {
     const on = n.screen === active;
     const count = counts[n.screen];
     return (
       <button
         key={n.screen}
         type="button"
-        onClick={() => {
-          detail.close();
-          nav.go(n.screen);
-        }}
+        onClick={() => choose(n.screen)}
         aria-current={on ? 'page' : undefined}
-        className={`flex items-center justify-between gap-2 rounded-lg border text-left whitespace-nowrap ${
-          compact ? 'px-3 py-1.5 text-[13px]' : 'px-3.5 py-2.5 text-[15px]'
-        } ${
+        className={`relative flex h-[84px] w-full flex-col items-center justify-center gap-1.5 rounded-lg border ${
+          on
+            ? 'border-ink bg-ink text-on-ink [--icon-fill:var(--ink)]'
+            : 'border-line bg-surface text-fg-1 [--icon-fill:var(--surface)] hover:border-line-strong hover:text-ink'
+        }`}
+      >
+        <n.Icon size={30} />
+        <span className="text-[12.5px] leading-none font-medium">{n.label}</span>
+        {count !== undefined && (
+          <span
+            className={`absolute top-1 right-1.5 text-[10.5px] leading-none tabular-nums ${on ? 'text-on-ink' : 'text-fg-2'}`}
+          >
+            {count.toLocaleString('en-US')}
+          </span>
+        )}
+      </button>
+    );
+  };
+
+  /** Top bar item on narrow windows. */
+  const pill = (n: (typeof NAV)[number]) => {
+    const on = n.screen === active;
+    const count = counts[n.screen];
+    return (
+      <button
+        key={n.screen}
+        type="button"
+        onClick={() => choose(n.screen)}
+        aria-current={on ? 'page' : undefined}
+        className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-1.5 text-left text-[13px] whitespace-nowrap ${
           on
             ? 'border-ink bg-ink font-medium text-on-ink'
             : 'border-line bg-surface text-fg-1 hover:border-line-strong hover:text-ink'
@@ -140,9 +173,7 @@ function Shell() {
       >
         <span>{n.label}</span>
         {count !== undefined && (
-          <span
-            className={`tabular-nums ${on ? 'text-on-ink' : 'text-fg-2'} ${compact ? '' : 'text-[13px]'}`}
-          >
+          <span className={`tabular-nums ${on ? 'text-on-ink' : 'text-fg-2'}`}>
             {count.toLocaleString('en-US')}
           </span>
         )}
@@ -155,26 +186,24 @@ function Shell() {
       <div className="flex h-dvh flex-col bg-canvas text-ink md:flex-row">
         <nav
           aria-label="Main"
-          className="hidden w-[208px] shrink-0 flex-col gap-1.5 border-r border-line bg-surface-2 px-3 py-4 md:flex"
+          className="hidden w-[104px] shrink-0 flex-col gap-2 overflow-y-auto border-r border-line bg-surface-2 px-2.5 py-3 md:flex"
         >
-          {NAV.map((n) => item(n, false))}
-          <div className="mt-auto flex items-center gap-2.5 px-1.5 pt-4">
+          {NAV.map(tile)}
+          <div className="mt-auto flex flex-col items-center gap-1 pt-4 text-center">
+            <span className="text-[13px] leading-tight font-semibold">Bulk Brew</span>
+            <span className="text-[11px] leading-tight text-fg-2">Version {version}</span>
             <img
               src={`${import.meta.env.BASE_URL}icon.svg`}
               alt=""
-              className="size-9 shrink-0 rounded-lg"
+              className="mt-1 size-[84px] shrink-0 rounded-xl"
             />
-            <div className="flex flex-col leading-tight">
-              <span className="text-[14px] font-semibold">Bulk Brew</span>
-              <span className="text-[11.5px] text-fg-2">Version {version}</span>
-            </div>
           </div>
         </nav>
         <nav
           aria-label="Main"
           className="flex shrink-0 items-center gap-1.5 overflow-x-auto border-b border-line bg-surface-2 px-3 py-2 md:hidden"
         >
-          {NAV.map((n) => item(n, true))}
+          {NAV.map(pill)}
         </nav>
         <main className="min-h-0 min-w-0 flex-1 overflow-hidden">
           <Screen key={visit} />

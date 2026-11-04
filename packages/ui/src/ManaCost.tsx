@@ -3,6 +3,8 @@ import { symbolName, symbolUrl } from './symbols.ts';
 
 const SYMBOL = /\{([^}]+)\}/g;
 const SPLIT = /(\{[^}]+\})/;
+// The small offset shadow Scryfall itself uses, so light symbols hold up on light backgrounds.
+const SHADOW = '[filter:drop-shadow(-1px_1px_0_rgb(0_0_0/0.8))]';
 
 export type PipSize = 14 | 15 | 16 | 18 | 20 | 22 | 24 | 28 | 32;
 
@@ -41,7 +43,7 @@ export function Pip({
         aria-hidden={label ? undefined : true}
         draggable={false}
         style={{ height: size }}
-        className="inline-block w-auto shrink-0 select-none"
+        className={`inline-block w-auto shrink-0 select-none ${SHADOW}`}
       />
     );
   }
@@ -86,7 +88,7 @@ export function SymbolText({ text }: { text: string }) {
             src={url}
             alt={symbolName(m[1]!)}
             draggable={false}
-            className="mx-px inline-block h-[0.95em] w-auto align-[-0.12em] select-none"
+            className={`mx-px inline-block h-[0.95em] w-auto align-[-0.12em] select-none ${SHADOW}`}
           />
         );
       })}
