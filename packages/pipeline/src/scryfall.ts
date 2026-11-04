@@ -36,6 +36,8 @@ export interface ScryfallCard {
   security_stamp?: string;
   legalities?: Record<string, string>;
   oversized?: boolean;
+  game_changer?: boolean;
+  edhrec_rank?: number;
 }
 
 export interface TaggerTagging {

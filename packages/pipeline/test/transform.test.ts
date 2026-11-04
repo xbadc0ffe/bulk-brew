@@ -209,4 +209,18 @@ describe('toCardRecord', () => {
     const silly = toCardRecord({ ...base, security_stamp: 'acorn' }, []);
     expect(silly.unset).toBe(true);
   });
+
+  it('keeps Commander legality, the Game Changer flag, and the popularity rank', () => {
+    const plain = toCardRecord({ ...base, legalities: { commander: 'legal' } }, []);
+    expect(plain.commanderLegality).toBeUndefined();
+    expect(plain.gameChanger).toBeUndefined();
+    expect(plain.rank).toBeUndefined();
+    const flagged = toCardRecord(
+      { ...base, legalities: { commander: 'banned' }, game_changer: true, edhrec_rank: 42 },
+      [],
+    );
+    expect(flagged).toMatchObject({ commanderLegality: 'banned', gameChanger: true, rank: 42 });
+    const unreleased = toCardRecord({ ...base, legalities: { commander: 'not_legal' } }, []);
+    expect(unreleased.commanderLegality).toBe('not_legal');
+  });
 });

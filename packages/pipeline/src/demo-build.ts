@@ -21,6 +21,7 @@ import {
   type DeckSize,
   type Settings,
 } from '@bulk-brew/core';
+import { PACK_FILE } from './build.ts';
 import { loadConfigDir } from './check-config.ts';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
@@ -35,7 +36,7 @@ function main(): number {
   const size = (sizeArg ? Number(sizeArg) : 60) as DeckSize;
 
   const t0 = Date.now();
-  const pack = parsePack(readFileSync(path.join(ROOT, 'data', 'packs', 'cards.v1.json'), 'utf8'));
+  const pack = parsePack(readFileSync(path.join(ROOT, 'data', 'packs', PACK_FILE), 'utf8'));
   const index = new CardIndex(pack);
   const config = loadConfigDir(path.join(ROOT, 'config'));
   const problems = validateConfig(config);

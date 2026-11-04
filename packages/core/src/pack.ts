@@ -1,6 +1,11 @@
 // In-memory index over a data pack: lookup by oracle id and by name.
 
-import { DATA_SCHEMA_VERSION, type CardRecord, type DataPack } from './types.ts';
+import {
+  DATA_SCHEMA_VERSION,
+  SUPPORTED_DATA_SCHEMAS,
+  type CardRecord,
+  type DataPack,
+} from './types.ts';
 import { normalizeName, splitFaces } from './names.ts';
 
 export interface FindOptions {
@@ -83,9 +88,9 @@ function push(map: Map<string, string[]>, key: string, card: CardRecord): void {
 /** Parse and validate pack JSON. Throws on a schema mismatch. */
 export function parsePack(json: string): DataPack {
   const pack = JSON.parse(json) as DataPack;
-  if (pack.schema !== DATA_SCHEMA_VERSION) {
+  if (!SUPPORTED_DATA_SCHEMAS.includes(pack.schema)) {
     throw new Error(
-      `data pack schema ${pack.schema} is not supported (want ${DATA_SCHEMA_VERSION})`,
+      `data pack schema ${pack.schema} is not supported (want ${SUPPORTED_DATA_SCHEMAS.join(' or ')}; current is ${DATA_SCHEMA_VERSION})`,
     );
   }
   if (!Array.isArray(pack.cards)) throw new Error('data pack has no cards');

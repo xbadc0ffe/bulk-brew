@@ -39,7 +39,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.pack.outputs.version }}
         run: |
-          gh release create "data-$VERSION" data/packs/cards.v1.json.gz data/packs/manifest.json \
+          ASSET="$(node -p "require('path').basename(new URL(require('./data/packs/manifest.json').url).pathname)")"
+          gh release create "data-$VERSION" "data/packs/$ASSET" data/packs/manifest.json \
             --title "Card data $VERSION" \
             --notes "Card data pack built from Scryfall bulk data dated $VERSION. See data/README.md."
           cp data/packs/manifest.json data/manifest.json

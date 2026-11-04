@@ -29,7 +29,8 @@ async function main() {
   await mkdir(PACKS_DIR, { recursive: true });
   await writeFile(path.join(PACKS_DIR, file), gz);
   const json = gunzipSync(gz);
-  const plain = file.replace(/\.gz$/, '');
+  // Installed under a fixed name whatever the schema; keep in sync with PACK_FILE in packages/pipeline/src/build.ts.
+  const plain = 'cards.json';
   await writeFile(path.join(PACKS_DIR, plain), json);
   for (const dir of APP_PUBLIC_DIRS) {
     const target = path.join(ROOT, dir);

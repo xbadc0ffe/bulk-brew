@@ -2,7 +2,10 @@
 // Keep this file free of logic. Changes here are schema changes: bump
 // DATA_SCHEMA_VERSION when the data pack shape changes.
 
-export const DATA_SCHEMA_VERSION = 1;
+export const DATA_SCHEMA_VERSION = 2;
+
+/** Pack schemas the core reads. Schema 1 lacks the Commander and rank fields; treat them as absent. */
+export const SUPPORTED_DATA_SCHEMAS: readonly number[] = [1, 2];
 
 /** The five Magic colors. */
 export type Color = 'W' | 'U' | 'B' | 'R' | 'G';
@@ -80,6 +83,12 @@ export interface CardRecord {
   entersTapped?: true;
   /** Un-set, acorn, or otherwise not tournament-legal in any format. Excluded unless enabled. */
   unset?: true;
+  /** Set when the card may not be played in Commander: banned, or not legal there (often not yet released). */
+  commanderLegality?: 'banned' | 'not_legal';
+  /** On the Commander Game Changers list. */
+  gameChanger?: true;
+  /** Scryfall's popularity rank among Commander decks; 1 is the most played. Absent when unranked. */
+  rank?: number;
   /** Function and synergy tags: Scryfall Tagger slugs plus the local overlay. */
   tags: string[];
   faces?: CardFace[];
@@ -89,7 +98,8 @@ export interface CardRecord {
 
 /** The whole shipped database. */
 export interface DataPack {
-  schema: typeof DATA_SCHEMA_VERSION;
+  /** One of SUPPORTED_DATA_SCHEMAS; new packs are written with DATA_SCHEMA_VERSION. */
+  schema: number;
   /** Pack version: the Scryfall bulk data date it was built from (YYYY-MM-DD). */
   version: string;
   builtAt: string;
@@ -99,7 +109,7 @@ export interface DataPack {
 
 /** Pinned pointer to a published data pack. Lives in data/manifest.json. */
 export interface DataManifest {
-  schema: typeof DATA_SCHEMA_VERSION;
+  schema: number;
   version: string;
   url: string;
   sha256: string;

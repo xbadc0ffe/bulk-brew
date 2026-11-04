@@ -63,7 +63,7 @@ export function AboutPage({ onBack }: { onBack(): void }) {
 
         <Group label="Card data">
           <Row
-            label={`Scryfall data v${DATA_SCHEMA_VERSION}`}
+            label={`Scryfall data v${pack.status === 'ready' ? pack.index.pack.schema : DATA_SCHEMA_VERSION}`}
             hint={
               pack.status === 'ready'
                 ? `${pack.index.version} · ${pack.index.size.toLocaleString('en-US')} cards · config ${configVersion(config)}`

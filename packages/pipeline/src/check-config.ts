@@ -23,10 +23,11 @@ import {
   type Color,
   type DataPack,
 } from '@bulk-brew/core';
+import { PACK_FILE } from './build.ts';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const CONFIG_DIR = path.join(ROOT, 'config');
-const PACK_PATH = path.join(ROOT, 'data', 'packs', 'cards.v1.json');
+const PACK_PATH = path.join(ROOT, 'data', 'packs', PACK_FILE);
 const COLORS: (Color | 'C')[] = ['W', 'U', 'B', 'R', 'G', 'C'];
 
 export function loadConfigDir(dir: string): BulkBrewConfig {
@@ -61,7 +62,7 @@ function main(): number {
 
   if (!existsSync(PACK_PATH)) {
     console.log(
-      'no data pack at data/packs/cards.v1.json; skipping tag checks (run npm run data:build)',
+      'no data pack at data/packs/cards.json; skipping tag checks (run npm run data:build)',
     );
     return 0;
   }

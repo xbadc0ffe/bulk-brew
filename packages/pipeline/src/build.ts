@@ -39,7 +39,11 @@ export interface BuildReport {
   manifest: DataManifest;
 }
 
-export const PACK_FILE = `cards.v${DATA_SCHEMA_VERSION}.json`;
+/** Name the pack is installed and served under, whatever its schema. */
+export const PACK_FILE = 'cards.json';
+
+/** Release asset name. It carries the schema so packs of different schemas never collide. */
+export const RELEASE_ASSET = `cards.v${DATA_SCHEMA_VERSION}.json.gz`;
 
 async function resolveVersion(rawDir: string, explicit?: string): Promise<string> {
   if (explicit) return explicit;
@@ -108,7 +112,7 @@ export async function buildPack(opts: BuildOptions): Promise<BuildReport> {
   log('writing pack');
   await mkdir(opts.outDir, { recursive: true });
   const packPath = path.join(opts.outDir, PACK_FILE);
-  const gzPath = `${packPath}.gz`;
+  const gzPath = path.join(opts.outDir, RELEASE_ASSET);
   const json = JSON.stringify(pack);
   await writeFile(packPath, json);
   const gz = gzipSync(Buffer.from(json), { level: 9 });
@@ -117,7 +121,7 @@ export async function buildPack(opts: BuildOptions): Promise<BuildReport> {
   const manifest: DataManifest = {
     schema: DATA_SCHEMA_VERSION,
     version,
-    url: `https://github.com/${opts.repo}/releases/download/data-${version}/${PACK_FILE}.gz`,
+    url: `https://github.com/${opts.repo}/releases/download/data-${version}/${RELEASE_ASSET}`,
     sha256: createHash('sha256').update(gz).digest('hex'),
     bytes: gz.length,
     cardCount: cards.length,

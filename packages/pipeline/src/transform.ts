@@ -152,6 +152,10 @@ export function toCardRecord(card: ScryfallCard, tags: string[]): CardRecord {
   }
   if (types.includes('land') && ENTERS_TAPPED.test(text)) rec.entersTapped = true;
   if (isUnset(card)) rec.unset = true;
+  const commander = card.legalities?.commander;
+  if (commander === 'banned' || commander === 'not_legal') rec.commanderLegality = commander;
+  if (card.game_changer) rec.gameChanger = true;
+  if (typeof card.edhrec_rank === 'number' && card.edhrec_rank > 0) rec.rank = card.edhrec_rank;
   if (faces.length > 0) rec.faces = faces.map((f) => faceOf(f, colors));
   return rec;
 }

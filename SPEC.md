@@ -111,7 +111,7 @@ JSON was chosen over SQLite because the data is small, loads with one fetch, nee
 1. Read the raw bulk files.
 2. Filter, trim, normalize, derive fields.
 3. Join Tagger tags and the local overlay.
-4. Write `data/packs/cards.v1.json`, its gzip, and `data/packs/manifest.json` (version, URL, checksum, size, card count), and copy the pack into each app's `public/data/` for local development.
+4. Write `data/packs/cards.json`, its gzip (the release asset, named with the schema, such as `cards.v2.json.gz`), and `data/packs/manifest.json` (version, URL, checksum, size, card count), and copy the pack into each app's `public/data/` for local development.
 
 Tests cover the edge cases above with fixture cards.
 
@@ -119,7 +119,7 @@ Tests cover the edge cases above with fixture cards.
 
 - Raw bulk files and built packs are never committed. The repo pins `data/manifest.json`.
 - A weekly GitHub Actions workflow fetches the bulk files, rebuilds the pack, and when the data date changed, publishes the pack as a release asset tagged `data-YYYY-MM-DD`, commits the manifest bump to main, and triggers the web deploy.
-- The web deploy downloads the pinned pack with `npm run data:pull`, verifies its checksum, and serves it from the site's own origin as `data/cards.v1.json`, compressed in transit by the host. The browser caches it; a new deploy brings the new pack.
+- The web deploy downloads the pinned pack with `npm run data:pull`, verifies its checksum, and serves it from the site's own origin as `data/cards.json`, compressed in transit by the host. The browser caches it; a new deploy brings the new pack.
 - The iOS app bundles the pack and config at build time and offers "check for card updates", which downloads a newer pack and config from GitHub. Apple permits data updates; code changes still need an App Store release. No user data is sent.
 
 ## Images

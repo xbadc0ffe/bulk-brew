@@ -5,7 +5,7 @@ Regression tests for deck quality. Run the suite after every builder or config c
 ## Running
 
 ```sh
-npm run data:pull      # or data:fetch and data:build; the suite needs data/packs/cards.v1.json
+npm run data:pull      # or data:fetch and data:build; the suite needs data/packs/cards.json
 npm run eval           # best fit for every pool, size, and color the scan allows
 npm run eval -- --styles          # also build every viable style
 npm run eval -- --pools bulk      # only pools whose file name contains "bulk"

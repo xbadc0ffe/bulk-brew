@@ -41,9 +41,20 @@ self.addEventListener('activate', (event) => {
             .map((k) => caches.delete(k)),
         ),
       )
+      .then(dropOldPacks)
       .then(() => self.clients.claim()),
   );
 });
+
+// Packs were once served as cards.v1.json; drop those so the old copy does not sit in storage.
+async function dropOldPacks() {
+  const cache = await caches.open(DATA_CACHE);
+  for (const request of await cache.keys()) {
+    if (/\/data\/cards\.v\d+\.json$/.test(new URL(request.url).pathname)) {
+      await cache.delete(request);
+    }
+  }
+}
 
 async function cacheFirst(request) {
   const cache = await caches.open(BUILD_CACHE);

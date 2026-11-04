@@ -13,7 +13,7 @@ import {
 } from '@bulk-brew/ui';
 import { AppContext, type AppState } from './app-context.ts';
 
-const PACK_URL = `${import.meta.env.BASE_URL}data/cards.v1.json`;
+const PACK_URL = `${import.meta.env.BASE_URL}data/cards.json`;
 
 export function AppStateProvider({ kv, children }: { kv: KeyValueStore; children: ReactNode }) {
   const appearance = useAppearance();

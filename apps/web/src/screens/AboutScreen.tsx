@@ -59,7 +59,10 @@ export function AboutScreen() {
           <h2 className={ui.sectionLabel}>Card data</h2>
           <div className={`${ui.box} divide-y divide-surface-2`}>
             <div className="flex flex-col gap-0.5 px-4 py-[11px]">
-              <span>Scryfall oracle cards · data format v{DATA_SCHEMA_VERSION}</span>
+              <span>
+                Scryfall oracle cards · data format v
+                {pack.status === 'ready' ? pack.index.pack.schema : DATA_SCHEMA_VERSION}
+              </span>
               <span className="text-[11.5px] text-fg-2">
                 {pack.status === 'ready'
                   ? `${pack.index.version} · ${pack.index.size.toLocaleString('en-US')} cards · config ${configVersion(config)}`

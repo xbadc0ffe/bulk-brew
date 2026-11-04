@@ -35,8 +35,9 @@ describe('CardIndex.find', () => {
 });
 
 describe('parsePack', () => {
-  it('accepts the current schema and rejects others', () => {
+  it('accepts schemas 1 and 2 and rejects others', () => {
     expect(parsePack(JSON.stringify(PACK)).cardCount).toBe(PACK.cardCount);
+    expect(parsePack(JSON.stringify({ ...PACK, schema: 2 })).cardCount).toBe(PACK.cardCount);
     expect(() => parsePack(JSON.stringify({ ...PACK, schema: 99 }))).toThrow(/schema/);
   });
 });

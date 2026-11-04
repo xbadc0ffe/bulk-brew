@@ -27,6 +27,7 @@ import {
   type Pool,
   type Settings,
 } from '@bulk-brew/core';
+import { PACK_FILE } from './build.ts';
 import { loadConfigDir } from './check-config.ts';
 import { deckMetrics, type DeckMetrics } from './metrics.ts';
 
@@ -226,9 +227,9 @@ function main(): number {
   const styles = process.argv.includes('--styles');
   const poolFilter = arg('pools') ?? null;
   const t0 = Date.now();
-  const packPath = path.join(ROOT, 'data', 'packs', 'cards.v1.json');
+  const packPath = path.join(ROOT, 'data', 'packs', PACK_FILE);
   if (!existsSync(packPath)) {
-    console.error('no data pack at data/packs/cards.v1.json; run npm run data:pull first');
+    console.error('no data pack at data/packs/cards.json; run npm run data:pull first');
     return 1;
   }
   const pack = parsePack(readFileSync(packPath, 'utf8'));

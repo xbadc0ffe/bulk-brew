@@ -7,6 +7,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parsePack, type CardRecord, type Color } from '@bulk-brew/core';
+import { PACK_FILE } from './build.ts';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const POOLS_DIR = path.join(ROOT, 'eval', 'pools');
@@ -66,9 +67,9 @@ interface PoolSpec {
 
 function main(): number {
   const force = process.argv.includes('--force');
-  const packPath = path.join(ROOT, 'data', 'packs', 'cards.v1.json');
+  const packPath = path.join(ROOT, 'data', 'packs', PACK_FILE);
   if (!existsSync(packPath)) {
-    console.error('no data pack at data/packs/cards.v1.json; run npm run data:pull first');
+    console.error('no data pack at data/packs/cards.json; run npm run data:pull first');
     return 1;
   }
   const pack = parsePack(readFileSync(packPath, 'utf8'));
