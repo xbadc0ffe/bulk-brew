@@ -1,5 +1,8 @@
 import { useEffect, useState, type RefObject } from 'react';
 
+/** Rows rendered beyond each edge of the viewport. */
+const OVERSCAN = 12;
+
 export interface WindowedRows {
   /** First and one-past-last row index to render. */
   start: number;
@@ -24,7 +27,13 @@ export function useWindowedRows(
   version = '',
   threshold = 300,
 ): WindowedRows {
-  const [range, setRange] = useState({ start: 0, end: count, rowHeight: estimatedRowHeight });
+  // Until the first measure, render one screenful from the top: rendering
+  // every row first made large lists slow to open.
+  const [range, setRange] = useState(() => ({
+    start: 0,
+    end: Math.ceil(window.innerHeight / estimatedRowHeight) + OVERSCAN,
+    rowHeight: estimatedRowHeight,
+  }));
   const active = count > threshold;
 
   useEffect(() => {
@@ -38,9 +47,8 @@ export function useWindowedRows(
       const rowHeight = sample?.offsetHeight || estimatedRowHeight;
       const top = el.getBoundingClientRect().top;
       const viewport = window.innerHeight;
-      const overscan = 12;
-      const first = Math.max(0, Math.floor(-top / rowHeight) - overscan);
-      const last = Math.min(count, Math.ceil((viewport - top) / rowHeight) + overscan);
+      const first = Math.max(0, Math.floor(-top / rowHeight) - OVERSCAN);
+      const last = Math.min(count, Math.ceil((viewport - top) / rowHeight) + OVERSCAN);
       setRange((r) =>
         r.start === first && r.end === last && r.rowHeight === rowHeight
           ? r
