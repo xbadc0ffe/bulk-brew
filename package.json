@@ -1,6 +1,6 @@
 {
   "name": "bulk-brew",
-  "version": "26.0.13",
+  "version": "26.0.14",
   "private": true,
   "description": "Turn a pile of bulk Magic: The Gathering cards into playable mono-color decks.",
   "license": "MIT",
