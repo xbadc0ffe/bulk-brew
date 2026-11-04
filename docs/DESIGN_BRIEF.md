@@ -21,7 +21,15 @@ Casual and kitchen-table players, people who draft a lot and have piles of commo
 
 Both are React 19 with Tailwind 4. Shared presentational pieces live in `packages/ui`; app-specific layouts live in `apps/web/src` and `apps/mobile/src`. The five screen ids in each app's `App.tsx` (import, pool, build, decks, settings) are the information architecture; keep them. Do not change `packages/core`.
 
-Both apps support light and dark mode. No external fonts, CDNs, or trackers; everything is bundled. Mana symbols can use a bundled open-source mana font or small inline SVGs.
+Both apps support light and dark mode. No external fonts, CDNs, or trackers; everything is bundled. Mana and card symbols are Scryfall's symbol images, bundled with the apps.
+
+### Look
+
+- Web sidebar: square tiles with a simple outline icon over the label (Bulk List: two stacks of cards with a third in front, seen from an angle; Build: three fanned cards; Decks: one stack; Settings: a gear; About: an info mark), all drawn at about the same size. The app name, version, and a large app icon sit at the bottom.
+- The app icon comes in a light and a dark version; the sidebar and the browser tab show the one for the current mode.
+- Labels with a detail line under them are bold, and the detail line is not; section labels are bold too.
+- Light themes: colored text is dark, box fills are close to white with a faint tint of the theme color. Dark themes: the background and sidebar are very dark, boxes are lighter, colored text is light.
+- Outlines of boxes, buttons, tiles, fields, and tag bubbles are two pixels. Faint separators between list rows stay at one pixel. Fixed-height rows leave room for a whole bubble, so none is cut.
 
 ## Screens
 
@@ -123,7 +131,7 @@ Image URLs come from `imageUrl()` and `printingImageUrl()` in `packages/core/src
 A plain, functional interface already implements every screen above, so the design pass restyles working code rather than inventing flows. In both apps:
 
 - Import: paste or choose a file; decklists and ManaBox, Moxfield, and Deckbox CSV exports are detected automatically; a resolution report with suggestions.
-- Pool: color filters, search, sort (name, mana value, color, quantity), header counts, quantity buttons, export, clear. The web table only renders rows near the viewport for large pools.
+- Pool: color filters, type, subtype, mana value, and tag filters, search, sort (name, mana value, color, quantity), header counts, quantity buttons, export, clear. Tags show as bubbles; the web table only renders rows near the viewport for large pools.
 - Build (desktop): settings beside ranked deck options; an option opens the deck view with Accept, Back, and Export. Phones: size, colors, archetype list, Build, then the deck view.
 - Deck view: cards grouped by type, mana symbols, optional "why each card is here", curve bars, land reasoning, roles, synergies, notes.
 - Decks: list, open, rename by clicking the name, export, Remove (Delete or Disassemble), pair two packets with Copy.
@@ -134,4 +142,4 @@ A plain, functional interface already implements every screen above, so the desi
 
 Shared pieces live in `packages/ui` (card detail, card image, deck view, curve bars, hooks). Screens live in `apps/web/src` and `apps/mobile/src`.
 
-Not built yet, though described above: the add-or-replace choice on Import, type and mana value filters on Pool, a grid view with art, the per-build max copies override on Build, and the mobile "check for card updates" action (phase 8). Design them; the logic will follow.
+Not built yet, though described above: the add-or-replace choice on Import, a grid view with art on Pool, and the mobile "check for card updates" action (phase 8). Design them; the logic will follow.

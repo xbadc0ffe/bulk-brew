@@ -63,7 +63,7 @@ Defaults live in `config/settings.defaults.json`.
 - Rarities the builder may use (all four by default), set on the Build form. Basic lands and cards with no known rarity are never filtered out.
 - Include Un-set and acorn cards (off).
 - Show card art (off on first launch, remembered).
-- Appearance: light, dark, or system, and a theme color (grey or one of the five colors). This is a device preference kept in `localStorage` so it applies before first paint; it is not part of `Settings` and not in backups.
+- Appearance: light, dark, or system, and a theme color (grey or one of the five colors). The app icon in the web sidebar and browser tab follows the mode. This is a device preference kept in `localStorage` so it applies before first paint; it is not part of `Settings` and not in backups.
 
 ### Platforms
 
