@@ -27,7 +27,7 @@ Both apps support light and dark mode. No external fonts, CDNs, or trackers; eve
 
 ### Import
 
-- A text area for pasted decklists (web also accepts a dropped or chosen text file; mobile offers paste from clipboard).
+- A text area for pasted decklists. On the web, text files dropped on the box, or chosen from the link in its empty-state hint, go below what is already there, several at once; mobile offers paste from clipboard and a file picker.
 - Live feedback while typing: lines read, total cards, unreadable lines.
 - A choice: add to the pool or replace the pool.
 - After import: a resolution report. Resolved count, and an unresolved list where each line can be fixed with suggestions ("did you mean") or skipped.
@@ -47,11 +47,11 @@ Both apps support light and dark mode. No external fonts, CDNs, or trackers; eve
 Settings on the left, deck options on the right (desktop; phones keep a single build until parity).
 
 - Deck size: 100 (Commander), 60, 40, 20, with one line describing the selected size. Phones offer 60, 40, and 20 until parity.
-- Max copies per card (at 100, a line saying one copy of each), a rarities drop-down with a checkbox per rarity, and unlimited basic lands.
+- In order: a rarities drop-down with a checkbox per rarity, max copies per card (at 100, a line saying one copy of each), and infinite basics.
 - Colors: five toggles, any number picked, each showing how many cards of that color the pool has. At 100 the toggles give way to a line: the colors come from the commander.
-- Primary style drop-down: best fit by default, then the styles any subset of the picked colors can build, with viability labels; near misses show what is missing and cannot be picked. Secondary style drop-down, unlocked by a primary style.
-- Options: cards ranked strongest first, each with the deck's colors, name, a strength number and bar, a small curve, spell and land counts, a mana warning when a color is stretched, and the top synergy. They arrive one by one with a progress line; picking one opens the deck view with Accept, Back to options, and Export.
-- Commander (100): before a commander is picked, the right side lists the commanders in the pool in tiers (top, good, possible), each with its color pips, name, and a line of reasons. The picked commander sits in a header above its deck options, with a Change commander button.
+- Primary archetype drop-down: best fit by default, then the archetypes any subset of the picked colors can build, with viability labels; near misses show what is missing and cannot be picked. Secondary archetype drop-down, unlocked by a primary archetype.
+- Options: cards ranked strongest first in as many columns as fit, each with the deck's name and description, a color wheel with each color's share, the mana curve, copies per card type, role coverage, a mana warning when a color is stretched, and the top synergy. No strength number is shown. They arrive one by one with a progress line; picking one opens the deck view with Accept (green), Back (red), and Export (grey). Accept asks Confirm and remove the cards, Confirm and keep them in the bulk list, or Decline.
+- Commander (100): before a commander is picked, the right side lists the commanders in the pool in tiers (top, good, possible) as card-shaped tiles: the card's text laid out like a card, or its image when card art is on, then the deck it leads, the pool cards in its colors, and its mana. The picked commander stays in a pane to the right of its deck options, with a Change button.
 - Empty and failure states: no colors picked; no commanders in the pool; no decks meet the settings, with a Clear settings button.
 
 ### Deck result and deck view
@@ -124,7 +124,7 @@ A plain, functional interface already implements every screen above, so the desi
 
 - Import: paste or choose a file; decklists and ManaBox, Moxfield, and Deckbox CSV exports are detected automatically; a resolution report with suggestions.
 - Pool: color filters, search, sort (name, mana value, color, quantity), header counts, quantity buttons, export, clear. The web table only renders rows near the viewport for large pools.
-- Build (desktop): settings beside ranked deck options; an option opens the deck view with Accept, Back to options, and Export. Phones: size, colors, style list, Build, then the deck view.
+- Build (desktop): settings beside ranked deck options; an option opens the deck view with Accept, Back, and Export. Phones: size, colors, archetype list, Build, then the deck view.
 - Deck view: cards grouped by type, mana symbols, optional "why each card is here", curve bars, land reasoning, roles, synergies, notes.
 - Decks: list, open, rename, export, delete with "return cards to the pool", pair two packets with Copy.
 - Settings: copy limits, basics, Un-sets, card art, backup export and restore, clear all data, card data version, About with the attribution notices.

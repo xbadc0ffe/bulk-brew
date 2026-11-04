@@ -40,6 +40,7 @@ Ranked. The current phase is at the top. Finished phases are removed, not struck
 - Mobile: secondary style picker (phones build with the primary style only).
 - Tribes: multi-word creature types such as "Time Lord" split into two words.
 - Mobile parity for the deck options list on the Build page (phones still build one deck).
+- Mobile parity for the web cleanup round: colored deck actions (Accept green, Back red, Export grey) and the icon sidebar's look in the tab bar.
 - Deck options build on the main thread, one per tick; move to a Web Worker if phones stutter.
 - Mobile parity for the web-only changes of the owner review: column sorting, the Analyze split, multi-select removal, and the deck details expand.
 - Tune `config/display-tags.json` after use; Blink and -1/-1 match few cards, Artifacts and Graveyard match many.
