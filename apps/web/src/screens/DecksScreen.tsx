@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { COLOR_LABELS, COLORS, pairPackets, type Color, type Deck } from '@bulk-brew/core';
 import {
   archetypeInfo,
+  ChoiceDialog,
   ConfirmDialog,
   DeckList,
   deckColors,
@@ -303,7 +304,7 @@ function DeckTable({ onOpen }: { onOpen(id: string): void }) {
                       className={`${ui.badge} ml-2`}
                       title="Its cards are still in your bulk list"
                     >
-                      Not accepted
+                      Cards in bulk list
                     </span>
                   )}
                 </td>
@@ -395,12 +396,12 @@ function SavedDeck({ deck, onBack, onPair }: { deck: Deck; onBack(): void; onPai
             />
           ) : undefined
         }
-        meta={`${deck.size} cards · ${landCount(deck, index)} lands · saved ${savedLabel(deck.createdAt).toLowerCase()}${deck.committed ? '' : ' · not accepted'}`}
+        meta={`${deck.size} cards · ${landCount(deck, index)} lands · saved ${savedLabel(deck.createdAt).toLowerCase()}${deck.committed ? '' : ' · cards in bulk list'}`}
         status={status}
         actions={
           <>
             {!deck.committed && (
-              <button type="button" className={ui.primary} onClick={() => setConfirm('accept')}>
+              <button type="button" className={ui.go} onClick={() => setConfirm('accept')}>
                 Accept
               </button>
             )}
@@ -484,17 +485,22 @@ function SavedDeck({ deck, onBack, onPair }: { deck: Deck; onBack(): void; onPai
         }}
         onCancel={() => setConfirm(undefined)}
       />
-      <ConfirmDialog
+      <ChoiceDialog
         open={confirm === 'accept'}
         title="Accept this deck?"
-        message="This will remove the deck's cards from your bulk list."
-        confirmLabel="Accept"
-        cancelLabel="Decline"
-        focus="confirm"
-        onConfirm={() => {
-          setConfirm(undefined);
-          setStatus(actions.removeFromPool(deck) ?? 'Accepted. Its cards left your bulk list.');
-        }}
+        message="Its cards are still in your bulk list. Accepting removes them."
+        choices={[
+          {
+            label: 'Confirm',
+            detail: 'Remove cards from bulk list',
+            tone: 'go',
+            onSelect: () => {
+              setConfirm(undefined);
+              setStatus(actions.removeFromPool(deck) ?? 'Accepted. Its cards left your bulk list.');
+            },
+          },
+          { label: 'Decline', tone: 'stop', onSelect: () => setConfirm(undefined) },
+        ]}
         onCancel={() => setConfirm(undefined)}
       />
     </>

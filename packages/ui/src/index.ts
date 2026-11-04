@@ -116,7 +116,12 @@ export {
   type ColorShare,
   type TypeCount,
 } from './data/deckStats.ts';
-export { ConfirmDialog, type ConfirmDialogProps } from './components/ConfirmDialog.tsx';
+export {
+  ChoiceDialog,
+  ConfirmDialog,
+  type Choice,
+  type ConfirmDialogProps,
+} from './components/ConfirmDialog.tsx';
 export {
   archetypeInfo,
   deckColors,

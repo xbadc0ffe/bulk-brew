@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { useEffect, useId, useRef, type ReactNode, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { phone, ui } from '../styles.ts';
 import type { Variant } from './controls.tsx';
@@ -16,26 +16,23 @@ export interface ConfirmDialogProps {
   variant?: Variant;
 }
 
-/** A modal question with two named answers. Escape and the backdrop cancel. */
-export function ConfirmDialog(props: ConfirmDialogProps) {
-  const { open, title, message, confirmLabel, cancelLabel = 'Cancel', variant = 'desktop' } = props;
-  const id = useId();
-  const confirmRef = useRef<HTMLButtonElement>(null);
-  const cancelRef = useRef<HTMLButtonElement>(null);
+/**
+ * While open: the page behind is inert, `first` takes focus, Escape cancels,
+ * and focus goes back where it was on close.
+ */
+function useModal(open: boolean, onCancel: () => void, first: RefObject<HTMLElement | null>) {
   // Keep the latest handler without re-running the focus effect.
-  const cancel = useRef(props.onCancel);
+  const cancel = useRef(onCancel);
   useEffect(() => {
-    cancel.current = props.onCancel;
+    cancel.current = onCancel;
   });
-
   useEffect(() => {
     if (!open) return;
     const before = document.activeElement as HTMLElement | null;
-    // The page behind is inert while the dialog is open: no tabbing or
-    // shortcuts reach it. The dialog itself is portaled outside #root.
+    // The dialog itself is portaled outside #root.
     const root = document.getElementById('root');
     root?.setAttribute('inert', '');
-    (props.focus === 'confirm' ? confirmRef : cancelRef).current?.focus();
+    first.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
@@ -47,14 +44,24 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
     return () => {
       document.removeEventListener('keydown', onKey, true);
       root?.removeAttribute('inert');
-      // Return focus unless the confirmed action removed or disabled that control.
+      // Return focus unless the chosen action removed or disabled that control.
       const usable = before?.isConnected && !(before as HTMLButtonElement).disabled;
       if (usable) before.focus({ preventScroll: true });
     };
-  }, [open, props.focus]);
+  }, [open, first]);
+  return cancel;
+}
 
-  if (!open) return null;
-  const isPhone = variant === 'phone';
+function Shell(props: {
+  id: string;
+  title: string;
+  message: ReactNode;
+  cancelLabel: string;
+  onBackdrop(): void;
+  isPhone: boolean;
+  children: ReactNode;
+}) {
+  const { id, title, message, cancelLabel, onBackdrop, isPhone, children } = props;
   return createPortal(
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
       <button
@@ -62,7 +69,7 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
         aria-label={cancelLabel}
         tabIndex={-1}
         className="absolute inset-0 bg-black/40"
-        onClick={() => cancel.current()}
+        onClick={onBackdrop}
       />
       <div
         role="alertdialog"
@@ -87,26 +94,117 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
         >
           {message}
         </div>
-        <div className={isPhone ? 'mt-2 grid grid-cols-2 gap-2' : 'mt-2 flex justify-end gap-2'}>
-          <button
-            ref={cancelRef}
-            type="button"
-            className={isPhone ? phone.secondary : ui.secondary}
-            onClick={() => cancel.current()}
-          >
-            {cancelLabel}
-          </button>
-          <button
-            ref={confirmRef}
-            type="button"
-            className={isPhone ? phone.primary : ui.primary}
-            onClick={props.onConfirm}
-          >
-            {confirmLabel}
-          </button>
-        </div>
+        {children}
       </div>
     </div>,
     document.body,
+  );
+}
+
+/** A modal question with two named answers. Escape and the backdrop cancel. */
+export function ConfirmDialog(props: ConfirmDialogProps) {
+  const { open, title, message, confirmLabel, cancelLabel = 'Cancel', variant = 'desktop' } = props;
+  const id = useId();
+  const confirmRef = useRef<HTMLButtonElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const cancel = useModal(open, props.onCancel, props.focus === 'confirm' ? confirmRef : cancelRef);
+
+  if (!open) return null;
+  const isPhone = variant === 'phone';
+  return (
+    <Shell
+      id={id}
+      title={title}
+      message={message}
+      cancelLabel={cancelLabel}
+      onBackdrop={() => cancel.current()}
+      isPhone={isPhone}
+    >
+      <div className={isPhone ? 'mt-2 grid grid-cols-2 gap-2' : 'mt-2 flex justify-end gap-2'}>
+        <button
+          ref={cancelRef}
+          type="button"
+          className={isPhone ? phone.secondary : ui.secondary}
+          onClick={() => cancel.current()}
+        >
+          {cancelLabel}
+        </button>
+        <button
+          ref={confirmRef}
+          type="button"
+          className={isPhone ? phone.primary : ui.primary}
+          onClick={props.onConfirm}
+        >
+          {confirmLabel}
+        </button>
+      </div>
+    </Shell>
+  );
+}
+
+export interface Choice {
+  label: string;
+  /** A smaller line under the label. */
+  detail?: string;
+  tone: 'go' | 'go-soft' | 'stop';
+  onSelect(): void;
+}
+
+const TONE: Record<Choice['tone'], string> = {
+  go: 'bg-go text-on-solid',
+  'go-soft': 'border border-go bg-go-soft text-go-soft-fg',
+  stop: 'bg-stop text-on-solid',
+};
+
+/**
+ * A modal question with answers stacked full width, each in its own color.
+ * The first answer takes focus; Escape and the backdrop pick `onCancel`.
+ */
+export function ChoiceDialog(props: {
+  open: boolean;
+  title: string;
+  message: ReactNode;
+  choices: Choice[];
+  onCancel(): void;
+  variant?: Variant;
+}) {
+  const { open, title, message, choices, variant = 'desktop' } = props;
+  const id = useId();
+  const firstRef = useRef<HTMLButtonElement>(null);
+  const cancel = useModal(open, props.onCancel, firstRef);
+  if (!open) return null;
+  const isPhone = variant === 'phone';
+  return (
+    <Shell
+      id={id}
+      title={title}
+      message={message}
+      cancelLabel="Cancel"
+      onBackdrop={() => cancel.current()}
+      isPhone={isPhone}
+    >
+      <div className="mt-2 flex flex-col gap-2">
+        {choices.map((c, i) => (
+          <button
+            key={`${c.label}-${c.detail ?? ''}`}
+            ref={i === 0 ? firstRef : undefined}
+            type="button"
+            onClick={c.onSelect}
+            className={`flex w-full flex-col items-center justify-center rounded-lg px-4 hover:brightness-110 ${TONE[c.tone]} ${isPhone ? 'min-h-12 py-2' : 'min-h-11 py-2'}`}
+          >
+            <span
+              className={isPhone ? 'text-[0.9375rem] font-semibold' : 'text-[14px] font-semibold'}
+            >
+              {c.label}
+            </span>
+            {c.detail && (
+              <span className={isPhone ? 'text-[0.75rem] opacity-90' : 'text-[11.5px] opacity-90'}>
+                {c.detail}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+    </Shell>
   );
 }

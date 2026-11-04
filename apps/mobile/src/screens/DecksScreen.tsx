@@ -105,7 +105,7 @@ function DeckRows({ onOpen }: { onOpen(id: string): void }) {
                 {d.size} · {archetypeInfo(config, d.archetype).label} · {savedLabel(d.createdAt)}
               </span>
             </span>
-            {!d.committed && <span className={phone.badge}>Not accepted</span>}
+            {!d.committed && <span className={phone.badge}>Cards in bulk list</span>}
             <span aria-hidden className="text-[1.125rem] leading-none text-fg-3">
               ›
             </span>
@@ -271,7 +271,7 @@ function SavedDeck({ deck, onBack, onPair }: { deck: Deck; onBack(): void; onPai
           `${deck.size} cards`,
           `${landCount(deck, index)} lands`,
           archetypeInfo(config, deck.archetype).label,
-          ...(deck.committed ? [] : ['Not accepted']),
+          ...(deck.committed ? [] : ['Cards in bulk list']),
         ]}
         actions={extra}
         status={status}

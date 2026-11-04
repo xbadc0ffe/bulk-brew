@@ -273,7 +273,7 @@ Resolved questions, kept so they are not reopened by accident.
 - The deck list groups cards by exact type (creatures, planeswalkers, instants, sorceries, artifacts, enchantments, battles, lands), the same groups the Card types breakdown counts.
 - Tribal is a secondary style, not a primary one. A secondary style needs a primary style; a second theme needs half its minimums, a shape can only follow a themed primary, and a tribe needs members and type payoffs (`builderWeights.secondary`).
 - Name: Bulk Brew, repo `bulk-brew`. An unrelated dormant repo shares the name; not a concern.
-- Result actions: Accept (with a confirmation), Reject, and Export. A short-lived Save deck and Remove from pool pair from the design pass was dropped after owner review; decks saved without accepting show "Not accepted" and can still be accepted.
+- Result actions: Accept (green), Back (red), and Export (grey). Accept asks Confirm and remove the cards from the bulk list, Confirm and keep them there, or Decline, stacked in that order. A kept deck (`committed: false`) shows "Cards in bulk list" on Decks and can be accepted later to remove them. Choosing Build in the sidebar while a built deck is open works like Back.
 - Short display tags live in `config/display-tags.json`, matched with the same matcher format as roles plus role and style references. They are for showing and filtering only; the builder never reads them, so they are not part of the config version a deck records.
 - Pairing packets is a what-if view from a packet; Merge replaces both packets with one 40-card deck. Basics return on disassembly only if both packets took them.
 - Appearance lives in `localStorage`, outside `Settings` and backups, so no settings format changed.

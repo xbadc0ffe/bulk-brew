@@ -43,7 +43,6 @@ Ranked. The current phase is at the top. Finished phases are removed, not struck
 - Deck options build on the main thread, one per tick; move to a Web Worker if phones stutter.
 - Mobile parity for the web-only changes of the owner review: column sorting, the Analyze split, multi-select removal, and the deck details expand.
 - Tune `config/display-tags.json` after use; Blink and -1/-1 match few cards, Artifacts and Graveyard match many.
-- Decks saved with the short-lived Save deck show "Not accepted"; drop that path once no such decks remain.
 
 ## App follow-ups
 

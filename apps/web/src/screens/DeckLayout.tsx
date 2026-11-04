@@ -18,16 +18,18 @@ export function ExportMenu({
   deck,
   onStatus,
   label = 'Export ▾',
+  buttonClassName = ui.neutral,
 }: {
   deck: Deck;
   onStatus(text: string): void;
   label?: string;
+  buttonClassName?: string;
 }) {
   const { index, config } = useAppState();
   if (!index) return null;
   const text = () => deckToDecklist(deck, index, config);
   return (
-    <Dropdown label={label} buttonClassName={ui.secondary} align="right">
+    <Dropdown label={label} buttonClassName={buttonClassName} align="right">
       {(close) => (
         <>
           <MenuItem

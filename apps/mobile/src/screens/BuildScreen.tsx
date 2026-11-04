@@ -4,7 +4,7 @@ import {
   archetypeInfo,
   archetypeViability,
   buildableSizes,
-  ConfirmDialog,
+  ChoiceDialog,
   phone,
   Pip,
   RarityPicker,
@@ -70,7 +70,9 @@ function BuildForm() {
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4">
         {flow.accepted && (
           <p role="status" className={phone.error}>
-            Saved &quot;{flow.accepted.name}&quot; and removed its cards from your bulk list.
+            {flow.accepted.committed
+              ? `Saved "${flow.accepted.name}" and removed its cards from your bulk list.`
+              : `Saved "${flow.accepted.name}". Its cards stay in your bulk list.`}
           </p>
         )}
         <p className={phone.note}>
@@ -303,18 +305,32 @@ function BuildResult() {
           </div>
         }
       />
-      <ConfirmDialog
+      <ChoiceDialog
         open={confirm}
         title="Accept this deck?"
-        message="This will save the deck and remove the cards from your bulk list."
-        confirmLabel="Accept"
-        cancelLabel="Decline"
-        focus="confirm"
+        message="Save the deck to Decks. Its cards can leave your bulk list now or stay there."
         variant="phone"
-        onConfirm={() => {
-          setConfirm(false);
-          flow.accept();
-        }}
+        choices={[
+          {
+            label: 'Confirm',
+            detail: 'Remove cards from bulk list',
+            tone: 'go',
+            onSelect: () => {
+              setConfirm(false);
+              flow.accept(true);
+            },
+          },
+          {
+            label: 'Confirm',
+            detail: 'Keep cards in bulk list',
+            tone: 'go-soft',
+            onSelect: () => {
+              setConfirm(false);
+              flow.accept(false);
+            },
+          },
+          { label: 'Decline', tone: 'stop', onSelect: () => setConfirm(false) },
+        ]}
         onCancel={() => setConfirm(false)}
       />
     </>

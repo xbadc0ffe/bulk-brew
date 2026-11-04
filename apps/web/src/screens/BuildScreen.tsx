@@ -11,7 +11,7 @@ import {
 } from '@bulk-brew/core';
 import {
   archetypeViability,
-  ConfirmDialog,
+  ChoiceDialog,
   Dropdown,
   Pip,
   RarityPicker,
@@ -77,8 +77,9 @@ function BuildForm() {
         </h1>
         {flow.accepted && (
           <p role="status" className={ui.error}>
-            Saved &quot;{flow.accepted.name}&quot; and removed its cards from your bulk list. The
-            deck options are rebuilt from what is left.
+            {flow.accepted.committed
+              ? `Saved "${flow.accepted.name}" and removed its cards from your bulk list. The deck options are rebuilt from what is left.`
+              : `Saved "${flow.accepted.name}". Its cards stay in your bulk list; accept it from Decks to remove them.`}
           </p>
         )}
         {flow.error && <p className={ui.error}>{flow.error}</p>}
@@ -424,7 +425,7 @@ function BuildResultView() {
           <>
             <button
               type="button"
-              className={ui.primary}
+              className={ui.go}
               disabled={flow.building}
               onClick={() => setConfirm(true)}
             >
@@ -432,30 +433,44 @@ function BuildResultView() {
             </button>
             <button
               type="button"
-              className={ui.secondary}
+              className={ui.stop}
               disabled={flow.building}
               onClick={() => {
                 flow.reject();
                 focusForm();
               }}
             >
-              Back to options
+              Back
             </button>
             <ExportMenu deck={deck} onStatus={setStatus} label="Export ▾" />
           </>
         }
       />
-      <ConfirmDialog
+      <ChoiceDialog
         open={confirm}
         title="Accept this deck?"
-        message="This will save the deck and remove the cards from your bulk list."
-        confirmLabel="Accept"
-        cancelLabel="Decline"
-        focus="confirm"
-        onConfirm={() => {
-          setConfirm(false);
-          if (flow.accept()) focusForm();
-        }}
+        message="Save the deck to Decks. Its cards can leave your bulk list now or stay there."
+        choices={[
+          {
+            label: 'Confirm',
+            detail: 'Remove cards from bulk list',
+            tone: 'go',
+            onSelect: () => {
+              setConfirm(false);
+              if (flow.accept(true)) focusForm();
+            },
+          },
+          {
+            label: 'Confirm',
+            detail: 'Keep cards in bulk list',
+            tone: 'go-soft',
+            onSelect: () => {
+              setConfirm(false);
+              if (flow.accept(false)) focusForm();
+            },
+          },
+          { label: 'Decline', tone: 'stop', onSelect: () => setConfirm(false) },
+        ]}
         onCancel={() => setConfirm(false)}
       />
     </>

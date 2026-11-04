@@ -7,6 +7,11 @@ export const ui = {
     'inline-flex items-center justify-center rounded-md bg-ink px-4 py-[7px] text-[13px] font-medium text-on-ink hover:opacity-90 disabled:cursor-default disabled:opacity-50',
   secondary:
     'inline-flex items-center justify-center rounded-md border border-line-strong bg-surface px-3 py-[6px] text-[13px] text-ink hover:bg-surface-2 disabled:cursor-default disabled:opacity-50',
+  /** Solid action buttons: Accept, Back, and Export on a deck. */
+  go: 'inline-flex items-center justify-center rounded-md bg-go px-4 py-[7px] text-[13px] font-medium text-on-solid hover:brightness-110 disabled:cursor-default disabled:opacity-50',
+  stop: 'inline-flex items-center justify-center rounded-md bg-stop px-4 py-[7px] text-[13px] font-medium text-on-solid hover:brightness-110 disabled:cursor-default disabled:opacity-50',
+  neutral:
+    'inline-flex items-center justify-center rounded-md bg-neutral px-4 py-[7px] text-[13px] font-medium text-on-solid hover:brightness-110 disabled:cursor-default disabled:opacity-50',
   small:
     'inline-flex items-center justify-center rounded-[5px] border border-line-strong bg-surface px-2.5 py-[4px] text-[12px] text-ink hover:bg-surface-2 disabled:cursor-default disabled:opacity-50',
   quiet: 'text-fg-1 hover:text-ink disabled:cursor-default disabled:opacity-50',

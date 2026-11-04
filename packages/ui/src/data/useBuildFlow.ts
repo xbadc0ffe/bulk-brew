@@ -74,9 +74,10 @@ export interface BuildFlow {
   /**
    * Save the deck and take its cards out of the pool, then return to the
    * form. Refuses, with a message in `error`, when the pool no longer holds
-   * all the cards.
+   * all the cards. With `removeCards` false the deck is saved and the pool
+   * is left alone; the deck can be accepted later from Decks.
    */
-  accept(): Deck | undefined;
+  accept(removeCards?: boolean): Deck | undefined;
   /** Drop the result and return to the form with every choice kept. */
   reject(): void;
   /** Forget the result, the last confirmation, and the copy override. For pool resets. */
@@ -251,32 +252,42 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
     setBuilding(true);
   }, [canBuild]);
 
-  const accept = useCallback((): Deck | undefined => {
-    if (!result || !index) return undefined;
-    const now = new Date().toISOString();
-    const id = newDeckId(`${now}:${JSON.stringify(result.deck.cards)}:${decks.decks.length}`);
-    const fresh: Deck = { ...result.deck, id, createdAt: now, committed: false };
-    const short = poolShortfall(pool.pool, fresh, settings, index, config);
-    if (short > 0) {
-      setError(shortfallMessage(short));
-      return undefined;
-    }
-    // commitDeck is pure, so computing the deck here and the pool in the
-    // updater gives the same answer.
-    const { deck } = commitDeck(pool.pool, fresh, settings, index, config, now);
-    pool.actions.transform((p) => commitDeck(p, fresh, settings, index, config, now).pool);
-    decks.save(deck);
-    reject();
-    setAccepted(deck);
-    // The commander left the pool with its deck; the list of commanders comes back.
-    if (deck.commander) {
-      setCommanderState(undefined);
-      setColorsState([]);
-      setStyleState(undefined);
-      setSecondaryState(undefined);
-    }
-    return deck;
-  }, [result, index, decks, pool.pool, pool.actions, settings, config, reject]);
+  const accept = useCallback(
+    (removeCards = true): Deck | undefined => {
+      if (!result || !index) return undefined;
+      const now = new Date().toISOString();
+      const id = newDeckId(`${now}:${JSON.stringify(result.deck.cards)}:${decks.decks.length}`);
+      const fresh: Deck = { ...result.deck, id, createdAt: now, committed: false };
+      if (!removeCards) {
+        // Saved as is: the cards stay in the pool, and the deck can be accepted later.
+        decks.save(fresh);
+        reject();
+        setAccepted(fresh);
+        return fresh;
+      }
+      const short = poolShortfall(pool.pool, fresh, settings, index, config);
+      if (short > 0) {
+        setError(shortfallMessage(short));
+        return undefined;
+      }
+      // commitDeck is pure, so computing the deck here and the pool in the
+      // updater gives the same answer.
+      const { deck } = commitDeck(pool.pool, fresh, settings, index, config, now);
+      pool.actions.transform((p) => commitDeck(p, fresh, settings, index, config, now).pool);
+      decks.save(deck);
+      reject();
+      setAccepted(deck);
+      // The commander left the pool with its deck; the list of commanders comes back.
+      if (deck.commander) {
+        setCommanderState(undefined);
+        setColorsState([]);
+        setStyleState(undefined);
+        setSecondaryState(undefined);
+      }
+      return deck;
+    },
+    [result, index, decks, pool.pool, pool.actions, settings, config, reject],
+  );
 
   const reset = useCallback(() => {
     reject();

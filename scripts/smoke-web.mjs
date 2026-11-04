@@ -213,22 +213,35 @@ try {
     }
   }
   // Options build in the background; wait for them to finish, then open the strongest.
-  log('options', oneLine(await waitForText(/options?, strongest first/, 60000), 160));
+  // A screen-reader line announces the finished list.
+  log('options', oneLine(await waitForText(/deck options? ready/, 60000), 160));
   await shot('3-build-options');
-  await click('strength', 'first');
-  log('deck', oneLine(await waitForText(/Accept/, 30000), 160));
+  // Every option card shows a mana curve; the first card is the strongest.
+  const openStrongest = async () => {
+    await click('Mana curve', 'first');
+    return waitForText(/Accept/, 30000);
+  };
+  log('deck', oneLine(await openStrongest(), 160));
   await shot('3-deck');
+
+  // Build while a deck is open goes back to the options, like Back.
+  await click('^Build$');
+  await waitForText(/Deck options/, 5000);
+  log('navigation', 'Build went back to the options');
+  await openStrongest();
 
   await click('^Bulk List');
   await waitForText(/unique/);
   await click('^Build$');
-  await waitForText(/Back to options/, 5000);
+  await waitForText(/Accept/, 5000);
   log('navigation', 'opened deck survived a trip to the Bulk List');
 
   await click('^Accept$');
-  // The confirmation's own Accept button comes last.
-  await waitForText(/save the deck and remove the cards/);
-  await click('^Accept$', 'last');
+  // The dialog stacks Confirm (remove), Confirm (keep), and Decline.
+  await waitForText(/Remove cards from bulk list/);
+  await shot('3-accept-dialog');
+  // The label and its detail line run together in textContent.
+  await click('^ConfirmRemove cards from bulk list$');
   log('accept', oneLine((await waitForText(/Saved "/)).match(/Saved "[^\n]*/)[0], 160));
   // The commander left the pool with its deck, so the commander list comes back.
   if (size === '100') log('commander-cleared', (await waitForText(/Pick a commander/)).length > 0);

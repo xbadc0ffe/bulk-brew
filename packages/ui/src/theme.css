@@ -7,6 +7,13 @@
 /* Light */
 :root {
   color-scheme: light;
+  /* Action colors: the same in every theme color, so Accept always reads green. */
+  --go: oklch(0.5 0.12 150);
+  --go-soft: oklch(0.93 0.04 150);
+  --go-soft-fg: oklch(0.38 0.1 150);
+  --stop: oklch(0.52 0.17 27);
+  --neutral: oklch(0.5 0 0);
+  --on-solid: oklch(0.99 0 0);
   --bg: oklch(0.955 0 0);
   --surface: oklch(0.985 0 0);
   --surface2: oklch(0.925 0 0);
@@ -98,6 +105,11 @@
 /* Dark */
 [data-mode='dark'] {
   color-scheme: dark;
+  --go: oklch(0.52 0.12 150);
+  --go-soft: oklch(0.33 0.06 150);
+  --go-soft-fg: oklch(0.88 0.08 150);
+  --stop: oklch(0.54 0.16 27);
+  --neutral: oklch(0.46 0 0);
   --bg: oklch(0.24 0 0);
   --surface: oklch(0.285 0 0);
   --surface2: oklch(0.33 0 0);
@@ -198,6 +210,12 @@
   --color-fg-2: var(--text2);
   --color-fg-3: var(--text3);
   --color-bar: var(--bar);
+  --color-go: var(--go);
+  --color-go-soft: var(--go-soft);
+  --color-go-soft-fg: var(--go-soft-fg);
+  --color-stop: var(--stop);
+  --color-neutral: var(--neutral);
+  --color-on-solid: var(--on-solid);
   --color-pip-w: var(--pip-w);
   --color-pip-w-fg: var(--pip-w-fg);
   --color-pip-u: var(--pip-u);
