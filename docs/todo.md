@@ -2,7 +2,38 @@
 
 Ranked. The current phase is at the top. Finished phases are removed, not struck through.
 
-## Phase 8: iOS app
+## Phase 9: Deck strength
+
+- Data pack schema 2: Commander legality, Game Changer flag, popularity rank. Core reads schema 1 and 2; the refresh workflow publishes the first schema 2 pack.
+- Card strength score from card data, weights in config. Replaces stats per mana as the main tiebreak and joins the objective.
+- Deck score (strength, roles, curve, synergy) in the explanation and eval.
+- Best fit builds the few most promising archetypes and keeps the highest deck score.
+- Config pass from the distilled guidance: at most 2 copies of legendary or 6-plus mana cards, less top end for aggro, Flyers payoffs without tricks and one-turn pumps, theme cards must be playable alone to count toward a theme, removal ranked by breadth.
+- Eval before and after; commit the new baseline.
+
+## Phase 10: Colors
+
+- Color sets through the request, scan, deck, explanation, and saved decks (migrate stored decks and backups from one color).
+- Candidates by castability for 60, 40, 20 (unlocks hybrid); identity for 100.
+- Pip analysis, per-color source targets from a probability in config, basics split, multi-color lands and fixers scored, main, secondary, and splash colors.
+- Owner to upload the multi-color and nonbasic land lists as eval pools.
+
+## Phase 11: Build page
+
+- Settings left, ranked deck options right, background worker, pause on open, state kept. See SPEC "Build options". Web first, then mobile.
+
+## Phase 12: Styles
+
+- Primary and secondary styles; secondary viability given the primary.
+- Tribal as a secondary style, one per creature type with enough payoffs (changelings count).
+- New styles the data supports: burn, landfall, mill, enchantments; blink needs a way to detect enter-the-battlefield value.
+
+## Phase 13: Commander
+
+- 100-card singleton template, commander candidates and tiers, commander-anchored builds, commander list and header on the Build page.
+- Verify eligibility, singleton exceptions, and identity against the rules in `docs/rules/`.
+
+## Phase 8: iOS app (on hold until the owner starts it)
 
 - Capacitor project around `apps/mobile`, bundled data pack and config, over-the-air data update.
 - Pick the bundle identifier with the user (for example com.<name>.bulkbrew).
@@ -40,12 +71,11 @@ Ranked. The current phase is at the top. Finished phases are removed, not struck
 - Service worker: show a "new version available" prompt instead of waiting for the next load.
 - Card detail: show rulings fetched from Scryfall on demand.
 
-## Phase 9: v2 ideas
+## Later
 
-- Proper two-color builds with gold cards.
 - Batch balanced mode: several decks of similar strength from one pool.
-- Optional card quality score.
 - Download images for the pool for full offline use.
+- `docs/guides/mana-base.md` names an outside analyst; restate in our own words.
 
 ## Open questions
 

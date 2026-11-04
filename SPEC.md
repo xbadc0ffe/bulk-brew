@@ -4,7 +4,9 @@ Source of truth for scope, data, and architecture. Describes what exists and wha
 
 ## Purpose
 
-Turn a large pool of bulk Magic: The Gathering cards into playable casual decks. The user imports a card list into a pool, picks a deck size and a color, and the app builds the best deck it can from what is available. Accepting a deck saves it and takes its cards out of the pool, so the next build uses what is left. The app calls the pool the Bulk List.
+Turn a large pool of bulk Magic: The Gathering cards into playable casual decks. The user imports a card list into a pool, picks a deck size, colors, and optional styles (or a commander for 100 cards), and the app builds several deck options from what is available, ranked by strength and fit. Accepting a deck saves it and takes its cards out of the pool, so the next build uses what is left. The app calls the pool the Bulk List.
+
+Bulk Brew presents itself as a bulk builder: it makes good decks from what a pile holds. Real decks deserve a person's care; the app does not try to replace that.
 
 The app is self-sufficient: no language model calls at runtime, no developer server, no user data sent anywhere. All judgment lives in data (card facts, tags, config) and a deterministic builder.
 
@@ -22,21 +24,27 @@ Targets: a static client-side web app and an iOS app, built together on one core
 
 ### Deck sizes
 
-| Size | Style               | Notes                                                                                                                   |
-| ---- | ------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| 60   | Constructed, casual | Max 4 copies of a card by default.                                                                                      |
-| 40   | Limited-style       | Max 4 copies by default.                                                                                                |
-| 20   | Jumpstart packet    | Includes its lands. Max 2 copies by default. Any two packets of different colors shuffle into a two-color 40-card deck. |
+| Size | Style               | Notes                                                                                                                                                            |
+| ---- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 100  | Commander           | One commander plus 99, singleton (basics exempt). Colors come from the commander. Phase 13.                                                                      |
+| 60   | Constructed, casual | Max 4 copies of a card by default.                                                                                                                               |
+| 40   | Limited-style       | Max 4 copies by default.                                                                                                                                         |
+| 20   | Jumpstart style     | Shown as "20" with a note when selected. Includes its lands. Max 2 copies by default. Any two packets of different colors shuffle into a two-color 40-card deck. |
 
 ### Colors
 
-Version 1 builds mono-color decks in all three sizes. Candidate cards are those whose color identity is a subset of the chosen color, so colorless cards are always eligible and gold cards never are. Two-color play comes from pairing two 20-card packets; the app pairs them and exports the combined list. Proper two-color builds with gold cards are a later version. Three or more colors are out of scope.
+Decks use one to five colors. Mono-color stays the builder's strongest mode; every added color makes a deck harder to build well, and the app says so rather than refusing.
+
+- **60, 40, 20**: a card is a candidate when every mana symbol in its costs and rules text can be paid by the deck's colors (hybrid symbols when either half fits), so hybrid cards work in mono decks. Colorless cards are always eligible. Phase 10.
+- **100**: candidates are cards whose color identity fits inside the commander's, as the format requires.
+- Multi-color decks have a main color (may hold double pips), secondary colors (single pips), and optionally a light splash (a few single-pip cards costing three or more). Colored source counts per color come from a probability target in config: the chance to cast each spell on curve given the land drops were made.
+- Two-color play also comes from pairing two 20-card packets; pairing stays as a mode.
 
 ### Pool flow
 
 1. **Import** decklist text or a collection CSV (ManaBox, Moxfield, Deckbox, or any CSV with name and quantity columns), pasted or from a file. Import is a subpage of the Bulk List. The text is checked live as it is typed: matched cards and colors, and each unmatched line, which can be renamed, swapped for a suggestion, or skipped. Import adds the matched cards to the pool; lines that did not match stay in the box.
 2. **Pool** is the single active set of available cards, keyed by oracle id with quantities. It persists on the device between sessions and can be exported as a backup file and restored.
-3. **Build** a deck from the pool. The result is a full decklist with an explanation.
+3. **Build** from the pool. The Build page shows deck options ranked by strength (see Build options); opening one shows the full decklist with an explanation.
 4. **Accept** (after a confirmation) saves the deck and takes its cards out of the pool (the `committed` flag). **Reject** drops the result and returns to the form with every choice kept. **Export** copies or downloads the list. A result survives moving between screens until it is accepted or rejected.
 5. **Build again** from what is left, until the pool runs out of a color.
 6. **Clear pool** and **delete deck** are one action each with a confirmation. **Disassemble** returns a deck's cards to the pool and deletes it; delete without returning is in the deck's menu. Accepting is refused, with a count, when the pool no longer holds all of the deck's cards.
@@ -50,7 +58,7 @@ The Bulk List filters by color, type, subtype, mana value (a comparison and a va
 
 Defaults live in `config/settings.defaults.json`.
 
-- Max copies per card, per deck size (60: 4, 40: 4, 20: 2).
+- Max copies per card, per deck size (60: 4, 40: 4, 20: 2), set on the Build form under the deck size. 100 is always singleton.
 - Unlimited basics (on), set on the Build form.
 - Include Un-set and acorn cards (off).
 - Show card art (off on first launch, remembered).
@@ -84,6 +92,8 @@ Name resolution handles full multi-face names ("A // B"), front-face-only names,
 ### Data pack
 
 The shipped database is one compact JSON file, gzip-compressed by the host. Shape: `DataPack` in `packages/core/src/types.ts`. Per card: oracle id, name, layout, mana cost, mana value, type line, oracle text, colors, color identity, keywords, power, toughness, loyalty, produced mana, normalized types, derived `entersTapped` and `unset` flags, tags, faces, and the default printing's image id. The 2026-11-02 pack holds 34,168 cards: 23 MB raw, 5.4 MB compressed.
+
+Schema 2 (phase 9) adds, from the same Scryfall oracle file: Commander legality (banned or not legal), the Game Changer flag, and Scryfall's popularity rank, one signal in the card strength score. The core reads schema 1 and 2 during the move, treating the new fields as absent in schema 1.
 
 JSON was chosen over SQLite because the data is small, loads with one fetch, needs no WebAssembly on the web, and decodes natively in Swift if the iOS app ever goes native.
 
@@ -135,12 +145,12 @@ A deck is possible when the pool has enough spells for the slots and at least ha
 
 ### Inputs
 
-Pool, deck size, color, optional style preference, settings, config version, data version.
+Pool, deck size, colors, optional primary and secondary style, commander (100 only), settings, config version, data version.
 
 ### Steps
 
-1. **Candidates**: pool cards whose color identity fits, honoring the Un-set setting and copy limits, and excluding cards with a {C} pip.
-2. **Archetype**: the preferred style if viable; else the viable synergy archetype with the largest margin over its minimums; else the composition archetype (aggro, midrange, control) with the best margin, midrange on ties.
+1. **Candidates**: pool cards that fit the colors (see Colors), honoring the Un-set setting and copy limits, and excluding cards with a {C} pip.
+2. **Archetype**: the preferred style if viable. Best fit (phase 9) builds the few most promising viable archetypes by scan margin and keeps the one whose finished deck scores highest; the scan margin alone measures how deep a theme is, not how strong its deck is.
 3. **Reserve lands**: start from the template's base land count so the spell count is known.
 4. **Fill spells** in passes with per-type caps so no category floods the deck: role minimums, theme enablers and payoffs to their minimums, role targets, type mix minimums, curve fill toward the profile, then filler. The last filler pass ignores type caps so a creature-only pool still fills the deck.
 5. **Size the mana base** from the spells actually chosen: a base count per size, raised by average mana value, lowered per cheap mana source, clamped to a range. Credits per source kind and cost are in the template; dorks earn slightly less than rocks because they die to removal, and dorks still count as creatures in the curve. If the land count moved, trim the least important picks or re-fill, until the count is stable.
@@ -152,7 +162,9 @@ Constants live in `config/deck-templates.json` and are explained in `docs/guides
 
 ### Objective
 
-Template fit (curve deviation, type mix, role quotas, with minimums weighing more than targets) plus synergy density, scaled by the chosen archetype's synergy weight. No card quality score in version 1. Candidate ordering first prefers cards that fill a curve bucket still below target, then follows the tiebreak list in `builder-weights.json` (theme tag hits, stats per mana, lower mana value, name), then card id.
+Template fit (curve deviation, type mix, role quotas, with minimums weighing more than targets) plus synergy density, scaled by the chosen archetype's synergy weight. Candidate ordering first prefers cards that fill a curve bucket still below target, then follows the tiebreak list in `builder-weights.json`, then card id.
+
+Phase 9 adds a **card strength score** and a **deck score**. Card strength is computed from card data with weights in config: an effect on a body beats a vanilla body, broad and instant-speed removal beats narrow removal, fewer colored pips is better, value on entering or dying and protection keywords count, buff-only auras and equipment count little outside their theme, and Scryfall's popularity rank adds a signal. It joins the objective and replaces stats per mana as the main tiebreak. The deck score combines card strength, role coverage, curve fit, synergy density, and (multi-color) castability; it ranks archetypes for best fit and options on the Build page.
 
 ### Output
 
@@ -160,8 +172,24 @@ A deck with cards grouped by type, basics by color, and a `BuildExplanation`: ar
 
 ### Modes
 
-- **Best cards** (version 1): each build takes the best available cards from the current pool.
+- **Best cards**: each build takes the best available cards from the current pool.
 - **Batch balanced** (later): several decks from one pool, holding back the stronger deck until deck-level scores are within tolerance.
+
+## Build options (phase 11)
+
+The Build page has settings on the left and deck options on the right.
+
+- **Settings**: deck size (100, 60, 40, 20), colors (one or more), max copies per card under the size, unlimited basics under that, primary style, and secondary style. Both styles are drop-downs that default to best fit and show viable and near-miss labels as the Style choice does today. The secondary style unlocks once a primary style is picked and lists only styles that can be supported alongside it.
+- **Options**: larger cards on the right, one per deck option, with the deck's colors, styles, a strength rating, and a short summary (curve, creature and spell counts, mana notes). Ranked by deck score plus fit to the request.
+- **Fit**: options stay inside the request but need not use all of it. Every option uses only picked colors (any non-empty subset) and honors the picked primary style where it is viable; the secondary style is best effort. An option that uses everything picked ranks above an equally strong one that drops something. Styles and colors that were not picked never appear.
+- **Generation**: options are ideas, each built from the full pool, so one option's cards stay available to the next. They build one at a time in a background worker and appear as they finish, re-sorted by rank, with a progress indicator while work remains. The count is capped in config, and an option that shares most of its cards with a stronger one is dropped. Opening an option pauses the work; returning resumes it. Settings and finished options survive moving between screens.
+- **Commander (100)**: singleton is forced. The right side first lists commander candidates from the pool by tier. Picking one shows it at the top of the right side with a clear button beside it, and options build under it; clearing returns to the commander list.
+
+## Commander (phase 13)
+
+- **Legality**: the commander must be allowed by the format (legendary creature or text that says it can be your commander; partner and background pairs later) and not banned. Every card fits inside the commander's color identity. Singleton except basics and cards whose text allows any number.
+- **Candidates and tiers**: ranked by how many pool cards fit its identity, whether its own text matches a style the pool supports, its mana value, its colors against the fixing in the pool, and tribal fit when it names a creature type. Game Changers are allowed; bulk rarely holds many.
+- **Template**: about 37 lands, 10 ramp, 10 card draw (cantrips do not count), 8 to 9 targeted removal with some that hit artifacts and enchantments, 3 sweepers, and the rest for the theme; lands plus ramp at least 45; ramp should cost less than the commander. The commander counts toward the roles it fills, and the deck must still work without it. Numbers live in `deck-templates.json`.
 
 ## Jumpstart packets
 
@@ -200,18 +228,23 @@ npm workspaces monorepo, TypeScript throughout.
 
 ## Milestones
 
-| Phase | Deliverable                                                                               | Status |
-| ----- | ----------------------------------------------------------------------------------------- | ------ |
-| 1     | Repo bootstrap: monorepo, license, docs, download scripts, CI, Pages deploy, design brief | done   |
-| 2     | Data pipeline: pack, manifest, edge-case tests, weekly refresh workflow                   | done   |
-| 3     | Core: pack loader, name resolution, pool model with import report and backup              | done   |
-| 4     | Guides and config v1: templates, roles, archetypes, synergy and land rules                | done   |
-| 5     | Archetype scan and builder v1: mono-color, all sizes, explanations, packet pairing        | done   |
-| 6     | Evaluation harness: test pools, rubric, results tracking                                  | done   |
-| 7     | Web app: full flow, card detail and art, backup, CSV import, offline, mobile layouts      | done   |
-| 7b    | Design pass: Claude Design restyles both apps from `docs/DESIGN_BRIEF.md`                 | done   |
-| 8     | iOS app: Capacitor project, bundled data, over-the-air data updates, TestFlight           | next   |
-| 9     | Later: two-color builds, batch balanced mode, quality score, offline image download       |        |
+| Phase | Deliverable                                                                                                     | Status                            |
+| ----- | --------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| 1     | Repo bootstrap: monorepo, license, docs, download scripts, CI, Pages deploy, design brief                       | done                              |
+| 2     | Data pipeline: pack, manifest, edge-case tests, weekly refresh workflow                                         | done                              |
+| 3     | Core: pack loader, name resolution, pool model with import report and backup                                    | done                              |
+| 4     | Guides and config v1: templates, roles, archetypes, synergy and land rules                                      | done                              |
+| 5     | Archetype scan and builder v1: mono-color, all sizes, explanations, packet pairing                              | done                              |
+| 6     | Evaluation harness: test pools, rubric, results tracking                                                        | done                              |
+| 7     | Web app: full flow, card detail and art, backup, CSV import, offline, mobile layouts                            | done                              |
+| 7b    | Design pass: Claude Design restyles both apps from `docs/DESIGN_BRIEF.md`                                       | done                              |
+| 8     | iOS app: Capacitor project, bundled data, over-the-air data updates, TestFlight                                 | on hold until the owner starts it |
+| 9     | Deck strength: data pack schema 2, card strength and deck scores, best fit by building, guide-based config pass | next                              |
+| 10    | Colors: one to five colors, castability candidates, pip-based mana bases, fixing, saved deck migration          |                                   |
+| 11    | Build page: settings left, ranked deck options right, background worker, state kept                             |                                   |
+| 12    | Styles: primary and secondary styles, tribal as a secondary style, new styles                                   |                                   |
+| 13    | Commander: 100-card singleton, commander candidates and tiers, commander-anchored builds                        |                                   |
+| Later | Batch balanced mode, offline image download                                                                     |                                   |
 
 ## Decisions
 
@@ -224,10 +257,14 @@ Resolved questions, kept so they are not reopened by accident.
 - Rulings: never bundled.
 - Pools: one active pool. Multiple named pools are not planned.
 - Deleting a deck: offers to return its cards to the pool. A committed deck records `basicsTaken` when basics were tracked at commit time, so the return does not depend on the current setting.
-- Copy limits: 4 for 60 and 40, 2 for 20, adjustable.
+- Copy limits: 4 for 60 and 40, 2 for 20, adjustable. 100 is singleton, not adjustable.
 - Un-set cards: excluded by default, toggle in settings.
 - Land count: formula from curve and cheap mana sources, not a fixed number.
-- Colors: mono only in version 1; two-color via packet pairing; never three.
+- Colors: one to five colors in every size; mono stays the strongest mode; more colors are allowed even though they build worse. Packet pairing stays.
+- Deckbuilding guidance from outside material is restated in our own words in `docs/guides/` and config, with no source names in the repo.
+- Game Changers are not filtered out.
+- Tribal is a secondary style, not a primary one.
+- A secondary style needs a primary style.
 - Name: Bulk Brew, repo `bulk-brew`. An unrelated dormant repo shares the name; not a concern.
 - Result actions: Accept (with a confirmation), Reject, and Export. A short-lived Save deck and Remove from pool pair from the design pass was dropped after owner review; decks saved without accepting show "Not accepted" and can still be accepted.
 - Short display tags live in `config/display-tags.json`, matched with the same matcher format as roles plus role and style references. They are for showing and filtering only; the builder never reads them, so they are not part of the config version a deck records.
