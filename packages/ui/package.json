@@ -1,6 +1,6 @@
 {
   "name": "@bulk-brew/ui",
-  "version": "26.0.27",
+  "version": "26.0.28",
   "private": true,
   "description": "Shared React pieces used by both the web and mobile apps: mana symbols, card rows, deck lists.",
   "license": "MIT",
