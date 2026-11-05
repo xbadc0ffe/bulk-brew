@@ -23,6 +23,22 @@ describe('CardIndex.find', () => {
     expect(index.find('Twin Name')?.id).toBe('dup-real');
   });
 
+  it('finds a card by a flavor name only when no card has that name', () => {
+    const bolt = PACK.cards.find((c) => c.id === 'bolt')!;
+    const withFlavor = new CardIndex({
+      ...PACK,
+      cards: [
+        ...PACK.cards.filter((c) => c.id !== 'bolt'),
+        { ...bolt, flavorNames: ['Thunder Strike', 'Ice'] },
+      ],
+    });
+    expect(withFlavor.find('Thunder Strike')?.id).toBe('bolt');
+    expect(withFlavor.find('thunder  strike')?.id).toBe('bolt');
+    // A real card name wins over a flavor name.
+    expect(withFlavor.find('Ice')?.id).toBe('fireice');
+    expect(index.find('Thunder Strike')).toBeUndefined();
+  });
+
   it('hides Un-set cards unless asked', () => {
     expect(index.find('Plot Armor')).toBeUndefined();
     expect(index.find('Plot Armor', { includeUnsets: true })?.id).toBe('silly');

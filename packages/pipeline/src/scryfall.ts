@@ -3,6 +3,10 @@
 
 export interface ScryfallFace {
   name: string;
+  /** Reversible cards carry an oracle id per face instead of on the card. */
+  oracle_id?: string;
+  /** The name printed on this face of a flavor-named printing. */
+  flavor_name?: string;
   mana_cost: string;
   type_line?: string;
   oracle_text?: string;
@@ -39,6 +43,8 @@ export interface ScryfallCard {
   game_changer?: boolean;
   edhrec_rank?: number;
   rarity?: string;
+  /** The name printed on a flavor-named printing, such as Universes Beyond and Godzilla cards. */
+  flavor_name?: string;
 }
 
 export interface TaggerTagging {

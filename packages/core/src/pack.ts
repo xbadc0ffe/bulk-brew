@@ -19,6 +19,8 @@ export class CardIndex {
   private readonly byName = new Map<string, string[]>();
   /** Normalized single face name -> ids. */
   private readonly byFace = new Map<string, string[]>();
+  /** Normalized flavor name (an alternate printing's printed name) -> ids. */
+  private readonly byFlavor = new Map<string, string[]>();
 
   constructor(pack: DataPack) {
     this.pack = pack;
@@ -29,6 +31,7 @@ export class CardIndex {
       if (faces.length > 1 || card.faces) {
         for (const face of faces) push(this.byFace, normalizeName(face), card);
       }
+      for (const flavor of card.flavorNames ?? []) push(this.byFlavor, normalizeName(flavor), card);
     }
   }
 
@@ -60,16 +63,21 @@ export class CardIndex {
 
   /**
    * Find a card by the name a person typed: the full name, a single face
-   * name, or the front face of an "A // B" name.
+   * name, the front face of an "A // B" name, or, when no card has that name,
+   * a flavor name printed on one of its printings.
    */
   find(name: string, opts: FindOptions = {}): CardRecord | undefined {
     const key = normalizeName(name);
     if (!key) return undefined;
-    return (
-      this.pick(this.byName.get(key), opts) ??
+    const named = this.byName.get(key);
+    const front = splitFaces(key)[0] ?? '';
+    const hit =
+      this.pick(named, opts) ??
       this.pick(this.byFace.get(key), opts) ??
-      this.pick(this.byFace.get(splitFaces(key)[0] ?? ''), opts)
-    );
+      this.pick(this.byFace.get(front), opts);
+    // A card's own name, even a hidden Un-set one, never falls through to another card's flavor name.
+    if (hit || named) return hit;
+    return this.pick(this.byFlavor.get(key), opts) ?? this.pick(this.byFlavor.get(front), opts);
   }
 
   private pick(ids: string[] | undefined, opts: FindOptions): CardRecord | undefined {

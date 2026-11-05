@@ -109,6 +109,14 @@ export interface CardRecord {
   /** Function and synergy tags: Scryfall Tagger slugs plus the local overlay. */
   tags: string[];
   faces?: CardFace[];
+  /**
+   * Flavor names printed in place of the card's name on some printings, such
+   * as Universes Beyond and Godzilla printings ("Bartz Klauser" is Winota,
+   * Joiner of Forces). Imports by those names find this card. Absent when the
+   * card has none, and in packs built before they were added; an optional
+   * field older readers ignore, so it needs no new schema.
+   */
+  flavorNames?: string[];
   /** Scryfall printing id of the default image. Build URLs with imageUrl(). */
   img: string;
 }

@@ -17,7 +17,7 @@ import type { ScryfallCard, TaggerTag } from './scryfall.ts';
 import { isPlayable, toCardRecord } from './transform.ts';
 import { buildTagMap } from './tags.ts';
 import { applyOverlay, type TagOverlay } from './overlay.ts';
-import { lowestRarities } from './rarity.ts';
+import { flavorNamesFor, readPrintings } from './printings.ts';
 
 export interface BuildOptions {
   rawDir: string;
@@ -70,11 +70,12 @@ export async function buildPack(opts: BuildOptions): Promise<BuildReport> {
 
   const printingsPath = path.join(opts.rawDir, 'default_cards.jsonl.gz');
   let lowest: Map<string, Rarity> | undefined;
+  let flavors: Map<string, Set<string>> | undefined;
   if (existsSync(printingsPath)) {
-    log('reading printings for lowest rarity');
-    lowest = await lowestRarities(printingsPath);
+    log('reading printings for lowest rarity and flavor names');
+    ({ lowest, flavors } = await readPrintings(printingsPath));
   } else {
-    log("no default_cards file: rarity comes from each card's default printing");
+    log("no default_cards file: rarity comes from each card's default printing, no flavor names");
   }
 
   log('reading cards');
@@ -91,6 +92,8 @@ export async function buildPack(opts: BuildOptions): Promise<BuildReport> {
     const rec = toCardRecord(card, []);
     const low = lowest?.get(rec.id);
     if (low) rec.rarity = low;
+    const flavorNames = flavorNamesFor(rec, flavors?.get(rec.id));
+    if (flavorNames.length) rec.flavorNames = flavorNames;
     cards.push(rec);
     // First playable, non-Un-set card wins a name; Un-set only fills a gap.
     const existing = idByName.get(rec.name);
