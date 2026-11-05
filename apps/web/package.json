@@ -1,6 +1,6 @@
 {
   "name": "@bulk-brew/web",
-  "version": "26.0.34",
+  "version": "26.0.35",
   "private": true,
   "description": "Bulk Brew web app: desktop-first, fully static, runs entirely in the browser.",
   "license": "MIT",
