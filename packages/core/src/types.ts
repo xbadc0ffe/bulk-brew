@@ -306,6 +306,8 @@ export interface ScanReport {
   lands: number;
   /** Spell slots the template leaves after its base land count. */
   spellSlots: number;
+  /** Fewest spells that still build: the slots left at the template's most lands. */
+  minSpells: number;
   /** Whether a deck of this size can be built at all. */
   possible: boolean;
   archetypes: ArchetypeReport[];

@@ -120,7 +120,7 @@ export function commanderCandidates(
     const reasons: string[] = [];
     const deep = depth >= config.builderWeights.commander.deepPool;
     // The scan counts the commander among its own candidates; the 99 cannot.
-    const enough = scan.possible && scan.candidates - 1 >= scan.spellSlots;
+    const enough = scan.possible && scan.candidates - 1 >= scan.minSpells;
     const cheap = card.mv >= 2 && card.mv <= 5;
     if (!enough) reasons.push(`${depth} cards in its colors, not enough for 99`);
     else reasons.push(`${depth} cards in its colors`);

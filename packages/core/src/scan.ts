@@ -164,8 +164,12 @@ export function scanCandidates(
   const color = colors[0]!;
   const label = colorsLabel(colors);
   const template = templateFor(config, size);
+  const commander = isCommanderSize(size);
   // A Commander deck's commander takes one of the 100 slots.
-  const spellSlots = size - (isCommanderSize(size) ? 1 : 0) - template.baseLands;
+  const deckSlots = size - (commander ? 1 : 0);
+  const spellSlots = deckSlots - template.baseLands;
+  // The builder pads a thin deck with lands up to the clamp, so that many fewer spells still build.
+  const minSpells = deckSlots - template.landFormula.max;
   let spells = 0;
   let colored = 0;
   let creatures = 0;
@@ -190,25 +194,27 @@ export function scanCandidates(
   // with enough copies is buildable and "possible" only needs enough spells.
   const notes: string[] = [];
   const coloredMin = Math.ceil(spellSlots * MIN_COLORED_SHARE);
-  if (spells < spellSlots) {
-    notes.push(`needs ${plural(spellSlots - spells, 'more spell')} for a ${size}-card deck`);
-  } else if (colored < coloredMin) {
+  if (spells < minSpells) {
+    notes.push(`needs ${plural(minSpells - spells, 'more spell')} for a ${size}-card deck`);
+  } else if (!commander && colored < coloredMin) {
+    // A commander's identity sets a Commander deck's colors, so only other sizes check the share.
     notes.push(
       `needs ${plural(coloredMin - colored, `more ${label} card`)} (colorless cards alone do not make a ${label} deck)`,
     );
-  } else if (colors.length > 1) {
-    // Each color of a multi-color deck must bring enough of its own cards.
-    const per = forSize(config.landRules.colors.minCardsPerColor, size);
+  } else if (!commander && colors.length > 1) {
+    // Each color must bring a card of its own; one below minCardsPerColor is a splash,
+    // and the builder fills its minimum as far as the pool allows.
     for (const c of colors) {
-      const n = countCopies(cands, (x) => x.facts.card.colors.includes(c));
-      if (n < per)
-        notes.push(`needs ${plural(per - n, `more ${COLOR_LABELS[c]} card`)} for a ${label} deck`);
+      if (countCopies(cands, (x) => x.facts.card.colors.includes(c)) === 0)
+        notes.push(`needs 1 more ${COLOR_LABELS[c]} card for a ${label} deck`);
     }
   } else if (creatures === spells && creatures >= spellSlots) {
     notes.push('all creatures: the deck will lean on combat with no spells');
   }
-  if (!settings.unlimitedBasics && lands < template.landFormula.min) {
-    notes.push(`needs ${template.landFormula.min - lands} more lands (basics are tracked)`);
+  // Lands fill whatever the spells leave, at least the clamp's minimum.
+  const landsNeeded = Math.max(template.landFormula.min, deckSlots - spells);
+  if (!settings.unlimitedBasics && lands < landsNeeded) {
+    notes.push(`needs ${plural(landsNeeded - lands, 'more land')} (basics are tracked)`);
   }
   const possible = !notes.some((n) => n.startsWith('needs '));
   const tribes = tribesOf(cands);
@@ -226,6 +232,7 @@ export function scanCandidates(
     distinct,
     lands,
     spellSlots,
+    minSpells,
     possible,
     archetypes,
     tribes,

@@ -22,6 +22,8 @@ Ranked. The current phase is at the top. Finished phases are removed, not struck
 - The first schema 2 pack goes live with the next weekly data refresh (or a manual run of the Refresh card data workflow); until then the live site builds without the popularity signal.
 - Cheap-heavy pools overshoot the low end of the curve: eval bulk-black 60 has 9 one-drops against a target of 3 (curve deviation 7), because role and theme passes pick cheap cards before the curve pass runs. Consider curve-aware ordering inside the role and theme passes.
 - `MIN_COLORED_SHARE` in scan.ts (half the spell slots must be the deck color) is a constant; move it to deck-templates.json if it ever needs tuning per size.
+- Kicker cards with an off-color kicker (61 cards, all tagged `offcolor-additional-cost`) stay out of decks without that color, though real draft decks play them unkicked. Their role tags describe the kicked effect (Desolation Giant counts as a sweeper), so letting them in needs role credit that ignores the kicker first. They are most of the remaining 40-card self-build failures in `corpus:eval`.
+- Local search can swap out the cards that fill a color's minimum, so a deck can end up without a picked color; the deck is then named for the colors it uses. Guarding color minimums in the swap, as theme minimums are, would keep the floor.
 - 60-card decks average 6.7 filler copies in the baseline (filler now includes curve picks that fill no role); the next config pass should look at roles for cheap creatures.
 - Creature-only pools always miss the cheap interaction minimum (eval creatures-only-green); fine as a note, but the Build screen could say so before building.
 - Tune the composition fallback: margin picks aggro for most creature-heavy pools.

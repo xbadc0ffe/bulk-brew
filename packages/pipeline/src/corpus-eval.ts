@@ -1,6 +1,6 @@
 // Score the builder against the reference corpus. Each reference deck is
 // shuffled into a seeded random bulk list and built at its own size (under
-// its commander at 100, in its colors otherwise); the run measures how much
+// its commander at 100, in the colors its pips ask for otherwise); the run measures how much
 // of the deck the builder finds and how its shape compares. Each deck is
 // also built from its own cards alone, to see whether our deck score rates
 // the reference at least as high as our build.
@@ -26,6 +26,7 @@ import {
   CardIndex,
   configVersion,
   factsFor,
+  manaCostsOf,
   normalizeColors,
   parseDecklist,
   parsePack,
@@ -156,14 +157,26 @@ function spellStats(
   return { strength: round(mean(strengths)), rank: median(ranks) };
 }
 
+/**
+ * The colors a deck's spells must pay: every plain colored pip in their
+ * costs, then one color of a hybrid card (the first in WUBRG order) only
+ * when none of its colors is in yet. Counting a hybrid card as both colors
+ * made mono decks two-colored.
+ */
 function deckColors(
   cards: [CardRecord, number][],
   index: CardIndex,
   config: ReturnType<typeof loadConfigDir>,
 ): Color[] {
+  const spells = cards.map(([c]) => c).filter((c) => factsFor(index, config, c).spell);
   const set = new Set<Color>();
-  for (const [card] of cards)
-    if (factsFor(index, config, card).spell) for (const c of card.colors) set.add(c);
+  for (const card of spells)
+    for (const cost of manaCostsOf(card))
+      for (const m of cost.matchAll(/\{([WUBRG])\}/g)) set.add(m[1] as Color);
+  for (const card of spells) {
+    if (card.colors.length > 0 && !card.colors.some((c) => set.has(c)))
+      set.add(normalizeColors(card.colors)[0]!);
+  }
   return normalizeColors([...set]);
 }
 

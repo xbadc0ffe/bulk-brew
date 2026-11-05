@@ -293,7 +293,14 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
     config,
   ]);
 
-  const canBuild = Boolean(index && colors.length > 0 && colorScan?.possible && !building);
+  // At 100 the scan counts the commander among its spells, but the 99 cannot use it.
+  const canBuild = Boolean(
+    index &&
+    colors.length > 0 &&
+    colorScan?.possible &&
+    (size !== 100 || colorScan.candidates - 1 >= colorScan.minSpells) &&
+    !building,
+  );
 
   const build = useCallback(() => {
     if (!canBuild) return;

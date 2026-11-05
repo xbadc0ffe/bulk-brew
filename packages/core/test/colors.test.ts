@@ -327,4 +327,66 @@ describe('two-color builds', () => {
     expect(a.explanation.notes.some((n) => n.startsWith('Colored sources'))).toBe(true);
     expect(a.explanation.lands.sources?.W).toBeGreaterThan(0);
   });
+
+  it('takes a light color on merit and names the deck for the colors it uses', () => {
+    const splash = card({
+      id: 'splash',
+      name: 'Splash Bolt',
+      mv: 3,
+      manaCost: '{2}{B}',
+      colors: ['B'],
+      identity: ['B'],
+      types: ['instant'],
+      typeLine: 'Instant',
+      tags: ['removal-creature', 'removal'],
+    });
+    const swamp = card({
+      id: 'swamp',
+      name: 'Swamp',
+      manaCost: '',
+      mv: 0,
+      typeLine: 'Basic Land — Swamp',
+      types: ['land'],
+      colors: [],
+      identity: ['B'],
+      produces: ['B'],
+    });
+    const extra = [...cards, splash, swamp];
+    const withSplash = new CardIndex({ ...pack, cards: extra, cardCount: extra.length });
+    const splashPool: Pool = {
+      ...pool,
+      entries: { ...pool.entries, splash: { cardId: 'splash', qty: 1 } },
+    };
+    const request = {
+      size: 40 as const,
+      colors: ['W', 'U', 'B'] as Color[],
+      settings: SETTINGS,
+      id: 't',
+      createdAt: 't',
+    };
+    // One black card is below the per-color minimum, yet the three-color deck builds.
+    const built = buildDeck(request, splashPool, withSplash, CONFIG);
+    const used = new Set(built.deck.cards.flatMap((c) => withSplash.get(c.cardId)!.colors));
+    expect(new Set(built.deck.colors)).toEqual(used);
+    expect(built.deck.name.startsWith(used.has('B') ? 'White-Blue-Black' : 'White-Blue ')).toBe(
+      true,
+    );
+    if (!used.has('B')) expect(built.deck.basics.B ?? 0).toBe(0);
+    // In a pool with just enough spells, the splash card plays and the deck is named for it.
+    const thin: Pool = {
+      entries: Object.fromEntries(
+        Object.keys(splashPool.entries)
+          .filter((id) => id === 'splash' || id.endsWith('-0'))
+          .map((id) => [id, { cardId: id, qty: 1 }]),
+      ),
+      updatedAt: 't',
+    };
+    expect(buildDeck({ ...request, size: 20 }, thin, withSplash, CONFIG).deck.colors).toContain(
+      'B',
+    );
+    // A color with no cards at all still cannot join.
+    expect(() =>
+      buildDeck({ ...request, colors: ['W', 'U', 'R'] }, splashPool, withSplash, CONFIG),
+    ).toThrow(/needs 1 more Red card/);
+  });
 });

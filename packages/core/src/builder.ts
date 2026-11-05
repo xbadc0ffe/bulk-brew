@@ -702,12 +702,17 @@ function fillSecondary(state: State, ctx: Ctx): void {
   }
 }
 
-/** Every color of a multi-color deck gets at least its minimum of spells of that color. */
+/**
+ * Every color of a multi-color deck gets at least its minimum of spells of
+ * that color. A color the pool holds fewer of is a light splash: its cards
+ * come in on their own merit, not forced in to name the deck.
+ */
 function fillColorMinimums(state: State, ctx: Ctx): void {
   if (ctx.plan.colors.length < 2) return;
   const want = forSize(ctx.config.landRules.colors.minCardsPerColor, ctx.template.size);
   for (const color of ctx.plan.colors) {
     const has = (c: Candidate) => c.facts.card.colors.includes(color);
+    if (countCopies(ctx.spells, has) < want) continue;
     const count = () => {
       let n = 0;
       for (const { cand, qty } of state.chosen.values()) if (has(cand)) n += qty;
@@ -1438,12 +1443,20 @@ export function buildDeck(
     score,
   };
 
+  // The deck carries the colors its spells use: a picked color it ended up without drops out.
+  // A Commander deck keeps its commander's colors.
+  const used = commander
+    ? colorPlanned.colors
+    : colorPlanned.colors.filter((c) =>
+        [...state.chosen.values()].some(({ cand }) => cand.facts.card.colors.includes(c)),
+      );
+  const deckColors = used.length > 0 ? used : [colorPlanned.main];
   const deck: Deck = {
     id: request.id ?? '',
-    name: `${commander ? shortName(commander.name) : colorLabel} ${archetype.label}${secondaryInfo ? ` with ${secondaryInfo.label}` : ''} ${size}`,
+    name: `${commander ? shortName(commander.name) : colorsLabel(deckColors)} ${archetype.label}${secondaryInfo ? ` with ${secondaryInfo.label}` : ''} ${size}`,
     size,
-    color: colorPlanned.main,
-    ...(colors.length > 1 ? { colors: colorPlanned.colors } : {}),
+    color: deckColors[0]!,
+    ...(deckColors.length > 1 ? { colors: deckColors } : {}),
     archetype: archetype.id,
     ...(secondaryInfo ? { secondary: secondaryInfo.id } : {}),
     ...(commander ? { commander: commander.id } : {}),
