@@ -7,6 +7,7 @@ import {
   type DataPack,
 } from './types.ts';
 import { normalizeName, splitFaces } from './names.ts';
+import type { LearnedCards } from './learned.ts';
 
 export interface FindOptions {
   includeUnsets?: boolean;
@@ -21,6 +22,8 @@ export class CardIndex {
   private readonly byFace = new Map<string, string[]>();
   /** Normalized flavor name (an alternate printing's printed name) -> ids. */
   private readonly byFlavor = new Map<string, string[]>();
+  /** Card-level learned data (data/learned.json), when it loaded. */
+  learned?: LearnedCards;
 
   constructor(pack: DataPack) {
     this.pack = pack;
@@ -50,6 +53,11 @@ export class CardIndex {
    */
   get dataVersion(): string {
     return this.pack.schema === 1 ? this.pack.version : `${this.pack.version}.s${this.pack.schema}`;
+  }
+
+  /** What decks record as their learned data version, when learned data is attached. */
+  get learnedVersion(): string | undefined {
+    return this.learned?.version;
   }
 
   get(id: string): CardRecord | undefined {

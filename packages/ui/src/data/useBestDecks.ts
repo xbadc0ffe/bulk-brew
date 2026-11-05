@@ -4,6 +4,7 @@ import {
   COLORS,
   configVersion,
   poolPack,
+  trimLearned,
   type BulkBrewConfig,
   type CardIndex,
   type DeckOption,
@@ -88,6 +89,7 @@ export function useBestDecks(input: {
         settings.includeUnsets,
         pool.updatedAt,
         index?.dataVersion ?? '',
+        index?.learnedVersion ?? '',
         configVersion(config),
       ]),
     [settings, pool.updatedAt, index, config],
@@ -137,11 +139,17 @@ export function useBestDecks(input: {
     }
     if (job.current.key !== key) {
       job.current = { id: job.current.id + 1, key };
+      const pack = poolPack(pool, index, config);
+      // The worker builds from the pool alone, so it gets only the learned data the pool can use.
+      const learned = index.learned
+        ? trimLearned(index.learned.file, new Set(pack.cards.map((c) => c.id)))
+        : undefined;
       post({
         type: 'start',
         job: {
           id: job.current.id,
-          pack: poolPack(pool, index, config),
+          pack,
+          ...(learned ? { learned } : {}),
           pool,
           settings,
           config,

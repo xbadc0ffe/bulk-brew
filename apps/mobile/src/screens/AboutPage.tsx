@@ -2,7 +2,9 @@ import { configVersion, DATA_SCHEMA_VERSION } from '@bulk-brew/core';
 import {
   CONFIG_PROBLEMS,
   DECK_DATA_NOTICE,
+  EDHREC_URL,
   FAN_CONTENT_NOTICE,
+  LEARNED_DATA_NOTICE,
   LICENSE_LINE,
   MTGJSON_URL,
   phone,
@@ -10,6 +12,7 @@ import {
   SCRYFALL_NOTICE,
   SCRYFALL_URL,
   SEVENTEEN_LANDS_URL,
+  SPELLBOOK_URL,
   WIZARDS_NOTICE,
 } from '@bulk-brew/ui';
 import { version } from '../../package.json';
@@ -103,6 +106,15 @@ export function AboutPage({ onBack }: { onBack(): void }) {
             </a>{' '}
             <a className={link} href={MTGJSON_URL} target="_blank" rel="noreferrer">
               mtgjson.com
+            </a>
+          </p>
+          <p>
+            {LEARNED_DATA_NOTICE}{' '}
+            <a className={link} href={EDHREC_URL} target="_blank" rel="noreferrer">
+              edhrec.com
+            </a>{' '}
+            <a className={link} href={SPELLBOOK_URL} target="_blank" rel="noreferrer">
+              commanderspellbook.com
             </a>
           </p>
           <p>{LICENSE_LINE}</p>

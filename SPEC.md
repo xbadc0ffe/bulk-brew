@@ -125,11 +125,18 @@ JSON was chosen over SQLite because the data is small, loads with one fetch, nee
 
 Tests cover the edge cases above with fixture cards.
 
+### Learned data
+
+`npm run learn:build` (`packages/pipeline/src/learn-build.ts`) learns from real decks: the reference corpus's train split (never the owner's local lists), EDHREC's pages (cached by `npm run edhrec:fetch`), and Commander Spellbook's combo file (`npm run spellbook:fetch`). Everything it writes is aggregate, rounded numbers keyed by oracle id, tag, or style.
+
+- **Tag and style level**, bundled with the config in `config/learned/` (about 100 KB): each style's profile per size (the median and middle half of its real decks' theme enablers and payoffs, roles, curve, and card types, as shares of their spells, plus lands), each style's theme share in random bulk by color class, tribes' shares the same way, the tags each style's decks play more than real decks in general, and tag pairs real decks hold together more often than chance. Versions are hashes of the content and join `configVersion()`.
+- **Card level**, `data/learned.json` (committed, about 2 MB): per-card plan fit (EDHREC theme lift and corpus lift), for each commander EDHREC covers the plans its decks run and the cards they play more than decks of their colors, card pairs from draft decks of one set and color pair, and combos (three cards or fewer, no template requirements, a standalone result from the list in `builder-weights.json`, pinned by the Spellbook file's timestamp). The apps load it beside the card data and attach it to the card index; the core treats it as optional, so a missing or broken file falls back to the tag level. Decks record its version as `learnedVersion`.
+
 ### Publishing and updates
 
 - Raw bulk files and built packs are never committed. The repo pins `data/manifest.json`.
 - A weekly GitHub Actions workflow fetches the bulk files, rebuilds the pack, and when the data date changed, publishes the pack as a release asset tagged `data-YYYY-MM-DD`, commits the manifest bump to main, and triggers the web deploy.
-- The web deploy downloads the pinned pack with `npm run data:pull`, verifies its checksum, and serves it from the site's own origin as `data/cards.json`, compressed in transit by the host. The browser caches it; a new deploy brings the new pack.
+- The web deploy downloads the pinned pack with `npm run data:pull`, verifies its checksum, and serves it from the site's own origin as `data/cards.json`, compressed in transit by the host. The browser caches it; a new deploy brings the new pack. `data:pull` and `data:build` also install the committed `data/learned.json` as `data/learned.json`, cached the same way.
 - The iOS app bundles the pack and config at build time and offers "check for card updates", which downloads a newer pack and config from GitHub. Apple permits data updates; code changes still need an App Store release. No user data is sent.
 
 ## Images
@@ -253,6 +260,7 @@ npm workspaces monorepo, TypeScript throughout.
 - Scryfall API requests carry a descriptive User-Agent and Accept header where the platform allows it, and are spaced at least 100 ms apart. Bulk files are fetched at most daily.
 - Image and data requests go from the user's device, never through a developer server.
 - 17Lands public draft data (CC BY 4.0) and MTGJSON's preconstructed deck lists (MIT) tune the builder through developer-side scripts. Both are credited and thanked on the About screen of both apps and in `ATTRIBUTION.md`; no deck data from either ships.
+- EDHREC is read developer-side by `npm run edhrec:fetch`: one request per second with a named User-Agent, every answer cached under `data/edhrec/` (gitignored) and refetched at most weekly. Only derived, rounded numbers reach the apps. Commander Spellbook's bulk file, made for third parties, is downloaded at most weekly; the apps carry each combo's cards, results, bracket tag, legality, and variant id. Both are credited on the About screens and in `ATTRIBUTION.md`.
 
 ## Milestones
 

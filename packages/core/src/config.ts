@@ -3,6 +3,7 @@
 // Keep erasable TypeScript only: this runs under Node without a build step.
 
 import type { CardType, Color, DeckSize } from './types.ts';
+import { learnedTheme, validateLearnedConfig, type LearnedConfig } from './learned.ts';
 
 /** Facts tags cannot express. Implemented in matchers.ts. */
 export type DerivedPredicate =
@@ -323,6 +324,35 @@ export interface BuilderWeightsConfig {
     /** Without a picked primary style, at most this many options of any one style. */
     maxPerStyle: number;
   };
+  /** How the builder uses the learned plans and card data (config/learned/, data/learned.json). */
+  learned?: {
+    /** A style needs at least what the lower quarter of its real decks hold. */
+    quartileMinimums: boolean;
+    /** Theme cards fill toward the median of real decks, not only to the minimum. */
+    fillToTarget: boolean;
+    /** Best fit picks a plan by score: prior^priorPower times lift^liftPower (see plan.ts). */
+    priorPower: number;
+    liftPower: number;
+    /** Weight of the commander's EDHREC plan shares against the size's real decks. */
+    commanderShare: number;
+    /** A style the commander's own text rewards gets its prior raised by this times its pull. */
+    pullBoost: number;
+    /** Multiplier on the plain shapes' prior. */
+    shapeBoost: number;
+    /** Themes best fit builds, best plan scores first. */
+    candidates: number;
+  };
+  /**
+   * Combos from Commander Spellbook (data/learned.json). The learning script
+   * keeps combos with one of these standalone results; the builder weighs a
+   * combo by its bracket tag and the deck size.
+   */
+  combos: {
+    results: string[];
+    /** Weight per Spellbook bracket tag; Ruthless counts only when the pool holds every piece. */
+    brackets: Record<string, number>;
+    weight: PerSize<number>;
+  };
   /**
    * Pick penalties, in card strength points, for spells that strain a
    * multi-color mana base: pips of a secondary or splash color, double pips,
@@ -378,10 +408,12 @@ export interface BulkBrewConfig {
   landRules: LandRulesConfig;
   builderWeights: BuilderWeightsConfig;
   cardStrength: CardStrengthConfig;
+  /** Plan profiles and tag data learned from real decks (config/learned/), when bundled. */
+  learned?: LearnedConfig;
 }
 
 /** File name in config/ for each bundle key. */
-export const CONFIG_FILES: Record<keyof BulkBrewConfig, string> = {
+export const CONFIG_FILES: Record<Exclude<keyof BulkBrewConfig, 'learned'>, string> = {
   deckTemplates: 'deck-templates.json',
   curveProfiles: 'curve-profiles.json',
   roles: 'roles.json',
@@ -392,8 +424,15 @@ export const CONFIG_FILES: Record<keyof BulkBrewConfig, string> = {
   cardStrength: 'card-strength.json',
 };
 
+/** Files in config/learned/ for each part of the learned config. */
+export const LEARNED_FILES: Record<keyof LearnedConfig, string> = {
+  plans: 'plans.json',
+  tags: 'tags.json',
+};
+
 /** One string a deck records so a rebuild can be traced to the config that made it. */
 export function configVersion(c: BulkBrewConfig): string {
+  const learned = c.learned ? [`p${c.learned.plans.version}`, `g${c.learned.tags.version}`] : [];
   return [
     `t${c.deckTemplates.version}`,
     `c${c.curveProfiles.version}`,
@@ -403,6 +442,7 @@ export function configVersion(c: BulkBrewConfig): string {
     `l${c.landRules.version}`,
     `w${c.builderWeights.version}`,
     `k${c.cardStrength.version}`,
+    ...learned,
   ].join('.');
 }
 
@@ -412,8 +452,26 @@ export function forSize<T>(table: PerSize<T>, size: number): T {
   return table[String(size) as SizeKey];
 }
 
-/** A synergy style's pool minimums for a size; Commander scales the 60-card ones unless given. */
+/**
+ * A synergy style's pool minimums for a size; Commander scales the 60-card
+ * ones unless given. With learned plans, a style real decks run often enough
+ * needs at least what the lower quarter of those decks hold (see learned.ts).
+ */
 export function minimumsFor(
+  c: BulkBrewConfig,
+  a: SynergyArchetype,
+  size: number,
+): { enablers: number; payoffs: number } {
+  const base = configMinimums(c, a, size);
+  const learned = learnedTheme(c, a.id, size as DeckSize);
+  if (!learned || !c.builderWeights.learned?.quartileMinimums) return base;
+  return {
+    enablers: Math.max(base.enablers, learned.min.enablers),
+    payoffs: Math.max(base.payoffs, learned.min.payoffs),
+  };
+}
+
+function configMinimums(
   c: BulkBrewConfig,
   a: SynergyArchetype,
   size: number,
@@ -587,7 +645,7 @@ function checkTypeMix(where: string, t: Partial<TypeMix> | undefined, problems: 
 /** Shape and cross-reference checks. Returns human-readable problems; empty means valid. */
 export function validateConfig(c: BulkBrewConfig): string[] {
   const problems: string[] = [];
-  for (const key of Object.keys(CONFIG_FILES) as (keyof BulkBrewConfig)[]) {
+  for (const key of Object.keys(CONFIG_FILES) as (keyof typeof CONFIG_FILES)[]) {
     const file = c[key] as { version?: unknown } | undefined;
     if (!file || typeof file !== 'object') problems.push(`${key}: missing`);
     else if (typeof file.version !== 'string' || !file.version) {
@@ -855,6 +913,36 @@ export function validateConfig(c: BulkBrewConfig): string[] {
   if (!isNum(bo?.duplicateShare) || bo.duplicateShare <= 0 || bo.duplicateShare > 1)
     problems.push('builderWeights.buildOptions.duplicateShare: must be above 0 and at most 1');
 
+  const lw = bw.learned;
+  if (lw) {
+    for (const k of ['quartileMinimums', 'fillToTarget'] as const)
+      if (typeof lw[k] !== 'boolean')
+        problems.push(`builderWeights.learned.${k}: must be true or false`);
+    for (const k of [
+      'priorPower',
+      'liftPower',
+      'commanderShare',
+      'pullBoost',
+      'shapeBoost',
+    ] as const)
+      if (!isNum(lw[k]) || lw[k] < 0)
+        problems.push(`builderWeights.learned.${k}: must be a non-negative number`);
+    if (isNum(lw.commanderShare) && lw.commanderShare > 1)
+      problems.push('builderWeights.learned.commanderShare: must be at most 1');
+    if (!isNum(lw.candidates) || !Number.isInteger(lw.candidates) || lw.candidates < 1)
+      problems.push('builderWeights.learned.candidates: must be a whole number of at least 1');
+  }
+
+  const combos = bw.combos;
+  if (!Array.isArray(combos?.results) || combos.results.some((r) => typeof r !== 'string'))
+    problems.push('builderWeights.combos.results: must be a list of result names');
+  for (const [k, v] of Object.entries(combos?.brackets ?? {}))
+    if (!isNum(v) || v < 0)
+      problems.push(`builderWeights.combos.brackets.${k}: must be non-negative`);
+  for (const key of ['60', '40', '20', '100'] as const)
+    if (!isNum(combos?.weight?.[key]) || combos.weight[key]! < 0)
+      problems.push(`builderWeights.combos.weight.${key}: must be a non-negative number`);
+
   const cast = bw.castability;
   for (const k of [
     'secondaryPip',
@@ -938,6 +1026,8 @@ export function validateConfig(c: BulkBrewConfig): string[] {
       if (!isNum(e.value)) problems.push(`cardStrength.effects[${i}].value: must be a number`);
       checkMatcher(`cardStrength.effects[${i}].match`, e.match, problems);
     });
+
+  if (c.learned) problems.push(...validateLearnedConfig(c.learned, archetypeIds));
 
   return problems;
 }

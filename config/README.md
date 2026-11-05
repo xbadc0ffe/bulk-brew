@@ -15,8 +15,12 @@ Versioned data files that hold every judgment call the builder makes. Logic live
 | `card-strength.json`     | Card strength score weights: popularity, stats, keywords, effects, removal quality, cost, pips.                      | present |
 | `tag-overlay.json`       | Local tag fixes and gap-fills applied on top of Scryfall Tagger tags at pipeline time.                               | present |
 | `display-tags.json`      | Short tags shown on cards and offered as filters ("Removal", "Draw", "+1/+1"), from roles, styles, and tags.         | present |
+| `learned/plans.json`     | Learned from real decks: each style's profile per size (theme cards, roles, curve, types) and theme shares in bulk.  | present |
+| `learned/tags.json`      | Learned from real decks: tags each style's decks play more than real decks in general, and tag pairs.                | present |
 
 Every file carries a `version` field. A deck records the joined config version it was built with (see `configVersion()` in `packages/core/src/config.ts`). `display-tags.json` is display only: the builder never reads it, so it is not part of that version.
+
+`learned/` is written by `npm run learn:build`, never by hand; its versions are hashes of the content and join the config version. The judgment about how the builder uses it (weights per size, combo results and brackets) stays in `builder-weights.json` under `learned` and `combos`.
 
 Edit, then run `npm run config:check`: it validates shapes and cross-references, confirms every tag slug exists in the current data pack, and prints per-color match counts for each role, archetype, and display tag. The same validation runs in `npm test`.
 

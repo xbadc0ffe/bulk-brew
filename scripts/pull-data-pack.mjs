@@ -40,6 +40,21 @@ async function main() {
   console.log(
     `installed ${plain} (${manifest.cardCount} cards) into data/packs and ${APP_PUBLIC_DIRS.join(', ')}`,
   );
+  await installLearned();
+}
+
+/** The learned card data is committed in data/; the apps serve it beside the pack. */
+async function installLearned() {
+  const source = path.join(ROOT, 'data', 'learned.json');
+  let text;
+  try {
+    text = await readFile(source);
+  } catch {
+    console.log('no data/learned.json; the apps build without learned card data');
+    return;
+  }
+  for (const dir of APP_PUBLIC_DIRS) await writeFile(path.join(ROOT, dir, 'learned.json'), text);
+  console.log(`installed learned.json into ${APP_PUBLIC_DIRS.join(', ')}`);
 }
 
 main().catch((err) => {

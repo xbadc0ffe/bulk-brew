@@ -7,6 +7,7 @@ import {
   BEST_DECK_SIZES,
   bestDeckSearch,
   CardIndex,
+  LearnedCards,
   type BestDeckSearch,
   type DeckSize,
 } from '@bulk-brew/core';
@@ -43,8 +44,9 @@ let timer: ReturnType<typeof setTimeout> | undefined;
 ctx.onmessage = (e) => {
   const msg = e.data;
   if (msg.type === 'start') {
-    const { id, pack, pool, settings, config, shown } = msg.job;
+    const { id, pack, learned, pool, settings, config, shown } = msg.job;
     const index = new CardIndex(pack);
+    if (learned) index.learned = new LearnedCards(learned);
     run = {
       job: id,
       shown,

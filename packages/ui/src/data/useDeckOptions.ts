@@ -109,6 +109,7 @@ export function useDeckOptions(input: DeckOptionsInput): DeckOptions {
         settings.includeUnsets,
         pool.updatedAt,
         index?.dataVersion ?? '',
+        index?.learnedVersion ?? '',
         configVersion(config),
       ]),
     [size, colors, settings, pool.updatedAt, index, config],

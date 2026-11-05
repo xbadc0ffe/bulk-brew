@@ -1554,6 +1554,7 @@ export function buildDeck(
     createdAt: request.createdAt ?? '',
     configVersion: configVersion(config),
     dataVersion: index.dataVersion,
+    ...(index.learnedVersion ? { learnedVersion: index.learnedVersion } : {}),
     explanation,
   };
   return { deck, explanation };

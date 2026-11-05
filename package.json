@@ -35,6 +35,9 @@
     "corpus:eval": "node packages/pipeline/src/corpus-eval.ts",
     "corpus:panel": "node packages/pipeline/src/corpus-panel.ts",
     "corpus:learn": "node packages/pipeline/src/corpus-learn.ts",
+    "edhrec:fetch": "node packages/pipeline/src/edhrec-fetch.ts",
+    "spellbook:fetch": "node packages/pipeline/src/spellbook-fetch.ts",
+    "learn:build": "node packages/pipeline/src/learn-build.ts",
     "rules:fetch": "node scripts/fetch-comp-rules.mjs",
     "smoke": "node scripts/smoke-web.mjs"
   },

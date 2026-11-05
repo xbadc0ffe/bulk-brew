@@ -7,6 +7,8 @@ import synergyRules from '../../../config/synergy-rules.json';
 import landRules from '../../../config/land-rules.json';
 import builderWeights from '../../../config/builder-weights.json';
 import cardStrength from '../../../config/card-strength.json';
+import learnedPlans from '../../../config/learned/plans.json';
+import learnedTags from '../../../config/learned/tags.json';
 import {
   archetypeById,
   configVersion,
@@ -26,6 +28,7 @@ export const CONFIG = {
   landRules,
   builderWeights,
   cardStrength,
+  learned: { plans: learnedPlans, tags: learnedTags },
 } as unknown as BulkBrewConfig;
 
 describe('shipped config', () => {
@@ -49,7 +52,9 @@ describe('shipped config', () => {
   });
 
   it('joins file versions into one string', () => {
-    expect(configVersion(CONFIG)).toMatch(/^t\d+\.c\d+\.r\d+\.a\d+\.s\d+\.l\d+\.w\d+\.k\d+$/);
+    expect(configVersion(CONFIG)).toMatch(
+      /^t\d+\.c\d+\.r\d+\.a\d+\.s\d+\.l\d+\.w\d+\.k\d+\.p[0-9a-z]+\.g[0-9a-z]+$/,
+    );
   });
 });
 

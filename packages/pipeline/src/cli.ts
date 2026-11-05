@@ -5,6 +5,7 @@
 //          [--overlay config/tag-overlay.json] [--repo owner/repo] [--version YYYY-MM-DD]
 
 import path from 'node:path';
+import { existsSync } from 'node:fs';
 import { copyFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { buildPack, PACK_FILE } from './build.ts';
@@ -36,6 +37,9 @@ async function main(): Promise<number> {
     const target = path.resolve(ROOT, dir);
     await mkdir(target, { recursive: true });
     await copyFile(report.packPath, path.join(target, PACK_FILE));
+    // The learned card data is committed; the apps serve it beside the pack.
+    const learned = path.join(ROOT, 'data', 'learned.json');
+    if (existsSync(learned)) await copyFile(learned, path.join(target, 'learned.json'));
   }
 
   const mb = (report.manifest.bytes / 1e6).toFixed(2);

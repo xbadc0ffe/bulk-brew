@@ -23,6 +23,15 @@ How Bulk Brew builds decks is tuned by studying real decks with developer-side s
 
 Neither project is affiliated with Bulk Brew or endorses it.
 
+## EDHREC and Commander Spellbook
+
+The builder also learns from [EDHREC](https://edhrec.com), which shows what Commander players put in their decks for each commander and theme, and from [Commander Spellbook](https://commanderspellbook.com), the community database of Magic combos. Thank you to both projects.
+
+- EDHREC's pages are read developer-side, at a gentle rate and cached, by `npm run edhrec:fetch` for this personal, non-commercial, open-source project. Only derived, rounded numbers (which plans a commander's decks run, how much more a commander's or a theme's decks play a card) reach the apps in `data/learned.json`; no EDHREC page or card list ships.
+- Commander Spellbook's bulk combo file, made for third parties, is read developer-side by `npm run spellbook:fetch` and `npm run learn:build`. The apps carry only each combo's card ids, result ids, color identity, bracket tag, legality, and variant id, so a deck can link to its page at commanderspellbook.com for the steps.
+
+Neither project is affiliated with Bulk Brew or endorses it.
+
 ## In the apps
 
 Both apps show these notices on their About screen.

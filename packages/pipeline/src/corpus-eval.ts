@@ -49,6 +49,7 @@ import {
   type Settings,
 } from '@bulk-brew/core';
 import { PACK_FILE } from './build.ts';
+import { attachLearned } from './learned-data.ts';
 import { loadConfigDir } from './check-config.ts';
 import {
   arg,
@@ -292,15 +293,18 @@ function summarize(rows: EvalRow[]): SizeSummary {
   };
 }
 
-/** A theme built above this share of a size's decks is a blocker, whatever real decks do. */
+/** A style built above this share of a size's decks is a blocker, unless real decks run it as often. */
 const MAX_STYLE_SHARE = 0.25;
+/** "As often": real decks run the style at least the build share over this. */
+const AS_OFTEN = 1.2;
 /** Nor may any style go above this multiple of its reference share, by more than noise. */
 const MAX_REF_MULTIPLE = 1.5;
 
 /**
  * Builds per style against reference decks per plan, over decks that built.
  * A blocker is any style, each plain shape on its own, above MAX_STYLE_SHARE
- * of builds, or any style (shapes as one group, since a deck with no theme
+ * of builds, unless real decks run it about as often (a plain midrange deck
+ * is a third of real 60-card decks), or any style (shapes as one group, since a deck with no theme
  * could be any of them) above MAX_REF_MULTIPLE times its reference share by
  * at least three decks and 2% of the size, so one or two decks of noise do
  * not count. `shapes` splits the shape group: builds by their shape, real
@@ -321,8 +325,10 @@ function styleMix(rows: EvalRow[]): Pick<SizeSummary, 'mix' | 'shapes' | 'blocke
   const n = Math.max(1, built.length);
   const own = new Map<string, number>();
   for (const r of built) own.set(r.style ?? SHAPE, (own.get(r.style ?? SHAPE) ?? 0) + 1);
+  const realShare = (style: string) => ((shapes[style] ?? mix[style])?.refs ?? 0) / n;
   for (const [style, count] of [...own.entries()].sort())
-    if (count / n > MAX_STYLE_SHARE) blockers.push(`${style} ${pct(count / n)} of builds`);
+    if (count / n > MAX_STYLE_SHARE && realShare(style) * AS_OFTEN < count / n)
+      blockers.push(`${style} ${pct(count / n)} of builds, ${pct(realShare(style))} of real decks`);
   for (const [style, m] of Object.entries(mix).sort()) {
     const share = m.builds / n;
     const refShare = m.refs / n;
@@ -462,6 +468,13 @@ function main(): number {
     readFileSync(path.join(ROOT, 'config', 'settings.defaults.json'), 'utf8'),
   ) as Settings;
   const corpus = loadCorpus();
+  // The test split's commanders get no EDHREC commander data, so test decks stay unseen.
+  const heldOut = new Set(
+    corpus.decks
+      .filter((d) => d.size === 100 && splitOf(d.id) === 'test')
+      .flatMap((d) => d.commander ?? []),
+  );
+  const learnedVersion = attachLearned(index, heldOut);
   const source = noiseSource(index);
   const bulk = bulkThemeShares(index, config, source);
   const refCardsOf = new Map<string, [CardRecord, number][]>();
@@ -481,7 +494,7 @@ function main(): number {
     fixedNoise = [...qty.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1));
   }
   console.log(
-    `corpus ${corpus.decks.length} decks (data ${corpus.dataVersion}), config ${configVersion(config)}, loaded in ${Date.now() - t0} ms`,
+    `corpus ${corpus.decks.length} decks (data ${corpus.dataVersion}), config ${configVersion(config)}, learned ${learnedVersion ?? 'none'}, loaded in ${Date.now() - t0} ms`,
   );
 
   const rows: EvalRow[] = [];

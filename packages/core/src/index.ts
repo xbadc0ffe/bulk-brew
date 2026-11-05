@@ -24,3 +24,4 @@ export * from './export.ts';
 export * from './csv.ts';
 export * from './backup.ts';
 export * from './display-tags.ts';
+export * from './learned.ts';

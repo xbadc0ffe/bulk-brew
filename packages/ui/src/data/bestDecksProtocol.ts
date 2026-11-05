@@ -3,6 +3,7 @@
 import type {
   BulkBrewConfig,
   DataPack,
+  LearnedDataFile,
   DeckOption,
   DeckSize,
   Pool,
@@ -14,6 +15,8 @@ export interface BestDecksJob {
   id: number;
   /** Only the pool's cards and the basics (see poolPack). */
   pack: DataPack;
+  /** The learned card data, when the app loaded it. */
+  learned?: LearnedDataFile;
   pool: Pool;
   settings: Settings;
   config: BulkBrewConfig;

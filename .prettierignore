@@ -8,3 +8,6 @@ docs/rules
 docs/design_handoff_bulk_brew_ui
 package-lock.json
 eval/results
+# Written by npm run learn:build
+config/learned
+data/learned.json

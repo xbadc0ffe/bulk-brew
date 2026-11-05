@@ -8,6 +8,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   CONFIG_FILES,
+  LEARNED_FILES,
   cardMatches,
   collectTagReferences,
   configVersion,
@@ -35,6 +36,13 @@ export function loadConfigDir(dir: string): BulkBrewConfig {
   for (const [key, file] of Object.entries(CONFIG_FILES)) {
     bundle[key] = JSON.parse(readFileSync(path.join(dir, file), 'utf8'));
   }
+  // The learned config is optional: config/learned/ appears once npm run learn:build has run.
+  const learned: Record<string, unknown> = {};
+  for (const [key, file] of Object.entries(LEARNED_FILES)) {
+    const p = path.join(dir, 'learned', file);
+    if (existsSync(p)) learned[key] = JSON.parse(readFileSync(p, 'utf8'));
+  }
+  if (Object.keys(learned).length === Object.keys(LEARNED_FILES).length) bundle.learned = learned;
   return bundle as unknown as BulkBrewConfig;
 }
 

@@ -33,7 +33,7 @@ Stop and ask before: adding a dependency, changing the data pack schema, changin
 - Cards are keyed on Scryfall `oracle_id`. Sets and printings exist only as art hints.
 - The builder is deterministic: same pool, settings, config version, and data version give the same deck.
 - The core has no DOM, Node, or network access.
-- No user data ever leaves the device. The only network calls are Scryfall images, the optional set-specific art lookup, and the data pack download.
+- No user data ever leaves the device. The only network calls are Scryfall images, the optional set-specific art lookup, and the data pack and learned data downloads.
 - Scryfall images are never cropped, distorted, recolored, or watermarked.
 - Raw Scryfall bulk files and the Comprehensive Rules are never committed.
 
@@ -62,6 +62,11 @@ npm run symbols:fetch    # Scryfall symbol images into packages/ui/src/symbols (
 npm run config:check     # validate config/ and print role and archetype match counts
 npm run demo:build -- <pool.txt> <W|U|B|R|G> [60|40|20] [style]
 npm run eval             # score decks from every pool in eval/pools; exits 1 on failures
+npm run corpus:eval      # build every reference deck from bulk plus its cards (about 20 minutes)
+npm run corpus:panel -- --a <old.json> --b <new.json>   # blind review packets from two corpus:eval runs
+npm run edhrec:fetch     # EDHREC pages into data/edhrec/ (one request per second, at most weekly)
+npm run spellbook:fetch  # Commander Spellbook's combo file into data/spellbook/
+npm run learn:build      # learned data: config/learned/ and data/learned.json
 ```
 
 After any builder or config change, run `npm run eval` and compare the per-size deltas with the committed baseline in `eval/results/`.
@@ -74,7 +79,7 @@ npx -w @bulk-brew/web vite preview --port 4173 --strictPort   # in the backgroun
 npm run smoke                                                  # or: npm run smoke -- https://xbadc0ffe.github.io/bulk-brew/
 ```
 
-The smoke test imports `eval/pools/white-bulk.txt`, opens the strongest deck option, accepts it, and checks the Bulk List and Decks screens. Environment variables pick other paths: `SMOKE_COLORS=White,Blue`, `SMOKE_STYLE` and `SMOKE_SECONDARY` for the style drop-downs, and `SMOKE_SIZE=100` with `SMOKE_COMMANDER=<part of a name>` for Commander. Screenshots land in `.smoke/` (gitignored).
+The smoke test imports `eval/pools/white-bulk.txt`, opens the strongest deck option, accepts it, and checks the Bulk List and Decks screens. Environment variables pick other paths: `SMOKE_COLORS=White,Blue`, `SMOKE_STYLE` and `SMOKE_SECONDARY` for the style drop-downs, and `SMOKE_SIZE=100` with `SMOKE_COMMANDER=<part of a name>` for Commander. It also checks that `data/learned.json` loads and that About credits its sources. The Commander tribe check runs the Elf pool: `SMOKE_SIZE=100 SMOKE_COMMANDER=Lathril SMOKE_STYLE='Elf tribe' npm run smoke -- <url> eval/pools/elf-tribe.txt`. Screenshots land in `.smoke/` (gitignored).
 
 ## Environment notes
 

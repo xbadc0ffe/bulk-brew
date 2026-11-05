@@ -65,6 +65,7 @@ export function useCommanderList(input: {
         settings.includeUnsets,
         pool.updatedAt,
         index?.dataVersion ?? '',
+        index?.learnedVersion ?? '',
         configVersion(config),
       ]),
     [settings, pool.updatedAt, index, config],

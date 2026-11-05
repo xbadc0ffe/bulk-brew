@@ -19,6 +19,8 @@ import builderWeights from '../../../../config/builder-weights.json';
 import cardStrength from '../../../../config/card-strength.json';
 import settingsDefaults from '../../../../config/settings.defaults.json';
 import displayTags from '../../../../config/display-tags.json';
+import learnedPlans from '../../../../config/learned/plans.json';
+import learnedTags from '../../../../config/learned/tags.json';
 
 export const CONFIG: BulkBrewConfig = {
   deckTemplates,
@@ -29,6 +31,7 @@ export const CONFIG: BulkBrewConfig = {
   landRules,
   builderWeights,
   cardStrength,
+  learned: { plans: learnedPlans, tags: learnedTags },
 } as unknown as BulkBrewConfig;
 
 /** The short tags shown on cards and offered as filters. Never read by the builder. */

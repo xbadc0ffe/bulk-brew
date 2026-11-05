@@ -12,9 +12,14 @@ export const SCRYFALL_NOTICE =
 export const DECK_DATA_NOTICE =
   'Deck building is tuned by studying real decks: Arena draft decks and their results from 17Lands public data (data from 17Lands.com, CC BY 4.0), and the official preconstructed deck lists MTGJSON publishes. Thank you to both. No deck data from either ships in the app, and neither is affiliated with Bulk Brew or endorses it.';
 
+export const LEARNED_DATA_NOTICE =
+  'The builder also learns from EDHREC, which shows what Commander players put in their decks for each commander and theme, and from Commander Spellbook, the community database of Magic combos. Thank you to both. Only what the builder needs ships in the app: rounded numbers learned from EDHREC, never its pages, and the cards and results of each combo, with a link to its Commander Spellbook page. Neither is affiliated with Bulk Brew or endorses it.';
+
 export const LICENSE_LINE = 'Open source under the MIT License.';
 
 export const REPO_URL = 'https://github.com/xbadc0ffe/bulk-brew';
 export const SCRYFALL_URL = 'https://scryfall.com';
 export const SEVENTEEN_LANDS_URL = 'https://www.17lands.com';
 export const MTGJSON_URL = 'https://mtgjson.com';
+export const EDHREC_URL = 'https://edhrec.com';
+export const SPELLBOOK_URL = 'https://commanderspellbook.com';

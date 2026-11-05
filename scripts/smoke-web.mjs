@@ -293,6 +293,18 @@ try {
   await click('^Back$');
   log('analyze-back', oneLine(await waitForText(/Deck options/, 10000), 120));
 
+  // The learned card data loads beside the pack, and About credits its sources.
+  const learned = await evaluate(`(() => {
+    const e = performance.getEntriesByType('resource').find((r) => /data\\/learned\\.json/.test(r.name));
+    return e ? (e.responseStatus || 200) : 0;
+  })()`);
+  if (!learned) throw new Error('data/learned.json was never requested');
+  log('learned', `data/learned.json answered ${learned}`);
+  await click('^About$');
+  const about = await waitForText(/Commander Spellbook/, 10000);
+  if (!/EDHREC/.test(about)) throw new Error('About does not credit EDHREC');
+  log('about', 'credits EDHREC and Commander Spellbook');
+
   if (pageErrors > 0) throw new Error(`${pageErrors} page or console errors`);
   log('done', `ok, screenshots in ${path.relative(ROOT, outDir) || '.'}`);
 } catch (err) {

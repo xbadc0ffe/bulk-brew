@@ -17,10 +17,11 @@ import {
 import { AppContext, type AppState } from './app-context.ts';
 
 const PACK_URL = `${import.meta.env.BASE_URL}data/cards.json`;
+const LEARNED_URL = `${import.meta.env.BASE_URL}data/learned.json`;
 
 export function AppStateProvider({ kv, children }: { kv: KeyValueStore; children: ReactNode }) {
   const appearance = useAppearance();
-  const pack = usePack(PACK_URL);
+  const pack = usePack(PACK_URL, LEARNED_URL);
   const index = pack.status === 'ready' ? pack.index : undefined;
   const pool = usePool(kv);
   const settings = useSettings(kv);

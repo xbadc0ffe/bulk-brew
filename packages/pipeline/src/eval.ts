@@ -32,6 +32,7 @@ import {
   type Settings,
 } from '@bulk-brew/core';
 import { PACK_FILE } from './build.ts';
+import { attachLearned } from './learned-data.ts';
 import { loadConfigDir } from './check-config.ts';
 import { deckMetrics, type DeckMetrics } from './metrics.ts';
 
@@ -288,6 +289,7 @@ function main(): number {
   }
   const pack = parsePack(readFileSync(packPath, 'utf8'));
   const index = new CardIndex(pack);
+  attachLearned(index);
   const config = loadConfigDir(path.join(ROOT, 'config'));
   const problems = validateConfig(config);
   if (problems.length) {

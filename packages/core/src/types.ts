@@ -193,6 +193,8 @@ export interface Deck {
   createdAt: string;
   configVersion: string;
   dataVersion: string;
+  /** Version of the card-level learned data the build used, when it had any. */
+  learnedVersion?: string;
   explanation?: BuildExplanation;
 }
 
