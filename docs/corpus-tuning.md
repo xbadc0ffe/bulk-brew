@@ -2,6 +2,21 @@
 
 A brief for a session that improves the deck builder. The goal: decks closer to real, well-built decks at all four sizes (100 Commander, 60, 40, 20), measured with the reference corpus, without overfitting. The owner approved the four-step plan below. Work through it in order without stopping between steps, and report after each one.
 
+## Status (2026-11-05)
+
+Steps 1 to 3 shipped in 26.0.26 to 26.0.28. Step 4 shipped as 26.0.29 and was reverted in 26.0.30: it made Graveyard about a third of 60 and 40-card best fits (see the first Builder follow-up in `docs/todo.md`). The live builder is step 3.
+
+Live against the 54165ab baseline (train; test in brackets):
+
+| size | self fail  | style match                 | lands ours/real   | avg mana value ours/real | extra ramp |
+| ---- | ---------- | --------------------------- | ----------------- | ------------------------ | ---------- |
+| 100  | 117 -> 10  | 0.41 -> 0.50 [0.42, same]   | 36.0 -> 37.3/38.0 | 3.48 -> 3.49/3.62        | 2.4 -> 0.6 |
+| 60   | 205 -> 4   | 0.17 -> 0.16 [0.06 -> 0.22] | 23.1 -> 24.0/24.8 | 3.19 -> 3.05/3.01        | 3.1 -> 2.5 |
+| 40   | 886 -> 131 | 0.20, same [0.16 -> 0.14]   | 16.5 -> 16.4/16.8 | 3.10 -> 2.99/3.00        | 1.8 -> 1.5 |
+| 20   | 99 -> 3    | 0.19 -> 0.20 [0.18 -> 0.27] | 8.0 -> 8.0/8.0    | 2.90 -> 3.00/3.06        | 1.2 -> 0.9 |
+
+Style match is measured against the current style list. Changes of a few decks at 60 and 20 (test) are within noise.
+
 ## Read first
 
 - `CLAUDE.md`: rules, working style, decision authority
@@ -94,7 +109,7 @@ These come from CLAUDE.md and the owner's preferences:
 - One step at a time. Each ends with `npm run check` green.
 - The owner's loop: implement, have a fresh agent review the diff, verify in the browser, then commit.
   - Browser check: `npm run build -w @bulk-brew/web`, then `npx -w @bulk-brew/web vite preview --port 4173 --strictPort` in the background, then `npm run smoke`, plus `SMOKE_SIZE=100 npm run smoke`.
-- Commit when a step is green. Bump `version` in the root, web, mobile, and ui `package.json` files in its own commit when a shipped change lands (currently 26.0.25, so next is 26.0.26).
+- Commit when a step is green. Bump `version` in the root, web, mobile, and ui `package.json` files in its own commit when a shipped change lands (currently 26.0.30).
 - Push at the end of each step. The owner tests only on the live site, so after each push watch the deploy and run `npm run smoke -- https://xbadc0ffe.github.io/bulk-brew/`.
 - Stop and ask before: adding a dependency, changing the data pack schema, changing a config file format, touching `ATTRIBUTION.md` or `LICENSE`, or publishing a data release. Don't run the "Refresh card data" workflow without asking. It publishes a public release; the weekly run on Monday, Nov 9, ships the flavor-name support already in the code.
 - Keep `SPEC.md` and `docs/todo.md` current as decisions change.
