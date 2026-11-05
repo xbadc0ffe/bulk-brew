@@ -17,6 +17,22 @@ npm run eval:pools     # regenerate the synthetic pools (keeps existing files un
 
 The same suite runs on demand in GitHub Actions ("Evaluate decks" workflow) and uploads the results as an artifact.
 
+## Reference corpus
+
+A second, larger check against decks people built: official preconstructed decks and Arena draft decks. Everything lands in `data/corpus/` (gitignored).
+
+```sh
+npm run corpus:fetch                          # preconstructed decks: Commander, 60-card, Jumpstart (about 260 MB, once a week at most)
+npm run corpus:fetch -- --drafts FDN,DSK,BLB  # also 40-card draft decks with game records, 3,000 per set (60 to 80 MB per set)
+npm run corpus:fetch -- --local test-bulk     # also the owner's test_deck-*.txt lists
+npm run corpus:eval                           # build every reference deck from random bulk plus its cards (about 20 minutes)
+npm run corpus:eval -- --sizes 100 --split train   # one size, the training split only
+npm run corpus:eval -- --noise-dir test-bulk  # the owner's bulk as the noise instead of random cards
+npm run corpus:learn                          # data/corpus/report.md: suggestions for config
+```
+
+Read the eval summary per size: `recall` (share of the deck's spells our build used), `style match` (our style is one the deck meets), `ref ahead` (our score rates the deck's own build at least as high as ours), and the ours/reference pairs for lands, average mana value, creatures, card strength, and popularity rank. Tune on the train split and confirm on the test split; a change that only helps train is fitting the corpus, not building better decks. Preconstructed decks are a floor, not a ceiling: a build that beats them on strength is fine, one that misses their plan is not.
+
 ## What is where
 
 - `pools/`: fixed pools as decklist text. `white-bulk.txt` is a real ManaBox export; the others are generated from the data pack with a fixed seed. Each file starts with comment lines saying what it exercises.
