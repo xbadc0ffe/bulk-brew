@@ -3,7 +3,7 @@
 // Keep erasable TypeScript only: this runs under Node without a build step.
 
 import type { CardType, Color, DeckSize } from './types.ts';
-import { learnedTheme, validateLearnedConfig, type LearnedConfig } from './learned.ts';
+import { validateLearnedConfig, type LearnedConfig } from './learned.ts';
 
 /** Facts tags cannot express. Implemented in matchers.ts. */
 export type DerivedPredicate =
@@ -326,21 +326,40 @@ export interface BuilderWeightsConfig {
   };
   /** How the builder uses the learned plans and card data (config/learned/, data/learned.json). */
   learned?: {
-    /** A style needs at least what the lower quarter of its real decks hold. */
+    /**
+     * Best fit only builds a theme when the pool holds at least what the
+     * lower quarter of its real decks do; a picked style keeps the hand-set minimums.
+     */
     quartileMinimums: boolean;
     /** Theme cards fill toward the median of real decks, not only to the minimum. */
     fillToTarget: boolean;
-    /** Best fit picks a plan by score: prior^priorPower times lift^liftPower (see plan.ts). */
-    priorPower: number;
-    liftPower: number;
+    /**
+     * Best fit picks a plan by score, per size (see plan.ts): liftPower
+     * scales the theme's lift over bulk, smoothed by liftSmoothing copies;
+     * shapeSharpness scales how far the pool's curve sits from a shape's.
+     */
+    plan: PerSize<{
+      /** Whether this size builds with the learned plans at all; off keeps the hand-set builder. */
+      use: boolean;
+      liftPower: number;
+      liftSmoothing: number;
+      shapeSharpness: number;
+      /** How much a theme card's learned fit to the plan adds to its count (times the log of the fit). */
+      cardFit: number;
+      /** Plan score points per deck score point when best fit compares the plans it built. */
+      deckScoreWeight: number;
+    }>;
     /** Weight of the commander's EDHREC plan shares against the size's real decks. */
     commanderShare: number;
     /** A style the commander's own text rewards gets its prior raised by this times its pull. */
     pullBoost: number;
-    /** Multiplier on the plain shapes' prior. */
-    shapeBoost: number;
     /** Themes best fit builds, best plan scores first. */
     candidates: number;
+    /**
+     * Objective points per copy a role or card type sits outside the middle
+     * half of real decks of the plan, so each plan keeps its own shape.
+     */
+    profileWeight: number;
   };
   /**
    * Combos from Commander Spellbook (data/learned.json). The learning script
@@ -452,23 +471,13 @@ export function forSize<T>(table: PerSize<T>, size: number): T {
   return table[String(size) as SizeKey];
 }
 
-/**
- * A synergy style's pool minimums for a size; Commander scales the 60-card
- * ones unless given. With learned plans, a style real decks run often enough
- * needs at least what the lower quarter of those decks hold (see learned.ts).
- */
+/** A synergy style's pool minimums for a size; Commander scales the 60-card ones unless given. */
 export function minimumsFor(
   c: BulkBrewConfig,
   a: SynergyArchetype,
   size: number,
 ): { enablers: number; payoffs: number } {
-  const base = configMinimums(c, a, size);
-  const learned = learnedTheme(c, a.id, size as DeckSize);
-  if (!learned || !c.builderWeights.learned?.quartileMinimums) return base;
-  return {
-    enablers: Math.max(base.enablers, learned.min.enablers),
-    payoffs: Math.max(base.payoffs, learned.min.payoffs),
-  };
+  return configMinimums(c, a, size);
 }
 
 function configMinimums(
@@ -918,15 +927,24 @@ export function validateConfig(c: BulkBrewConfig): string[] {
     for (const k of ['quartileMinimums', 'fillToTarget'] as const)
       if (typeof lw[k] !== 'boolean')
         problems.push(`builderWeights.learned.${k}: must be true or false`);
-    for (const k of [
-      'priorPower',
-      'liftPower',
-      'commanderShare',
-      'pullBoost',
-      'shapeBoost',
-    ] as const)
+    for (const k of ['commanderShare', 'pullBoost', 'profileWeight'] as const)
       if (!isNum(lw[k]) || lw[k] < 0)
         problems.push(`builderWeights.learned.${k}: must be a non-negative number`);
+    for (const size of ['60', '40', '20', '100'] as const) {
+      const p = lw.plan?.[size];
+      if (!p && size === '100') continue;
+      if (typeof p?.use !== 'boolean')
+        problems.push(`builderWeights.learned.plan.${size}.use: must be true or false`);
+      for (const k of [
+        'liftPower',
+        'liftSmoothing',
+        'shapeSharpness',
+        'cardFit',
+        'deckScoreWeight',
+      ] as const)
+        if (!isNum(p?.[k]) || p[k] < 0)
+          problems.push(`builderWeights.learned.plan.${size}.${k}: must be a non-negative number`);
+    }
     if (isNum(lw.commanderShare) && lw.commanderShare > 1)
       problems.push('builderWeights.learned.commanderShare: must be at most 1');
     if (!isNum(lw.candidates) || !Number.isInteger(lw.candidates) || lw.candidates < 1)

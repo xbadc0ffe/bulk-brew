@@ -12,10 +12,13 @@ import {
   commanderTribes,
   emptyPool,
   factsFor,
+  manaCostsOf,
   minimumsFor,
+  normalizeColors,
   type BulkBrewConfig,
   type CardIndex,
   type CardRecord,
+  type Color,
   type DeckSize,
   type Pool,
   type Rarity,
@@ -299,6 +302,29 @@ export function stylesMet(
     if (e >= want.enablers && p >= want.payoffs) out.push(a.id);
   }
   return out;
+}
+
+/**
+ * The colors a deck's spells must pay: every plain colored pip in their
+ * costs, then one color of a hybrid card (the first in WUBRG order) only
+ * when none of its colors is in yet. Counting a hybrid card as both colors
+ * made mono decks two-colored.
+ */
+export function deckColors(
+  cards: [CardRecord, number][],
+  index: CardIndex,
+  config: BulkBrewConfig,
+): Color[] {
+  const spells = cards.map(([c]) => c).filter((c) => factsFor(index, config, c).spell);
+  const set = new Set<Color>();
+  for (const card of spells)
+    for (const cost of manaCostsOf(card))
+      for (const m of cost.matchAll(/\{([WUBRG])\}/g)) set.add(m[1] as Color);
+  for (const card of spells) {
+    if (card.colors.length > 0 && !card.colors.some((c) => set.has(c)))
+      set.add(normalizeColors(card.colors)[0]!);
+  }
+  return normalizeColors([...set]);
 }
 
 // ---- File formats ----

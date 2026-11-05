@@ -4,7 +4,7 @@
 // read data/.
 
 import type { CardRecord, DataPack, Pool, PoolEntry, Settings } from '../src/types.ts';
-import { CONFIG } from './config.test.ts';
+import { CONFIG, HAND_CONFIG } from './config.test.ts';
 
 export const SETTINGS: Settings = {
   maxCopies: { 100: 1, 60: 4, 40: 4, 20: 2 },
@@ -172,6 +172,7 @@ export const PACK: DataPack = {
 };
 
 export const CONFIG_BUNDLE = CONFIG;
+export { HAND_CONFIG };
 
 /** A pool with several copies of everything, like a real bulk pile. */
 export function bigPool(copies = 4): Pool {

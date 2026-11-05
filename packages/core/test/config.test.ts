@@ -31,6 +31,12 @@ export const CONFIG = {
   learned: { plans: learnedPlans, tags: learnedTags },
 } as unknown as BulkBrewConfig;
 
+/** The shipped config without the learned data: the hand-set minimums and best fit by deck score. */
+export const HAND_CONFIG: BulkBrewConfig = (() => {
+  const { learned: _learned, ...rest } = CONFIG;
+  return rest;
+})();
+
 describe('shipped config', () => {
   it('validates with no problems', () => {
     expect(validateConfig(CONFIG)).toEqual([]);

@@ -18,6 +18,8 @@ import path from 'node:path';
 import {
   CardIndex,
   factsFor,
+  learnedAt,
+  LearnedCards,
   LEARNED_FILES,
   LEARNED_SCHEMA,
   parseLearnedData,
@@ -32,9 +34,11 @@ import {
   type LearnedPlanSize,
   type LearnedPlansConfig,
   type LearnedTagsConfig,
+  type Settings,
   type Spread,
 } from '@bulk-brew/core';
 import { PACK_FILE } from './build.ts';
+import { calibrate, calibrationCases } from './calibrate.ts';
 import { loadConfigDir } from './check-config.ts';
 import {
   arg,
@@ -240,7 +244,8 @@ async function main(): Promise<number> {
   const config = loadConfigDir(path.join(ROOT, 'config'));
   delete config.learned;
   const corpus = loadCorpus();
-  const bulk = bulkThemeShares(index, config, noiseSource(index));
+  const source = noiseSource(index);
+  const bulk = bulkThemeShares(index, config, source);
   const styles = config.archetypes.archetypes.filter((a) => a.kind === 'synergy').map((a) => a.id);
   const log = (msg: string) => console.log(`${((Date.now() - t0) / 1000).toFixed(0)}s ${msg}`);
 
@@ -278,6 +283,12 @@ async function main(): Promise<number> {
     };
     const shape = decks.filter((d) => d.plan.plan === SHAPE);
     if (shape.length) block.plans[SHAPE] = profile(shape, SHAPE, size, 'plan', index, config);
+    // Each plain shape from the unthemed decks whose curve reads as it.
+    for (const id of ['aggro', 'midrange', 'control']) {
+      const own = shape.filter((d) => d.plan.shape === id);
+      if (own.length >= MIN_PLAN_DECKS)
+        block.plans[id] = profile(own, SHAPE, size, 'plan', index, config);
+    }
     const tribal = decks.filter((d) => d.plan.plan.startsWith(TRIBAL));
     if (tribal.length)
       block.plans.tribal = profile(tribal, 'tribal', size, 'plan', index, config, true);
@@ -617,10 +628,62 @@ async function main(): Promise<number> {
     combos,
     results,
   };
+  // ---- 5. Calibrate best fit's plan choice on the train split (see calibrate.ts).
+  const withLearned: BulkBrewConfig = { ...config, learned: { plans, tags } };
+  const yard = withLearned;
+  const settings = JSON.parse(
+    readFileSync(path.join(ROOT, 'config', 'settings.defaults.json'), 'utf8'),
+  ) as Settings;
+  index.learned = new LearnedCards(dataFile);
+  for (const size of SIZES) {
+    const labeled = bySize.get(size)!;
+    // A size that does not build with the learned plans needs no weights.
+    if (!learnedAt(withLearned, size)) {
+      log(`${size}: learned plans off, no plan choice to calibrate`);
+      continue;
+    }
+    // Draft decks: the ones corpus:eval builds (the first 2,000 by hash), train split only.
+    const evalDecks = new Set(
+      corpus.decks
+        .filter((d) => d.size === size)
+        .sort((a, b) => hash32(a.id) - hash32(b.id) || (a.id < b.id ? -1 : 1))
+        .slice(0, 2000)
+        .map((d) => d.id),
+    );
+    const decks = labeled.filter((l) => size !== 40 || evalDecks.has(l.deck.id)).map((l) => l.deck);
+    // At 100, the weights for commanders the EDHREC data covers are fitted on those alone.
+    const covered =
+      size === 100
+        ? decks.filter((d) => index.learned!.commanders.has(d.commander?.[0] ?? ''))
+        : decks;
+    const cases = calibrationCases(covered, size, index, withLearned, yard, bulk, source, settings);
+    const fit = calibrate(cases);
+    plans.sizes[String(size) as '100']!.bias = fit.bias;
+    if (size === 100) {
+      // Commanders EDHREC does not cover get weights fitted with the commander data hidden.
+      const full: LearnedCards | undefined = index.learned;
+      index.learned = new LearnedCards({ ...dataFile, commanders: [] });
+      const bare = calibrate(
+        calibrationCases(decks, size, index, withLearned, yard, bulk, source, settings),
+      );
+      index.learned = full;
+      plans.sizes['100']!.biasNoCommander = bare.bias;
+      log(
+        `100 without commander data: ${Math.round(bare.themedHit * 100)}% of themed decks get their plan, ${bare.over.toFixed(1)} builds over the limits`,
+      );
+    }
+    log(
+      `${size}: plan choice calibrated on ${cases.length} pools, ${Math.round(fit.themedHit * 100)}% of themed decks get their plan, ${fit.over.toFixed(1)} builds over the style-mix limits`,
+    );
+  }
+
   plans.version = contentVersion(plans);
   tags.version = contentVersion(tags);
   dataFile.version = contentVersion(dataFile);
-  const problems = validateLearnedConfig({ plans, tags }, new Set(styles));
+  const problems = validateLearnedConfig(
+    { plans, tags },
+    new Set(config.archetypes.archetypes.map((a) => a.id)),
+  );
   const parsed = parseLearnedData(JSON.stringify(dataFile));
   if (problems.length || parsed.problems.length) {
     console.error('learned data problems:', [...problems, ...parsed.problems]);

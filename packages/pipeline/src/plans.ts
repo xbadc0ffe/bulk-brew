@@ -87,7 +87,9 @@ export function bulkThemeShares(
     if (!f.spell) continue;
     const c = colorClassOf(f.card);
     spells.set(c, (spells.get(c) ?? 0) + qty);
-    for (const s of new Set([...f.enablerOf, ...f.payoffOf])) bump(styleCounts, s, c, qty);
+    for (const s of new Set([...f.enablerOf, ...f.payoffOf])) {
+      bump(styleCounts, s, c, qty);
+    }
     const types = new Set(creatureTypes(f.card));
     for (const t of f.card.tags)
       if (t.startsWith('typal-') && t.length > 6) types.add(capitalize(t.slice(6)));
@@ -363,7 +365,7 @@ export class PlanProfiles {
 
   private group(styleIn: string): Group {
     const style = planKey(this.config, styleIn);
-    const key = style.startsWith(TRIBAL) ? TRIBAL : style;
+    const key = style.startsWith(TRIBAL) ? TRIBAL : SHAPES.includes(styleIn) ? styleIn : style;
     let g = this.cache.get(key);
     if (g) return g;
     const pick = (keep: (r: RefDeck) => boolean, own: boolean) => {
@@ -376,7 +378,11 @@ export class PlanProfiles {
     let members: Map<number, number[]>;
     let source: PlanProfile['source'] = 'plan';
     if (key === TRIBAL) members = pick((r) => r.plan.plan.startsWith(TRIBAL), true);
-    else {
+    else if (SHAPES.includes(styleIn) && style === SHAPE) {
+      // A plain shape against the unthemed decks whose curve reads as that shape, when enough do.
+      members = pick((r) => r.plan.plan === SHAPE && r.plan.shape === styleIn, false);
+      if (members.size < MIN_PLAN_DECKS) members = pick((r) => r.plan.plan === SHAPE, false);
+    } else {
       members = pick((r) => r.plan.plan === style, false);
       if (members.size < MIN_PLAN_DECKS && style !== SHAPE) {
         const meeting = pick((r) => r.plan.met.includes(style), false);

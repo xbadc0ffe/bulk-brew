@@ -35,8 +35,6 @@ import {
   CardIndex,
   configVersion,
   factsFor,
-  manaCostsOf,
-  normalizeColors,
   parseDecklist,
   parsePack,
   resolveLines,
@@ -44,7 +42,6 @@ import {
   type BuildRequest,
   type BuildResult,
   type CardRecord,
-  type Color,
   type DeckSize,
   type Settings,
 } from '@bulk-brew/core';
@@ -60,6 +57,7 @@ import {
   loadCorpus,
   mean,
   median,
+  deckColors,
   noisePool,
   noiseSource,
   poolOf,
@@ -208,29 +206,6 @@ function spellStats(
     }
   }
   return { strength: round(mean(strengths)), rank: median(ranks) };
-}
-
-/**
- * The colors a deck's spells must pay: every plain colored pip in their
- * costs, then one color of a hybrid card (the first in WUBRG order) only
- * when none of its colors is in yet. Counting a hybrid card as both colors
- * made mono decks two-colored.
- */
-function deckColors(
-  cards: [CardRecord, number][],
-  index: CardIndex,
-  config: ReturnType<typeof loadConfigDir>,
-): Color[] {
-  const spells = cards.map(([c]) => c).filter((c) => factsFor(index, config, c).spell);
-  const set = new Set<Color>();
-  for (const card of spells)
-    for (const cost of manaCostsOf(card))
-      for (const m of cost.matchAll(/\{([WUBRG])\}/g)) set.add(m[1] as Color);
-  for (const card of spells) {
-    if (card.colors.length > 0 && !card.colors.some((c) => set.has(c)))
-      set.add(normalizeColors(card.colors)[0]!);
-  }
-  return normalizeColors([...set]);
 }
 
 function summarize(rows: EvalRow[]): SizeSummary {
@@ -476,7 +451,8 @@ function main(): number {
   );
   const learnedVersion = attachLearned(index, heldOut);
   const source = noiseSource(index);
-  const bulk = bulkThemeShares(index, config, source);
+  const yard = config;
+  const bulk = bulkThemeShares(index, yard, source);
   const refCardsOf = new Map<string, [CardRecord, number][]>();
   let fixedNoise: [string, number][] | undefined;
   if (noiseDir) {
@@ -514,8 +490,8 @@ function main(): number {
       const commander =
         r.size === 100 && deck.commander ? index.get(deck.commander[0]!) : undefined;
       refCardsOf.set(`${r.size}:${r.id}`, refCards);
-      r.refStyles = stylesMet(refCards, r.size, index, config, commander);
-      const plan = planOf(refCards, r.size, index, config, bulk, commander);
+      r.refStyles = stylesMet(refCards, r.size, index, yard, commander);
+      const plan = planOf(refCards, r.size, index, yard, bulk, commander);
       r.refPlan = plan.plan;
       if (plan.shape) r.refShape = plan.shape;
       else delete r.refShape;
@@ -600,7 +576,7 @@ function main(): number {
     const self = attempt([deck.cards, lead]);
     const ref = shapeOf(refCards, index, config);
     const refS = spellStats(refCards, index, config);
-    const refPlan = planOf(refCards, size, index, config, bulk, commander);
+    const refPlan = planOf(refCards, size, index, yard, bulk, commander);
     refCardsOf.set(`${size}:${deck.id}`, refCards);
     const row: EvalRow = {
       id: deck.id,
@@ -610,7 +586,7 @@ function main(): number {
       ok: typeof mixed !== 'string',
       selfOk: typeof self !== 'string',
       ref,
-      refStyles: stylesMet(refCards, size, index, config, commander),
+      refStyles: stylesMet(refCards, size, index, yard, commander),
       refPlan: refPlan.plan,
       ...(refPlan.shape ? { refShape: refPlan.shape } : {}),
       refStrength: refS.strength,
@@ -676,20 +652,20 @@ function main(): number {
       cards: refCardsOf.get(`${size}:${r.id}`)!,
       plan: { plan: r.refPlan, met: r.refStyles },
     }));
-    const profiles = new PlanProfiles(refs, size, index, config);
+    const profiles = new PlanProfiles(refs, size, index, yard);
     const byKey = new Map(corpus.decks.map((d) => [`${d.size}:${d.id}`, d]));
     forSize.forEach((r, i) => {
-      const own = featuresOf(refs[i]!.cards, size, r.refPlan, index, config);
+      const own = featuresOf(refs[i]!.cards, size, r.refPlan, index, yard);
       r.refDist = round(profiles.distance(own, r.refPlan, { leaveOut: i }), 3);
       r.refCoreDist = round(profiles.distance(own, r.refPlan, { leaveOut: i, core: true }), 3);
       if (!r.ok || !r.deck || !r.mixStyle) return;
       const ours = recordsOf(index, r.deck);
-      const f = featuresOf(ours, size, r.mixStyle, index, config);
+      const f = featuresOf(ours, size, r.mixStyle, index, yard);
       r.dist = round(profiles.distance(f, r.mixStyle), 3);
       r.coreDist = round(profiles.distance(f, r.mixStyle, { core: true }), 3);
       const deck = byKey.get(`${size}:${r.id}`);
       const commander = size === 100 && deck?.commander ? index.get(deck.commander[0]!) : undefined;
-      r.builtPlan = planOf(ours, size, index, config, bulk, commander).plan;
+      r.builtPlan = planOf(ours, size, index, yard, bulk, commander).plan;
     });
   }
 

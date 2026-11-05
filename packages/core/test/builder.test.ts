@@ -18,6 +18,7 @@ import type { Deck, DeckSize } from '../src/types.ts';
 import {
   bigPool,
   CONFIG_BUNDLE as CONFIG,
+  HAND_CONFIG,
   creaturePool,
   PACK,
   SETTINGS,
@@ -144,9 +145,9 @@ describe('curveTargets', () => {
   });
 });
 
-function build(size: DeckSize, style?: string) {
+function build(size: DeckSize, style?: string, config = CONFIG) {
   const base = { size, colors: ['W' as const], settings: SETTINGS, id: 'test', createdAt: 't' };
-  return buildDeck(style ? { ...base, style } : base, bigPool(), index, CONFIG);
+  return buildDeck(style ? { ...base, style } : base, bigPool(), index, config);
 }
 
 function total(deck: Deck): number {
@@ -307,8 +308,9 @@ describe('export', () => {
 });
 
 describe('best fit', () => {
-  it('scores every deck and picks the highest score among the archetypes it tried', () => {
-    const r = build(60);
+  it('without learned plans, picks the highest score among the archetypes it tried', () => {
+    const build60 = (style?: string) => build(60, style, HAND_CONFIG);
+    const r = build60();
     const score = r.explanation.score;
     expect(score).toBeDefined();
     expect(score!.total).toBeGreaterThan(0);
@@ -325,8 +327,17 @@ describe('best fit', () => {
       .map((label) => CONFIG.archetypes.archetypes.find((a) => a.label === label)!.id);
     expect(others.length).toBeGreaterThan(0);
     for (const id of others) {
-      expect(build(60, id).explanation.score!.total).toBeLessThanOrEqual(score!.total);
+      expect(build60(id).explanation.score!.total).toBeLessThanOrEqual(score!.total);
     }
+  });
+
+  it('with learned plans, picks the plan the pool leans to and fills its theme toward real decks', () => {
+    const r = build(60);
+    const note = r.explanation.notes.find((n) => n.startsWith('Compared '));
+    expect(note).toMatch(/the plan this bulk list leans to most/);
+    expect(note).not.toMatch(/\d+\.\d/);
+    // Deterministic: the same pool and config give the same plan and deck.
+    expect(build(60).deck).toEqual(r.deck);
   });
 
   it('builds only the requested style when it is viable', () => {

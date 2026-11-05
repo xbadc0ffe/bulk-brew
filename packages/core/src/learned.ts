@@ -37,6 +37,14 @@ export interface LearnedPlanSize {
   all: (Spread | null)[];
   /** By style id; "shape" for decks with no theme, "tribal" for every tribe. */
   plans: Record<string, LearnedPlan>;
+  /**
+   * Calibrated weight, in log form, of each plan when best fit picks one (a
+   * style id, "tribal", or a plain shape id), so each is picked about as
+   * often as real decks of the size run it (see plan.ts).
+   */
+  bias?: Record<string, number>;
+  /** At 100, the weights for a commander the EDHREC data does not cover. */
+  biasNoCommander?: Record<string, number>;
 }
 
 /** config/learned/plans.json */
@@ -200,6 +208,8 @@ export function validateLearnedConfig(c: LearnedConfig, styleIds: Set<string>): 
     }
     const n = block.features.length;
     if (block.all.length !== n) problems.push(`${w}.all: needs one entry per feature`);
+    for (const [k, v] of Object.entries({ ...block.bias, ...block.biasNoCommander }))
+      if (!isNum(v)) problems.push(`${w}.bias.${k}: must be a number`);
     for (const [style, p] of Object.entries(block.plans ?? {})) {
       if (!known(style)) problems.push(`${w}.plans.${style}: unknown style`);
       if (!isNum(p.decks) || p.decks < 1)
@@ -325,6 +335,13 @@ export function trimLearned(file: LearnedDataFile, keep: ReadonlySet<string>): L
 /** The size key learned plans use. */
 export function learnedSizeKey(size: DeckSize): '100' | '60' | '40' | '20' {
   return String(size) as '100' | '60' | '40' | '20';
+}
+
+/** Whether a size builds with the learned plans (builderWeights.learned.plan[size].use). */
+export function learnedAt(config: BulkBrewConfig, size: DeckSize): boolean {
+  const plan = config.builderWeights.learned?.plan;
+  if (!plan || !config.learned) return false;
+  return (size === 100 ? (plan['100'] ?? plan['60']) : plan[learnedSizeKey(size) as '60']).use;
 }
 
 /** The learned profile of a style at a size: tribes share one, shapes are "shape". */

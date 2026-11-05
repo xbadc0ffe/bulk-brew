@@ -1,5 +1,5 @@
 {
-  "version": "9",
+  "version": "10",
   "archetypes": [
     {
       "kind": "composition",
@@ -166,25 +166,30 @@
       "description": "Fill the graveyard, then bring things back or get paid for what is in it.",
       "curveProfile": "midrange",
       "enablers": [
+        { "anyTags": ["mill-self", "graveyard-fuel-self"] },
         {
-          "anyTags": [
-            "mill-self",
-            "graveyard-fuel-self",
-            "discard-outlet",
-            "loot",
-            "rummage",
-            "sacrifice-self"
-          ]
-        }
+          "anyTags": ["loot", "rummage", "discard-outlet"],
+          "allTags": ["castable-from-graveyard"]
+        },
+        {
+          "anyTags": ["loot", "rummage", "discard-outlet"],
+          "allTags": ["cards-in-graveyard-matter"]
+        },
+        { "anyTags": ["loot", "rummage", "discard-outlet"], "allTags": ["reanimate"] },
+        { "anyTags": ["loot", "rummage", "discard-outlet"], "allTags": ["recursion-creature"] },
+        { "anyTags": ["loot", "rummage", "discard-outlet"], "allTags": ["activate-from-graveyard"] }
       ],
       "payoffs": [
         {
           "anyTags": [
             "recursion-creature",
             "reanimate-creature",
+            "reanimate",
             "cards-in-graveyard-matter",
             "castable-from-graveyard",
             "activate-from-graveyard",
+            "leaving-graveyard-matters",
+            "graveyard-fuel",
             "threshold",
             "undergrowth",
             "delve",
@@ -447,7 +452,7 @@
       "description": "Give every player cards and mana, with cards that profit when they draw.",
       "curveProfile": "midrange",
       "enablers": [{ "anyTags": ["group-hug", "selective-group-hug"] }],
-      "payoffs": [{ "anyTags": ["draw-matters", "second-draw-matters"] }],
+      "payoffs": [{ "anyTags": ["draw-hate"] }],
       "minimums": {
         "60": { "enablers": 6, "payoffs": 2 },
         "40": { "enablers": 4, "payoffs": 1 },
@@ -462,9 +467,7 @@
       "description": "Force opposing creatures to attack, with cards that reward the fighting.",
       "curveProfile": "midrange",
       "enablers": [{ "anyTags": ["force-attacker"] }],
-      "payoffs": [
-        { "anyTags": ["synergy-goad", "attacking-opponents-matters", "combat-manipulation"] }
-      ],
+      "payoffs": [{ "anyTags": ["synergy-goad", "attacking-opponents-matters"] }],
       "minimums": {
         "60": { "enablers": 6, "payoffs": 3 },
         "40": { "enablers": 4, "payoffs": 2 },

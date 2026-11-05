@@ -19,6 +19,7 @@ import {
   type BulkBrewConfig,
   type DeckTemplate,
   type RoleQuota,
+  type SynergyArchetype,
   type TypeMix,
 } from './config.ts';
 import {
@@ -47,6 +48,8 @@ import {
   sourcesNeeded,
 } from './colors.ts';
 import type { CardIndex } from './pack.ts';
+import { learnedAt, learnedPlanFor, learnedSizeKey, learnedTheme, type Spread } from './learned.ts';
+import { planScores } from './plan.ts';
 import {
   commanderTribes,
   countCopies,
@@ -158,6 +161,47 @@ interface Ctx {
   themeWant: { pe: number; pp: number; se: number; sp: number };
   /** The primary style's theme cards, for a synergy style or a tribe. */
   theme: PrimaryTheme | undefined;
+  /** The middle half of real decks of the plan, for roles and card types (learned). */
+  profile: PlanShape | undefined;
+}
+
+/** Where real decks of a plan sit for each role and card type, as shares of their spells. */
+interface PlanShape {
+  roles: [string, Spread][];
+  creatures?: Spread;
+  instSorc?: Spread;
+  ncPerm?: Spread;
+  /** Objective points per copy outside the middle half. */
+  weight: number;
+}
+
+/** The learned shape of a plan at a size, when the builder is set to use it. */
+function planShapeOf(a: Archetype, config: BulkBrewConfig, size: DeckSize): PlanShape | undefined {
+  const weight = learnedAt(config, size) ? (config.builderWeights.learned?.profileWeight ?? 0) : 0;
+  const block = config.learned?.plans.sizes[learnedSizeKey(size)];
+  if (!weight || !block) return undefined;
+  // A shape has its own profile (aggro, midrange, control); a style needs enough real decks behind it.
+  const plan = learnedPlanFor(config, a.id, size);
+  if (!plan || plan.source !== 'plan') return undefined;
+  const at = (name: string) => plan.q[block.features.indexOf(name)] ?? undefined;
+  const roles: [string, Spread][] = [];
+  for (const name of block.features) {
+    const q = at(name);
+    if (name.startsWith('role ') && q) roles.push([name.slice(5), q]);
+  }
+  const out: PlanShape = { roles, weight };
+  const creatures = at('creatures');
+  const instSorc = at('instants and sorceries');
+  const ncPerm = at('other permanents');
+  if (creatures) out.creatures = creatures;
+  if (instSorc) out.instSorc = instSorc;
+  if (ncPerm) out.ncPerm = ncPerm;
+  return out;
+}
+
+/** Copies a count sits outside a spread's middle half, scaled to a slot count. */
+function outside(have: number, q: Spread, slots: number): number {
+  return Math.max(0, q[0] * slots - have, have - q[2] * slots);
 }
 
 /** How a primary style's theme cards are told apart, and how many it needs. */
@@ -165,6 +209,8 @@ interface PrimaryTheme {
   isEnabler(c: Candidate): boolean;
   isPayoff(c: Candidate): boolean;
   want: { enablers: number; payoffs: number };
+  /** Theme copies real decks of the plan play at a slot count, when learned and switched on. */
+  target?: (slots: number) => { enablers: number; payoffs: number };
   enablerWhy: string;
   payoffWhy: string;
   /**
@@ -178,6 +224,10 @@ interface PrimaryTheme {
 function themeOf(a: Archetype, config: BulkBrewConfig, size: DeckSize): PrimaryTheme | undefined {
   if (a.kind !== 'synergy') return undefined;
   const want = minimumsFor(config, a, size);
+  const target =
+    config.builderWeights.learned?.fillToTarget && learnedAt(config, size)
+      ? (slots: number) => learnedTheme(config, a.id, size, slots)?.target ?? want
+      : undefined;
   const type = tribeOf(a.id);
   if (type) {
     const tag = `typal-${type.toLowerCase()}`;
@@ -185,6 +235,7 @@ function themeOf(a: Archetype, config: BulkBrewConfig, size: DeckSize): PrimaryT
       isEnabler: (c) => inTribe(c.facts.card, type),
       isPayoff: (c) => c.facts.card.tags.includes(tag),
       want,
+      ...(target ? { target } : {}),
       enablerWhy: a.label,
       payoffWhy: `${a.label} payoff`,
       pairs: true,
@@ -194,6 +245,7 @@ function themeOf(a: Archetype, config: BulkBrewConfig, size: DeckSize): PrimaryT
     isEnabler: (c) => c.facts.enablerOf.includes(a.id),
     isPayoff: (c) => c.facts.payoffOf.includes(a.id),
     want,
+    ...(target ? { target } : {}),
     enablerWhy: `${a.label} enabler`,
     payoffWhy: `${a.label} payoff`,
     pairs: false,
@@ -432,6 +484,15 @@ function objectiveOf(t: Tally, slots: number, ctx: Ctx): number {
   s += w.synergyDensity * ctx.synergyScale * synergyPairs(t, ctx);
   s += w.themeHit * t.themeHits;
   s += w.cardStrength * (t.strength - t.castPen);
+  const p = ctx.profile;
+  if (p) {
+    let off = 0;
+    for (const [roleId, q] of p.roles) off += outside(t.roles.get(roleId) ?? 0, q, slots);
+    if (p.creatures) off += outside(t.creatures, p.creatures, slots);
+    if (p.instSorc) off += outside(t.instSorc, p.instSorc, slots);
+    if (p.ncPerm) off += outside(t.ncPerm, p.ncPerm, slots);
+    s -= p.weight * off;
+  }
   return s;
 }
 
@@ -654,6 +715,35 @@ function fillTheme(state: State, ctx: Ctx): void {
   }
 }
 
+/**
+ * The primary theme from its minimums toward what real decks of the plan
+ * play (learned), after the roles reach their targets, so the plan runs as
+ * deep as a real deck's within the size's role and curve limits. Strong
+ * cards first; the copy guidelines hold.
+ */
+function fillThemeTarget(state: State, ctx: Ctx): void {
+  const theme = ctx.theme;
+  if (!theme?.target) return;
+  const want = theme.target(state.slots);
+  const count = (pick: (c: Candidate) => boolean) => {
+    let n = 0;
+    for (const { cand, qty } of state.chosen.values()) if (pick(cand)) n += qty;
+    return n;
+  };
+  const bar = ctx.config.cardStrength.themeMinStrength;
+  for (const strongOnly of [true, false]) {
+    const ok = (c: Candidate) => !strongOnly || c.facts.strength >= bar;
+    while (
+      count(theme.isPayoff) < want.payoffs &&
+      pickBest(state, ctx, (c) => theme.isPayoff(c) && ok(c), theme.payoffWhy, 'theme')
+    );
+    while (
+      count(theme.isEnabler) < want.enablers &&
+      pickBest(state, ctx, (c) => theme.isEnabler(c) && ok(c), theme.enablerWhy, 'theme')
+    );
+  }
+}
+
 function fillTypeMinimums(state: State, ctx: Ctx): void {
   const creatureMin = Math.floor(ctx.typeMix.creatureMin * state.slots);
   while (tally(state, ctx).creatures < creatureMin) {
@@ -782,6 +872,7 @@ function fillAll(state: State, ctx: Ctx): void {
   fillSecondary(state, ctx);
   fillColorMinimums(state, ctx);
   fillRoles(state, ctx, 'target', 'roleTarget');
+  fillThemeTarget(state, ctx);
   fillTypeMinimums(state, ctx);
   fillCurve(state, ctx);
   fillAny(state, ctx);
@@ -1187,6 +1278,7 @@ function attempt(
       sp: secondary?.want.payoffs ?? 0,
     },
     theme,
+    profile: planShapeOf(archetype, config, size),
   };
   const notes: string[] = [];
 
@@ -1195,6 +1287,12 @@ function attempt(
   fillAll(state, ctx);
   lands = refitLands(state, ctx, lands, deckSize);
 
+  // The swaps keep the theme at the target its fill aimed for, at the slots the land count left.
+  if (theme?.target) {
+    const t = theme.target(state.slots);
+    ctx.themeWant.pe = Math.max(theme.want.enablers, t.enablers);
+    ctx.themeWant.pp = Math.max(theme.want.payoffs, t.payoffs);
+  }
   const swaps = localSearch(state, ctx);
   if (swaps > 0) {
     notes.push(`Improved by ${swaps} swap${swaps === 1 ? '' : 's'} after the first pass.`);
@@ -1242,7 +1340,7 @@ function attempt(
  * as a rarer payoff marks the commander's own plan. A commander that rewards
  * none pulls the styles it feeds the same way.
  */
-function commanderPull(
+export function commanderPull(
   tryList: readonly Archetype[],
   commander: CardRecord,
   cands: Candidate[],
@@ -1352,8 +1450,43 @@ export function buildDeck(
   const pull = commander
     ? commanderPull(tryList, commander, cands, index, config, size)
     : new Map<string, number>();
+  // With learned plans, best fit builds the plans the pool runs most (see plan.ts) and
+  // keeps the best of them; the plain shapes stay in as the fallback and as the "shape" plan.
+  // No scores (learned plans off for this size, or not calibrated) keeps best fit's old way.
+  const scored =
+    !styleBuilt && config.learned && config.builderWeights.learned
+      ? planScores(
+          tryList.filter((a): a is SynergyArchetype => a.kind === 'synergy'),
+          tryList.filter((a) => a.kind === 'composition'),
+          cands,
+          config,
+          index,
+          size,
+          commander,
+          pull,
+        )
+      : [];
+  const plans = scored.length > 0 ? scored : undefined;
+  const planScore = new Map(plans?.map((p) => [p.style, p.score]));
+  if (plans) {
+    // The best themes by plan score; every viable shape stays in as a fallback.
+    const kept = new Set(
+      plans
+        .filter((p) => tryList.some((a) => a.id === p.style && a.kind === 'synergy'))
+        .slice(0, config.builderWeights.learned!.candidates)
+        .map((p) => p.style),
+    );
+    const narrowed = tryList.filter((a) => a.kind === 'composition' || kept.has(a.id));
+    // Nothing left (no shape viable, no theme deep enough): build what the scan allows, as before.
+    if (narrowed.length > 0) tryList = narrowed;
+  }
   const rankOf = (at: Attempt) =>
-    at.score.total + (pull.get(at.archetype.id) ?? 0) * config.builderWeights.commander.styleBonus;
+    plans
+      ? // The plan leads; the finished deck's score counts by deckScoreWeight (and breaks ties).
+        (planScore.get(at.archetype.id) ?? -1e6) +
+        (forSize(config.builderWeights.learned!.plan, size).deckScoreWeight + 1e-4) * at.score.total
+      : at.score.total +
+        (pull.get(at.archetype.id) ?? 0) * config.builderWeights.commander.styleBonus;
 
   // Ties keep the earlier candidate: themes come first, so a theme beats a plain shape it ties.
   let best: Attempt | undefined;
@@ -1384,7 +1517,14 @@ export function buildDeck(
     }
   }
   if (!best) throw firstError;
-  if (tried.length > 1) {
+  if (tried.length > 1 && plans) {
+    const rest = tried.filter((at) => at !== best).sort((a, b) => rankOf(b) - rankOf(a));
+    const shown = rest.slice(0, 3).map((at) => at.archetype.label);
+    if (rest.length > 3) shown.push(`${rest.length - 3} more`);
+    notes.push(
+      `Compared ${tried.length} archetypes and kept ${best.archetype.label}, the plan this bulk list leans to most. Next: ${shown.join(', ')}.`,
+    );
+  } else if (tried.length > 1) {
     const rest = tried.filter((at) => at !== best).sort((a, b) => b.score.total - a.score.total);
     // Scores stay internal; the note names the runners-up in order.
     const shown = rest.slice(0, 3).map((at) => at.archetype.label);

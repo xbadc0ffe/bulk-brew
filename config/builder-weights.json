@@ -1,5 +1,5 @@
 {
-  "version": "9",
+  "version": "10",
   "objective": {
     "curveDeviation": 1.0,
     "typeMixDeviation": 1.0,
@@ -59,6 +59,48 @@
     "splashPip": 0.6,
     "splashDouble": 2,
     "splashEarly": 1
+  },
+  "learned": {
+    "quartileMinimums": true,
+    "fillToTarget": true,
+    "plan": {
+      "100": {
+        "use": true,
+        "liftPower": 4,
+        "liftSmoothing": 4,
+        "shapeSharpness": 20,
+        "cardFit": 0.5,
+        "deckScoreWeight": 0
+      },
+      "60": {
+        "use": true,
+        "liftPower": 12,
+        "liftSmoothing": 10,
+        "shapeSharpness": 10,
+        "cardFit": 0.5,
+        "deckScoreWeight": 0
+      },
+      "40": {
+        "use": false,
+        "liftPower": 8,
+        "liftSmoothing": 10,
+        "shapeSharpness": 10,
+        "cardFit": 0.5,
+        "deckScoreWeight": 0
+      },
+      "20": {
+        "use": true,
+        "liftPower": 8,
+        "liftSmoothing": 20,
+        "shapeSharpness": 5,
+        "cardFit": 0.5,
+        "deckScoreWeight": 0
+      }
+    },
+    "commanderShare": 0.6,
+    "pullBoost": 1,
+    "profileWeight": 1,
+    "candidates": 3
   },
   "combos": {
     "results": [
