@@ -8,7 +8,13 @@
 import { BuildError, buildDeck } from './builder.ts';
 import { commanderCandidates } from './commander.ts';
 import type { BulkBrewConfig } from './config.ts';
-import { addOption, byStylePromise, colorSubsets, type DeckOption } from './options.ts';
+import {
+  addOption,
+  byStylePromise,
+  colorSubsets,
+  sameOptions,
+  type DeckOption,
+} from './options.ts';
 import type { CardIndex } from './pack.ts';
 import { scanPool } from './scan.ts';
 import {
@@ -172,7 +178,7 @@ export function bestDeckSearch(
             size === 100
               ? addCommanderDeck(list, plan.key, result, config)
               : addOption(list, plan.key, result, rankRequest, index, config);
-          if (!sameKeys(next, list)) changed = true;
+          if (!sameOptions(next, list)) changed = true;
           state.options[k - 1] = next;
         }
       } catch (err) {
@@ -226,10 +232,6 @@ function addCommanderDeck(
       return n <= cfg.maxPerStyle;
     })
     .slice(0, cfg.maxOptions);
-}
-
-function sameKeys(a: readonly DeckOption[], b: readonly DeckOption[]): boolean {
-  return a.length === b.length && a.every((o, i) => o.key === b[i]!.key);
 }
 
 /**

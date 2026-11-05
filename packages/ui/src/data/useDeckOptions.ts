@@ -1,23 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  addOption,
-  BuildError,
-  buildOption,
-  colorSubsets,
   configVersion,
-  planOptions,
-  scanPool,
-  type BuildResult,
   type BulkBrewConfig,
   type CardIndex,
   type Color,
   type DeckOption,
   type DeckSize,
-  type OptionPlan,
+  type OptionsRequest,
   type Pool,
   type ScanReport,
   type Settings,
 } from '@bulk-brew/core';
+import type { FromWorker, ToWorker } from './deckOptionsProtocol.ts';
+import { workerCards } from './workerCards.ts';
 
 export interface DeckOptionsInput {
   /** Off where nothing shows options, so nothing builds in the background. */
@@ -53,11 +48,21 @@ export interface DeckOptions {
   failure: string | undefined;
 }
 
-interface Tagged extends DeckOptions {
+/** What the worker has sent for one job. */
+interface Found {
+  job: number;
   /** The settings these options belong to. */
   key: string;
   /** The settings the scans belong to (styles left out). */
-  scanKey: string;
+  scansKey: string;
+  scans: ReadonlyMap<string, ScanReport>;
+  /** Undefined until the worker has planned. */
+  planned: number | undefined;
+  built: number;
+  options: DeckOption[];
+  primaryUnavailable: boolean;
+  failure: string | undefined;
+  error: string | undefined;
 }
 
 const NO_SCANS: ReadonlyMap<string, ScanReport> = new Map();
@@ -73,11 +78,38 @@ const EMPTY: DeckOptions = {
   failure: undefined,
 };
 
+function fresh(job: number, key: string, scansKey: string): Found {
+  return {
+    job,
+    key,
+    scansKey,
+    scans: NO_SCANS,
+    planned: undefined,
+    built: 0,
+    options: [],
+    primaryUnavailable: false,
+    failure: undefined,
+    error: undefined,
+  };
+}
+
+function merge(found: Found, msg: FromWorker): Found {
+  return {
+    ...found,
+    ...(msg.plan ?? {}),
+    built: msg.built,
+    options: msg.options ?? found.options,
+    failure: found.failure ?? msg.failure,
+    error: msg.error,
+  };
+}
+
 /**
- * Deck options for the Build page. Plans the builds for the current settings,
- * then builds one per tick so the page stays responsive, re-ranking as each
- * finishes. Finished options survive pauses and screen changes; any change to
- * the settings or the pool starts over.
+ * Deck options for the Build page. A worker plans the builds for the current
+ * settings and builds them one at a time, as the Analyze pane's best-deck
+ * search does, sending the ranked options as each finishes. Finished options
+ * survive pauses and screen changes; any change to the settings or the pool
+ * starts over, reusing the scans when only the colors or styles changed.
  */
 export function useDeckOptions(input: DeckOptionsInput): DeckOptions {
   const {
@@ -97,25 +129,32 @@ export function useDeckOptions(input: DeckOptionsInput): DeckOptions {
   const active =
     enabled && Boolean(index) && colors.length > 0 && (size !== 100 || Boolean(commander));
 
-  // Which cards the options draw from; styles are left out so a style change reuses the scans.
-  const scanKey = useMemo(
+  // The worker keeps its card index and scans while the pool and card data stay.
+  const dataKey = useMemo(
     () =>
       JSON.stringify([
-        size,
-        colors,
-        settings.maxCopies,
-        settings.rarities ?? [],
-        settings.unlimitedBasics,
-        settings.includeUnsets,
         pool.updatedAt,
         index?.dataVersion ?? '',
         index?.learnedVersion ?? '',
         configVersion(config),
       ]),
-    [size, colors, settings, pool.updatedAt, index, config],
+    [pool.updatedAt, index, config],
   );
-  const key = `${scanKey}|${commander ?? ''}|${primary ?? ''}|${secondary ?? ''}`;
-  const request = useMemo(
+  // A color subset's scan holds for a size and these settings, whatever else is picked.
+  const scanKey = useMemo(
+    () =>
+      JSON.stringify([
+        size,
+        settings.maxCopies,
+        settings.rarities ?? [],
+        settings.unlimitedBasics,
+        settings.includeUnsets,
+      ]),
+    [size, settings],
+  );
+  const scansKey = `${dataKey}|${scanKey}|${colors.join('')}`;
+  const key = `${scansKey}|${commander ?? ''}|${primary ?? ''}|${secondary ?? ''}`;
+  const request = useMemo<OptionsRequest>(
     () => ({
       size,
       colors,
@@ -127,89 +166,95 @@ export function useDeckOptions(input: DeckOptionsInput): DeckOptions {
     [size, colors, settings, primary, secondary, commander],
   );
 
-  const [state, setState] = useState<Tagged>({ ...EMPTY, key: '', scanKey: '' });
-  const plans = useRef<OptionPlan[]>([]);
-  const next = useRef(0);
-  const scanCache = useRef<{ key: string; scans: Map<string, ScanReport> }>(undefined);
+  const worker = useRef<Worker>(undefined);
+  /** What the worker was last sent: its data, and the current job. */
+  const sent = useRef({ data: '', job: 0, key: '', scansKey: '' });
+  const [found, setFound] = useState<Found>();
 
-  // Plan on the next tick (scans every color subset), once per settings key.
   useEffect(() => {
-    if (!active || !index || paused || state.key === key) return;
-    const handle = setTimeout(() => {
+    const post = (msg: ToWorker) => worker.current?.postMessage(msg);
+    if (!active || !index || paused) {
+      post({ type: 'pause' });
+      return;
+    }
+    /** Shows the error on the settings it stopped; the next change starts a fresh worker and job. */
+    const fail = (message: string, on: { key: string; scansKey: string }) => {
+      worker.current?.terminate();
+      worker.current = undefined;
+      const current = sent.current;
+      sent.current = { ...current, data: '', key: '' };
+      setFound((f) => ({
+        ...(f?.job === current.job && f.key === on.key
+          ? f
+          : fresh(current.job, on.key, on.scansKey)),
+        error: message,
+      }));
+    };
+    if (!worker.current) {
+      let w: Worker;
       try {
-        let scans = scanCache.current?.key === scanKey ? scanCache.current.scans : undefined;
-        if (!scans) {
-          scans = new Map();
-          // A commander fixes the colors, so only the full set is scanned.
-          for (const subset of size === 100 ? [colors] : colorSubsets(colors)) {
-            scans.set(subset.join(''), scanPool(pool, index, config, settings, size, subset));
-          }
-          scanCache.current = { key: scanKey, scans };
-        }
-        const plan = planOptions(request, pool, index, config, scans);
-        plans.current = plan.plans;
-        next.current = 0;
-        setState({
-          ...EMPTY,
-          key,
-          scanKey,
-          scans,
-          planned: plan.plans.length,
-          working: plan.plans.length > 0,
-          primaryUnavailable: plan.primaryUnavailable,
-        });
+        w = new Worker(new URL('./deckOptions.worker.ts', import.meta.url), { type: 'module' });
       } catch (err) {
-        setState({ ...EMPTY, key, scanKey: '', error: String(err) });
+        // No job was sent yet, so the error belongs to the settings on screen.
+        fail(String(err), { key, scansKey });
+        return;
       }
-    }, 0);
-    return () => clearTimeout(handle);
-    // The keys cover every input that matters; the objects behind them are read when planning.
+      w.onmessage = (e: MessageEvent<FromWorker>) => {
+        const msg = e.data;
+        const current = sent.current;
+        if (msg.job !== current.job) return;
+        setFound((f) =>
+          merge(f?.job === msg.job ? f : fresh(msg.job, current.key, current.scansKey), msg),
+        );
+      };
+      w.onerror = (e) => fail(e.message || 'Building deck options stopped.', sent.current);
+      worker.current = w;
+    }
+    if (sent.current.data !== dataKey) {
+      post({ type: 'data', data: { ...workerCards(pool, index, config), pool, config } });
+      sent.current = { ...sent.current, data: dataKey, key: '' };
+    }
+    if (sent.current.key !== key) {
+      sent.current = { ...sent.current, job: sent.current.job + 1, key, scansKey };
+      post({ type: 'start', job: { id: sent.current.job, request, scanKey } });
+    } else {
+      post({ type: 'resume' });
+    }
+    // The keys cover the pool, settings, and picks; the objects behind them are read when sending.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, active, paused, state.key]);
+  }, [active, paused, key, index]);
 
-  // Build one option per tick while not paused.
-  useEffect(() => {
-    if (!active || !index || paused || state.key !== key || !state.working) return;
-    const handle = setTimeout(() => {
-      const plan = plans.current[next.current];
-      next.current += 1;
-      let result: BuildResult | undefined;
-      let error: string | undefined;
-      let failure: string | undefined;
-      if (plan) {
-        try {
-          result = buildOption(plan, request, pool, index, config);
-        } catch (err) {
-          if (err instanceof BuildError) failure = err.message;
-          else error = String(err);
-        }
-      }
-      setState((s) => {
-        if (s.key !== key) return s;
-        const built = Math.min(next.current, plans.current.length);
-        return {
-          ...s,
-          built,
-          working: !error && built < plans.current.length,
-          error,
-          failure: s.failure ?? failure,
-          options:
-            plan && result
-              ? addOption(s.options, plan.key, result, request, index, config)
-              : s.options,
-        };
-      });
-    }, 0);
-    return () => clearTimeout(handle);
-    // Re-runs after each build, since `state.built` changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, index, paused, key, state.key, state.working, state.built]);
+  // A fresh worker on remount, so a stopped one is never reused.
+  useEffect(
+    () => () => {
+      worker.current?.terminate();
+      worker.current = undefined;
+      sent.current = { ...sent.current, data: '', key: '' };
+    },
+    [],
+  );
 
-  if (!active) return EMPTY;
-  if (state.key !== key) {
-    // Planning is pending; keep the style scans when only the styles changed.
-    return { ...EMPTY, scans: state.scanKey === scanKey ? state.scans : NO_SCANS, working: true };
-  }
-  const { options, built, planned, working, primaryUnavailable, scans, error, failure } = state;
-  return { options, built, planned, working, primaryUnavailable, scans, error, failure };
+  return useMemo(() => {
+    if (!active) return EMPTY;
+    const current = found?.key === key ? found : undefined;
+    if (!current || (current.planned === undefined && !current.error)) {
+      // Planning is pending; keep the style scans when only the styles changed.
+      return {
+        ...EMPTY,
+        scans: found?.scansKey === scansKey ? found.scans : NO_SCANS,
+        working: true,
+      };
+    }
+    const planned = current.planned ?? 0;
+    return {
+      options: current.options,
+      built: current.built,
+      planned,
+      working: !current.error && current.built < planned,
+      primaryUnavailable: current.primaryUnavailable,
+      scans: current.scans,
+      error: current.error,
+      failure: current.failure,
+    };
+  }, [active, found, key, scansKey]);
 }

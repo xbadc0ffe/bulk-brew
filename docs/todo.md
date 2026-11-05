@@ -60,7 +60,7 @@ Ranked. The current phase is at the top. Finished phases are removed, not struck
 - Voltron: nine Auras that enchant a player but are not Curses (Archnemesis, Grievous Wound, Overencumbered, Paradox Haze, Psychic Possession, Shadow of the Second Sun, Tenuous Truce, Wheel of Sun and Moon, Volrath's Motion Sensor) still count as enablers. A tag overlay entry (applied at the next data build) or a check on "Enchant player" text would catch them.
 - Mobile parity for the second cleanup round: the Remove dialog (Delete or Disassemble), and Settings without copy limits and with Reset above a red Clear.
 - Eval: add a metric for decks that miss their own theme minimums, so a regression like the one fixed in local search shows up.
-- Deck options build on the main thread, one per tick; move to a Web Worker if phones stutter. The Analyze pane's worker (`bestDecks.worker.ts` with `poolPack`) is the model.
+- The Commander list's archetype checks (`useCommanderList`: the listing scans and `commanderCanBuild`, a full Commander build each) still run on the main thread, one per tick. Move them to a worker like `deckOptions.worker.ts` if the list stutters.
 - Mobile parity for the web-only changes of the owner review: column sorting, the Analyze split, multi-select removal, and the deck details expand.
 - Mobile parity for Settings export and restore by part (bulk list, decks, or both; JSON or TXT); phones still export and restore everything.
 - Mobile parity for the rebuilt Analyze pane (recommended decks from the worker, color pie, mana value chart, by-color tables); phones still show the per-color archetype table from `analysisRows`.

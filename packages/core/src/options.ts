@@ -3,7 +3,7 @@
 // style), build them one at a time, and rank what comes back. Each option is
 // built from the full pool; options are ideas, not commitments.
 
-import { buildDeck } from './builder.ts';
+import { BuildError, buildDeck } from './builder.ts';
 import { listCandidates } from './candidates.ts';
 import { normalizeColors } from './colors.ts';
 import type { BulkBrewConfig } from './config.ts';
@@ -231,4 +231,116 @@ export function addOption(
         return n <= cfg.maxPerStyle;
       });
   return varied.slice(0, cfg.maxOptions);
+}
+
+/** Whether two ranked lists hold the same options in the same order. */
+export function sameOptions(a: readonly DeckOption[], b: readonly DeckOption[]): boolean {
+  return a.length === b.length && a.every((o, i) => o.key === b[i]!.key);
+}
+
+/** What a deck option search has found so far. */
+export interface DeckOptionState {
+  /** Scans of each color subset the request can use, keyed by color letters; undefined until all are done. */
+  scans: ReadonlyMap<string, ScanReport> | undefined;
+  /** Builds planned; undefined until planned. */
+  planned: number | undefined;
+  /** Builds finished, decks or not. */
+  built: number;
+  /** Ranked by addOption. */
+  options: DeckOption[];
+  /** A primary style was picked and no subset of the picked colors can build it. */
+  primaryUnavailable: boolean;
+  /** Why the first planned build that failed could not make a deck. */
+  failure: string | undefined;
+  done: boolean;
+}
+
+/** What one step did. */
+export type DeckOptionStep =
+  | { kind: 'scan'; colors: Color[] }
+  | { kind: 'planned'; planned: number }
+  | { kind: 'built'; key: string; changed: boolean };
+
+export interface DeckOptionSearch {
+  /** Runs the next scan, the plan, or the next build; undefined once everything is done. */
+  step(): DeckOptionStep | undefined;
+  state(): DeckOptionState;
+}
+
+/**
+ * The Build page's options for a request, one step at a time like the
+ * Analyze pane's bestDeckSearch: a scan of each color subset, the plan, then
+ * one build per step, each ranked in with addOption. The result is the same
+ * as planOptions followed by buildOption on every plan. `cache` holds scans
+ * by color letters for one size, settings, and pool: subsets found there are
+ * not scanned again, and new scans are added to it.
+ */
+export function deckOptionSearch(
+  req: OptionsRequest,
+  pool: Pool,
+  index: CardIndex,
+  config: BulkBrewConfig,
+  cache: Map<string, ScanReport> = new Map(),
+): DeckOptionSearch {
+  const state: DeckOptionState = {
+    scans: undefined,
+    planned: undefined,
+    built: 0,
+    options: [],
+    primaryUnavailable: false,
+    failure: undefined,
+    done: false,
+  };
+
+  function* run(): Generator<DeckOptionStep, void, void> {
+    // The subsets planOptions reads: a commander fixes the colors.
+    const lead = req.commander ? index.get(req.commander) : undefined;
+    const subsets = lead ? [normalizeColors(lead.identity)] : colorSubsets(req.colors);
+    const scans = new Map<string, ScanReport>();
+    for (const subset of subsets) {
+      const id = subset.join('');
+      let scan = cache.get(id);
+      if (!scan) {
+        scan = scanPool(pool, index, config, req.settings, req.size, subset);
+        cache.set(id, scan);
+        yield { kind: 'scan', colors: subset };
+      }
+      scans.set(id, scan);
+    }
+    state.scans = scans;
+    const plan = planOptions(req, pool, index, config, scans);
+    state.planned = plan.plans.length;
+    state.primaryUnavailable = plan.primaryUnavailable;
+    yield { kind: 'planned', planned: plan.plans.length };
+
+    for (const p of plan.plans) {
+      let changed = false;
+      try {
+        const result = buildOption(p, req, pool, index, config);
+        const next = addOption(state.options, p.key, result, req, index, config);
+        changed = !sameOptions(next, state.options);
+        state.options = next;
+      } catch (err) {
+        // A plan the pool cannot build counts as built; anything else is a bug.
+        if (!(err instanceof BuildError)) throw err;
+        state.failure ??= err.message;
+      }
+      state.built += 1;
+      yield { kind: 'built', key: p.key, changed };
+    }
+  }
+
+  const steps = run();
+  return {
+    step() {
+      if (state.done) return undefined;
+      const next = steps.next();
+      if (next.done) {
+        state.done = true;
+        return undefined;
+      }
+      return next.value;
+    },
+    state: () => state,
+  };
 }

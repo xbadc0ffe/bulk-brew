@@ -3,8 +3,6 @@ import {
   BEST_DECK_SIZES,
   COLORS,
   configVersion,
-  poolPack,
-  trimLearned,
   type BulkBrewConfig,
   type CardIndex,
   type DeckOption,
@@ -13,6 +11,7 @@ import {
   type Settings,
 } from '@bulk-brew/core';
 import type { FromWorker, ToWorker } from './bestDecksProtocol.ts';
+import { workerCards } from './workerCards.ts';
 
 /** How many decks the Analyze pane lists per size. */
 export const BEST_DECKS_SHOWN = 5;
@@ -139,17 +138,11 @@ export function useBestDecks(input: {
     }
     if (job.current.key !== key) {
       job.current = { id: job.current.id + 1, key };
-      const pack = poolPack(pool, index, config);
-      // The worker builds from the pool alone, so it gets only the learned data the pool can use.
-      const learned = index.learned
-        ? trimLearned(index.learned.file, new Set(pack.cards.map((c) => c.id)))
-        : undefined;
       post({
         type: 'start',
         job: {
           id: job.current.id,
-          pack,
-          ...(learned ? { learned } : {}),
+          ...workerCards(pool, index, config),
           pool,
           settings,
           config,
