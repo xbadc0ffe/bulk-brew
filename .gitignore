@@ -10,6 +10,8 @@ coverage/
 data/raw/
 data/packs/
 data/corpus/
+data/edhrec/
+data/spellbook/
 apps/*/public/data/
 docs/rules/*
 !docs/rules/README.md
