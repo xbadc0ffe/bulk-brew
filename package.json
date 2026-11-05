@@ -33,6 +33,7 @@
     "eval:pools": "node packages/pipeline/src/make-eval-pools.ts",
     "corpus:fetch": "node packages/pipeline/src/corpus-fetch.ts",
     "corpus:eval": "node packages/pipeline/src/corpus-eval.ts",
+    "corpus:panel": "node packages/pipeline/src/corpus-panel.ts",
     "corpus:learn": "node packages/pipeline/src/corpus-learn.ts",
     "rules:fetch": "node scripts/fetch-comp-rules.mjs",
     "smoke": "node scripts/smoke-web.mjs"

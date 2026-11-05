@@ -29,9 +29,20 @@ npm run corpus:eval                           # build every reference deck from 
 npm run corpus:eval -- --sizes 100 --split train   # one size, the training split only
 npm run corpus:eval -- --noise-dir test-bulk  # the owner's bulk as the noise instead of random cards
 npm run corpus:learn                          # data/corpus/report.md: suggestions for config
+npm run corpus:panel -- --a <old.json> --b <new.json>   # blind review packets from two results files
+npm run corpus:panel -- --tally <panel dir>   # share of pairs the newer build wins
 ```
 
 Read the eval summary per size: `recall` (share of the deck's spells our build used), `style match` (our style is one the deck meets), `ref ahead` (our score rates the deck's own build at least as high as ours), and the ours/reference pairs for lands, average mana value, creatures, card strength, and popularity rank. Tune on the train split and confirm on the test split; a change that only helps train is fitting the corpus, not building better decks. Preconstructed decks are a floor, not a ceiling: a build that beats them on strength is fine, one that misses their plan is not.
+
+The plan measures (`packages/pipeline/src/plans.ts`) judge whether builds look like real decks of their plan:
+
+- **Plan of a reference deck:** among the styles whose minimums it meets (and under a commander, the tribes the commander names), the one whose theme cards stand out most over random bulk, or `shape` when it meets none. A style made of common cards, such as Graveyard, meets its minimums in many decks without being their plan.
+- **Style mix:** the share of builds per style next to the share of reference decks running it, Aggro, Midrange, and Control folded into `shape`. A blocker is a theme above 25% of builds, or any style above 1.5 times its reference share by at least three decks and 2% of the size. The summary prints the mix and any blockers per size and split.
+- **Profile distance:** how far a deck's makeup (theme enablers and payoffs, roles, curve, card types, as shares of its spells) sits from the median of real decks running its plan, each feature in units of their middle-half spread and capped at 3, averaged. Plans with fewer than six decks borrow the decks that meet the style. The reference decks' own distance from their plan sits beside ours as the yardstick.
+- **Plan recall:** with a reference deck shuffled into bulk, the share of its theme cards for its plan that the build used.
+- **Style match** deltas are paired: decks that gained or lost a style match against the previous run.
+- **Review panel:** `corpus:panel` pairs builds of the same decks from two results files, hides which is which, and writes packets for fresh agent reviewers, who rate each build against `rubric.md` and the profile of its plan and write a verdicts file beside the packet. `--tally` reports the share the newer version wins. A sanity check beside the numbers, not a target.
 
 ## What is where
 

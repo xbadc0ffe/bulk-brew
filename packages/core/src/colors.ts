@@ -178,3 +178,30 @@ export function sourcesNeeded(
   NEEDED_CACHE.set(key, need);
   return need;
 }
+
+/** A spell's color class: one color, several (M), or none (C). */
+export type ColorClass = 'W' | 'U' | 'B' | 'R' | 'G' | 'M' | 'C';
+export const COLOR_CLASSES: readonly ColorClass[] = ['W', 'U', 'B', 'R', 'G', 'M', 'C'];
+
+/** Share of bulk spell copies of each color class that are theme cards. */
+export type ClassShares = Partial<Record<ColorClass, number>>;
+
+export function colorClassOf(card: CardRecord): ColorClass {
+  if (card.colors.length === 0) return 'C';
+  return card.colors.length > 1 ? 'M' : card.colors[0]!;
+}
+
+/**
+ * Theme copies random bulk would hold for a deck of this color make-up: each
+ * class's spell copies times that class's theme share in bulk. Comparing a
+ * deck's theme copies with this keeps a color's natural themes (tokens in
+ * white, burn in red) from reading as a plan.
+ */
+export function expectedThemeCopies(
+  shares: ClassShares,
+  counts: Partial<Record<ColorClass, number>>,
+): number {
+  let n = 0;
+  for (const c of COLOR_CLASSES) n += (counts[c] ?? 0) * (shares[c] ?? 0);
+  return n;
+}

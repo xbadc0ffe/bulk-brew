@@ -13,9 +13,18 @@
 //        --limit <n>            at most n decks per size (draft decks default to 2000)
 //        --noise <n>            random bulk copies per deck (default 3000)
 //        --noise-dir <dir>      use the lists in a folder as the bulk for every deck instead
+//        --rescore <file>       measure an earlier results file's builds again with the current
+//                               styles (after a style change, so before and after compare fairly)
 //
 // Results go to data/corpus/results/<date>-<sha>.json; the summary shows
 // deltas against the latest earlier run with the same options.
+//
+// Besides recall and shape, every run reports how the builder's plans compare
+// with real decks: the style mix (share of builds per style next to the share
+// of reference decks running it, with blockers flagged), profile distance
+// (how far each build's makeup sits from real decks of its style), plan
+// recall (share of the reference deck's theme cards the build used), and
+// style match as decks gained and lost against the previous run.
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -63,6 +72,16 @@ import {
   type CorpusDeck,
   type DeckShape,
 } from './corpus.ts';
+import {
+  bulkThemeShares,
+  featuresOf,
+  planKey,
+  planOf,
+  PlanProfiles,
+  SHAPE,
+  themeTests,
+  type RefDeck,
+} from './plans.ts';
 
 const DEFAULT_NOISE = 3000;
 const DEFAULT_DRAFT_LIMIT = 2000;
@@ -91,6 +110,23 @@ export interface EvalRow {
   refStyles: string[];
   /** Whether our build's style is one of them (absent when the deck meets none). */
   styleMatch?: boolean;
+  /** The style the reference deck runs most strongly over bulk, or "shape". */
+  refPlan: string;
+  /** Our build's style for the mix, with plain shapes folded into "shape". */
+  mixStyle?: string;
+  /** For a reference deck with no theme, the plain shape its curve is closest to. */
+  refShape?: string;
+  /** The plan our build runs by the same test as the reference decks. */
+  builtPlan?: string;
+  /** Share of the reference deck's distinct theme cards for its plan that our build used. */
+  planRecall?: number;
+  /** Profile distance of our build from real decks of its style, and of the reference deck from its plan's. */
+  dist?: number;
+  refDist?: number;
+  coreDist?: number;
+  refCoreDist?: number;
+  /** Our build's cards, commander left out, basics included. */
+  deck?: [string, number][];
   /** Average card strength and median popularity rank of the spells. */
   strength?: number;
   refStrength: number;
@@ -125,6 +161,20 @@ interface SizeSummary {
   refRank: number;
   /** Mean per-deck difference, ours minus reference, in spell copies. */
   roleDelta: Record<string, number>;
+  /** Mean share of the reference plan's theme cards our builds used (decks with a plan). */
+  planRecall: number;
+  /** Mean profile distance: our builds from their style's real decks, reference decks from their plan's. */
+  dist: number;
+  refDist: number;
+  /** Distance over the features every plan shares (roles, curve, types), leaving the theme out. */
+  coreDist: number;
+  refCoreDist: number;
+  /** Builds per style next to reference decks per plan (shapes folded into "shape"). */
+  mix: Record<string, { builds: number; refs: number }>;
+  /** The shape group split by shape. */
+  shapes: Record<string, { builds: number; refs: number }>;
+  /** Styles built far more often than real decks run them. */
+  blockers: string[];
   ms: number;
 }
 
@@ -134,6 +184,8 @@ interface Results {
   dirty: boolean;
   dataVersion: string;
   configVersion: string;
+  /** The earlier results file whose builds this run measured again. */
+  rescoredFrom?: string;
   options: string;
   summary: Record<string, SizeSummary>;
   rows: EvalRow[];
@@ -215,8 +267,74 @@ function summarize(rows: EvalRow[]): SizeSummary {
     rank: Math.round(median(built.map((r) => r.rank!))),
     refRank: Math.round(median(built.map((r) => r.refRank))),
     roleDelta,
+    planRecall: avg(
+      (r) => r.planRecall!,
+      built.filter((r) => r.planRecall !== undefined),
+    ),
+    dist: avg(
+      (r) => r.dist!,
+      built.filter((r) => r.dist !== undefined && !Number.isNaN(r.dist)),
+    ),
+    refDist: avg(
+      (r) => r.refDist!,
+      rows.filter((r) => r.refDist !== undefined && !Number.isNaN(r.refDist)),
+    ),
+    coreDist: avg(
+      (r) => r.coreDist!,
+      built.filter((r) => r.coreDist !== undefined && !Number.isNaN(r.coreDist)),
+    ),
+    refCoreDist: avg(
+      (r) => r.refCoreDist!,
+      rows.filter((r) => r.refCoreDist !== undefined && !Number.isNaN(r.refCoreDist)),
+    ),
+    ...styleMix(rows),
     ms: Math.round(mean(rows.map((r) => r.ms))),
   };
+}
+
+/** A theme built above this share of a size's decks is a blocker, whatever real decks do. */
+const MAX_STYLE_SHARE = 0.25;
+/** Nor may any style go above this multiple of its reference share, by more than noise. */
+const MAX_REF_MULTIPLE = 1.5;
+
+/**
+ * Builds per style against reference decks per plan, over decks that built.
+ * A blocker is any style, each plain shape on its own, above MAX_STYLE_SHARE
+ * of builds, or any style (shapes as one group, since a deck with no theme
+ * could be any of them) above MAX_REF_MULTIPLE times its reference share by
+ * at least three decks and 2% of the size, so one or two decks of noise do
+ * not count. `shapes` splits the shape group: builds by their shape, real
+ * decks by the shape their curve is closest to.
+ */
+function styleMix(rows: EvalRow[]): Pick<SizeSummary, 'mix' | 'shapes' | 'blockers'> {
+  const mix: Record<string, { builds: number; refs: number }> = {};
+  const shapes: Record<string, { builds: number; refs: number }> = {};
+  const slot = (t: typeof mix, k: string) => (t[k] ??= { builds: 0, refs: 0 });
+  const built = rows.filter((r) => r.ok);
+  for (const r of built) {
+    slot(mix, r.refPlan).refs++;
+    slot(mix, r.mixStyle ?? SHAPE).builds++;
+    if (r.refShape) slot(shapes, r.refShape).refs++;
+    if (r.mixStyle === SHAPE && r.style) slot(shapes, r.style).builds++;
+  }
+  const blockers: string[] = [];
+  const n = Math.max(1, built.length);
+  const own = new Map<string, number>();
+  for (const r of built) own.set(r.style ?? SHAPE, (own.get(r.style ?? SHAPE) ?? 0) + 1);
+  for (const [style, count] of [...own.entries()].sort())
+    if (count / n > MAX_STYLE_SHARE) blockers.push(`${style} ${pct(count / n)} of builds`);
+  for (const [style, m] of Object.entries(mix).sort()) {
+    const share = m.builds / n;
+    const refShare = m.refs / n;
+    const excess = m.builds - MAX_REF_MULTIPLE * m.refs;
+    if (share > MAX_REF_MULTIPLE * refShare && excess >= Math.max(3, 0.02 * n))
+      blockers.push(`${style} ${pct(share)} of builds, ${pct(refShare)} of real decks`);
+  }
+  return { mix, shapes, blockers };
+}
+
+function pct(x: number): string {
+  return `${Math.round(x * 100)}%`;
 }
 
 function previous(options: string): Results | undefined {
@@ -247,12 +365,16 @@ const COLUMNS: [string, (s: SizeSummary) => number | string][] = [
   ['lands', (s) => `${s.lands}/${s.refLands}`],
   ['avg mv', (s) => `${s.avgMv}/${s.refAvgMv}`],
   ['creatures', (s) => `${s.creatureShare}/${s.refCreatureShare}`],
+  ['plan recall', (s) => s.planRecall],
+  ['distance', (s) => `${s.dist}/${s.refDist}`],
+  ['core distance', (s) => `${s.coreDist}/${s.refCoreDist}`],
+  ['blockers', (s) => s.blockers.length],
   ['strength', (s) => `${s.strength}/${s.refStrength}`],
   ['rank', (s) => `${s.rank}/${s.refRank}`],
   ['ms', (s) => s.ms],
 ];
 
-function printSummary(summary: Record<string, SizeSummary>, prev?: Results): void {
+function printSummary(summary: Record<string, SizeSummary>, rows: EvalRow[], prev?: Results): void {
   console.log(
     "\nOurs/reference where a cell has two numbers. Recall: share of the deck's spells our build used.",
   );
@@ -266,14 +388,40 @@ function printSummary(summary: Record<string, SizeSummary>, prev?: Results): voi
       .map(([id, d]) => `${id} ${d > 0 ? '+' : ''}${d}`);
     if (deltas.length) console.log(`  ${key} roles, ours minus reference: ${deltas.join(', ')}`);
   }
+  console.log('\nStyle mix: share of builds per style, then share of reference decks running it.');
+  for (const [key, s] of Object.entries(summary)) {
+    const built = Object.values(s.mix).reduce((a, m) => a + m.builds, 0) || 1;
+    const refs = Object.values(s.mix).reduce((a, m) => a + m.refs, 0) || 1;
+    const cells = Object.entries(s.mix)
+      .sort((a, b) => b[1].builds - a[1].builds || b[1].refs - a[1].refs)
+      .map(([k, m]) => `${k} ${pct(m.builds / built)}/${pct(m.refs / refs)}`);
+    console.log(`  ${key}: ${cells.join(', ')}`);
+    const sh = Object.entries(s.shapes ?? {})
+      .sort()
+      .map(([k, m]) => `${k} ${pct(m.builds / built)}/${pct(m.refs / refs)}`);
+    if (sh.length) console.log(`    shapes: ${sh.join(', ')}`);
+    if (s.blockers.length) console.log(`    BLOCKERS: ${s.blockers.join('; ')}`);
+  }
   if (!prev) return;
+  // Style match as a paired count: decks whose build gained or lost a style the deck meets.
+  const before = new Map(prev.rows.map((r) => [`${r.size}:${r.id}`, r]));
   console.log(`\ndeltas against ${prev.runAt} (${prev.sha}${prev.dirty ? ', dirty' : ''}):`);
   for (const [key, s] of Object.entries(summary)) {
     const p = prev.summary[key];
     if (!p) continue;
     const d = (a: number, b: number) => `${a - b >= 0 ? '+' : ''}${round(a - b)}`;
+    const [size, part] = key.split(' ');
+    let gained = 0;
+    let lost = 0;
+    for (const r of rows) {
+      if (String(r.size) !== size || (part !== 'all' && r.split !== part)) continue;
+      const o = before.get(`${r.size}:${r.id}`);
+      if (!o || o.styleMatch === undefined || r.styleMatch === undefined) continue;
+      if (r.styleMatch && !o.styleMatch) gained++;
+      if (!r.styleMatch && o.styleMatch) lost++;
+    }
     console.log(
-      `  ${key}: recall ${d(s.recall, p.recall)}, style match ${d(s.styleMatch, p.styleMatch)}, self fail ${d(s.selfFailed, p.selfFailed)}, score ${d(s.score, p.score)}, ref ahead ${d(s.refAhead, p.refAhead)}, avg mv ${d(s.avgMv, p.avgMv)}, lands ${d(s.lands, p.lands)}`,
+      `  ${key}: recall ${d(s.recall, p.recall)}, plan recall ${d(s.planRecall, p.planRecall ?? NaN)}, distance ${d(s.dist, p.dist ?? NaN)}, style match ${d(s.styleMatch, p.styleMatch)} (+${gained} -${lost} decks), self fail ${d(s.selfFailed, p.selfFailed)}, score ${d(s.score, p.score)}, avg mv ${d(s.avgMv, p.avgMv)}, lands ${d(s.lands, p.lands)}`,
     );
   }
 }
@@ -315,6 +463,8 @@ function main(): number {
   ) as Settings;
   const corpus = loadCorpus();
   const source = noiseSource(index);
+  const bulk = bulkThemeShares(index, config, source);
+  const refCardsOf = new Map<string, [CardRecord, number][]>();
   let fixedNoise: [string, number][] | undefined;
   if (noiseDir) {
     const qty = new Map<string, number>();
@@ -337,7 +487,47 @@ function main(): number {
   const rows: EvalRow[] = [];
   const skipped = new Map<string, number>();
   const skip = (why: string) => skipped.set(why, (skipped.get(why) ?? 0) + 1);
-  for (const size of sizes) {
+  // --rescore <results.json>: measure an earlier run's builds again with the current styles.
+  const rescoreFile = arg('rescore');
+  let rescored: Results | undefined;
+  if (rescoreFile) {
+    rescored = JSON.parse(readFileSync(rescoreFile, 'utf8')) as Results;
+    const byKey = new Map(corpus.decks.map((d) => [`${d.size}:${d.id}`, d]));
+    sizes.splice(0, sizes.length, ...SIZES.filter((s) => rescored!.rows.some((r) => r.size === s)));
+    for (const r of rescored.rows) {
+      const deck = byKey.get(`${r.size}:${r.id}`);
+      if (!deck) continue;
+      const refCards = recordsOf(index, deck.cards);
+      const commander =
+        r.size === 100 && deck.commander ? index.get(deck.commander[0]!) : undefined;
+      refCardsOf.set(`${r.size}:${r.id}`, refCards);
+      r.refStyles = stylesMet(refCards, r.size, index, config, commander);
+      const plan = planOf(refCards, r.size, index, config, bulk, commander);
+      r.refPlan = plan.plan;
+      if (plan.shape) r.refShape = plan.shape;
+      else delete r.refShape;
+      delete r.planRecall;
+      delete r.styleMatch;
+      if (r.ok && r.style) {
+        r.mixStyle = planKey(config, r.style);
+        if (r.refStyles.length) r.styleMatch = r.refStyles.includes(r.style);
+        const tests = themeTests(r.refPlan);
+        const ids = tests
+          ? refCards
+              .filter(([c]) => {
+                const f = factsFor(index, config, c);
+                return f.spell && (tests.enabler(f) || tests.payoff(f));
+              })
+              .map(([c]) => c.id)
+          : [];
+        const built = new Set((r.deck ?? []).map(([id]) => id));
+        if (ids.length)
+          r.planRecall = round(ids.filter((id) => built.has(id)).length / ids.length, 3);
+      }
+      rows.push(r);
+    }
+  }
+  for (const size of rescored ? [] : sizes) {
     let decks = corpus.decks.filter(
       (d) =>
         d.size === size &&
@@ -397,6 +587,8 @@ function main(): number {
     const self = attempt([deck.cards, lead]);
     const ref = shapeOf(refCards, index, config);
     const refS = spellStats(refCards, index, config);
+    const refPlan = planOf(refCards, size, index, config, bulk, commander);
+    refCardsOf.set(`${size}:${deck.id}`, refCards);
     const row: EvalRow = {
       id: deck.id,
       size,
@@ -406,6 +598,8 @@ function main(): number {
       selfOk: typeof self !== 'string',
       ref,
       refStyles: stylesMet(refCards, size, index, config, commander),
+      refPlan: refPlan.plan,
+      ...(refPlan.shape ? { refShape: refPlan.shape } : {}),
       refStrength: refS.strength,
       refRank: refS.rank,
       ms: Date.now() - t,
@@ -436,6 +630,18 @@ function main(): number {
     const share = (ids: string[]) =>
       ids.length ? round(ids.filter((id) => builtIds.has(id)).length / ids.length, 3) : 1;
     const ourS = spellStats(built, index, config);
+    const tests = themeTests(refPlan.plan);
+    const planCards = tests
+      ? refCards
+          .filter(([c]) => {
+            const f = factsFor(index, config, c);
+            return f.spell && (tests.enabler(f) || tests.payoff(f));
+          })
+          .map(([c]) => c.id)
+      : [];
+    if (planCards.length) row.planRecall = share(planCards);
+    row.deck = built.map(([c, q]) => [c.id, q]);
+    row.mixStyle = planKey(config, mixed.deck.archetype);
     Object.assign(row, {
       style: mixed.deck.archetype,
       score: mixed.explanation.score?.total ?? NaN,
@@ -449,6 +655,31 @@ function main(): number {
     return row;
   }
 
+  // Profile distance: each build against real decks of its style, each reference deck against its plan's.
+  for (const size of sizes) {
+    const forSize = rows.filter((r) => r.size === size);
+    if (forSize.length === 0) continue;
+    const refs: RefDeck[] = forSize.map((r) => ({
+      cards: refCardsOf.get(`${size}:${r.id}`)!,
+      plan: { plan: r.refPlan, met: r.refStyles },
+    }));
+    const profiles = new PlanProfiles(refs, size, index, config);
+    const byKey = new Map(corpus.decks.map((d) => [`${d.size}:${d.id}`, d]));
+    forSize.forEach((r, i) => {
+      const own = featuresOf(refs[i]!.cards, size, r.refPlan, index, config);
+      r.refDist = round(profiles.distance(own, r.refPlan, { leaveOut: i }), 3);
+      r.refCoreDist = round(profiles.distance(own, r.refPlan, { leaveOut: i, core: true }), 3);
+      if (!r.ok || !r.deck || !r.mixStyle) return;
+      const ours = recordsOf(index, r.deck);
+      const f = featuresOf(ours, size, r.mixStyle, index, config);
+      r.dist = round(profiles.distance(f, r.mixStyle), 3);
+      r.coreDist = round(profiles.distance(f, r.mixStyle, { core: true }), 3);
+      const deck = byKey.get(`${size}:${r.id}`);
+      const commander = size === 100 && deck?.commander ? index.get(deck.commander[0]!) : undefined;
+      r.builtPlan = planOf(ours, size, index, config, bulk, commander).plan;
+    });
+  }
+
   const summary: Record<string, SizeSummary> = {};
   for (const size of sizes) {
     const forSize = rows.filter((r) => r.size === size);
@@ -459,8 +690,10 @@ function main(): number {
       if (part.length) summary[`${size} ${s}`] = summarize(part);
     }
   }
-  const prev = previous(options);
-  printSummary(summary, prev);
+  const runOptions = rescored ? rescored.options : options;
+  // A rescore compares with the run it measured again; a new run with the latest earlier one.
+  const prev = rescored ? undefined : previous(runOptions);
+  printSummary(summary, rows, prev);
   if (skipped.size)
     console.log(`\nskipped: ${[...skipped.entries()].map(([k, v]) => `${k} (${v})`).join('; ')}`);
 
@@ -468,16 +701,19 @@ function main(): number {
   const dirty = (git(['status', '--porcelain']) ?? '').length > 0;
   const results: Results = {
     runAt: new Date().toISOString(),
-    sha,
-    dirty,
+    sha: rescored ? rescored.sha : sha,
+    dirty: rescored ? rescored.dirty : dirty,
     dataVersion: index.dataVersion,
     configVersion: configVersion(config),
-    options,
+    ...(rescoreFile ? { rescoredFrom: path.basename(rescoreFile) } : {}),
+    options: runOptions,
     summary,
     rows,
   };
   mkdirSync(CORPUS_RESULTS, { recursive: true });
-  const base = `${results.runAt.slice(0, 10)}-${sha}${dirty ? '-dirty' : ''}`;
+  const base = rescoreFile
+    ? `${path.basename(rescoreFile, '.json')}-rescored`
+    : `${results.runAt.slice(0, 10)}-${sha}${dirty ? '-dirty' : ''}`;
   let file = path.join(CORPUS_RESULTS, `${base}.json`);
   for (let n = 2; existsSync(file); n++) file = path.join(CORPUS_RESULTS, `${base}-${n}.json`);
   writeFileSync(file, JSON.stringify(results));
