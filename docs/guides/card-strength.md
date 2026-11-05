@@ -31,19 +31,18 @@ The builder uses strength as the main tiebreak after theme hits, and the objecti
 
 ## Deck score
 
-A score from 0 to 100 for a finished deck, used to rank styles against each other and deck options on the Build page. The deck's plan leads; the rest is a minor tiebreak, because a pile of strong cards is not a deck that works.
+A score from 0 to 100 for a finished deck, used to rank styles against each other. Synergy leads; the rest is a minor tiebreak, because card strength and the shape checks cannot see how well a deck's cards work together.
 
-| Part        | Weight | Scale                                                                                                                                                                                                                                                                                          |
-| ----------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Plan        | 0.60   | The style's enablers and payoffs as multiples of its minimums, the scarcer of the two; three times the minimums (or as many as the spell slots hold) scores 1. Aggro, Midrange, and Control have no plan of their own and score their rule pairs per spell instead, three per spell scoring 1. |
-| Castability | 0.30   | Share of spells the mana base casts on curve (multi-color decks).                                                                                                                                                                                                                              |
-| Strength    | 0.05   | Average card strength, 3 maps to 0 and 7 to 1.                                                                                                                                                                                                                                                 |
-| Roles       | 0.05   | Share of each role target met, averaged over roles.                                                                                                                                                                                                                                            |
-| Curve       | 0.10   | Curve misses beyond tolerance; misses equal to the spell slots score 0.                                                                                                                                                                                                                        |
-| Type mix    | 0.05   | Cards outside the type bounds, scaled the same way.                                                                                                                                                                                                                                            |
+| Part     | Weight | Scale                                                                        |
+| -------- | ------ | ---------------------------------------------------------------------------- |
+| Synergy  | 0.60   | Weighted enabler and payoff pairs per spell; 2 pairs per spell scores 1.     |
+| Strength | 0.15   | Average card strength, 3 maps to 0 and 7 to 1.                               |
+| Roles    | 0.10   | Share of each role target met, averaged over roles.                          |
+| Curve    | 0.10   | Curve misses beyond tolerance; misses equal to half the spell slots score 0. |
+| Type mix | 0.05   | Cards outside the type bounds, scaled the same way.                          |
 
-Why: counting every synergy rule's enabler and payoff pairs rewards a pile of loosely related themes, and scored that way no reference deck ever rated as high as a build from bulk, because real decks go deep on one plan. Counting only the chosen style's own cards, against its minimums, rewards the deck that commits. Full credit sits at three times the minimums so the deepest plan in the pool wins best fit; at the minimums every viable style ties and the choice falls to small differences. Real decks miss our role targets and curve more often than builds do, so those weigh less and the curve allows twice the misses it did. Under a commander, the styles it rewards get up to 15 points (`commander.styleBonus`, see [Commander](commander.md)), a little less than running the plan once more past its minimums.
+Role coverage and type mix are full in almost every bulk pool, so in practice synergy decides and strength breaks near ties.
 
 ## Best fit
 
-The archetype scan measures how deep a theme runs in the pool, not how good its deck will be: a color full of flyers always looks deep in flyers. So best fit builds the best deck it can for every viable style, scores each, and keeps the highest. The deck notes name the styles it compared. On the Build page (phase 11) the same builds become the ranked list of options.
+The archetype scan measures how deep a theme runs in the pool, not how good its deck will be: a color full of flyers always looks deep in flyers. So best fit builds the best deck it can for every viable style, scores each, and keeps the highest. The deck notes list the scores it compared. On the Build page (phase 11) the same builds become the ranked list of options.

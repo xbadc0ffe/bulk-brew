@@ -1,5 +1,5 @@
 {
-  "version": "9",
+  "version": "8",
   "objective": {
     "curveDeviation": 1.0,
     "typeMixDeviation": 1.0,
@@ -15,16 +15,16 @@
   },
   "deckScore": {
     "weights": {
-      "strength": 0.05,
-      "roles": 0.05,
+      "strength": 0.15,
+      "roles": 0.1,
       "curve": 0.1,
       "typeMix": 0.05,
       "synergy": 0.6,
       "castability": 0.3
     },
     "strengthRange": [3, 7],
-    "shapeSlack": 1.0,
-    "synergyReference": 3
+    "shapeSlack": 0.5,
+    "synergyReference": 2
   },
   "bestFit": { "synergyCandidates": 20, "compositionCandidates": 3 },
   "buildOptions": {
@@ -38,7 +38,7 @@
   "commander": {
     "minimumScale": 1.6,
     "roleCredit": 1,
-    "styleBonus": 15,
+    "styleBonus": 5,
     "deepPool": 120
   },
   "secondary": {

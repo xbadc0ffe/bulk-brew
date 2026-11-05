@@ -281,10 +281,7 @@ export interface BuilderWeightsConfig {
     strengthRange: [number, number];
     /** Curve or type-mix misses, as a share of spell slots, that score zero. */
     shapeSlack: number;
-    /**
-     * Plan depth that scores one, in multiples of the style's minimums (capped
-     * at what the spell slots hold); for plain shapes, rule pairs per spell.
-     */
+    /** Weighted synergy pairs per spell that score one. */
     synergyReference: number;
   };
   /** How many viable archetypes best fit builds and compares. */

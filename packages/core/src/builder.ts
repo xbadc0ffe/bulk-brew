@@ -921,25 +921,7 @@ function castability(state: State, ctx: Ctx, mana: ManaBase, lands: number): num
   return all > 0 ? ok / all : 1;
 }
 
-/**
- * How far the deck runs its own plan: its style's enablers and payoffs as
- * multiples of the style's minimums, the scarcer of the two, with full
- * credit at `reference` times or at as many as the spell slots hold. A real
- * themed deck goes deep on one plan; the synergy rules count every theme's
- * pairs, which rewards a pile of loosely related themes.
- */
-export function planDepth(
-  have: { enablers: number; payoffs: number },
-  want: { enablers: number; payoffs: number },
-  slots: number,
-  reference: number,
-): number {
-  const part = (n: number, w: number) =>
-    w <= 0 ? 1 : n / (w * Math.max(1, Math.min(reference, slots / w)));
-  return clamp01(Math.min(part(have.enablers, want.enablers), part(have.payoffs, want.payoffs)));
-}
-
-/** Deck score: plan depth, card strength, roles, curve, type mix, and castability, each 0 to 1. */
+/** Deck score: synergy, card strength, roles, curve, type mix, and castability, each 0 to 1. */
 function scoreDeck(state: State, ctx: Ctx, mana: ManaBase, lands: number): DeckScore {
   const t = tally(state, ctx);
   const cfg = ctx.weights.deckScore;
@@ -975,11 +957,7 @@ function scoreDeck(state: State, ctx: Ctx, mana: ManaBase, lands: number): DeckS
     Math.max(0, t.ncPerm - tm.noncreaturePermanentMax * slots - tol);
   const typeMix = clamp01(1 - typeDev / slack);
 
-  // Plain shapes (Aggro, Midrange, Control) have no plan of their own; their synergy is the
-  // incidental pairs over every rule.
-  const synergy = ctx.theme
-    ? planDepth({ enablers: t.pe, payoffs: t.pp }, ctx.theme.want, slots, cfg.synergyReference)
-    : clamp01(synergyPairs(t, ctx) / spells / cfg.synergyReference);
+  const synergy = clamp01(synergyPairs(t, ctx) / spells / cfg.synergyReference);
 
   const cast = castability(state, ctx, mana, lands);
   const w = cfg.weights;
@@ -1261,8 +1239,8 @@ function attempt(
  * The styles its text rewards (a payoff for them, or a tribe it names) are
  * scaled by how specific they are: the one with the fewest payoffs among the
  * candidates gets all of it, and one with n times as many payoffs gets 1/n²,
- * as a rarer payoff marks the commander's own plan. A style the commander
- * only feeds gets nothing: feeding a theme is not leading it.
+ * as a rarer payoff marks the commander's own plan. A commander that rewards
+ * none pulls the styles it feeds the same way.
  */
 function commanderPull(
   tryList: readonly Archetype[],
@@ -1274,8 +1252,10 @@ function commanderPull(
 ): Map<string, number> {
   const facts = factsFor(index, config, commander);
   const rewards = (a: Archetype) => tribeOf(a.id) !== undefined || facts.payoffOf.includes(a.id);
+  const leads = tryList.filter(rewards);
+  const pulled = leads.length > 0 ? leads : tryList.filter((a) => facts.enablerOf.includes(a.id));
   const payoffs = new Map<string, number>();
-  for (const a of tryList.filter(rewards)) {
+  for (const a of pulled) {
     const theme = themeOf(a, config, size);
     if (theme) payoffs.set(a.id, Math.max(1, countCopies(cands, theme.isPayoff)));
   }
@@ -1368,7 +1348,7 @@ export function buildDeck(
   if (request.secondary && !request.style)
     notes.push('A secondary archetype needs a primary archetype; built the best fit without it.');
 
-  // A commander pulls best fit toward the styles its own text rewards, the most specific most.
+  // A commander pulls best fit toward the styles its own text rewards or feeds, the most specific most.
   const pull = commander
     ? commanderPull(tryList, commander, cands, index, config, size)
     : new Map<string, number>();
