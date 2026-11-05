@@ -6,6 +6,7 @@ import {
   buildDeck,
   compareCandidates,
   curveTargets,
+  planDepth,
   styleCounts,
 } from '../src/builder.ts';
 import { commitDeck, newDeckId, returnDeck } from '../src/decks.ts';
@@ -129,6 +130,26 @@ describe('compareCandidates', () => {
     expect(compareCandidates(cheap, beefy, [], () => 0)).toBe(
       -compareCandidates(beefy, cheap, [], () => 0),
     );
+  });
+});
+
+describe('planDepth', () => {
+  const want = { enablers: 8, payoffs: 4 };
+  it('takes the scarcer of enablers and payoffs as multiples of the minimums', () => {
+    expect(planDepth({ enablers: 8, payoffs: 4 }, want, 35, 3)).toBeCloseTo(1 / 3);
+    expect(planDepth({ enablers: 24, payoffs: 4 }, want, 35, 3)).toBeCloseTo(1 / 3);
+    expect(planDepth({ enablers: 24, payoffs: 12 }, want, 35, 3)).toBe(1);
+    expect(planDepth({ enablers: 40, payoffs: 40 }, want, 35, 3)).toBe(1);
+    expect(planDepth({ enablers: 0, payoffs: 4 }, want, 35, 3)).toBe(0);
+  });
+  it('gives full credit at what the spell slots hold when three times will not fit', () => {
+    // Fourteen enablers fit only two and a half times into 35 slots.
+    const spells = { enablers: 14, payoffs: 5 };
+    expect(planDepth({ enablers: 35, payoffs: 15 }, spells, 35, 3)).toBe(1);
+    expect(planDepth({ enablers: 14, payoffs: 15 }, spells, 35, 3)).toBeCloseTo(0.4);
+  });
+  it('counts a zero minimum as met', () => {
+    expect(planDepth({ enablers: 6, payoffs: 0 }, { enablers: 2, payoffs: 0 }, 12, 3)).toBe(1);
   });
 });
 

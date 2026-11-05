@@ -241,7 +241,7 @@ export interface DeckScore {
   roles: number;
   curve: number;
   typeMix: number;
-  /** Weighted enabler and payoff pairs per spell against the config reference. */
+  /** Plan depth: the style's own enablers and payoffs against its minimums (rule pairs for plain shapes). */
   synergy: number;
   /** Share of spells the mana base casts on curve at the color's target chance. Absent on older decks. */
   castability?: number;
