@@ -181,6 +181,8 @@ export function DeckExplanation({
   );
   const notes = notesOpen || detailed;
   const e = deck.explanation;
+  // A role the deck size does not ask for (a target of 0) has nothing to show.
+  const roles = e ? Object.entries(e.roles).filter(([, c]) => c.want > 0) : [];
   const phone = variant === 'phone';
   const info = archetypeInfo(config, deck.archetype);
   const label = phone ? 'text-[0.6875rem] tracking-[0.04em] text-fg-2 uppercase' : ui.sectionLabel;
@@ -229,20 +231,20 @@ export function DeckExplanation({
           {e.lands.nonbasics > 0 && `, ${e.lands.nonbasics} nonbasic`}.
         </p>
       </section>
-      {(styles.length > 0 || Object.keys(e.roles).length > 0) && (
+      {(styles.length > 0 || roles.length > 0) && (
         <section className="flex flex-col gap-1.5">
           <h3 className={label}>Roles</h3>
           <RoleBars>
             {styles.map((r) => (
               <RoleBar key={r.key} label={r.label} have={r.have} want={r.want} />
             ))}
-            {Object.entries(e.roles).map(([id, c]) => (
+            {roles.map(([id, c]) => (
               <RoleBar key={id} label={roleLabel(config, id)} have={c.have} want={c.want} />
             ))}
           </RoleBars>
           {detailed && (
             <dl className={`mt-1 flex flex-col gap-1.5 ${small}`}>
-              {Object.keys(e.roles).map((id) => (
+              {roles.map(([id]) => (
                 <div key={id}>
                   <dt className="inline font-semibold text-ink">{roleLabel(config, id)}: </dt>
                   <dd className="inline">

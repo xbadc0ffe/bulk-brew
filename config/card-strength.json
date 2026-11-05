@@ -1,5 +1,5 @@
 {
-  "version": "1",
+  "version": "2",
   "base": 3,
   "min": 0,
   "max": 10,
@@ -151,7 +151,7 @@
     },
     {
       "label": "mana source",
-      "value": 0.8,
+      "value": 0.4,
       "match": [
         {
           "anyTags": ["mana-dork", "mana-rock"]

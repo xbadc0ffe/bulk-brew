@@ -1,11 +1,11 @@
 {
-  "version": "4",
+  "version": "5",
   "templates": {
     "100": {
       "size": 100,
       "label": "Commander",
       "description": "One commander plus 99 cards, one copy of each. Colors come from the commander.",
-      "baseLands": 37,
+      "baseLands": 38,
       "landFormula": {
         "referenceMv": 3.2,
         "slopePerMv": 2.5,
@@ -28,13 +28,13 @@
         "noncreaturePermanentMax": 0.4
       },
       "roles": {
-        "ramp": { "min": 8, "target": 10 },
-        "removal": { "min": 6, "target": 9 },
-        "cardAdvantage": { "min": 7, "target": 10 },
+        "ramp": { "min": 7, "target": 8 },
+        "removal": { "min": 6, "target": 8 },
+        "cardAdvantage": { "min": 8, "target": 12 },
         "sweeper": { "min": 1, "target": 3 },
-        "commanderFinisher": { "min": 2, "target": 5 },
-        "cheapInteraction": { "min": 2, "target": 4 },
-        "earlyCreature": { "min": 3, "target": 6 }
+        "commanderFinisher": { "min": 2, "target": 4 },
+        "cheapInteraction": { "min": 2, "target": 3 },
+        "earlyCreature": { "min": 3, "target": 5 }
       },
       "maxCopies": 1,
       "copyCaps": { "legendary": 1, "expensiveMv": 99, "expensive": 1 },
@@ -44,7 +44,7 @@
       "size": 60,
       "label": "60-card deck",
       "description": "Casual constructed. Four copies of a card at most.",
-      "baseLands": 24,
+      "baseLands": 25,
       "landFormula": {
         "referenceMv": 2.9,
         "slopePerMv": 2.0,
@@ -61,17 +61,17 @@
       },
       "curveProfile": "midrange",
       "typeMix": {
-        "creatureMin": 0.45,
-        "creatureMax": 0.7,
+        "creatureMin": 0.55,
+        "creatureMax": 0.75,
         "instantSorceryMin": 0.1,
         "noncreaturePermanentMax": 0.3
       },
       "roles": {
         "removal": { "min": 4, "target": 7 },
-        "cardAdvantage": { "min": 2, "target": 5 },
+        "cardAdvantage": { "min": 2, "target": 4 },
         "cheapInteraction": { "min": 2, "target": 4 },
         "finisher": { "min": 2, "target": 4 },
-        "ramp": { "min": 0, "target": 2 },
+        "ramp": { "min": 0, "target": 1 },
         "earlyCreature": { "min": 4, "target": 8 }
       },
       "maxCopies": 4,
@@ -99,8 +99,8 @@
       },
       "curveProfile": "midrange",
       "typeMix": {
-        "creatureMin": 0.55,
-        "creatureMax": 0.75,
+        "creatureMin": 0.5,
+        "creatureMax": 0.7,
         "instantSorceryMin": 0.1,
         "noncreaturePermanentMax": 0.25
       },
@@ -109,7 +109,7 @@
         "cardAdvantage": { "min": 1, "target": 3 },
         "cheapInteraction": { "min": 1, "target": 3 },
         "finisher": { "min": 2, "target": 3 },
-        "ramp": { "min": 0, "target": 1 },
+        "ramp": { "min": 0, "target": 0 },
         "earlyCreature": { "min": 3, "target": 6 }
       },
       "maxCopies": 4,
@@ -147,8 +147,8 @@
         "cardAdvantage": { "min": 0, "target": 1 },
         "cheapInteraction": { "min": 1, "target": 2 },
         "finisher": { "min": 1, "target": 2 },
-        "ramp": { "min": 0, "target": 1 },
-        "earlyCreature": { "min": 2, "target": 4 }
+        "ramp": { "min": 0, "target": 0 },
+        "earlyCreature": { "min": 2, "target": 3 }
       },
       "maxCopies": 2,
       "copyCaps": { "legendary": 2, "expensiveMv": 6, "expensive": 2 },

@@ -390,7 +390,8 @@ function OptionCard({ option, onOpen }: { option: DeckOption; onOpen(): void }) 
     () => (index ? deckStyleRows(deck, index, config) : []),
     [deck, index, config],
   );
-  const roles = Object.entries(explanation.roles);
+  // A role the deck size does not ask for (a target of 0) has nothing to show.
+  const roles = Object.entries(explanation.roles).filter(([, c]) => c.want > 0);
   const left = missing.map((c) => COLOR_LABELS[c].toLowerCase()).join(' and ');
   return (
     <div className="relative flex h-full flex-col gap-4 rounded-lg border border-line bg-surface p-4 hover:border-line-strong hover:bg-surface-2">

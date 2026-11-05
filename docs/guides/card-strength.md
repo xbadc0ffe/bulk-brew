@@ -11,7 +11,7 @@ A score from 0 to 10, computed from card data alone. It starts at a base of 3 an
 | Popularity         | Up to +2 from Scryfall's popularity rank (1 minus rank over 33,000). Unranked cards get a small share.                               |
 | Stats for its cost | Creatures only: power plus toughness against twice the mana value (at least 2), 0.35 per point, between -2 and +2. Star stats skip.  |
 | Keywords           | Creatures only, capped at +2: flying 1, double strike 1.2, indestructible 0.9, deathtouch 0.8, hexproof 0.7, defender -1, and so on. |
-| Effects            | Tag-based, capped at +3.5: removal +2, sweepers +2, card draw +1 to +1.5, token makers, mana sources, anthems, counterspells.        |
+| Effects            | Tag-based, capped at +3.5: removal +2, sweepers +2, card draw +1 to +1.5, token makers, mana sources +0.4, anthems, counterspells.   |
 | Removal quality    | Exile +0.4; hits any nonland permanent +0.5; only hits attackers or blockers -0.8.                                                   |
 | Weak alone         | Auras and equipment that only add stats or keywords -0.8; a drawback tag -0.4.                                                       |
 | Speed and cost     | Instants +0.3; noncreature spells gain up to 0.6 for being cheap and lose up to 1 for costing more than three.                       |
@@ -22,6 +22,7 @@ Why these rules:
 
 - A card is a slot first. A plain body is rarely worth it; a body with an effect is close to two cards in one.
 - Flexible beats narrow. Removal that answers anything outranks removal that needs the creature to be attacking. Instant speed and fewer colored pips make a card easier to use.
+- Ramp is a job, not a strength. Real 60, 40, and 20-card decks hold about as many mana sources as random bulk does, and at +0.8 builds carried one to three more than the reference decks, so mana sources add only 0.4; a Commander deck asks for its ramp through the ramp role.
 - Cheap matters. Most removal and most threats in casual play are cheap, so a cheap card that does its job beats a slightly better expensive one.
 - Popularity is a signal, not the answer. It comes from Commander play, so it favors multiplayer value cards and knows little about limited-only cards. It breaks up the middle of bulk without overruling what the card does.
 - Strength is context-free on purpose. A card that is weak alone can still make a themed deck: the theme passes and theme hits pull it in. The theme pass fills its minimums from theme cards scoring at least `themeMinStrength` (3) first, and the scan ranks themes by how many such cards they have, so a theme made of cards that are dead on their own ranks low. Weaker theme cards still count when nothing better is left; the bar is a preference, not a rule.

@@ -17,18 +17,18 @@ Partner, Background, and similar pairs, and colorless commanders, are not suppor
 
 | Part              | Min | Target | Why                                                                                       |
 | ----------------- | --- | ------ | ----------------------------------------------------------------------------------------- |
-| Lands             | 35  | 37     | The land formula starts at 37 and moves with the curve; a long game wants its land drops. |
-| Ramp              | 8   | 10     | Lands plus ramp near 45 to 47 keeps the deck casting its bigger spells on time.           |
-| Card advantage    | 7   | 10     | Multiplayer games run long; a deck that draws keeps up. Cantrips are smoothing, not draw. |
-| Removal           | 6   | 9      | Answers for the threats three opponents bring.                                            |
+| Lands             | 35  | 38     | The land formula starts at 38 and moves with the curve; a long game wants its land drops. |
+| Ramp              | 7   | 8      | Lands plus ramp near 45 to 47 keeps the deck casting its bigger spells on time.           |
+| Card advantage    | 8   | 12     | Multiplayer games run long; a deck that draws keeps up. Cantrips and looting count.       |
+| Removal           | 6   | 8      | Answers for the threats three opponents bring.                                            |
 | Sweepers          | 1   | 3      | Fewer in a go-wide deck, which loses more to its own sweepers.                            |
-| Finishers         | 2   | 5      | Overruns, extra combats, other ways to win, and threats big enough for 40 life.           |
-| Cheap interaction | 2   | 4      | Tricks and protection at two mana or less.                                                |
-| Early creatures   | 3   | 6      | Plays on the first turns.                                                                 |
+| Finishers         | 2   | 4      | Overruns, extra combats, other ways to win, and threats big enough for 40 life.           |
+| Cheap interaction | 2   | 3      | Tricks and protection at two mana or less.                                                |
+| Early creatures   | 3   | 5      | Plays on the first turns.                                                                 |
 
-The rest goes to the theme. Creatures sit between 25% and 60% of the spells, set by the style. The curve (`commander` profile) is fuller at five and up than a 60-card deck's, because the games last longer.
+The numbers follow official Commander precons: 38 lands and 8 ramp in the middle, 14 card advantage (11 to 17 for the middle half), and about 8 removal, 3 finishers, 3 cheap interaction, and 5 early creatures. Lands come before ramp because a land cannot be removed or traded off. The targets sit at or a little above the precon middle for draw and at it for the rest, since strong removal and cheap creatures come in on their own strength anyway. The rest goes to the theme. Creatures sit between 25% and 60% of the spells, set by the style. The curve (`commander` profile) is fuller at five and up than a 60-card deck's, because the games last longer.
 
-The land formula gives small credits for cheap mana sources (0.1 to 0.2 each): the base of 37 already assumes about ten ramp pieces. The clamp is 35 to 40.
+The land formula gives small credits for cheap mana sources (0.1 to 0.2 each): the base of 38 already assumes about eight ramp pieces. The clamp is 35 to 40.
 
 The commander counts as one card toward each role it fills (`commander.roleCredit`), the same as any card in the 99, so the deck still works when the commander is off the table. Best fit adds up to 5 points (`commander.styleBonus`) to the styles the commander itself rewards, the most specific one most: the style with the fewest payoffs among the pool's cards gets all 5, and one with n times as many payoffs gets 5/n². On the reference precons the squared falloff kept the most specific style ahead often enough to matter (Hylda builds Tappers, not +1/+1 counters) with the same style match as a plain 1/n. A rare payoff marks the commander's own plan, so Hylda of the Icy Crown, which rewards tapped creatures, +1/+1 counters, and wide boards, leans toward Tappers. A commander that rewards no style pulls the styles it feeds the same way. The deck notes say when the bonus decided it.
 

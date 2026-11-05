@@ -254,7 +254,7 @@ describe('deckMetrics', () => {
     // Template 20-card bounds allow 50% creatures; aggro raises the minimum to 60%.
     expect(asMidrange.typeMixOk).toBe(true);
     expect(asAggro.typeMixOk).toBe(false);
-    expect(asMidrange.roles['earlyCreature']).toEqual({ have: 4, min: 2, target: 4 });
+    expect(asMidrange.roles['earlyCreature']).toEqual({ have: 4, min: 2, target: 3 });
     expect(asAggro.roles['earlyCreature']).toEqual({ have: 4, min: 4, target: 5 });
     expect(asAggro.roles['cardAdvantage']).toEqual({ have: 0, min: 0, target: 0 });
     expect(asAggro.castable).toBe(true);

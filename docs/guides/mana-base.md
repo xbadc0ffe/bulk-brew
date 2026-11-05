@@ -25,17 +25,19 @@ Dorks earn less than rocks because they die to removal and cannot attack when ta
 
 | Size | Base | Reference mv | Slope | Clamp    |
 | ---- | ---- | ------------ | ----- | -------- |
-| 60   | 24   | 2.9          | 2.0   | 20 to 27 |
+| 60   | 25   | 2.9          | 2.0   | 20 to 27 |
 | 40   | 17   | 3.0          | 1.3   | 15 to 18 |
 | 20   | 8    | 2.6          | 0.7   | 7 to 9   |
 
 Worked examples:
 
-- 60-card midrange, average mv 2.6, two one-drop dorks: 24 + 2.0 × (2.6 − 2.9) − 0.8 = 22.6, so 23 lands.
-- 60-card control, average mv 3.4, no ramp: 24 + 2.0 × 0.5 = 25 lands.
+- 60-card midrange, average mv 2.6, two one-drop dorks: 25 + 2.0 × (2.6 − 2.9) − 0.8 = 23.6, so 24 lands.
+- 60-card control, average mv 3.4, no ramp: 25 + 2.0 × 0.5 = 26 lands.
 - 40-card aggro, average mv 2.5: 17 + 1.3 × (−0.5) = 16.35, so 16 lands.
 - 40-card midrange, average mv 3.1, one cheap dork: 17 + 0.13 − 0.3 = 16.83, so 17 lands.
 - 20-card packet, average mv 2.4: 8 − 0.14 = 7.86, so 8 lands. A packet averaging 3.5 gets 9.
+
+Preconstructed 60-card decks run 25 lands in the middle (24 to 25 for the middle half) at an average cost of about 3.0, and builds from a base of 24 came out one to two lands short of them, so the base is 25.
 
 The builder picks spells first with the base count reserved, computes the formula on what it chose, then adjusts the spell count if the land count moved. Rounding is to the nearest whole number, halves up.
 
