@@ -1,4 +1,4 @@
-# Builder review: do our decks work?
+# Builder review: decent decks from bulk
 
 ## Status
 
@@ -12,56 +12,58 @@ Open a Fable session in this repo and say:
 
 That sentence is the owner's opt-in to multi-agent orchestration (the Workflow tool needs it in the owner's own words).
 
-## The question
+## The goal
 
-Bulk Brew builds decks from a pile of bulk cards. The owner looked at the decks it builds today and found Graveyard decks with graveyard payoffs but no real way to fill the graveyard. They hold payoffs that happen to mill one card, removal with "surveil 1", and no looters, discard outlets, or self-mill engines. That is a pile of cards that mention the graveyard, not a Graveyard deck.
+Bulk Brew builds decks from a pile of bulk cards. These are bulk decks, not perfect decks. Nobody expects a tuned deck from cards that were sitting in a box. But each deck should be decent, not a pile of random cards that happen to share a word.
 
-The goal is decks that work. A themed deck has cards that set something up and cards that pay off on that setup, in amounts that make the plan happen in a real game. It also has the mana, curve, and interaction to survive until then. Matching real decks is not the goal. Real decks are useful evidence of what works, but resemblance to them is a diagnostic, not a target. It is fine for Graveyard to top a pool's builds, as long as the Graveyard decks work.
+The owner found Graveyard decks with graveyard payoffs and no real way to fill the graveyard. They held payoffs that happen to mill one card, removal with "surveil 1", and no looters, discard outlets, or self-mill engines. That is the failure this review is about.
 
-This session does a fundamental review:
+**A decent bulk deck:**
 
-1. **How our builder decides,** end to end, and where it strings random cards together.
-2. **What makes each theme work,** written down precisely enough to measure.
-3. **How to measure "this deck works"** in ways that do not share the builder's flaws.
-4. **Other ways to build decks:** published and open-source approaches, plus prototypes of the most promising, all run on the same pools.
-5. **A comparison** of our builder, its earlier version, the alternatives, and anchor decks, with a recommendation for what to build next.
+- has a plan a player could explain in a sentence;
+- runs setup cards and payoff cards that feed each other, in numbers that make the plan show up in most games;
+- can cast its spells: a sensible curve, land count, and color sources;
+- has some interaction (removal, blockers, counters) and something that wins the game;
+- has few cards that do nothing for the plan or the game.
 
-This session does not change the live builder. It produces the review, the measuring tools, the prototypes, and a recommendation. The owner decides what ships.
+**A decent bulk deck does not need to be:**
+
+- the best deck the pool could make;
+- full of strong or rare cards;
+- a copy of a real deck. Real decks are evidence of what works, not a target.
+
+A plain Aggro, Midrange, or Control deck built from good cards with a working curve counts as decent too. A themed deck that names a theme but lacks the setup or the payoff does not. It is fine for one theme, such as Graveyard, to top a pool's builds when the pool is rich in it, as long as those decks are decent.
+
+## The plan
+
+1. **Review other algorithms.** How other deck builders, draft bots, and recommenders build decks, with a short description of ours alongside them.
+2. **Build a few new algorithms** of our own, from what the review finds.
+3. **Test every version end to end** on the same pools: the current builder, the one before the learned work, and the new ones.
+4. **Compare and recommend** which to ship next.
+
+This session does not change the live builder. It produces the review, the prototypes, the test results, and a recommendation. The owner decides what ships.
 
 ## What we know already
 
-### The builder today (26.0.34)
+### Our builder today (26.0.34)
 
-The builder lives in `packages/core/src` and is configured by `config/`. It is deterministic, has no network access, and runs on the device: web and an iOS app, so phone speed matters. In outline:
+It lives in `packages/core/src` and is configured by `config/`. It is deterministic, has no network access, and runs on the device: web and an iOS app, so phone speed matters. A synthetic 100-card build takes about 90 ms on desktop, and the Build page builds several decks per request. In outline:
 
-- **Candidates and facts.** `candidates.ts` and `matchers.ts`: every card in the pool gets facts such as roles, theme enabler and payoff membership, strength, and curve bucket. These come from Scryfall Tagger tags, `config/tag-overlay.json`, and the matchers in `config/archetypes.json` and `config/roles.json`.
-- **Scan.** `scan.ts`: which styles a pool can build, from enabler and payoff counts against per-size minimums.
-- **Plan choice.** `plan.ts`: at 100, 60, and 20 cards, best fit scores each viable plan with
-  - a prior from real decks;
-  - the lift of the pool's theme cards over random bulk;
-  - how well the pool fills the theme to what real decks run;
-  - a weight calibrated by `npm run learn:build`.
-
-  It builds the top three themes plus the plain shapes (Aggro, Midrange, Control). At 40 cards, best fit keeps the older hand-set way.
-
-- **Fill and swap.** `builder.ts`: passes fill roles (removal, card advantage, and so on), the theme to its learned target, and the curve. A local search then swaps cards to raise an objective. That objective adds up:
-  - card strength;
+- **Cards and facts.** `candidates.ts` and `matchers.ts` give every pool card its roles, theme enabler and payoff membership, strength, and curve bucket. These come from Scryfall Tagger tags, `config/tag-overlay.json`, and the matchers in `config/archetypes.json` (18 themed styles plus the Aggro, Midrange, and Control shapes) and `config/roles.json`.
+- **Which plans the pool can build.** `scan.ts` compares enabler and payoff counts with per-size minimums.
+- **Which plan to build.** `plan.ts` scores plans from real decks' priors, how much of the theme the pool holds above random bulk, and calibrated weights. Best fit builds the top few.
+- **Building.** `builder.ts`: passes fill roles (removal, card advantage, and so on), the theme to a target learned from real decks, and the curve. A swap search then raises an objective made of:
+  - card strength (`strength.ts`, `config/card-strength.json`);
   - plan fit, learned card pairs, and combos (`select.ts`);
-  - hand-written synergy rules at a quarter weight (`config/synergy-rules.json`);
-  - a penalty for drifting outside the middle half of real decks' makeup.
-- **Mana.** `lands.ts` and `colors.ts`: land count, nonbasics, and color sources.
-- **Card strength.** `strength.ts` and `config/card-strength.json`: hand-set points for popularity, stats, keywords, and effects.
-- **Deck score.** At 100, 60, and 20 cards: closeness to real decks of the plan (0.7), card strength (0.15), and castability (0.15). It ranks the Build page options (`options.ts`) and the Analyze pane (`best-decks.ts`).
-- **Learned data.**
-  - `config/learned/plans.json`: plan profiles, calibrated weights, and bulk shares.
-  - `config/learned/tags.json`: tag fit per style and tag pairs.
-  - `data/learned.json`: card fit, commander plans, card pairs, and combos.
-
-  These are built from the reference corpus, EDHREC, and Commander Spellbook. See `docs/learned-builder.md`; its status section has the numbers for each shipped phase.
+  - hand-written synergy rules (`config/synergy-rules.json`);
+  - a penalty for drifting from real decks' makeup.
+- **Mana.** `lands.ts` and `colors.ts`.
+- **Ranking.** A deck score ranks the Build page options (`options.ts`) and the Analyze pane (`best-decks.ts`).
+- **Learned data.** `config/learned/` and `data/learned.json`, from the reference corpus, EDHREC, and Commander Spellbook. See `docs/learned-builder.md`.
 
 ### Why it strings random cards together (found 2026-11-05)
 
-Checked on the Graveyard style with 60-card builds from the owner's bulk. A Blue Graveyard deck counted 10 setup cards and 11 payoffs:
+Checked on Graveyard with 60-card builds from the owner's bulk. A Blue Graveyard deck counted 10 setup cards and 11 payoffs:
 
 - Seven of the 10 setup copies were payoff cards with a small mill or loot rider.
 - The other three were removal or a big creature with a one-time surveil.
@@ -69,33 +71,30 @@ Checked on the Graveyard style with 60-card builds from the owner's bulk. A Blue
 
 The causes:
 
-1. **Setup is defined by broad tags.** A Graveyard enabler is any card tagged `mill-self`, which covers anything that mills its controller at all, including surveil 1 on a removal spell. Nothing measures how much a card fills the graveyard or how often. Tags such as `repeatable-surveil` and `repeatable-loot` exist but go unused.
-2. **Real setup was excluded.** Looters, rummagers, discard outlets, and sacrifice outlets count only when the same card is also a graveyard payoff. This rule was tightened to stop "any looter makes a Graveyard deck", but it kept the riders and threw out the engines.
-3. **Dual cards count twice.** A card that is both enabler and payoff counts for both, so minimums and learned targets are met by payoffs with riders. Nothing requires separate setup cards or a balance between setup and payoff.
-4. **The learned data inherits the flaw.** Real decks' profiles were counted with the same matchers, so "real Graveyard decks run 10 enablers" is satisfied by riders. Learned tag fit scores any `mill-self` card the same.
-5. **The ranking shares the flaw.** The deck score measures closeness to real decks using the same loose counts. A score and a yardstick that share a flaw hide it.
+1. **Setup is defined by broad tags.** `mill-self` covers anything that mills its controller at all, including surveil 1 on a removal spell. Nothing measures how much or how often a card fills the graveyard.
+2. **Real setup was excluded.** Looters, rummagers, discard outlets, and sacrifice outlets count only when the same card is also a graveyard payoff.
+3. **Dual cards count twice.** A card that is both enabler and payoff counts for both, so payoffs with riders meet the setup minimums. Nothing asks for separate setup cards or a balance between setup and payoff.
+4. **The learned data and the deck score inherit the flaw,** because they count real decks and our decks with the same matchers.
 
-Every style counts setup and payoff this way. Expect the same problem in Counters, Tokens, Spells, Aristocrats, Lifegain, and the rest until shown otherwise.
+Every style counts setup and payoff this way, so expect the same problem in other themes until shown otherwise.
 
-### What the last two sessions learned
+### Lessons from the last two sessions
 
-- Best fit among close styles is noisy: one synergy rule once flipped 55% of 40-card best fits. Judge with paired counts (decks gained and lost), not averages alone.
-- Recalibrating the plan choice (`learn:build`) shifts the style mix on its own. Compare other changes on a fixed calibration.
-- Card strength changes traded theme cards for generically strong cards. That may be right or wrong. Only a measure of whether the deck works can say.
-- Planted-deck pools (a real deck shuffled into 3,000 bulk cards) reward recovering the planted deck. Building a working deck from plain bulk is a different task and needs its own pools.
-- Blind review answer keys must live outside the packet folders the reviewers read.
-- Small test splits swing by three decks or so. Report counts, not just shares.
-- One session judged a phase by a single number and skipped the blind review. Never let one proxy decide.
+- A score and a yardstick built on the same definitions agree with each other and tell you nothing. Judge decks with something independent of the builder.
+- Best fit among close styles is noisy. Compare themes with requested-style builds, and report paired counts (decks gained and lost), not only averages.
+- Card strength changes traded theme cards for generically strong cards. Whether that is better is a question for the judges, not for a resemblance number.
+- Pools made by hiding a real deck in 3,000 bulk cards reward recovering that deck. Plain bulk with nothing hidden is the real task.
+- Blind review answer keys must live outside the folders reviewers read.
+- Never let one number decide.
 
 ## Owner decisions and approvals
 
 The owner approved the following for this review. They cover the "stop and ask" items in `CLAUDE.md` for this work.
 
-- **Multi-agent orchestration.** The Fable session coordinates and Opus agents do the work: analysis, labeling, research, implementation, review, and judging. Use the Agent tool with `model: "opus"` for every agent, the Workflow tool for large fan-outs, and `isolation: "worktree"` for agents that write code in parallel. Heavy use is expected. If a workflow size setting caps a fan-out, run it in batches.
+- **Multi-agent orchestration.** The Fable session coordinates and Opus agents do the work: research, implementation, review, and judging. Use the Agent tool with `model: "opus"` for every agent, the Workflow tool for large fan-outs, and `isolation: "worktree"` for agents that write code in parallel. Heavy use is expected. If a workflow size setting caps a fan-out, run it in batches.
 - **Web research** into how other deck builders and draft bots work: papers, documentation, and open-source code read for ideas. Never copy code from another project into this MIT repo; reimplement ideas and credit them in the report. Check and record each project's license.
-- **New tooling** under `packages/pipeline/src/review/`, with `npm run review:*` scripts, and gitignored output in `data/review/` (add it to `.gitignore`). Reports go in `docs/review/` and are committed.
-- **Prototype builders** live in `packages/pipeline/src/review/algos/`. They may import from `@bulk-brew/core` but must not change it.
-- **No changes** to `packages/core`, `config/`, the apps, or the learned data files. Bugs found in them go to `docs/todo.md` and the report.
+- **New tooling and prototypes** under `packages/pipeline/src/review/`, with `npm run review:*` scripts, and gitignored output in `data/review/` (add it to `.gitignore`). Reports go in `docs/review/` and are committed. Prototypes may import from `@bulk-brew/core` but must not change it.
+- **No changes** to `packages/core`, `config/`, the apps, or the learned data files. Bugs found there go to `docs/todo.md` and the report.
 - **No new dependencies.** If an approach needs a solver or library, prototype without it, or record it as a recommendation with its cost.
 - **Never** run `gh release`, never run the "Refresh card data" workflow, never touch `LICENSE` or `ATTRIBUTION.md`, and never change the data pack schema.
 - **Commits** use the global git email (`info@badc0ffe.net`), never overridden. On a GH007 push error, stop and tell the owner. Commit as you go with `npm run check` green. Push at the end; review commits do not change the app.
@@ -103,24 +102,24 @@ The owner approved the following for this review. They cover the "stop and ask" 
 
 ## Ground rules for every agent
 
-- **Card text comes from data, never from memory.** Agents read oracle text, types, costs, and tags from `data/packs/cards.json` through a helper the session builds first (see Phase 2). Rules questions are answered from `docs/rules/MagicCompRules.txt`, searched with grep, never loaded whole. If `data/packs/` is empty, run `npm run data:pull`; if the rules file is missing, run `npm run rules:fetch`.
-- **Determinism.** Every tool and prototype that could ship takes a seed and gives the same result for the same input.
+- **Card text comes from data, never from memory.** Agents read oracle text, types, costs, and tags from `data/packs/cards.json`, through the card helper built in Phase 2. Rules questions are answered from `docs/rules/MagicCompRules.txt`, searched with grep, never loaded whole. If `data/packs/` is empty, run `npm run data:pull`; if the rules file is missing, run `npm run rules:fetch`.
+- **Determinism.** Every builder that could ship takes a seed and gives the same deck for the same pool, request, and seed.
 - **Reproducibility.** Every number in a report names the command and output file that produced it.
-- **Scratch files** go in a gitignored folder (`data/review/scratch/`), never in `packages/*/src`, where they break `npm run check`.
+- **Scratch files** go in `data/review/scratch/`, never in `packages/*/src`, where they break `npm run check`.
 - **Windows.** Development is on Windows with Git Bash and PowerShell.
   - Shell heredocs that contain backticks fail in the Bash tool; write such files with the file tools.
   - Git Bash rewrites arguments that look like paths; set `MSYS_NO_PATHCONV=1` where needed.
-- **User-facing text** (anything the app shows) stays plain language with no em-dashes. Reports should be plain too.
+- **Plain language** in reports and anything the app shows, with no em-dashes.
 
 ## How the coordinator works
 
-The Fable session plans, splits work, launches agents, checks their output, and integrates. It does little analysis itself.
+The Fable session plans, splits work, launches agents, checks their output, and integrates. It does little research or coding itself.
 
 - **One task, one agent.** Each agent gets a narrow, self-contained task. Its prompt states:
   - the context it needs (this brief's relevant sections, file paths, definitions);
   - the exact inputs;
   - the method;
-  - the output file and its format (JSON schema or Markdown outline);
+  - the output file and its format;
   - what it must not touch;
   - a short reply format, for example "reply with the output path and three lines of findings".
 
@@ -128,201 +127,137 @@ The Fable session plans, splits work, launches agents, checks their output, and 
 
 - **Parallel by default.** Launch independent agents together, in batches of six to ten, or as a Workflow when there are dozens. Agents write results to files. The coordinator reads the files and summaries, not agent transcripts.
 - **Verify everything.**
-  - Every analysis or spec gets a second, fresh Opus agent that tries to prove it wrong.
-  - Every code change gets a fresh reviewer agent on the diff.
+  - Every research write-up and design gets a second, fresh Opus agent that tries to prove it wrong.
+  - Every prototype gets a fresh reviewer agent on its code.
   - The coordinator runs the commands itself before trusting a number.
-  - For labels, measure agreement between two independent agents on a sample.
-- **Blind judging.** Review panels never learn which builder made which deck. Shuffle order, strip names, and keep answer keys in `data/review/keys/`, outside packet folders.
+- **Blind judging.** Judges never learn which version built a deck. Shuffle order, strip names, and keep answer keys in `data/review/keys/`, outside the folders judges read.
 - **Keep a log.** Append a short entry to `docs/review/log.md` for each step: what ran, where the output is, and what it showed. Update this brief's Status section at the end of each phase.
 
 ## Phases
 
 Work through the phases in order. Each ends with its outputs written and reviewed, `npm run check` green, and a commit.
 
-### Phase 1: Map the builder
+### Phase 1: Review other algorithms
 
-Six to eight Opus agents (read-only, Explore or general-purpose) each map one part and write a section of `docs/review/algo-map.md`:
+**Research.** Four to six Opus agents, each on one family, write a section of `docs/review/research.md`. Families:
 
-1. Candidates, facts, matchers, and the tag overlay.
-2. Scan and viability.
-3. Plan choice, best fit, and calibration (`plan.ts`, `calibrate.ts`, `learn-build.ts`).
-4. Fill passes and swap search (`builder.ts`).
-5. Learned selection and synergy rules (`select.ts`, `synergy-rules.json`).
-6. Card strength, deck score, options, and Analyze.
-7. Mana base and color handling.
-8. Commander specifics: the commander's pull, tribes, the 99, and EDHREC commander data.
+- open-source Magic engines that build decks automatically, such as Forge;
+- cube and draft tools and their bots, such as CubeCobra, and published draft-bot research;
+- data-driven recommenders: EDHREC's synergy score and average decks, 17Lands pick orders and win rates;
+- auto-build features in digital card games, from their public descriptions;
+- general methods for choosing a set of items under constraints: greedy fill, local search, simulated annealing, genetic algorithms, integer programming, and co-occurrence models such as card embeddings.
 
-For each part, the section covers:
+For each approach, record:
 
-- what it decides and with which inputs;
-- every number that steers it (config key, or hard-coded with `file:line`);
-- how a theme's setup and payoff enter it;
-- where a card can get in for a reason unrelated to how the deck plays.
-
-A reviewer agent then checks the map against the code and the coordinator merges it. The map ends with a list of suspected "random card" entry points, each with a concrete example built with `npm run demo:build` on a public pool.
-
-### Phase 2: What makes each theme work
-
-**Tools first.** Build `npm run review:cards`. Given names, ids, or a tag, it prints each card's oracle text, type, cost, colors, tags, and which current matchers it meets. Every later agent uses it.
-
-**Theme specs.** One Opus agent per style writes `docs/review/themes/<style>.md`. That covers all 18 synergy styles in `config/archetypes.json`, tribal (creature types), and the three plain shapes. Each spec covers:
-
-- **The resource.** What the theme builds up and spends: cards in graveyard, tokens, counters, life gained, spells cast, artifacts, sacrifice fodder, landfall triggers, and so on.
-- **Setup jobs.** Card functions that create the resource, with:
-  - how to recognize them from oracle text and tags;
-  - how to weigh them by amount and repetition (mill 4 every turn is not surveil 1 once);
-  - common false friends (riders, symmetric effects, one-off triggers).
-- **Payoff jobs.** Card functions that turn the resource into an advantage, with thresholds where they exist (threshold, delve, undergrowth counts).
-- **Support jobs** that protect or connect the plan. Aristocrats, for example, needs fodder, outlets, and death payoffs as three separate parts.
-- **What "works" means in numbers.**
-  - How much setup per payoff at 60, 40, 20, and 100 cards.
-  - How many of each the deck needs.
-  - By which turn the plan should be online most games.
-  - What a card that is both setup and payoff counts as.
-- **Evidence.** Real decks that run the theme: precons and draft winners from `data/corpus/decks.json`, with their setup and payoff counts. Also rules references where mechanics matter, such as how delve or threshold count, from the Comprehensive Rules.
-- **Known traps** in the current matchers for this theme.
-
-A second Opus agent reviews each spec against the card data and the rules. The coordinator resolves disagreements.
-
-### Phase 3: Card labels and the matcher audit
-
-The theme specs become labels that measure decks independently of the builder's matchers.
-
-- **Label set.** Label the cards that matter for the comparison:
-  - every card in every deck built in Phases 5 and 6;
-  - a stratified sample of each style's candidates: cards its matchers accept, and cards with related tags its matchers reject.
-
-  Opus agents label in batches of about 80 cards, one style per batch, using the spec and `review:cards`. Each label records: role (setup, payoff, both, support, none), weight 0 to 3 for how much it moves the plan, whether it repeats, and one line of why. Write JSON lines to `data/review/labels/<style>.jsonl`.
-
-- **Agreement.** A second agent labels 10% of each style blind. Report agreement per style. Where agreement is low, fix the spec and relabel, rather than averaging.
-- **Matcher audit.** For each style, write `docs/review/matchers.md`:
-  - precision: of the cards our matchers call setup or payoff, the share the labels agree with;
-  - recall: of the cards labeled setup or payoff, the share our matchers catch;
-  - the worst false positives and misses, with oracle text.
-
-  The same audit covers the `config/roles.json` roles, since removal or card advantage tagged too broadly also fills decks with cards that do not do the job.
-
-### Phase 4: Measures of a working deck
-
-Build `npm run review:measure`. It scores any decklist for a named plan with:
-
-1. **Function counts** from the labels: weighted setup, weighted payoff, and their ratio, each card counted once, against the theme spec's numbers. It also counts cards that do no job for the plan and are not strong generic cards (dead cards).
-2. **Goldfish simulation.** A seeded solitaire model, many games per deck. It draws, plays a land a turn, and casts what the mana allows by a simple priority. Labels drive the theme's resource: setup adds to it, and payoffs count as live once their threshold is met. Measure:
-   - the turn the plan comes online (a live payoff with its setup behind it);
-   - the share of games where it is online by turn 5 (turn 6 at 100 cards);
-   - mana screw and flood rates;
-   - spells cast on curve.
-
-   This is a model, not the rules of Magic. Keep it small, document what it ignores, and test it on decks whose answer is obvious.
-
-3. **Mana and curve:** the existing castability and curve checks.
-4. **Resemblance**, kept as diagnostics only: style mix, profile distance, and plan recall from `npm run corpus:eval`.
-
-Then extend the blind panel (`corpus-panel.ts` or a new `review:panel`):
-
-- **Rubric.** Rewrite it around function, in `docs/review/rubric.md`:
-  - Does the deck have a plan a player could explain?
-  - Does it have setup and payoff that feed each other?
-  - Will the plan come together in most games?
-  - Which cards are dead?
-  - Would you rather play it than the other deck?
-
-  Judges give pairwise picks and absolute scores, and name the dead cards.
-
-- **Anchors.** Calibrate the measures and the judges with anchors that have known answers:
-  - real precons and winning 17Lands draft decks (strong);
-  - random piles in the same colors with a legal mana base (weak);
-  - a "good stuff" pile of the strongest cards in the colors with no theme;
-  - a deck built by hand by an Opus agent from the same pool (see Phase 6).
-
-  A measure or judge that cannot put the strong anchors above the random piles is broken; fix it before using it.
-
-Exit check: on the anchors, the function measures, the goldfish model, and the panel agree on the order. Where they disagree, find out why and write it down.
-
-### Phase 5: Pools and baselines
-
-**Pool sets,** with seeds and recipes in `docs/review/pools.md`:
-
-- **Plain bulk:** 30 seeded 3,000-card samples from the corpus noise source (`noiseSource` in `packages/pipeline/src/corpus.ts`), with no planted deck. This is the main test: make a working deck from what is there.
-- **Rich pools:** plain bulk plus a doubled share of one theme's cards, for each major theme. These test whether a builder finds and finishes a plan when it exists.
-- **Planted pools:** a sample of `corpus:eval` pools, to keep the recall diagnostic.
-- **Public fixed pools:** `eval/pools/*.txt`.
-- **The owner's bulk:** `test-bulk/*.txt`, local only, results in `data/review/`.
-
-**Requests.** 60 and 100 cards first, then 40 and 20. For each pool, build best fit plus each viable style requested by name, so every theme gets compared even when it is not the top pick. At 100 cards, pick commanders from the pool by a fixed, documented rule.
-
-**Baselines:**
-
-- the current builder (HEAD);
-- the builder before the learned work (version 26.0.30, run from a git worktree on the same pools);
-- the anchors from Phase 4.
-
-Store every built deck with its algorithm, pool, request, and seed in `data/review/decks/`.
-
-### Phase 6: Other algorithms
-
-**Research.** Three or four Opus agents survey how other systems build decks and pick cards, and write `docs/review/research.md` with sources, licenses, and what each approach would need from our data. Look at:
-
-- open-source Magic engines with automatic deck building, such as Forge;
-- draft bot and cube tools, such as CubeCobra and published draft-bot research;
-- data-driven recommenders: EDHREC's synergy score, 17Lands pick orders and win rates;
-- general methods for building a set under constraints: local search, simulated annealing, genetic algorithms, integer programming, and co-occurrence models such as card embeddings.
+- how it picks a plan or archetype;
+- how it picks cards, and whether it makes setup and payoff fit together or only counts theme cards;
+- how it handles mana, curve, and interaction;
+- what data it needs, and whether we have it (the corpus, EDHREC pages, Commander Spellbook, 17Lands draft decks with wins, Scryfall tags and oracle text);
+- speed, determinism, and license;
+- how well it suits bulk pools on a phone.
 
 Verify claims about other projects from their own docs or code; do not repeat them from memory.
 
-**Prototypes.** Each prototype is an Opus agent's job in its own worktree, behind one shared interface (`build(pool, request, seed) -> deck`) defined by the coordinator first. Candidates, at least five:
+**Our builder, as one more entry.** One or two Opus agents read `packages/core/src` and write `docs/review/our-builder.md` in the same format: how it picks a plan and cards, and where a card can get in for a reason unrelated to how the deck plays. Start from the Graveyard finding above and check two or three other themes the same way, with `npm run demo:build` on public pools.
 
-1. **The current builder with honest theme counting.** Labels or spec-based weights for setup and payoff, each card counted once, and a setup-to-payoff balance. This tells us how much of the gap is definitions rather than the algorithm.
-2. **Seed and grow, the way people build.** Pick the payoffs the pool supports best, add setup in proportion to what those payoffs need, then interaction and card advantage, then fill the curve, then the mana.
-3. **Resource accounting with local search.** Each card produces or consumes the theme's resource. Search (annealing or similar, seeded) for the deck that keeps payoffs fed, under curve, role, and mana constraints.
-4. **Goldfish-fitness search.** Use the Phase 4 simulator as the fitness function, starting from another builder's deck.
-5. **Co-occurrence.** Grow a deck around a core using what real decks play together (corpus decks, EDHREC pages, the learned pairs).
-6. **Pick order, for 40 cards.** Build like a draft deck from 17Lands-style card ratings learned from the corpus's draft decks and their wins.
-7. **An Opus agent building by hand, as a reference only.** Give the agent the pool's candidates in the deck's colors (via `review:cards`) and the theme specs, and ask it to build the best deck it can. It cannot ship because the app has no network, but it shows how much better a careful builder does and which choices the algorithms miss. Use a sample of pools, not all.
+**Shortlist.** The coordinator picks three to five approaches to build, with reasons, in `docs/review/shortlist.md`. A fresh Opus agent argues against the shortlist before it is final. Prefer approaches that make setup and payoff fit together, run fast, and use data we have.
 
-For each prototype, record:
+### Phase 2: Build new algorithms
 
-- build time per deck (the app runs on phones; the current builder takes about 90 ms for a synthetic 100-card build);
-- whether it is deterministic;
-- what data it needs;
-- how much code it would take to ship.
+**Shared groundwork first,** built and reviewed before any prototype starts:
 
-A reviewer agent checks each prototype for bugs and for peeking at evaluation labels it should not see. Labels used by a builder and labels used to judge it must come from separate labeling passes, or the measure shares the builder's view.
+- **Card helper.** `npm run review:cards`: given names, ids, or a tag, it prints each card's oracle text, type, cost, colors, tags, and which current matchers it meets.
+- **Theme guide.** `docs/review/themes.md`, one short section per style, written by Opus agents (one per few styles) and checked by a reviewer. Each section covers:
+  - what the theme builds up and spends: cards in graveyard, tokens, counters, life gained, spells cast, artifacts, sacrifice fodder, and so on;
+  - which card jobs set it up and which pay it off, how to tell them apart in oracle text, and common false friends such as one-off riders;
+  - what is enough for a decent bulk deck at 60, 40, 20, and 100 cards: roughly how much setup per payoff, and how many of each.
 
-### Phase 7: Compare
+  Keep it practical. It is a builder's and a judge's guide, not an encyclopedia.
 
-Run every algorithm on every pool set and request, then measure:
+- **One interface.** `build(pool, request, seed) -> deck`, plus a runner that builds any version on any pool and stores the deck with its version, pool, request, and seed in `data/review/decks/`.
+- **Adapters** for the current builder (HEAD) and the builder before the learned work (version 26.0.30, run from a git worktree), so both run through the same runner.
 
-- function counts, goldfish results, mana, and curve for every deck;
-- resemblance diagnostics for every deck;
-- blind panels on a stratified sample. Every algorithm pair at 60 and 100 cards, at least 20 pairs per pair-up, with anchors mixed in. Report the win share and the judges' agreement.
+**Prototypes.** Each shortlisted approach is one Opus agent's job, in its own worktree under `packages/pipeline/src/review/algos/`. Unless Phase 1 finds better ones, start from these:
 
-Break results down by theme and size; an algorithm that wins on average but fails Graveyard is not a winner. Report paired counts, not only means. For each algorithm, include three or four decks that show its typical result, with each card's label and the dead cards marked, from public pools only.
+1. **The current builder with honest theme counting.** It defines setup and payoff by the theme guide, counts each card once, weighs setup by how much and how often it feeds the plan, and asks for a sensible balance of setup and payoff. This shows how much of the problem is definitions rather than the algorithm.
+2. **Seed and grow, the way people build.** Pick the payoffs the pool supports best, add setup in proportion to what those payoffs need, then interaction and card advantage, then fill the curve, then build the mana.
+3. **Resource accounting with local search.** Each card produces or consumes the theme's resource. A seeded search looks for the deck that keeps its payoffs fed, under curve, role, and mana limits.
+4. **One approach from the research,** for example co-occurrence from real decks, or a pick-order build at 40 cards from the 17Lands draft decks and their wins.
 
-### Phase 8: Report and recommendation
+Each prototype must:
+
+- build 60, 40, 20, and 100-card decks, or say which sizes it skips and why;
+- be deterministic, use no network, and add no dependencies;
+- report its build time per deck.
+
+A fresh reviewer agent checks each prototype's code for bugs and for shortcuts that only make it look good on the tests.
+
+**A reference, not a candidate.** For a sample of pools, an Opus agent builds decks by hand from the pool's cards, using the card helper and the theme guide. This shows what a careful builder gets from the same bulk and which choices the algorithms miss. It cannot ship: the app has no network.
+
+### Phase 3: Test end to end
+
+**Pools,** with seeds and recipes in `docs/review/pools.md`:
+
+- **Plain bulk:** 30 seeded 3,000-card samples from the corpus noise source (`noiseSource` in `packages/pipeline/src/corpus.ts`), with no real deck hidden in them. This is the main test.
+- **Theme-rich bulk:** plain bulk plus extra cards of one theme, for each major theme. These test whether a builder finishes a plan when the pool has one.
+- **Public fixed pools:** `eval/pools/*.txt`.
+- **The owner's bulk:** `test-bulk/*.txt`, local only.
+
+**Requests.** 60 and 100 cards first, then 40 and 20. For each pool, build best fit plus each style the pool can support, requested by name, so every theme gets compared even when it is not the top pick. At 100 cards, pick commanders from the pool by a fixed, documented rule.
+
+**Versions.** The current builder, the builder before the learned work, every prototype, and two anchors with known answers:
+
+- random piles in the same colors with a legal mana base, which should fail;
+- real precons and winning 17Lands draft decks from `data/corpus/decks.json`, which should pass.
+
+The hand-built reference decks join the comparison for the pools that have them.
+
+**Judging.** The main judge is a blind panel of Opus agents with a rubric for a decent bulk deck, in `docs/review/rubric.md`. For each deck, a judge answers:
+
+- **Decent or not,** by the definition in "The goal".
+- **Plan:** what the deck is trying to do, in one sentence, or "no clear plan".
+- **Setup and payoff:** which cards set the plan up and which pay off, and whether there is enough of each.
+- **Plays:** curve, mana, interaction, a way to win.
+- **Dead cards:** cards that do nothing for the plan or the game.
+- **A score from 1 to 5,** where 3 is decent.
+
+Judges also pick the better deck in blind pairs. Two judges score every deck in a sample, so the report can show how often they agree. The judges read oracle text through the card helper, never from memory. The rubric must tell them the bar: decent from bulk, not perfect. A deck is not worse for using commons; it is worse for not doing its thing.
+
+Cheap automatic checks run on every deck and back up the panel:
+
+- legality, deck size, copy limits, and colors;
+- castability, curve, and land count, using the existing checks;
+- setup and payoff counts from the theme guide, counting each card once;
+- build time and determinism (build twice, compare).
+
+A simple goldfish simulation is optional. It plays each deck alone for many seeded games and records how often the plan comes online by turn 5. Build it only if the panel and the automatic checks disagree in ways that need settling.
+
+Before trusting the panel, check it on the anchors. Judges must fail most random piles and pass most real decks. If they do not, fix the rubric first.
+
+### Phase 4: Compare and recommend
 
 Write `docs/review/report.md`. Lead with plain answers:
 
-1. **Do our decks work?** Per theme and size, by the function measures, the goldfish model, and the panel, with numbers.
-2. **Where does our builder go wrong,** in order of impact, each tied to the map and an example deck.
-3. **Which approach builds decks that work best,** by how much, at what cost in speed, code, and data, and how sure we are.
-4. **What to build next:** a phased plan for the next session, with ship rules built on these measures instead of resemblance, and what each phase needs from the owner.
+1. **How often does each version build a decent deck?** By size and theme, with counts. Include the head-to-head win share from the paired judging.
+2. **Why decks fail,** per version: no real setup, too few payoffs, bad mana, no interaction, dead cards. Give two or three example decks per version from public pools, with the judges' notes.
+3. **Which version to build on,** at what cost in speed, code, and data, and how sure we are.
+4. **What to build next:** a phased plan for the next session. Ship rules for each phase should rest on the decent rate and the panel, with resemblance to real decks as a diagnostic only. Say what each phase needs from the owner.
 
-Also:
+Then:
 
 - add open items to `docs/todo.md`;
 - update this brief's Status section;
-- if the session has the Artifact tool, publish the report as a private Artifact page so the owner can read it on any device (no owner pool data in it);
+- if the session has the Artifact tool, publish the report as a private Artifact page so the owner can read it on any device, with no owner pool data in it;
 - end the session with a short plain summary that leads with the answer to question 1.
 
 ## Pitfalls to avoid
 
-- A score and a yardstick built on the same definitions agree with each other and tell you nothing. Keep the labels and measures independent of whatever builder they judge.
 - Tags are hints, not truth: `mill-self` covers surveil 1. Read the oracle text.
 - A card that is both setup and payoff must not count as both.
-- Real decks are evidence of what works, not a target. A deck can work and look unusual.
-- Plain shapes (Aggro, Midrange, Control) work too when built well. Do not judge them by theme measures.
-- Precons and draft decks are floors, not ceilings. The owner's eight Moxfield decks are never a tuning target.
+- Keep the judges independent of every builder. Builders use the theme guide; judges read the cards and decide for themselves.
+- Do not grade bulk decks against tuned decks. Decent is the bar.
+- Plain shapes (Aggro, Midrange, Control) can be decent too. Do not fail them for lacking a theme.
 - Best fit is noisy among close styles. Requested-style builds compare themes more fairly.
-- Full corpus runs take about 20 minutes per pass. Use `--sizes`, `--limit`, and small pool sets while iterating, then confirm on the full sets.
+- A prototype that wins by being slow, nondeterministic, or tuned to the test pools is not a winner.
+- Precons and draft decks are anchors and evidence, not targets. The owner's eight Moxfield decks are never a tuning target.
 - Do not trust a number you have not reproduced, and do not let a single number decide anything.
