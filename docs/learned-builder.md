@@ -1,5 +1,26 @@
 # Learned deck building
 
+## Status (2026-11-05, end of the unattended session)
+
+Phases 1 to 5 shipped as 26.0.31 to 26.0.34, at 100, 60, and 20 cards. Phases 6 and 7 were tried, failed the ship rules, and were reverted (see `docs/todo.md`). 40-card decks still build the old way: the panel preferred the old 40-card builds 9 to 1, so the learned plans are off there.
+
+The original builder against the live one, from `npm run corpus:eval` (train; test in brackets). Plan recall is the share of a real deck's plan cards the build used when the deck was mixed into 3,000 bulk cards. Distance is how far a build sits from real decks of its plan; lower is better.
+
+| size | plan recall                 | distance                    | style-mix blockers (train) | style match, decks gained and lost |
+| ---- | --------------------------- | --------------------------- | -------------------------- | ---------------------------------- |
+| 100  | 0.33 -> 0.60 [0.28 -> 0.42] | 0.62 -> 0.44 [0.63 -> 0.44] | 3 -> 0                     | +32 -10 [+4 -0]                    |
+| 60   | 0.13 -> 0.20 [0.16 -> 0.20] | 0.71 -> 0.46 [0.73 -> 0.48] | 5 -> 0                     | +28 -9 [+5 -2]                     |
+| 20   | 0.09 -> 0.09 [0.05 -> 0.10] | 0.79 -> 0.53 [0.80 -> 0.59] | 4 -> 0                     | +49 -30 [+8 -11]                   |
+| 40   | unchanged                   | unchanged                   | 5, unchanged               | unchanged                          |
+
+- Before, best fit made Artifacts, Counters, and Tokens decks far more often than real decks run them (Artifacts 27% of 60-card builds against 5% of real decks). Now no style is over the limits on the whole train split. On the small test splits, a few styles are over by three decks or so (Big creatures at 100, Counters at 60).
+- Blind review panel, share of pairs where the new build won: phase 3 (plan choice) 80% at 100, 80% at 60, 60% at 20, 10% at 40 (turned off); phase 4 (card selection) 80%, 60%, 60%; phase 5 (deck score in best fit, 20 only) 70%.
+- Phase 5 also ranks the Build page options by how close each deck sits to real decks of its plan. Over corpus pools, the first option's distance fell from 0.86 to 0.38 at 60, from 0.80 to 0.38 at 20, and from 0.57 to 0.31 at 100. At 60, Tokens or Aristocrats used to be the first option 95% of the time. At 100 the first option now leans to Tokens (48%, where it used to lean as far to Aristocrats); the fix is the first follow-up in `docs/todo.md`.
+- Not shipped:
+  - Phase 6, Drain: only 1 or 2 real decks at 100, 60, and 20 meet it, best fit never built it, and the recalibration it forced cost a little distance and plan recall.
+  - Phase 7, card quality: trait points from report section 5, and learned 17Lands draft win rates. Both moved builds closer to real decks' makeup but lowered plan recall at every size, since generically strong cards pushed out theme cards.
+- Builds take about 1.3 to 1.5 times as long as before.
+
 A brief for the next builder session, written 2026-11-05. The owner approved the direction and every decision below. The session runs unattended: the owner starts it, goes to sleep, and checks the live site in the morning. It needs no input from the owner, and the owner reviews nothing until then.
 
 The goal is a smarter, more dynamic deck builder. Today the builder runs fixed passes with hand-set numbers and ends up with "good stuff plus a minimum theme". The new builder learns from real decks how each plan is put together. It then adapts its plan, how deep it goes, and its card choices to each pool and commander. Commander comes first. The same learned data shapes 60, 40, and 20-card decks with less weight.
