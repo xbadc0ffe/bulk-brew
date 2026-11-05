@@ -48,7 +48,14 @@ import {
   sourcesNeeded,
 } from './colors.ts';
 import type { CardIndex } from './pack.ts';
-import { learnedAt, learnedPlanFor, learnedSizeKey, learnedTheme, type Spread } from './learned.ts';
+import {
+  learnedAt,
+  learnedPlanFor,
+  learnedSizeKey,
+  learnedTheme,
+  type LearnedPlan,
+  type Spread,
+} from './learned.ts';
 import { planScores } from './plan.ts';
 import {
   addLearned,
@@ -1069,6 +1076,59 @@ function castability(state: State, ctx: Ctx, mana: ManaBase, lands: number): num
   return all > 0 ? ok / all : 1;
 }
 
+/**
+ * How close a deck sits to real decks of its plan, 0 to 1: one minus a third
+ * of the mean distance of its makeup (theme enablers and payoffs, roles,
+ * curve, card types, as shares of its spells) from the plan's median, each
+ * feature in units of the plan's middle-half spread (at least half the
+ * size's), capped at 3, as corpus:eval's profile distance measures it.
+ * A plan without a profile from enough real decks is measured against the
+ * plain shapes' profile (a shape) or every deck of the size (a theme, its
+ * theme features then unscored), so every option is scored the same way.
+ */
+function planCloseness(t: Tally, ctx: Ctx): number | undefined {
+  const size = ctx.template.size;
+  const block = ctx.config.learned?.plans.sizes[learnedSizeKey(size)];
+  if (!block) return undefined;
+  const profileOf = (a: { id: string; kind: string }): LearnedPlan | undefined => {
+    const p = learnedPlanFor(ctx.config, a.id, size);
+    if (p && p.source === 'plan') return p;
+    return a.kind === 'composition' ? block.plans['shape'] : undefined;
+  };
+  const plan = profileOf(ctx.archetype);
+  // A shape as secondary style sets the roles, type mix, and (but at 20) the curve: measure those against its own decks.
+  const shape = ctx.secondary?.shape ? profileOf(ctx.secondary.shape) : undefined;
+  const spells = Math.max(1, t.total);
+  const feature = (name: string): number | undefined => {
+    if (name === 'theme enablers') return ctx.theme ? t.pe / spells : undefined;
+    if (name === 'theme payoffs') return ctx.theme ? t.pp / spells : undefined;
+    if (name.startsWith('role ')) return (t.roles.get(name.slice(5)) ?? 0) / spells;
+    if (name.startsWith('curve ')) {
+      const b = name === 'curve 7+' ? 7 : Number(name.slice(6));
+      return (t.curve[b]! + (b === 1 ? t.curve[0]! : 0)) / spells;
+    }
+    if (name === 'creatures') return t.creatures / spells;
+    if (name === 'instants and sorceries') return t.instSorc / spells;
+    if (name === 'other permanents') return t.ncPerm / spells;
+    return undefined;
+  };
+  let sum = 0;
+  let n = 0;
+  block.features.forEach((name, i) => {
+    const theme = name.startsWith('theme ');
+    const own = shape && !theme && !(size === 20 && name.startsWith('curve ')) ? shape : plan;
+    // Without a profile, theme features have nothing to compare with, as in corpus:eval.
+    const q = own ? own.q[i] : theme ? null : block.all[i];
+    const x = feature(name);
+    if (!q || x === undefined) return;
+    const all = block.all[i];
+    const spread = Math.max(q[2] - q[0], all ? 0.5 * (all[2] - all[0]) : 0.02, 0.01);
+    sum += Math.min(3, Math.abs(x - q[1]) / spread);
+    n++;
+  });
+  return n ? clamp01(1 - sum / n / 3) : undefined;
+}
+
 /** Deck score: synergy, card strength, roles, curve, type mix, and castability, each 0 to 1. */
 function scoreDeck(state: State, ctx: Ctx, mana: ManaBase, lands: number): DeckScore {
   const t = tally(state, ctx);
@@ -1108,6 +1168,26 @@ function scoreDeck(state: State, ctx: Ctx, mana: ManaBase, lands: number): DeckS
   const synergy = clamp01(synergyPairs(t, ctx) / spells / cfg.synergyReference);
 
   const cast = castability(state, ctx, mana, lands);
+  const r3 = (n: number) => Math.round(n * 1000) / 1000;
+  // With learned plans, the score is how close the deck sits to real decks of its plan,
+  // with card strength and castability as small parts.
+  const learned = cfg.learned && learnedAt(ctx.config, ctx.template.size);
+  const close = learned ? planCloseness(t, ctx) : undefined;
+  if (learned && close !== undefined) {
+    const lw = cfg.learned!;
+    const sum = lw.closeness + lw.strength + lw.castability;
+    const weighted = lw.closeness * close + lw.strength * strength + lw.castability * cast;
+    return {
+      total: Math.round((1000 * weighted) / sum) / 10,
+      strength: r3(strength),
+      roles: r3(roles),
+      curve: r3(curve),
+      typeMix: r3(typeMix),
+      synergy: r3(synergy),
+      castability: r3(cast),
+      closeness: r3(close),
+    };
+  }
   const w = cfg.weights;
   const sumW = w.strength + w.roles + w.curve + w.typeMix + w.synergy + w.castability;
   const weighted =
@@ -1117,7 +1197,6 @@ function scoreDeck(state: State, ctx: Ctx, mana: ManaBase, lands: number): DeckS
     w.typeMix * typeMix +
     w.synergy * synergy +
     w.castability * cast;
-  const r3 = (n: number) => Math.round(n * 1000) / 1000;
   return {
     total: Math.round((1000 * weighted) / sumW) / 10,
     strength: r3(strength),

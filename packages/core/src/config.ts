@@ -282,8 +282,14 @@ export interface BuilderWeightsConfig {
     strengthRange: [number, number];
     /** Curve or type-mix misses, as a share of spell slots, that score zero. */
     shapeSlack: number;
-    /** Weighted synergy pairs per spell that score one. */
+    /** Weighted enabler and payoff pairs per spell that score one. */
     synergyReference: number;
+    /**
+     * At sizes that build with the learned plans: weights of closeness to
+     * real decks of the plan, card strength, and castability, which then
+     * replace the parts above.
+     */
+    learned?: { closeness: number; strength: number; castability: number };
   };
   /** How many viable archetypes best fit builds and compares. */
   bestFit: { synergyCandidates: number; compositionCandidates: number };
@@ -892,6 +898,12 @@ export function validateConfig(c: BulkBrewConfig): string[] {
     problems.push('builderWeights.deckScore.shapeSlack: must be a positive number');
   if (!isNum(ds?.synergyReference) || ds.synergyReference <= 0)
     problems.push('builderWeights.deckScore.synergyReference: must be a positive number');
+  if (ds?.learned)
+    for (const k of ['closeness', 'strength', 'castability'] as const)
+      if (!isNum(ds.learned[k]) || ds.learned[k] < 0)
+        problems.push(`builderWeights.deckScore.learned.${k}: must be a non-negative number`);
+  if (ds?.learned && !(ds.learned.closeness + ds.learned.strength + ds.learned.castability > 0))
+    problems.push('builderWeights.deckScore.learned: the weights must not all be zero');
   const bf = bw.bestFit;
   const count = (v: unknown) => isNum(v) && Number.isInteger(v) && v >= 0;
   if (

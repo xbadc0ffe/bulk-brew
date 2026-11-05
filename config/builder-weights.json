@@ -1,5 +1,5 @@
 {
-  "version": "10",
+  "version": "11",
   "objective": {
     "curveDeviation": 1.0,
     "typeMixDeviation": 1.0,
@@ -24,7 +24,8 @@
     },
     "strengthRange": [3, 7],
     "shapeSlack": 0.5,
-    "synergyReference": 2
+    "synergyReference": 2,
+    "learned": { "closeness": 0.7, "strength": 0.15, "castability": 0.15 }
   },
   "bestFit": { "synergyCandidates": 20, "compositionCandidates": 3 },
   "buildOptions": {
@@ -94,7 +95,7 @@
         "liftSmoothing": 20,
         "shapeSharpness": 5,
         "cardFit": 0.5,
-        "deckScoreWeight": 0
+        "deckScoreWeight": 0.01
       }
     },
     "selection": {

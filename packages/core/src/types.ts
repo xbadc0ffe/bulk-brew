@@ -247,6 +247,8 @@ export interface DeckScore {
   synergy: number;
   /** Share of spells the mana base casts on curve at the color's target chance. Absent on older decks. */
   castability?: number;
+  /** How close the deck sits to real decks of its plan (learned), when the score is the learned one. */
+  closeness?: number;
 }
 
 /** Why the builder made the deck it made. Also the builder's debugging output. */

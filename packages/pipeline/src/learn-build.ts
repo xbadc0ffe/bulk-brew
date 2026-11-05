@@ -276,9 +276,20 @@ async function main(): Promise<number> {
   for (const [t, v] of bulk.tribes) plans.tribeShare[t] = round4(v);
   for (const size of SIZES) {
     const decks = bySize.get(size)!;
+    const all = profile(decks, SHAPE, size, 'plan', index, config).q;
+    // Theme features exist only for a deck with a theme: their spread is over every themed deck against its own plan, as corpus:eval scales them.
+    const themed = profile(
+      decks.filter((d) => d.plan.plan !== SHAPE),
+      SHAPE,
+      size,
+      'plan',
+      index,
+      config,
+      true,
+    ).q;
     const block: LearnedPlanSize = {
       features: featureNames(config, size),
-      all: profile(decks, SHAPE, size, 'plan', index, config).q,
+      all: all.map((s, i) => s ?? themed[i] ?? null),
       plans: {},
     };
     const shape = decks.filter((d) => d.plan.plan === SHAPE);

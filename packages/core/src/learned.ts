@@ -33,7 +33,10 @@ export interface LearnedPlan {
 export interface LearnedPlanSize {
   /** Feature names, in the order every plan's `q` lists them. */
   features: string[];
-  /** Spread of each feature over every deck of the size, for scaling distances. */
+  /**
+   * Spread of each feature over every deck of the size, for scaling distances;
+   * for the theme features, over every themed deck against its own plan.
+   */
   all: (Spread | null)[];
   /** By style id; "shape" for decks with no theme, "tribal" for every tribe. */
   plans: Record<string, LearnedPlan>;
