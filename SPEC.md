@@ -252,6 +252,7 @@ npm workspaces monorepo, TypeScript throughout.
 - Wizards' Fan Content Policy governs card names, text, and images. Both apps carry the Fan Content notice on their About screen. See `ATTRIBUTION.md`.
 - Scryfall API requests carry a descriptive User-Agent and Accept header where the platform allows it, and are spaced at least 100 ms apart. Bulk files are fetched at most daily.
 - Image and data requests go from the user's device, never through a developer server.
+- 17Lands public draft data (CC BY 4.0) and MTGJSON's preconstructed deck lists (MIT) tune the builder through developer-side scripts. Both are credited and thanked on the About screen of both apps and in `ATTRIBUTION.md`; no deck data from either ships.
 
 ## Milestones
 
@@ -290,7 +291,7 @@ Resolved questions, kept so they are not reopened by accident.
 - Land count: formula from curve and cheap mana sources, not a fixed number.
 - Colors: one to five colors in every size; mono stays the strongest mode; more colors are allowed even though they build worse. Packet pairing stays.
 - Deckbuilding guidance from outside material is restated in our own words in `docs/guides/` and config, with no source names in the repo.
-- Reference decks for tuning come from sources that allow automated download: MTGJSON's preconstructed decks (MIT) and 17lands' public draft data. Their names appear only in the corpus fetch script, as Scryfall's do in the data pipeline. Sites whose terms forbid automated access are not used. Config learns numbers from the corpus; no third-party deck data ships in the app.
+- Reference decks for tuning come from sources that allow automated download: MTGJSON's preconstructed decks (MIT) and 17lands' public draft data. Their names appear in the corpus fetch script and in the credits (the About screen and `ATTRIBUTION.md`), as Scryfall's do. Sites whose terms forbid automated access are not used. Config learns numbers from the corpus; no third-party deck data ships in the app.
 - Game Changers are not filtered out.
 - The app says archetype where the code and config say style (`style`, `secondary`, styleBonus). Labels can change freely; ids stay, so saved decks and eval results keep working.
 - Finisher means a card that can end a Commander game at 40 life: an overrun, an extra combat, another way to win, a planeswalker costing five or more, a creature with seven or more power, an evasive or trampling one with five or more, or an evasive double striker. Only the 100-card template asks for finishers. The 60, 40, and 20-card templates ask for big threats (big bodies, big flyers, planeswalkers), the role id `finisher` kept so saved decks still read.

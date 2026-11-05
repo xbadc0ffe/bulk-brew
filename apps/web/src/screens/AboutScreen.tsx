@@ -1,11 +1,14 @@
 import { configVersion, DATA_SCHEMA_VERSION } from '@bulk-brew/core';
 import {
   CONFIG_PROBLEMS,
+  DECK_DATA_NOTICE,
   FAN_CONTENT_NOTICE,
   LICENSE_LINE,
+  MTGJSON_URL,
   REPO_URL,
   SCRYFALL_NOTICE,
   SCRYFALL_URL,
+  SEVENTEEN_LANDS_URL,
   ui,
   WIZARDS_NOTICE,
 } from '@bulk-brew/ui';
@@ -99,6 +102,15 @@ export function AboutScreen() {
             {SCRYFALL_NOTICE}{' '}
             <a className={ui.link} href={SCRYFALL_URL} target="_blank" rel="noreferrer">
               scryfall.com
+            </a>
+          </p>
+          <p>
+            {DECK_DATA_NOTICE}{' '}
+            <a className={ui.link} href={SEVENTEEN_LANDS_URL} target="_blank" rel="noreferrer">
+              17lands.com
+            </a>{' '}
+            <a className={ui.link} href={MTGJSON_URL} target="_blank" rel="noreferrer">
+              mtgjson.com
             </a>
           </p>
           <p>{LICENSE_LINE}</p>
