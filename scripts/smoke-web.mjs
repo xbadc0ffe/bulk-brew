@@ -3,8 +3,8 @@
 // or Chrome) over the DevTools protocol. Drives the main loop a person uses:
 // load, paste a list, import it, open the Bulk List, open the strongest deck
 // option, leave and come back, accept it (which removes its cards), confirm
-// the list shrank, see the deck on Decks, then open the Analyze pane and
-// open its strongest deck.
+// the list shrank, see the deck on Decks and its Export popup, then open
+// the Analyze pane and open its strongest deck.
 //
 // Usage: node scripts/smoke-web.mjs [appUrl] [poolFile] [outDir]
 //   appUrl   default http://localhost:4173/ (a `vite preview` of the web build)
@@ -280,6 +280,23 @@ try {
   await click('^Decks');
   log('decks', oneLine(await waitForText(/1 saved/), 160));
   await shot('4-decks');
+
+  // A row's Export asks in a popup, as Remove does, and a choice there leaves the list showing.
+  await click('^Export$');
+  await waitForText(/Export "[^"\n]+"/, 5000);
+  const choices = await evaluate(
+    `[...document.querySelectorAll('[role="alertdialog"] button')].map((b) => b.textContent.trim())`,
+  );
+  for (const want of ['Copy as text', 'Download .txt', 'Cancel'])
+    if (!choices.some((t) => t.startsWith(want))) throw new Error(`Export popup lacks ${want}`);
+  await shot('4-export');
+  await click('^Copy as text');
+  // Headless browsers may refuse the clipboard; either line shows the choice ran.
+  const copied = (await waitForText(/Copied "|Copy failed/)).match(/(Copied "|Copy failed)[^\n]*/);
+  if (await evaluate(`!!document.querySelector('[role="alertdialog"]')`))
+    throw new Error('the Export popup stayed open');
+  if (!/1 saved/.test(await pageText())) throw new Error('Export opened the deck behind it');
+  log('export', oneLine(copied[0], 120));
 
   // Analyze searches for the best decks in a worker while it shows; open the strongest one.
   await click('^Bulk List');

@@ -30,7 +30,7 @@ import {
 import { useAppState } from '../app-context.ts';
 import { PackGate } from '../screens.tsx';
 import { OptionsPanel } from './BuildOptions.tsx';
-import { DeckLayout, ExportMenu } from './DeckLayout.tsx';
+import { DeckLayout, ExportButton } from './DeckLayout.tsx';
 
 const SIZES: { id: DeckSize; label: string }[] = [
   { id: 100, label: '100' },
@@ -631,7 +631,7 @@ function BuildResultView() {
             >
               Back
             </button>
-            <ExportMenu deck={deck} onStatus={setStatus} label="Export ▾" />
+            <ExportButton deck={deck} onStatus={setStatus} />
           </>
         }
       />

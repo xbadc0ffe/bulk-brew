@@ -1,59 +1,62 @@
 import { useState, type ReactNode } from 'react';
 import { COLOR_LABELS, deckToDecklist, type Deck } from '@bulk-brew/core';
 import {
+  ChoiceDialog,
   DeckExplanation,
   deckColors,
   deckFilename,
   DeckList,
   downloadText,
-  Dropdown,
-  MenuItem,
   Pip,
   ui,
 } from '@bulk-brew/ui';
 import { useAppState } from '../app-context.ts';
 
-/** Export with Copy as text and Download .txt. Reports the copy through onStatus. */
-export function ExportMenu({
-  deck,
-  onStatus,
-  label = 'Export ▾',
-  buttonClassName = ui.neutral,
-}: {
-  deck: Deck;
-  onStatus(text: string): void;
-  label?: string;
-  buttonClassName?: string;
-}) {
+/**
+ * Export asks in a popup, as Remove does: Copy as text, Download .txt, or
+ * Cancel. Reports the copy through onStatus.
+ */
+export function ExportButton({ deck, onStatus }: { deck: Deck; onStatus(text: string): void }) {
   const { index, config } = useAppState();
+  const [open, setOpen] = useState(false);
   if (!index) return null;
   const text = () => deckToDecklist(deck, index, config);
   return (
-    <Dropdown label={label} buttonClassName={buttonClassName} align="right">
-      {(close) => (
-        <>
-          <MenuItem
-            onSelect={() => {
-              close();
+    <>
+      <button type="button" className={ui.neutral} onClick={() => setOpen(true)}>
+        Export
+      </button>
+      <ChoiceDialog
+        open={open}
+        title={`Export "${deck.name}"`}
+        message="As a plain text decklist, one card per line."
+        choices={[
+          {
+            label: 'Copy as text',
+            detail: 'Paste it into another app or site',
+            tone: 'go-soft',
+            onSelect: () => {
+              setOpen(false);
               navigator.clipboard.writeText(text()).then(
                 () => onStatus(`Copied "${deck.name}" to the clipboard.`),
                 () => onStatus('Copy failed. Try Download .txt instead.'),
               );
-            }}
-          >
-            Copy as text
-          </MenuItem>
-          <MenuItem
-            onSelect={() => {
-              close();
+            },
+          },
+          {
+            label: 'Download .txt',
+            detail: 'Save it as a text file',
+            tone: 'go-soft',
+            onSelect: () => {
+              setOpen(false);
               downloadText(deckFilename(deck.name), text());
-            }}
-          >
-            Download .txt
-          </MenuItem>
-        </>
-      )}
-    </Dropdown>
+            },
+          },
+          { label: 'Cancel', tone: 'stop-soft', onSelect: () => setOpen(false) },
+        ]}
+        onCancel={() => setOpen(false)}
+      />
+    </>
   );
 }
 

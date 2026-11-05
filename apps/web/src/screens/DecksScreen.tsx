@@ -19,7 +19,7 @@ import {
 import { useAppState } from '../app-context.ts';
 import { useNav } from '../nav.ts';
 import { BackButton, PackGate } from '../screens.tsx';
-import { DeckLayout, ExportMenu } from './DeckLayout.tsx';
+import { DeckLayout, ExportButton } from './DeckLayout.tsx';
 
 export function DecksScreen() {
   return (
@@ -445,7 +445,7 @@ function DeckTable({ onOpen }: { onOpen(id: string): void }) {
                 <td className="pr-3 text-[12.5px] text-fg-2">{savedLabel(d.createdAt)}</td>
                 <td className="pr-[18px]" onClick={(e) => e.stopPropagation()}>
                   <span className="flex items-center justify-end gap-2">
-                    <ExportMenu deck={d} onStatus={setStatus} label="Export" />
+                    <ExportButton deck={d} onStatus={setStatus} />
                     <button type="button" className={ui.stop} onClick={() => setRemoving(d)}>
                       Remove
                     </button>
@@ -517,7 +517,7 @@ function SavedDeck({ deck, onBack, onPair }: { deck: Deck; onBack(): void; onPai
                 Pair with…
               </button>
             )}
-            <ExportMenu deck={deck} onStatus={setStatus} />
+            <ExportButton deck={deck} onStatus={setStatus} />
             <button type="button" className={ui.stop} onClick={() => setConfirm('remove')}>
               Remove
             </button>
