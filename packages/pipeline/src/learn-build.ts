@@ -389,6 +389,15 @@ async function main(): Promise<number> {
   }
 
   // ---- 3. Tag pairs: tags real decks hold together more often than their shares predict.
+  // Tags that define a role (removal, card draw, ramp) are left out: every deck plays them at the
+  // template's counts, and their pairs mostly say which colors go together.
+  const roleTags = new Set(
+    config.roles.roles.flatMap((r) =>
+      r.match.flatMap((c) => [...(c.anyTags ?? []), ...(c.allTags ?? [])]),
+    ),
+  );
+  for (const t of index.pack.cards.flatMap((c) => c.tags))
+    if (/^(removal-|burn-|counterspell|bounce|sweeper|wrath)/.test(t)) roleTags.add(t);
   const pairSum = new Map<string, { w: number; v: number }>();
   for (const size of SIZES) {
     const decks = bySize.get(size)!;
@@ -396,7 +405,7 @@ async function main(): Promise<number> {
     const all = allShares.get(size)!;
     const top = new Set(
       [...all.entries()]
-        .filter(([t]) => !IGNORED_TAG.test(t) && !COLOR_TAG.test(t))
+        .filter(([t]) => !IGNORED_TAG.test(t) && !COLOR_TAG.test(t) && !roleTags.has(t))
         .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))
         .slice(0, 220)
         .map(([t]) => t),

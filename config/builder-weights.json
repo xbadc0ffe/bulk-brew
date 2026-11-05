@@ -97,9 +97,47 @@
         "deckScoreWeight": 0
       }
     },
+    "selection": {
+      "100": {
+        "fit": 0.3,
+        "commander": 2,
+        "pairs": 0.05,
+        "cardPair": 1,
+        "combos": 3,
+        "largeCombos": true,
+        "rules": 0.25
+      },
+      "60": {
+        "fit": 0.3,
+        "commander": 0,
+        "pairs": 0.05,
+        "cardPair": 1,
+        "combos": 1,
+        "largeCombos": false,
+        "rules": 0.25
+      },
+      "40": {
+        "fit": 0.3,
+        "commander": 0,
+        "pairs": 0.05,
+        "cardPair": 1,
+        "combos": 1,
+        "largeCombos": false,
+        "rules": 0.25
+      },
+      "20": {
+        "fit": 0.3,
+        "commander": 0,
+        "pairs": 0.05,
+        "cardPair": 1,
+        "combos": 0.6,
+        "largeCombos": false,
+        "rules": 0.25
+      }
+    },
     "commanderShare": 0.6,
     "pullBoost": 1,
-    "profileWeight": 1,
+    "profileWeight": 2,
     "candidates": 3
   },
   "combos": {

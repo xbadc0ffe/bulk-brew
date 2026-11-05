@@ -51,6 +51,15 @@ import type { CardIndex } from './pack.ts';
 import { learnedAt, learnedPlanFor, learnedSizeKey, learnedTheme, type Spread } from './learned.ts';
 import { planScores } from './plan.ts';
 import {
+  addLearned,
+  comboGain,
+  emptyLearnedTally,
+  pairGain,
+  selectionFor,
+  type LearnedTally,
+  type Selection,
+} from './select.ts';
+import {
   commanderTribes,
   countCopies,
   effectiveCurveProfile,
@@ -163,11 +172,16 @@ interface Ctx {
   theme: PrimaryTheme | undefined;
   /** The middle half of real decks of the plan, for roles and card types (learned). */
   profile: PlanShape | undefined;
+  /** Learned card selection: plan fit, pairs, combos (see select.ts). */
+  selection: Selection | undefined;
 }
 
 /** Where real decks of a plan sit for each role and card type, as shares of their spells. */
 interface PlanShape {
   roles: [string, Spread][];
+  /** The primary theme's enablers and payoffs, so a theme does not run far past real decks either. */
+  enablers?: Spread;
+  payoffs?: Spread;
   creatures?: Spread;
   instSorc?: Spread;
   ncPerm?: Spread;
@@ -190,6 +204,10 @@ function planShapeOf(a: Archetype, config: BulkBrewConfig, size: DeckSize): Plan
     if (name.startsWith('role ') && q) roles.push([name.slice(5), q]);
   }
   const out: PlanShape = { roles, weight };
+  const enablers = at('theme enablers');
+  const payoffs = at('theme payoffs');
+  if (enablers) out.enablers = enablers;
+  if (payoffs) out.payoffs = payoffs;
   const creatures = at('creatures');
   const instSorc = at('instants and sorceries');
   const ncPerm = at('other permanents');
@@ -350,14 +368,17 @@ interface Tally {
   pp: number;
   se: number;
   sp: number;
+  /** Learned fit, pairs, and combos of the chosen cards (see select.ts). */
+  learned?: LearnedTally;
 }
 
 function bump(map: Map<string, number>, key: string, by: number): void {
   map.set(key, (map.get(key) ?? 0) + by);
 }
 
-function emptyTally(): Tally {
+function emptyTally(sel?: Selection): Tally {
   return {
+    ...(sel ? { learned: emptyLearnedTally(sel) } : {}),
     total: 0,
     curve: [0, 0, 0, 0, 0, 0, 0, 0],
     creatures: 0,
@@ -383,7 +404,9 @@ function addToTally(
   theme: number,
   pen: number,
   flags: number,
+  sel?: Selection,
 ): void {
+  if (sel && t.learned) addLearned(sel, t.learned, f.card.id, qty);
   t.total += qty;
   if (flags & THEME_PE) t.pe += qty;
   if (flags & THEME_PP) t.pp += qty;
@@ -402,8 +425,12 @@ function addToTally(
 }
 
 function tally(state: State, ctx: Ctx): Tally {
-  const t = emptyTally();
-  for (const { cand, qty } of state.chosen.values()) {
+  const t = emptyTally(ctx.selection);
+  // Card id order, so the pair and combo sums come out the same every time.
+  const chosen = [...state.chosen.values()].sort((a, b) =>
+    a.cand.facts.card.id < b.cand.facts.card.id ? -1 : 1,
+  );
+  for (const { cand, qty } of chosen) {
     const id = cand.facts.card.id;
     addToTally(
       t,
@@ -412,6 +439,7 @@ function tally(state: State, ctx: Ctx): Tally {
       ctx.themeValue.get(id) ?? 0,
       ctx.penalty.get(id) ?? 0,
       ctx.themeFlags.get(id) ?? 0,
+      ctx.selection,
     );
   }
   return t;
@@ -481,7 +509,11 @@ function objectiveOf(t: Tally, slots: number, ctx: Ctx): number {
     const have = t.roles.get(roleId) ?? 0;
     s -= w.roleShortfall * (2 * Math.max(0, q.min - have) + Math.max(0, q.target - have));
   }
-  s += w.synergyDensity * ctx.synergyScale * synergyPairs(t, ctx);
+  const sel = ctx.selection;
+  // With learned selection, the hand-written rules only count at ruleWeight, for cards no data covers.
+  s += w.synergyDensity * ctx.synergyScale * synergyPairs(t, ctx) * (sel ? sel.ruleWeight : 1);
+  if (sel && t.learned)
+    s += (sel.pairWeight * t.learned.syn) / Math.max(1, slots) + t.learned.fit + t.learned.combo;
   s += w.themeHit * t.themeHits;
   s += w.cardStrength * (t.strength - t.castPen);
   const p = ctx.profile;
@@ -491,9 +523,23 @@ function objectiveOf(t: Tally, slots: number, ctx: Ctx): number {
     if (p.creatures) off += outside(t.creatures, p.creatures, slots);
     if (p.instSorc) off += outside(t.instSorc, p.instSorc, slots);
     if (p.ncPerm) off += outside(t.ncPerm, p.ncPerm, slots);
+    // Above the middle half only: the theme's floor is the fill's job and the swap guard's.
+    if (p.enablers) off += Math.max(0, t.pe - p.enablers[2] * slots);
+    if (p.payoffs) off += Math.max(0, t.pp - p.payoffs[2] * slots);
     s -= p.weight * off;
   }
   return s;
+}
+
+/** What one more copy of a card adds to the learned part of the objective. */
+function learnedGain(ctx: Ctx, t: Tally, id: string, slots: number): number {
+  const sel = ctx.selection;
+  if (!sel || !t.learned) return 0;
+  return (
+    (sel.fit.get(id) ?? 0) +
+    (sel.pairWeight * pairGain(sel, t.learned, id)) / Math.max(1, slots) +
+    comboGain(sel, t.learned, id)
+  );
 }
 
 function remaining(state: State, cand: Candidate): number {
@@ -610,6 +656,21 @@ function pickBest(
     const have = t.curve[b]! + (b === 1 ? t.curve[0]! : 0);
     return have < targets[b]! ? 1 : 0;
   };
+  // A card's value: its strength less its cast penalty, plus with learned selection what it
+  // adds to the plan (fit, pairs with the cards chosen, combos), in strength points.
+  const values = new Map<string, number>();
+  const sel = ctx.selection;
+  const per = 1 / Math.max(1e-6, ctx.weights.objective.cardStrength);
+  const valueOf = (c: Candidate) => {
+    const id = c.facts.card.id;
+    let v = values.get(id);
+    if (v === undefined) {
+      v = c.facts.strength - (ctx.penalty.get(id) ?? 0);
+      if (sel) v += per * learnedGain(ctx, t, id, state.slots);
+      values.set(id, v);
+    }
+    return v;
+  };
   let best: Candidate | undefined;
   for (const cand of ctx.spells) {
     if (!filter(cand) || !canAdd(state, ctx, cand, t, relax)) continue;
@@ -622,13 +683,8 @@ function pickBest(
     const better =
       d > 0 ||
       (d === 0 &&
-        compareCandidates(
-          cand,
-          best,
-          ctx.weights.tiebreaks,
-          (c) => themeHitsOf(c, ctx),
-          (c) => c.facts.strength - (ctx.penalty.get(c.facts.card.id) ?? 0),
-        ) > 0);
+        compareCandidates(cand, best, ctx.weights.tiebreaks, (c) => themeHitsOf(c, ctx), valueOf) >
+          0);
     if (better) best = cand;
   }
   if (!best) return false;
@@ -948,12 +1004,13 @@ function localSearch(state: State, ctx: Ctx): number {
           drops(THEME_SP, base.sp, tw.sp)
         )
           continue;
-        // Score the swap by adding the copy to the tally and taking it back out.
+        // Score the swap by adding the copy to the tally and taking it back out. The learned
+        // part is added as the copy's gain against the tally, which is the same and much cheaper.
         const pen = ctx.penalty.get(cand.facts.card.id) ?? 0;
         const theme = ctx.themeValue.get(cand.facts.card.id) ?? 0;
         const flags = ctx.themeFlags.get(cand.facts.card.id) ?? 0;
         addToTally(base, cand.facts, 1, theme, pen, flags);
-        const val = objectiveOf(base, state.slots, ctx);
+        const val = objectiveOf(base, state.slots, ctx) + learnedGain(ctx, base, inId, state.slots);
         addToTally(base, cand.facts, -1, theme, pen, flags);
         if (val > best + 1e-9) {
           addOne(state, cand, describeWhy(cand, ctx), 'swap');
@@ -1279,6 +1336,16 @@ function attempt(
     },
     theme,
     profile: planShapeOf(archetype, config, size),
+    selection: learnedAt(config, size)
+      ? selectionFor(
+          config,
+          index,
+          spells,
+          archetype.kind === 'synergy' ? archetype.id : undefined,
+          size,
+          commander,
+        )
+      : undefined,
   };
   const notes: string[] = [];
 

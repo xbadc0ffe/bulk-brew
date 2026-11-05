@@ -145,7 +145,7 @@ export function planScores(
     .map(([, v]) => v)
     .sort((a, b) => a - b);
   const unseen = themeWeights.length ? themeWeights[Math.floor(themeWeights.length / 2)]! : 0;
-  const cardFit = (style: string) => index.learned?.fit.get(planGroup(style));
+  const cardFit = (style: string) => index.learned?.fit.get(style);
   const minPrior = Math.min(...[...priors.values()].filter((v) => v > 0), 1) / 2;
   const prior = (style: string) => {
     let p = priors.get(planGroup(style)) ?? minPrior;

@@ -356,6 +356,23 @@ export interface BuilderWeightsConfig {
     /** Themes best fit builds, best plan scores first. */
     candidates: number;
     /**
+     * Learned card selection per size, in objective points (see select.ts):
+     * fit per log of a card's tag and card lift for the plan, commander per
+     * point of EDHREC commander fit, pairs per log lift of pairs per spell,
+     * cardPair scales draft card pairs against tag pairs, combos per complete
+     * combo at bracket weight 1, largeCombos lets three-card combos count at
+     * 60, 40, and 20, rules scales the hand-written synergy rules.
+     */
+    selection?: PerSize<{
+      fit: number;
+      commander: number;
+      pairs: number;
+      cardPair: number;
+      combos: number;
+      largeCombos: boolean;
+      rules: number;
+    }>;
+    /**
      * Objective points per copy a role or card type sits outside the middle
      * half of real decks of the plan, so each plan keeps its own shape.
      */
@@ -947,6 +964,19 @@ export function validateConfig(c: BulkBrewConfig): string[] {
     }
     if (isNum(lw.commanderShare) && lw.commanderShare > 1)
       problems.push('builderWeights.learned.commanderShare: must be at most 1');
+    for (const size of ['60', '40', '20', '100'] as const) {
+      const sel = lw.selection?.[size];
+      if (!lw.selection || (!sel && size === '100')) continue;
+      for (const k of ['fit', 'commander', 'pairs', 'cardPair', 'combos', 'rules'] as const)
+        if (!isNum(sel?.[k]) || sel[k] < 0)
+          problems.push(
+            `builderWeights.learned.selection.${size}.${k}: must be a non-negative number`,
+          );
+      if (typeof sel?.largeCombos !== 'boolean')
+        problems.push(
+          `builderWeights.learned.selection.${size}.largeCombos: must be true or false`,
+        );
+    }
     if (!isNum(lw.candidates) || !Number.isInteger(lw.candidates) || lw.candidates < 1)
       problems.push('builderWeights.learned.candidates: must be a whole number of at least 1');
   }
