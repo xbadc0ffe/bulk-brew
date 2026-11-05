@@ -4,6 +4,7 @@ import {
   COLOR_LABELS,
   colorsLabel,
   commanderSuits,
+  filterCommanders,
   RARITIES,
   secondaryChoices,
   secondaryLabel,
@@ -69,12 +70,30 @@ function BuildForm() {
   const rarityKnown = (index?.pack.schema ?? 2) >= 2;
   const colorName = flow.colors.length > 0 ? colorsLabel(flow.colors) : undefined;
   const scan = flow.colorScan;
-  // At 100, until a commander is picked, colors and styles filter the commander list.
+  // At 100, colors and styles filter the commander list; with a commander picked,
+  // changing one returns to that list, so the pickers offer its choices: the
+  // commanders within the colors picked before the commander.
   const listing = flow.size === 100 && !flow.commander;
-  const styleScans = listing ? colorScans(commanders.inColors, commanders.scans) : options.scans;
-  const choices = listing
-    ? commanderStyleChoices(config, commanders.inColors, commanders.scans)
+  const commanderMode = flow.size === 100;
+  const listed =
+    flow.commander && commanders.list
+      ? filterCommanders(commanders.list, flow.pickedColors, undefined, config)
+      : commanders.inColors;
+  const styleScans = commanderMode ? colorScans(listed, commanders.scans) : options.scans;
+  const choices = commanderMode
+    ? commanderStyleChoices(config, listed, commanders.scans)
     : styleChoices(config, options.scans);
+  // Say so when a changed setting drops the commander and the list comes back.
+  const [seenCommander, setSeenCommander] = useState(flow.commander);
+  const [notice, setNotice] = useState('');
+  if (flow.commander !== seenCommander) {
+    setSeenCommander(flow.commander);
+    setNotice(seenCommander && !flow.commander ? 'Back to the commander list.' : '');
+  }
+  // A setting changed under a picked commander returns to the commander list, as Change Commander does.
+  const leaveCommander = () => {
+    if (flow.commander) flow.setCommander(undefined);
+  };
 
   return (
     <div className="flex h-full flex-col overflow-y-auto md:flex-row md:overflow-hidden">
@@ -90,6 +109,9 @@ function BuildForm() {
           </p>
         )}
         {flow.error && <p className={ui.error}>{flow.error}</p>}
+        <span className="sr-only" aria-live="polite">
+          {notice}
+        </span>
 
         <div className="flex flex-col gap-2">
           <h2 className={ui.sectionLabel}>Deck size</h2>
@@ -114,7 +136,10 @@ function BuildForm() {
           </span>
           <RarityPicker
             value={settings.settings.rarities ?? RARITIES}
-            onChange={(rarities) => settings.update({ rarities })}
+            onChange={(rarities) => {
+              leaveCommander();
+              settings.update({ rarities });
+            }}
             buttonClassName={`${ui.secondary} whitespace-nowrap`}
           />
         </div>
@@ -140,7 +165,10 @@ function BuildForm() {
             label="Infinite basics"
             checked={settings.settings.unlimitedBasics}
             disabled={!settings.loaded}
-            onChange={(v) => settings.update({ unlimitedBasics: v })}
+            onChange={(v) => {
+              leaveCommander();
+              settings.update({ unlimitedBasics: v });
+            }}
           />
         </label>
 
@@ -188,12 +216,12 @@ function BuildForm() {
             value={flow.style}
             emptyLabel="Best fit"
             emptyDescription={
-              listing
+              commanderMode
                 ? 'Show every commander, most promising first'
                 : 'Show the strongest decks of any archetype'
             }
             choices={choices}
-            disabled={listing ? !commanders.list : flow.colors.length === 0}
+            disabled={commanderMode ? !commanders.list : flow.colors.length === 0}
             onChange={flow.setStyle}
           />
           {listing && flow.style && (
@@ -236,12 +264,10 @@ function ColorToggle(props: {
   can: boolean;
   count: ReactNode;
   title: string | undefined;
-  /** Shown but not changeable, such as a picked commander's colors. */
-  locked?: boolean;
   onToggle(): void;
 }) {
-  const { color, on, can, count, title, locked, onToggle } = props;
-  const active = !locked && (can || on);
+  const { color, on, can, count, title, onToggle } = props;
+  const active = can || on;
   return (
     <button
       type="button"
@@ -267,7 +293,8 @@ const COUNT_WORDS = ['', 'one', 'both', 'all three', 'all four', 'all five'];
 /**
  * Commander colors: before a commander is picked, the buttons filter the
  * commander list (a commander shows when every one of its colors is picked);
- * once one is picked, they show its colors and wait for Change.
+ * once one is picked, they show its colors, and changing one returns to the
+ * list with the colors on screen as the filter.
  */
 function CommanderColors() {
   const { build: flow, commanders } = useAppState();
@@ -297,11 +324,10 @@ function CommanderColors() {
               color={c}
               on={picked.includes(c)}
               can={n > 0}
-              locked={Boolean(flow.commander)}
               count={count}
               title={
                 flow.commander
-                  ? 'Colors come from the commander'
+                  ? 'Changing colors returns to the commander list'
                   : list && n === 0
                     ? `No ${label} commanders in your bulk list`
                     : undefined
@@ -313,7 +339,7 @@ function CommanderColors() {
       </div>
       <p className="text-[12px] text-fg-2">
         {flow.commander
-          ? `Colors come from the commander: ${name ?? 'colorless'}.`
+          ? `Colors come from the commander: ${name ?? 'colorless'}. Changing a setting returns to the commander list.`
           : !name
             ? 'Numbers count the commanders with each color. Pick colors to narrow the list: a commander shows when all its colors are picked.'
             : picked.length === 1

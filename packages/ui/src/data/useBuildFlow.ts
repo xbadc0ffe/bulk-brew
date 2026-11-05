@@ -39,19 +39,28 @@ export interface BuildFlow {
    * once one is picked. Before that, the picked colors filter the commanders.
    */
   colors: Color[];
-  /** Add or remove one color. Ignored at 100 while a commander is picked. */
+  /** The colors picked on the form: at 100 with a commander picked, the list filter that returns without it. */
+  pickedColors: Color[];
+  /**
+   * Add or remove one color. At 100 with a commander picked, the commander is
+   * dropped and the change starts from its colors, the ones on screen.
+   */
   toggleColor(color: Color): void;
   /** The first picked color, for screens that work with one. */
   color: Color | undefined;
   /** Pick exactly this one color. */
   setColor(color: Color): void;
-  /** Primary style (archetype id), or undefined for best fit. */
+  /** Primary style (archetype id), or undefined for best fit. Drops a picked commander. */
   style: string | undefined;
   setStyle(style: string | undefined): void;
-  /** Secondary style, only once a primary style is picked. */
+  /** Secondary style, only once a primary style is picked. Drops a picked commander. */
   secondary: string | undefined;
   setSecondary(style: string | undefined): void;
-  /** Commander card id for 100-card decks; while one is picked, the deck colors are its own. */
+  /**
+   * Commander card id for 100-card decks; while one is picked, the deck colors
+   * are its own. Changing a build setting drops it, so the commander list
+   * returns with the new setting, as Change Commander does.
+   */
   commander: string | undefined;
   setCommander(id: string | undefined): void;
   /** The settings a build uses: the stored ones with this build's copy limit. */
@@ -173,22 +182,27 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
   );
   const toggleColor = useCallback(
     (c: Color) => {
-      // A picked commander sets the colors; Change returns to the list and its filter.
-      if (lead) return;
-      setColorsState((cs) =>
-        normalizeColors(cs.includes(c) ? cs.filter((x) => x !== c) : [...cs, c]),
-      );
+      // With a commander picked the buttons show its colors, so the change starts
+      // from those and the commander list returns with them as the filter.
+      const shown = lead ? normalizeColors(lead.identity) : undefined;
+      if (lead) setCommanderState(undefined);
+      setColorsState((cs) => {
+        const from = shown ?? cs;
+        return normalizeColors(from.includes(c) ? from.filter((x) => x !== c) : [...from, c]);
+      });
       reject();
     },
     [reject, lead],
   );
   const setStyle = useCallback(
     (s: string | undefined) => {
+      // A new style picks the commander again from the list, which it filters.
+      if (lead && s !== style) setCommanderState(undefined);
       setStyleState(s);
       setSecondaryState(undefined);
       reject();
     },
-    [reject],
+    [reject, lead, style],
   );
   const setCommander = useCallback(
     (id: string | undefined) => {
@@ -201,10 +215,11 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
   );
   const setSecondary = useCallback(
     (s: string | undefined) => {
+      if (lead && s !== secondary) setCommanderState(undefined);
       setSecondaryState(s);
       reject();
     },
-    [reject],
+    [reject, lead, secondary],
   );
   const open = useCallback(
     (r: BuildResult) => {
@@ -329,6 +344,7 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
     size,
     setSize,
     colors,
+    pickedColors: picked,
     toggleColor,
     color,
     setColor,

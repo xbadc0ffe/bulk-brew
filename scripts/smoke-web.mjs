@@ -13,7 +13,8 @@
 // Set BULK_BREW_BROWSER to a browser executable to override the search.
 // SMOKE_COLORS (such as "White,Blue"), SMOKE_STYLE, and SMOKE_SECONDARY pick
 // other choices; SMOKE_SIZE=100 with SMOKE_COMMANDER (part of a name) runs
-// Commander.
+// Commander, where SMOKE_STYLE filters the commander list first, so it must be
+// a style that commander leads.
 
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -191,10 +192,41 @@ try {
   // SMOKE_SIZE=100 builds Commander: pick SMOKE_COMMANDER (part of a name) from the list.
   const size = process.env.SMOKE_SIZE ?? '60';
   await click(`^${size}$`);
+  // SMOKE_STYLE and SMOKE_SECONDARY pick styles from the drop-downs, such as "Tokens" and "Aggro".
+  const pickStyles = async () => {
+    if (!process.env.SMOKE_STYLE) return;
+    await click('^Best fit');
+    await click(`^${process.env.SMOKE_STYLE}`);
+    if (process.env.SMOKE_SECONDARY) {
+      await click('^None');
+      await click(`^${process.env.SMOKE_SECONDARY}`);
+    }
+  };
   if (size === '100') {
+    const commander = process.env.SMOKE_COMMANDER ?? 'Dion';
     await waitForText(/Pick a commander/, 30000);
     await shot('3-commanders');
-    await click(process.env.SMOKE_COMMANDER ?? 'Dion');
+    // Styles go first: a setting changed under a picked commander returns to the list.
+    await pickStyles();
+    await click(commander);
+    await waitForText(/Change Commander/, 10000);
+    // Add a color the commander lacks: the list comes back with the commander still in it.
+    const added = await evaluate(`(() => {
+      const b = [...document.querySelectorAll('[aria-label="Colors"] button')].find(
+        (x) => x.getAttribute('aria-pressed') === 'false' && x.getAttribute('aria-disabled') === 'false',
+      );
+      if (!b) return '';
+      b.click();
+      return b.textContent.replace(/[\\d\\s].*$/, '');
+    })()`);
+    if (added) {
+      await waitForText(/Pick a commander/, 10000);
+      log('commander-settings', `adding ${added} returned to the commander list`);
+      await click(commander);
+      await waitForText(/Change Commander/, 10000);
+    } else {
+      log('commander-settings', 'skipped: no color left to add for this pool');
+    }
   } else {
     // Color tiles read like "W White 754 cards". SMOKE_COLORS picks several, such as "White,Blue".
     const colorNames = (process.env.SMOKE_COLORS ?? 'White').split(',');
@@ -204,15 +236,7 @@ try {
   await click('^All rarities');
   await waitForText(/Mythic/, 5000);
   await click('^All rarities');
-  // SMOKE_STYLE and SMOKE_SECONDARY pick styles from the drop-downs, such as "Tokens" and "Aggro".
-  if (process.env.SMOKE_STYLE) {
-    await click('^Best fit');
-    await click(`^${process.env.SMOKE_STYLE}`);
-    if (process.env.SMOKE_SECONDARY) {
-      await click('^None');
-      await click(`^${process.env.SMOKE_SECONDARY}`);
-    }
-  }
+  if (size !== '100') await pickStyles();
   // Options build in the background; wait for them to finish, then open the strongest.
   // A screen-reader line announces the finished list.
   log('options', oneLine(await waitForText(/deck options? ready/, 60000), 160));

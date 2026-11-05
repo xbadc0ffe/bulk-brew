@@ -338,22 +338,25 @@ function CommanderPane() {
       aria-label="Commander"
       className="order-first flex shrink-0 flex-col gap-4 border-b border-line bg-surface p-4 md:order-none md:w-[300px] md:overflow-y-auto md:border-b-0 md:border-l"
     >
-      <div className="flex items-center justify-between gap-2">
-        <span className="flex items-center gap-1.5">
+      {/* The pips sit under the label so a five-color commander still leaves room for the button; it wraps below if not. */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="flex flex-col gap-1.5">
           <span className={ui.sectionLabel}>Commander</span>
-          {normalizeColors(card.identity).map((c) => (
-            <Pip key={c} symbol={c} size={16} label={COLOR_LABELS[c]} />
-          ))}
+          <span className="flex items-center gap-1.5">
+            {normalizeColors(card.identity).map((c) => (
+              <Pip key={c} symbol={c} size={16} label={COLOR_LABELS[c]} />
+            ))}
+          </span>
         </span>
         <button
           type="button"
-          className={ui.small}
+          className={`${ui.stop} whitespace-nowrap`}
           onClick={() => {
             flow.setCommander(undefined);
             requestAnimationFrame(() => document.getElementById('options-title')?.focus());
           }}
         >
-          Change
+          Change Commander
         </button>
       </div>
       <CommanderCard card={card} full />
