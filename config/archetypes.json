@@ -1,5 +1,5 @@
 {
-  "version": "8",
+  "version": "9",
   "archetypes": [
     {
       "kind": "composition",
@@ -424,6 +424,68 @@
         "40": { "ramp": { "min": 3, "target": 4 }, "finisher": { "min": 3, "target": 4 } },
         "20": { "ramp": { "min": 2, "target": 2 }, "finisher": { "min": 2, "target": 3 } }
       }
+    },
+    {
+      "kind": "synergy",
+      "id": "tappers",
+      "label": "Tappers",
+      "description": "Tap down blockers and threats, with cards that punish tapped creatures.",
+      "curveProfile": "midrange",
+      "enablers": [{ "anyTags": ["tapper-creature", "freeze-creature"] }],
+      "payoffs": [{ "anyTags": ["hate-tapped", "synergy-tapped"] }],
+      "minimums": {
+        "60": { "enablers": 6, "payoffs": 2 },
+        "40": { "enablers": 4, "payoffs": 1 },
+        "20": { "enablers": 2, "payoffs": 1 }
+      },
+      "synergyWeight": 1.0
+    },
+    {
+      "kind": "synergy",
+      "id": "groupHug",
+      "label": "Group hug",
+      "description": "Give every player cards and mana, with cards that profit when they draw.",
+      "curveProfile": "midrange",
+      "enablers": [{ "anyTags": ["group-hug", "selective-group-hug"] }],
+      "payoffs": [{ "anyTags": ["draw-matters", "second-draw-matters"] }],
+      "minimums": {
+        "60": { "enablers": 6, "payoffs": 2 },
+        "40": { "enablers": 4, "payoffs": 1 },
+        "20": { "enablers": 2, "payoffs": 1 }
+      },
+      "synergyWeight": 1.0
+    },
+    {
+      "kind": "synergy",
+      "id": "goad",
+      "label": "Goad",
+      "description": "Force opposing creatures to attack, with cards that reward the fighting.",
+      "curveProfile": "midrange",
+      "enablers": [{ "anyTags": ["force-attacker"] }],
+      "payoffs": [
+        { "anyTags": ["synergy-goad", "attacking-opponents-matters", "combat-manipulation"] }
+      ],
+      "minimums": {
+        "60": { "enablers": 6, "payoffs": 3 },
+        "40": { "enablers": 4, "payoffs": 2 },
+        "20": { "enablers": 2, "payoffs": 1 }
+      },
+      "synergyWeight": 1.0
+    },
+    {
+      "kind": "synergy",
+      "id": "energy",
+      "label": "Energy",
+      "description": "Cards that give you energy, and cards that spend it.",
+      "curveProfile": "midrange",
+      "enablers": [{ "anyTags": ["energy-generator"] }],
+      "payoffs": [{ "anyTags": ["counter-fuel-energy"] }],
+      "minimums": {
+        "60": { "enablers": 8, "payoffs": 5 },
+        "40": { "enablers": 5, "payoffs": 3 },
+        "20": { "enablers": 3, "payoffs": 2 }
+      },
+      "synergyWeight": 1.0
     }
   ]
 }

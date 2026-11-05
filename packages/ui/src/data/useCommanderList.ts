@@ -4,6 +4,7 @@ import {
   commanderCanBuild,
   configVersion,
   filterCommanders,
+  tribeOf,
   type BulkBrewConfig,
   type CardIndex,
   type Color,
@@ -115,7 +116,8 @@ export function useCommanderList(input: {
       }
       // The scan of its colors counts the commander too, so a style it rules out the 99 cannot build.
       const report = scans.get(c.colors.join(''))?.archetypes.find((r) => r.archetype === style);
-      out.set(c.id, report?.viable ? 'checking' : 'short');
+      const viable = tribeOf(style) ? c.primaryTribes.includes(style) : report?.viable;
+      out.set(c.id, viable ? 'checking' : 'short');
     }
     return out;
   }, [shown, style, done, scans]);

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { BuildError, buildDeck } from '../src/builder.ts';
+import { BuildError, buildDeck, styleCounts } from '../src/builder.ts';
+import { planOptions } from '../src/options.ts';
 import {
   commanderCanBuild,
   commanderCandidates,
@@ -260,6 +261,41 @@ describe('Commander builds', () => {
     expect(commanderCanBuild('lead', 'tokens', pool, tIndex, CONFIG, SETTINGS)).toBe(true);
     expect(commanderCanBuild('lead', 'counters', pool, tIndex, CONFIG, SETTINGS)).toBe(false);
   });
+
+  it('builds a tribe its commander names as the primary style', () => {
+    // Every white creature is a Human; ten of them reward Humans.
+    const tribal = cards.map((c, i) => (i % 9 === 6 ? { ...c, tags: ['typal-human'] } : c));
+    const humanLead = { ...lead, tags: ['typal-human'] };
+    const hIndex = new CardIndex({ ...pack, cards: [...tribal, humanLead, blue, plains, banned] });
+    const best = buildDeck({ ...request, commander: 'lead' }, pool, hIndex, CONFIG);
+    expect(best.deck.archetype).toBe('tribal:Human');
+    expect(best.deck.name).toBe('Lead Human tribe 100');
+    const [counts] = styleCounts(best.deck, hIndex, CONFIG);
+    expect(counts).toMatchObject({ id: 'tribal:Human', label: 'Human tribe', tribal: true });
+    expect(counts!.enablers.have).toBeGreaterThanOrEqual(counts!.enablers.want);
+    expect(counts!.payoffs.have).toBeGreaterThanOrEqual(counts!.payoffs.want);
+
+    const [listed] = commanderCandidates(pool, hIndex, CONFIG, SETTINGS);
+    expect(listed!.primaryTribes).toEqual(['tribal:Human']);
+    expect(commanderSuits(listed!, 'tribal:Human', CONFIG)).toBe(true);
+    expect(commanderCanBuild('lead', 'tribal:Human', pool, hIndex, CONFIG, SETTINGS)).toBe(true);
+    const { plans } = planOptions({ ...request, commander: 'lead' }, pool, hIndex, CONFIG);
+    expect(plans[0]!.style).toBe('tribal:Human');
+
+    // A tribe the commander does not name cannot lead, and the plain lead names none.
+    expect(() =>
+      buildDeck(
+        { ...request, commander: 'lead', style: 'tribal:Elf', requireStyle: true },
+        pool,
+        hIndex,
+        CONFIG,
+      ),
+    ).toThrow(/does not reward the Elf tribe/);
+    const plainIndex = new CardIndex({ ...pack, cards: [...tribal, lead, blue, plains, banned] });
+    expect(
+      buildDeck({ ...request, commander: 'lead' }, pool, plainIndex, CONFIG).deck.archetype,
+    ).not.toBe('tribal:Human');
+  });
 });
 
 describe('filterCommanders', () => {
@@ -272,6 +308,7 @@ describe('filterCommanders', () => {
     styles: [],
     leads: [],
     supports,
+    primaryTribes: [],
     reasons: [],
     depth: 100,
     enough: true,

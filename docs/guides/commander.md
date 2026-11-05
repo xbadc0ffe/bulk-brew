@@ -30,7 +30,9 @@ The rest goes to the theme. Creatures sit between 25% and 60% of the spells, set
 
 The land formula gives small credits for cheap mana sources (0.1 to 0.2 each): the base of 37 already assumes about ten ramp pieces. The clamp is 35 to 40.
 
-The commander counts as one card toward each role it fills (`commander.roleCredit`), the same as any card in the 99, so the deck still works when the commander is off the table. Best fit adds 5 points (`commander.styleBonus`) to styles the commander itself enables or rewards, so a tokens commander leans toward a tokens deck; the deck notes say when that bonus decided it.
+The commander counts as one card toward each role it fills (`commander.roleCredit`), the same as any card in the 99, so the deck still works when the commander is off the table. Best fit adds up to 5 points (`commander.styleBonus`) to the styles the commander itself rewards, the most specific one most: the style with the fewest payoffs among the pool's cards gets all 5, and one with n times as many payoffs gets 5/n². On the reference precons the squared falloff kept the most specific style ahead often enough to matter (Hylda builds Tappers, not +1/+1 counters) with the same style match as a plain 1/n. A rare payoff marks the commander's own plan, so Hylda of the Icy Crown, which rewards tapped creatures, +1/+1 counters, and wide boards, leans toward Tappers. A commander that rewards no style pulls the styles it feeds the same way. The deck notes say when the bonus decided it.
+
+A tribe can be the primary style of a Commander deck when the commander's own text names the type (Tagger `typal-<type>` on the commander, as for The Ur-Dragon, Reaper King, or Lathril). It needs twice the secondary tribe counts, 28 members and 4 cards that reward the type, as a secondary theme needs half of a primary's; tribal precons run 20 to 41 members, about 27 in the middle. A tribe the commander names counts as a style it rewards, and its members and payoffs count as synergy pairs, since no synergy rule covers a tribe.
 
 Styles need more cards at 100: their 60-card pool minimums times 1.6 (`commander.minimumScale`), unless a style lists its own.
 
@@ -44,7 +46,7 @@ The Build page lists every commander in the bulk list in three tiers:
 
 Each entry says why: how many cards fit its colors, which styles it rewards or feeds, and what holds it back (cost, fixing). Unchecked rarities leave commanders out of the list, the same as any other card.
 
-Picked colors narrow the list to commanders whose colors all come from them, the ones using every picked color first. A picked primary archetype keeps the commanders that lead it: a synergy style counts when the commander's own text rewards or feeds it, and Aggro, Midrange, and Control suit any commander. The list then asks whether the bulk list can build that style under each one. If the scan of the commander's colors says no, the answer is no; otherwise the app builds the deck and checks that it kept the style and reached the style's enabler and payoff minimums for 100 cards. The scan alone misses some: on a test pool of 5,300 cards, 9 of 63 Ramp commanders passed the scan but their builds fell short.
+Picked colors narrow the list to commanders whose colors all come from them, the ones using every picked color first. A picked primary archetype keeps the commanders that lead it: a synergy style counts when the commander's own text rewards or feeds it, a tribe when the commander names it, and Aggro, Midrange, and Control suit any commander. The list then asks whether the bulk list can build that style under each one. If the scan of the commander's colors says no, the answer is no; otherwise the app builds the deck and checks that it kept the style and reached the style's enabler and payoff minimums for 100 cards. The scan alone misses some: on a test pool of 5,300 cards, 9 of 63 Ramp commanders passed the scan but their builds fell short.
 
 ## Power level
 

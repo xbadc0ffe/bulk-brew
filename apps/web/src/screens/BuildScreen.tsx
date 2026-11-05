@@ -14,6 +14,7 @@ import {
   type ScanReport,
 } from '@bulk-brew/core';
 import {
+  archetypeInfo,
   archetypeViability,
   ChoiceDialog,
   Dropdown,
@@ -400,6 +401,24 @@ function commanderStyleChoices(
       description: viable
         ? `${a.description}${count ? ` ${capitalize(count)}.` : ''}`
         : `${count ? `${capitalize(count)}, but your` : 'Your'} bulk list is short of cards for it`,
+      state: viable ? 'viable' : 'short',
+    });
+  }
+  // Tribes the listed commanders name, as primary styles.
+  const tribes = new Map<string, CommanderCandidate[]>();
+  for (const c of list)
+    for (const l of c.leads)
+      if (l.id.startsWith('tribal:')) tribes.set(l.id, [...(tribes.get(l.id) ?? []), c]);
+  for (const [id, leaders] of [...tribes].sort((a, b) => (a[0] < b[0] ? -1 : 1))) {
+    const viable = leaders.some((c) => c.primaryTribes.includes(id));
+    const info = archetypeInfo(config, id);
+    const count = `${leaders.length} ${leaders.length === 1 ? 'commander leads' : 'commanders lead'} it`;
+    out.push({
+      id,
+      label: info.label,
+      description: viable
+        ? `${info.description} ${capitalize(count)}.`
+        : `${capitalize(count)}, but your bulk list is short of cards for it`,
       state: viable ? 'viable' : 'short',
     });
   }

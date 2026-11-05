@@ -2,6 +2,8 @@ import {
   archetypeById,
   COLORS,
   primaryGroup,
+  tribalArchetype,
+  tribeOf,
   type BulkBrewConfig,
   type CardIndex,
   type CardRecord,
@@ -104,6 +106,11 @@ export function archetypeInfo(
       label: parts.join(' + '),
       description: `Two packets merged into one deck: ${parts.join(' and ')}.`,
     };
+  }
+  const tribe = tribeOf(id);
+  if (tribe) {
+    const a = tribalArchetype(tribe, config);
+    return { label: a.label, description: a.description };
   }
   try {
     const a = archetypeById(config, id);

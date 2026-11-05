@@ -1,5 +1,5 @@
 {
-  "version": "7",
+  "version": "8",
   "rules": [
     {
       "id": "tokens-pump",
@@ -236,6 +236,13 @@
       "note": "Cards that mill the opponent plus cards that reward milling.",
       "enabler": [{ "anyTags": ["mill-opponent"] }],
       "payoff": [{ "anyTags": ["synergy-mill"] }],
+      "weight": 1.0
+    },
+    {
+      "id": "tappers",
+      "note": "Tappers plus cards that punish tapped creatures.",
+      "enabler": [{ "anyTags": ["tapper-creature", "freeze-creature"] }],
+      "payoff": [{ "anyTags": ["hate-tapped", "synergy-tapped"] }],
       "weight": 1.0
     },
     {

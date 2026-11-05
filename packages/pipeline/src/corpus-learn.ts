@@ -454,7 +454,9 @@ function main(): number {
     const sizeBase = new Map<string, number>();
     const tagsOf = new Map<string, { tags: Map<string, number>; spells: number }>();
     for (const d of g.decks) {
-      const s = stylesMet(cards.get(d.id)!, g.size, index, config);
+      const lead =
+        d.size === 100 && d.commander?.length === 1 ? index.get(d.commander[0]!) : undefined;
+      const s = stylesMet(cards.get(d.id)!, g.size, index, config, lead);
       for (const id of s) met.set(id, (met.get(id) ?? 0) + 1);
       if (s.length === 0) none.push(d);
       const t = spellTags(cards.get(d.id)!, index, config);

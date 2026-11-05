@@ -16,12 +16,13 @@ import {
 } from './config.ts';
 import { listCandidates, type Candidate } from './candidates.ts';
 import { colorsLabel, isCommanderSize, normalizeColors } from './colors.ts';
-import { creatureTypes } from './matchers.ts';
+import { creatureTypes, inTribe } from './matchers.ts';
 import type { CardIndex } from './pack.ts';
 import {
   COLOR_LABELS,
   COLORS,
   type ArchetypeReport,
+  type CardRecord,
   type Color,
   type DeckSize,
   type Pool,
@@ -283,8 +284,98 @@ export interface SecondaryChoice {
 
 /** Display name of a secondary style id. */
 export function secondaryLabel(config: BulkBrewConfig, id: string): string {
-  if (id.startsWith('tribal:')) return `${id.slice(7)} tribe`;
+  if (id.startsWith(TRIBAL)) return `${id.slice(TRIBAL.length)} tribe`;
   return config.archetypes.archetypes.find((a) => a.id === id)?.label ?? id;
+}
+
+/** Style ids for tribes start with this, as in "tribal:Dragon". */
+export const TRIBAL = 'tribal:';
+
+/**
+ * A tribe as a Commander deck's primary style, shaped like a synergy
+ * archetype: members are its enablers and cards that reward the type
+ * (Tagger `typal-<type>`) its payoffs. It needs twice the secondary tribe
+ * counts, as a secondary theme needs half of a primary's.
+ */
+export function tribalArchetype(type: string, config: BulkBrewConfig): SynergyArchetype {
+  const sec = config.builderWeights.secondary;
+  const minimums = {} as SynergyArchetype['minimums'];
+  for (const size of ['100', '60', '40', '20'] as const) {
+    const w = forSize(sec.tribal, Number(size));
+    minimums[size] = {
+      enablers: Math.ceil(w.enablers / sec.minimumShare),
+      payoffs: Math.ceil(w.payoffs / sec.minimumShare),
+    };
+  }
+  return {
+    kind: 'synergy',
+    id: `${TRIBAL}${type}`,
+    label: `${type} tribe`,
+    description: `${type} creatures and the cards that reward them.`,
+    curveProfile: 'midrange',
+    enablers: [],
+    payoffs: [],
+    minimums,
+    synergyWeight: 1,
+  };
+}
+
+/** Whether a style id names a tribe, and its creature type. */
+export function tribeOf(id: string | undefined): string | undefined {
+  return id?.startsWith(TRIBAL) ? id.slice(TRIBAL.length) : undefined;
+}
+
+export interface CommanderTribe {
+  archetype: SynergyArchetype;
+  members: number;
+  payoffs: number;
+  viable: boolean;
+}
+
+/**
+ * Tribes a commander's own text names (its Tagger `typal-<type>` tags, for
+ * types the candidates hold) with their member and payoff copies against
+ * the primary minimums. The commander is not one of the candidates.
+ */
+export function commanderTribes(
+  commander: CardRecord,
+  cands: Candidate[],
+  config: BulkBrewConfig,
+  size: DeckSize,
+): CommanderTribe[] {
+  const tags = commander.tags.filter((t) => t.startsWith('typal-')).sort();
+  if (tags.length === 0) return [];
+  const types = new Map<string, string>();
+  for (const c of cands)
+    if (c.facts.spell) for (const t of creatureTypes(c.facts.card)) types.set(t.toLowerCase(), t);
+  const out: CommanderTribe[] = [];
+  for (const tag of tags) {
+    const type = types.get(tag.slice(6));
+    if (!type) continue;
+    const archetype = tribalArchetype(type, config);
+    const want = minimumsFor(config, archetype, size);
+    const members = countCopies(cands, (c) => inTribe(c.facts.card, type));
+    const payoffs = countCopies(cands, (c) => c.facts.card.tags.includes(tag));
+    const viable = members >= want.enablers && payoffs >= want.payoffs;
+    out.push({ archetype, members, payoffs, viable });
+  }
+  return out;
+}
+
+/** What a tribe lacks as a primary style, in the scan's "needs" words. */
+export function tribeShortfall(t: CommanderTribe, config: BulkBrewConfig, size: DeckSize): string {
+  const want = minimumsFor(config, t.archetype, size);
+  const type = t.archetype.id.slice(TRIBAL.length);
+  return [
+    t.members < want.enablers
+      ? `needs ${plural(want.enablers - t.members, `more ${type} creature`)}`
+      : '',
+    t.payoffs < want.payoffs
+      ? `needs ${plural(want.payoffs - t.payoffs, 'more card')} that reward${want.payoffs - t.payoffs === 1 ? 's' : ''} the ${type} tribe`
+      : '',
+  ]
+    .filter(Boolean)
+    .join('; ');
 }
 
 /**
@@ -299,7 +390,10 @@ export function secondaryChoices(
   primaryId: string,
 ): SecondaryChoice[] {
   if (!scan.possible) return [];
-  const primary = config.archetypes.archetypes.find((a) => a.id === primaryId);
+  const primaryTribe = tribeOf(primaryId);
+  const primary =
+    config.archetypes.archetypes.find((a) => a.id === primaryId) ??
+    (primaryTribe ? tribalArchetype(primaryTribe, config) : undefined);
   if (!primary) return [];
   const sec = config.builderWeights.secondary;
   const out: SecondaryChoice[] = [];
@@ -335,7 +429,7 @@ export function secondaryChoices(
   const want = forSize(sec.tribal, scan.size);
   for (const t of scan.tribes ?? []) {
     // A type with no cards that reward it is just a crowd of bodies, not a tribe.
-    if (t.payoffs === 0) continue;
+    if (t.payoffs === 0 || t.type === primaryTribe) continue;
     const shortE = Math.max(0, want.enablers - t.members);
     const shortP = Math.max(0, want.payoffs - t.payoffs);
     const state = judge(shortE + shortP);

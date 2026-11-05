@@ -7,9 +7,9 @@
 
 import type { BulkBrewConfig } from './config.ts';
 import { BuildError, buildDeck, styleCounts } from './builder.ts';
-import { factsFor } from './candidates.ts';
+import { factsFor, listCandidates, type Candidate } from './candidates.ts';
 import type { CardIndex } from './pack.ts';
-import { scanPool, secondaryLabel } from './scan.ts';
+import { commanderTribes, scanPool, secondaryLabel, tribeOf } from './scan.ts';
 import type { Color, Pool, ScanReport, Settings } from './types.ts';
 import { normalizeColors } from './colors.ts';
 import { landColors } from './lands.ts';
@@ -30,6 +30,8 @@ export interface CommanderCandidate {
   leads: { id: string; label: string }[];
   /** Synergy archetypes its text rewards or feeds, whether or not the pool can build them. */
   supports: string[];
+  /** Tribes its text names that the pool can build as the primary style, such as "tribal:Dragon". */
+  primaryTribes: string[];
   /** Plain-language reasons for the tier. */
   reasons: string[];
   /** Nonland cards in the pool that fit the commander's colors. */
@@ -78,6 +80,7 @@ export function commanderCandidates(
 ): CommanderCandidate[] {
   const out: CommanderCandidate[] = [];
   const rarities = settings.rarities?.length ? new Set(settings.rarities) : undefined;
+  const candsByColors = new Map<string, Candidate[]>();
   for (const entry of Object.values(pool.entries)) {
     if (entry.qty <= 0) continue;
     const card = index.get(entry.cardId);
@@ -106,6 +109,19 @@ export function commanderCandidates(
       if (card.tags.includes(`typal-${t.type.toLowerCase()}`))
         leads.push({ id: `tribal:${t.type}`, label: secondaryLabel(config, `tribal:${t.type}`) });
     }
+    // A tribe the pool can build as the primary style leads even when it is not among the largest.
+    let cands = candsByColors.get(key);
+    if (!cands) {
+      cands = listCandidates(pool, index, config, settings, colors, 100);
+      candsByColors.set(key, cands);
+    }
+    const named = card.tags.some((t) => t.startsWith('typal-'));
+    const others = named ? cands.filter((c) => c.facts.card.id !== card.id) : [];
+    const primaryTribes = commanderTribes(card, others, config, 100)
+      .filter((t) => t.viable)
+      .map((t) => t.archetype.id);
+    for (const id of primaryTribes)
+      if (!leads.some((l) => l.id === id)) leads.push({ id, label: secondaryLabel(config, id) });
     const styles = [...leads, ...feeds];
     const supports = config.archetypes.archetypes
       .filter(
@@ -148,6 +164,7 @@ export function commanderCandidates(
       styles,
       leads,
       supports,
+      primaryTribes,
       reasons,
       depth,
       enough,
@@ -173,13 +190,14 @@ export function commanderCandidates(
 
 /**
  * Whether a commander leads the style: its text rewards or feeds a synergy
- * style. Plain shapes such as Midrange suit any commander.
+ * style, or names the tribe. Plain shapes such as Midrange suit any commander.
  */
 export function commanderSuits(
   candidate: CommanderCandidate,
   style: string,
   config: BulkBrewConfig,
 ): boolean {
+  if (tribeOf(style)) return candidate.leads.some((l) => l.id === style);
   const archetype = config.archetypes.archetypes.find((a) => a.id === style);
   if (!archetype) return false;
   return archetype.kind === 'composition' || candidate.supports.includes(style);

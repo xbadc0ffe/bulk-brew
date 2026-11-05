@@ -405,7 +405,7 @@ function main(): number {
       ok: typeof mixed !== 'string',
       selfOk: typeof self !== 'string',
       ref,
-      refStyles: stylesMet(refCards, size, index, config),
+      refStyles: stylesMet(refCards, size, index, config, commander),
       refStrength: refS.strength,
       refRank: refS.rank,
       ms: Date.now() - t,

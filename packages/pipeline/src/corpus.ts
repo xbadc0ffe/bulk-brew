@@ -9,6 +9,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   addToPool,
+  commanderTribes,
   emptyPool,
   factsFor,
   minimumsFor,
@@ -261,14 +262,29 @@ export function round(n: number, places = 2): number {
   return Math.round(n * f) / f;
 }
 
-/** Synergy styles a deck meets: enablers and payoffs at the size's minimums. */
+/**
+ * Synergy styles a deck meets: enablers and payoffs at the size's minimums,
+ * plus, under a commander, the tribes its text names at the primary minimums.
+ */
 export function stylesMet(
   cards: [CardRecord, number][],
   size: DeckSize,
   index: CardIndex,
   config: BulkBrewConfig,
+  commander?: CardRecord,
 ): string[] {
   const out: string[] = [];
+  if (commander) {
+    const cands = cards
+      .map(([card, qty]) => ({
+        facts: factsFor(index, config, card),
+        available: qty,
+        preferred: qty,
+      }))
+      .filter((c) => c.facts.spell);
+    for (const t of commanderTribes(commander, cands, config, size))
+      if (t.viable) out.push(t.archetype.id);
+  }
   for (const a of config.archetypes.archetypes) {
     if (a.kind !== 'synergy') continue;
     let e = 0;

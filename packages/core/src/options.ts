@@ -4,10 +4,11 @@
 // built from the full pool; options are ideas, not commitments.
 
 import { buildDeck } from './builder.ts';
+import { listCandidates } from './candidates.ts';
 import { normalizeColors } from './colors.ts';
 import type { BulkBrewConfig } from './config.ts';
 import type { CardIndex } from './pack.ts';
-import { scanPool } from './scan.ts';
+import { commanderTribes, scanPool } from './scan.ts';
 import {
   COLORS,
   type ArchetypeReport,
@@ -97,14 +98,21 @@ export function planOptions(
     if (!scan.possible) continue;
     const styles = scan.archetypes
       .filter((a) => a.viable && (!req.primary || a.archetype === req.primary))
-      .sort(byStylePromise);
+      .sort(byStylePromise)
+      .map((a) => a.archetype);
+    // A tribe the commander's text names leads its options, ahead of the other themes.
+    if (lead) {
+      const cands = listCandidates(pool, index, config, req.settings, subset, req.size).filter(
+        (c) => c.facts.card.id !== lead.id,
+      );
+      const tribes = commanderTribes(lead, cands, config, req.size)
+        .filter((t) => t.viable && (!req.primary || t.archetype.id === req.primary))
+        .map((t) => t.archetype.id);
+      styles.unshift(...tribes);
+    }
     if (styles.length === 0) continue;
     perSubset.push(
-      styles.map((a) => ({
-        key: `${subset.join('')}:${a.archetype}`,
-        colors: subset,
-        style: a.archetype,
-      })),
+      styles.map((style) => ({ key: `${subset.join('')}:${style}`, colors: subset, style })),
     );
   }
   const plans: OptionPlan[] = [];

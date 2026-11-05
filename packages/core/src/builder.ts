@@ -19,7 +19,6 @@ import {
   type BulkBrewConfig,
   type DeckTemplate,
   type RoleQuota,
-  type SynergyArchetype,
   type TypeMix,
 } from './config.ts';
 import {
@@ -49,12 +48,16 @@ import {
 } from './colors.ts';
 import type { CardIndex } from './pack.ts';
 import {
+  commanderTribes,
   countCopies,
   effectiveCurveProfile,
   effectiveQuotas,
   effectiveTypeMix,
   scanCandidates,
   secondaryLabel,
+  tribalArchetype,
+  tribeOf,
+  tribeShortfall,
 } from './scan.ts';
 import {
   type BuildExplanation,
@@ -153,6 +156,48 @@ interface Ctx {
   themeFlags: Map<string, number>;
   /** Theme minimums the swaps must not drop below: primary, then secondary. */
   themeWant: { pe: number; pp: number; se: number; sp: number };
+  /** The primary style's theme cards, for a synergy style or a tribe. */
+  theme: PrimaryTheme | undefined;
+}
+
+/** How a primary style's theme cards are told apart, and how many it needs. */
+interface PrimaryTheme {
+  isEnabler(c: Candidate): boolean;
+  isPayoff(c: Candidate): boolean;
+  want: { enablers: number; payoffs: number };
+  enablerWhy: string;
+  payoffWhy: string;
+  /**
+   * Whether members and payoffs count as synergy pairs themselves. A tribe
+   * has no synergy rule of its own, so its pairs would go uncounted.
+   */
+  pairs: boolean;
+}
+
+/** Theme tests for a primary style: config themes by their matchers, tribes by type and tag. */
+function themeOf(a: Archetype, config: BulkBrewConfig, size: DeckSize): PrimaryTheme | undefined {
+  if (a.kind !== 'synergy') return undefined;
+  const want = minimumsFor(config, a, size);
+  const type = tribeOf(a.id);
+  if (type) {
+    const tag = `typal-${type.toLowerCase()}`;
+    return {
+      isEnabler: (c) => inTribe(c.facts.card, type),
+      isPayoff: (c) => c.facts.card.tags.includes(tag),
+      want,
+      enablerWhy: a.label,
+      payoffWhy: `${a.label} payoff`,
+      pairs: true,
+    };
+  }
+  return {
+    isEnabler: (c) => c.facts.enablerOf.includes(a.id),
+    isPayoff: (c) => c.facts.payoffOf.includes(a.id),
+    want,
+    enablerWhy: `${a.label} enabler`,
+    payoffWhy: `${a.label} payoff`,
+    pairs: false,
+  };
 }
 
 const THEME_PE = 1;
@@ -185,6 +230,8 @@ function resolveSecondary(
 ): { theme?: SecondaryTheme; note?: string } {
   if (!id) return {};
   const sec = config.builderWeights.secondary;
+  if (id === primary.id)
+    return { note: `Ignored the secondary archetype ${secondaryLabel(config, id)}.` };
   if (id.startsWith('tribal:')) {
     const type = id.slice(7);
     const tag = `typal-${type.toLowerCase()}`;
@@ -347,6 +394,18 @@ function computeTargets(shape: number[], slots: number): number[] {
   return [0, ...floors];
 }
 
+/** Weighted enabler and payoff pairs over the synergy rules, plus a tribe's own pairs. */
+function synergyPairs(t: Tally, ctx: Ctx): number {
+  let pairs = 0;
+  for (const rule of ctx.config.synergyRules.rules) {
+    const e = t.ruleEnablers.get(rule.id) ?? 0;
+    const p = t.rulePayoffs.get(rule.id) ?? 0;
+    pairs += rule.weight * Math.min(e, p);
+  }
+  if (ctx.theme?.pairs) pairs += Math.min(t.pe, t.pp);
+  return pairs;
+}
+
 function objective(state: State, ctx: Ctx): number {
   return objectiveOf(tally(state, ctx), state.slots, ctx);
 }
@@ -370,11 +429,7 @@ function objectiveOf(t: Tally, slots: number, ctx: Ctx): number {
     const have = t.roles.get(roleId) ?? 0;
     s -= w.roleShortfall * (2 * Math.max(0, q.min - have) + Math.max(0, q.target - have));
   }
-  for (const rule of ctx.config.synergyRules.rules) {
-    const e = t.ruleEnablers.get(rule.id) ?? 0;
-    const p = t.rulePayoffs.get(rule.id) ?? 0;
-    s += w.synergyDensity * ctx.synergyScale * rule.weight * Math.min(e, p);
-  }
+  s += w.synergyDensity * ctx.synergyScale * synergyPairs(t, ctx);
   s += w.themeHit * t.themeHits;
   s += w.cardStrength * (t.strength - t.castPen);
   return s;
@@ -528,9 +583,9 @@ function describeWhy(cand: Candidate, ctx: Ctx): string {
   for (const roleId of Object.keys(ctx.quotas)) {
     if (cand.facts.roles.includes(roleId)) return roleLabel(ctx, roleId);
   }
-  if (ctx.archetype.kind === 'synergy') {
-    if (cand.facts.payoffOf.includes(ctx.archetype.id)) return `${ctx.archetype.label} payoff`;
-    if (cand.facts.enablerOf.includes(ctx.archetype.id)) return `${ctx.archetype.label} enabler`;
+  if (ctx.theme) {
+    if (ctx.theme.isPayoff(cand)) return ctx.theme.payoffWhy;
+    if (ctx.theme.isEnabler(cand)) return ctx.theme.enablerWhy;
   }
   const sec = ctx.secondary;
   if (sec && sec.kind !== 'composition') {
@@ -565,9 +620,9 @@ function fillRoles(state: State, ctx: Ctx, level: 'min' | 'target', kind: PickKi
 }
 
 function fillTheme(state: State, ctx: Ctx): void {
-  if (ctx.archetype.kind !== 'synergy') return;
-  const a: SynergyArchetype = ctx.archetype;
-  const want = minimumsFor(ctx.config, a, ctx.template.size);
+  const theme = ctx.theme;
+  if (!theme) return;
+  const want = theme.want;
   const count = (pick: (c: Candidate) => boolean) => {
     let n = 0;
     for (const { cand, qty } of state.chosen.values()) if (pick(cand)) n += qty;
@@ -576,8 +631,7 @@ function fillTheme(state: State, ctx: Ctx): void {
   // Theme cards strong enough to play on their own go first; weaker ones only fill what is left.
   const bar = ctx.config.cardStrength.themeMinStrength;
   const strong = (c: Candidate) => c.facts.strength >= bar;
-  const isEnabler = (c: Candidate) => c.facts.enablerOf.includes(a.id);
-  const isPayoff = (c: Candidate) => c.facts.payoffOf.includes(a.id);
+  const { isEnabler, isPayoff } = theme;
   // Last, bend the copy guidelines: the scan counted every copy the settings allow.
   const passes: [(c: Candidate) => boolean, Relax][] = [
     [strong, 'none'],
@@ -588,14 +642,14 @@ function fillTheme(state: State, ctx: Ctx): void {
     const pick = (c: Candidate) => isPayoff(c) && ok(c);
     while (
       count(isPayoff) < want.payoffs &&
-      pickBest(state, ctx, pick, `${a.label} payoff`, 'theme', relax)
+      pickBest(state, ctx, pick, theme.payoffWhy, 'theme', relax)
     );
   }
   for (const [ok, relax] of passes) {
     const pick = (c: Candidate) => isEnabler(c) && ok(c);
     while (
       count(isEnabler) < want.enablers &&
-      pickBest(state, ctx, pick, `${a.label} enabler`, 'theme', relax)
+      pickBest(state, ctx, pick, theme.enablerWhy, 'theme', relax)
     );
   }
 }
@@ -903,13 +957,7 @@ function scoreDeck(state: State, ctx: Ctx, mana: ManaBase, lands: number): DeckS
     Math.max(0, t.ncPerm - tm.noncreaturePermanentMax * slots - tol);
   const typeMix = clamp01(1 - typeDev / slack);
 
-  let pairs = 0;
-  for (const rule of ctx.config.synergyRules.rules) {
-    const e = t.ruleEnablers.get(rule.id) ?? 0;
-    const p = t.rulePayoffs.get(rule.id) ?? 0;
-    pairs += rule.weight * Math.min(e, p);
-  }
-  const synergy = clamp01(pairs / spells / cfg.synergyReference);
+  const synergy = clamp01(synergyPairs(t, ctx) / spells / cfg.synergyReference);
 
   const cast = castability(state, ctx, mana, lands);
   const w = cfg.weights;
@@ -1086,21 +1134,18 @@ function attempt(
   const themeValue = new Map<string, number>();
   const themeFlags = new Map<string, number>();
   const share = config.builderWeights.secondary.themeHitShare;
+  const theme = themeOf(archetype, config, size);
   for (const c of spells) {
-    const prim = archetype.kind === 'synergy';
     const sec = secondary && secondary.kind !== 'composition';
+    const pe = theme?.isEnabler(c) ?? false;
+    const pp = theme?.isPayoff(c) ?? false;
     const flags =
-      (prim && c.facts.enablerOf.includes(archetype.id) ? THEME_PE : 0) |
-      (prim && c.facts.payoffOf.includes(archetype.id) ? THEME_PP : 0) |
+      (pe ? THEME_PE : 0) |
+      (pp ? THEME_PP : 0) |
       (sec && secondary.isEnabler(c) ? THEME_SE : 0) |
       (sec && secondary.isPayoff(c) ? THEME_SP : 0);
     if (flags) themeFlags.set(c.facts.card.id, flags);
-    let v = 0;
-    if (archetype.kind === 'synergy') {
-      v +=
-        (c.facts.enablerOf.includes(archetype.id) ? 1 : 0) +
-        (c.facts.payoffOf.includes(archetype.id) ? 1 : 0);
-    }
+    let v = (pe ? 1 : 0) + (pp ? 1 : 0);
     if (secondary && secondary.kind !== 'composition') {
       v += share * ((secondary.isEnabler(c) ? 1 : 0) + (secondary.isPayoff(c) ? 1 : 0));
     }
@@ -1136,11 +1181,12 @@ function attempt(
     themeValue,
     themeFlags,
     themeWant: {
-      pe: archetype.kind === 'synergy' ? minimumsFor(config, archetype, size).enablers : 0,
-      pp: archetype.kind === 'synergy' ? minimumsFor(config, archetype, size).payoffs : 0,
+      pe: theme?.want.enablers ?? 0,
+      pp: theme?.want.payoffs ?? 0,
       se: secondary?.want.enablers ?? 0,
       sp: secondary?.want.payoffs ?? 0,
     },
+    theme,
   };
   const notes: string[] = [];
 
@@ -1188,6 +1234,37 @@ function attempt(
   };
 }
 
+/**
+ * The commander's pull on each style to try, as a share of the style bonus.
+ * The styles its text rewards (a payoff for them, or a tribe it names) are
+ * scaled by how specific they are: the one with the fewest payoffs among the
+ * candidates gets all of it, and one with n times as many payoffs gets 1/n²,
+ * as a rarer payoff marks the commander's own plan. A commander that rewards
+ * none pulls the styles it feeds the same way.
+ */
+function commanderPull(
+  tryList: readonly Archetype[],
+  commander: CardRecord,
+  cands: Candidate[],
+  index: CardIndex,
+  config: BulkBrewConfig,
+  size: DeckSize,
+): Map<string, number> {
+  const facts = factsFor(index, config, commander);
+  const rewards = (a: Archetype) => tribeOf(a.id) !== undefined || facts.payoffOf.includes(a.id);
+  const leads = tryList.filter(rewards);
+  const pulled = leads.length > 0 ? leads : tryList.filter((a) => facts.enablerOf.includes(a.id));
+  const payoffs = new Map<string, number>();
+  for (const a of pulled) {
+    const theme = themeOf(a, config, size);
+    if (theme) payoffs.set(a.id, Math.max(1, countCopies(cands, theme.isPayoff)));
+  }
+  const fewest = Math.min(...payoffs.values());
+  const out = new Map<string, number>();
+  for (const [id, n] of payoffs) out.set(id, (fewest / n) ** 2);
+  return out;
+}
+
 /** "Anafenza, Kin-Tree Spirit" becomes "Anafenza"; the front face of a two-faced name. */
 function shortName(name: string): string {
   return (name.split(' // ')[0] ?? name).split(',')[0]!.trim();
@@ -1222,27 +1299,41 @@ export function buildDeck(
 
   const notes: string[] = [];
   const byId = new Map(config.archetypes.archetypes.map((a) => [a.id, a]));
+  // Under a commander whose text names a creature type, the tribe can be the primary style.
+  const tribes = commander ? commanderTribes(commander, cands, config, size) : [];
   let tryList: Archetype[] = [];
   let styleBuilt = false;
   if (request.style) {
     const report = scan.archetypes.find((r) => r.archetype === request.style);
-    const a = byId.get(request.style);
-    if (report?.viable && a) {
+    const tribe = tribes.find((t) => t.archetype.id === request.style);
+    const a = byId.get(request.style) ?? tribe?.archetype;
+    if ((tribe ? tribe.viable : report?.viable) && a) {
       tryList = [a];
       styleBuilt = true;
     } else {
-      const why = report?.notes.join('; ') ?? 'unknown archetype';
+      const why = tribe
+        ? tribeShortfall(tribe, config, size)
+        : (report?.notes.join('; ') ??
+          (tribeOf(request.style)
+            ? commander
+              ? `${shortName(commander.name)} does not reward the ${tribeOf(request.style)} tribe`
+              : 'a tribe leads only a Commander deck whose commander names it'
+            : 'unknown archetype'));
       if (request.requireStyle) {
         throw new BuildError(
-          `Not enough cards to build ${a?.label ?? request.style}${commander ? ` under ${shortName(commander.name)}` : ''}${why ? `: ${why}` : ''}.`,
+          `Not enough cards to build ${a?.label ?? secondaryLabel(config, request.style)}${commander ? ` under ${shortName(commander.name)}` : ''}${why ? `: ${why}` : ''}.`,
         );
       }
       notes.push(
-        `Archetype "${a?.label ?? request.style}" is not viable here (${why}); picked the best fit instead.`,
+        `Archetype "${a?.label ?? secondaryLabel(config, request.style)}" is not viable here (${why}); picked the best fit instead.`,
       );
     }
   }
-  if (tryList.length === 0) tryList = bestFitCandidates(scan, config);
+  if (tryList.length === 0)
+    tryList = [
+      ...tribes.filter((t) => t.viable).map((t) => t.archetype),
+      ...bestFitCandidates(scan, config),
+    ];
   if (tryList.length === 0) {
     const fallback =
       byId.get('midrange') ?? config.archetypes.archetypes.find((a) => a.kind === 'composition')!;
@@ -1257,15 +1348,12 @@ export function buildDeck(
   if (request.secondary && !request.style)
     notes.push('A secondary archetype needs a primary archetype; built the best fit without it.');
 
-  // A commander pulls best fit toward the styles its own text enables or rewards.
-  const commanderFacts = commander ? factsFor(index, config, commander) : undefined;
+  // A commander pulls best fit toward the styles its own text rewards or feeds, the most specific most.
+  const pull = commander
+    ? commanderPull(tryList, commander, cands, index, config, size)
+    : new Map<string, number>();
   const rankOf = (at: Attempt) =>
-    at.score.total +
-    (commanderFacts &&
-    (commanderFacts.enablerOf.includes(at.archetype.id) ||
-      commanderFacts.payoffOf.includes(at.archetype.id))
-      ? config.builderWeights.commander.styleBonus
-      : 0);
+    at.score.total + (pull.get(at.archetype.id) ?? 0) * config.builderWeights.commander.styleBonus;
 
   // Ties keep the earlier candidate: themes come first, so a theme beats a plain shape it ties.
   let best: Attempt | undefined;
@@ -1489,7 +1577,10 @@ export interface StyleCount {
  */
 export function styleCounts(deck: Deck, index: CardIndex, config: BulkBrewConfig): StyleCount[] {
   // Merged packets record "a+b"; neither part's minimums fit 40 cards.
-  const primary = config.archetypes.archetypes.find((a) => a.id === deck.archetype);
+  const tribe = tribeOf(deck.archetype);
+  const primary =
+    config.archetypes.archetypes.find((a) => a.id === deck.archetype) ??
+    (tribe ? tribalArchetype(tribe, config) : undefined);
   if (!primary) return [];
   const cands: { cand: Candidate; qty: number }[] = [];
   for (const dc of deck.cards) {
@@ -1522,15 +1613,16 @@ export function styleCounts(deck: Deck, index: CardIndex, config: BulkBrewConfig
     };
   };
   const out: StyleCount[] = [];
-  if (primary.kind === 'synergy') {
+  const theme = themeOf(primary, config, deck.size);
+  if (theme) {
     out.push(
       count(
         primary.id,
         primary.label,
-        false,
-        (c) => c.facts.enablerOf.includes(primary.id),
-        (c) => c.facts.payoffOf.includes(primary.id),
-        minimumsFor(config, primary, deck.size),
+        tribe !== undefined,
+        theme.isEnabler,
+        theme.isPayoff,
+        theme.want,
       ),
     );
   }
