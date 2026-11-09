@@ -39,7 +39,15 @@
     "spellbook:fetch": "node packages/pipeline/src/spellbook-fetch.ts",
     "learn:build": "node packages/pipeline/src/learn-build.ts",
     "rules:fetch": "node scripts/fetch-comp-rules.mjs",
-    "smoke": "node scripts/smoke-web.mjs"
+    "smoke": "node scripts/smoke-web.mjs",
+    "review:cards": "node packages/pipeline/src/review/cards.ts",
+    "review:build": "node packages/pipeline/src/review/build.ts",
+    "review:pools": "node packages/pipeline/src/review/pools.ts",
+    "review:anchors": "node packages/pipeline/src/review/anchors.ts",
+    "review:requests": "node packages/pipeline/src/review/requests.ts",
+    "review:packets": "node packages/pipeline/src/review/packets.ts",
+    "review:collate": "node packages/pipeline/src/review/collate.ts",
+    "review:check": "node packages/pipeline/src/review/check.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

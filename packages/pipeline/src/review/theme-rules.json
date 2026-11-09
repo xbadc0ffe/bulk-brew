@@ -1,0 +1,2691 @@
+{
+  "version": "2",
+  "styles": {
+    "tokens": {
+      "resource": "creature tokens that stay on the battlefield, counted in bodies",
+      "setup": [
+        {
+          "job": "token engine",
+          "weight": 2,
+          "text": "(\\{T\\}|\\}|^([^\\n—]*— )?at the beginning of|^([^\\n—]*— )?whenever)[^.\\n]*create[^.\\n]*creature tokens?",
+          "notText": "^[^:\\n]*(sacrifice|exile|discard) (this|it\\b)[^:\\n]*:[^\\n]*create|^[^\\n]*(if you gained|pay \\{E\\}|nontoken|whenever you cast)[^\\n]*create[^.\\n]*creature token|(sacrifice|exile) (it|them|those tokens|that token|the tokens?) at (the beginning of the next end step|end of combat)|^mobilize\\b|(its controller|that player|each opponent|target opponent|each other player|their controller|each player) creates?",
+          "repeatable": true
+        },
+        {
+          "job": "token engine",
+          "weight": 2,
+          "text": "^myriad\\b",
+          "repeatable": true
+        },
+        {
+          "job": "token engine fed by another resource or temporary",
+          "weight": 1,
+          "text": "(\\{T\\}|\\}|^([^\\n—]*— )?at the beginning of|^([^\\n—]*— )?whenever)[^.\\n]*create[^.\\n]*creature tokens?|^mobilize\\b",
+          "notText": "^[^:\\n]*(sacrifice|exile|discard) (this|it\\b)[^:\\n]*:[^\\n]*create|(its controller|that player|each opponent|target opponent|each other player|their controller|each player) creates?"
+        },
+        {
+          "job": "burst of two or more tokens",
+          "weight": 1,
+          "text": "creates? (two|three|four|five|x|that many|a number of)[^.\\n]*creature tokens",
+          "notText": "(sacrifice|exile) (it|them|those tokens|that token|the tokens?) at (the beginning of the next end step|end of combat)|^mobilize\\b|(its controller|that player|each opponent|target opponent|each other player|their controller|each player) creates?"
+        },
+        {
+          "job": "burst of temporary tokens",
+          "weight": 0.5,
+          "text": "creates? (two|three|four|five|x|that many|a number of)[^.\\n]*creature tokens",
+          "notText": "(its controller|that player|each opponent|target opponent|each other player|their controller|each player) creates?"
+        },
+        {
+          "job": "creature plus one token",
+          "weight": 0.5,
+          "types": ["creature"],
+          "text": "^([^\\n—]*— )?when(ever)? [^.\\n]*(enters|dies)[^.\\n]*, create (a|an|one) [^.\\n]*creature token",
+          "notText": "(its controller|that player|each opponent|target opponent|each other player|their controller|each player) creates?"
+        }
+      ],
+      "payoff": [
+        {
+          "job": "lasting anthem",
+          "weight": 2,
+          "text": "(^|\\. |• )(other )?creatures you control get \\+(\\d+|x)/\\+(\\d+|x)(?![^.\\n]*until end of turn)|(^|\\. )creature tokens you control get \\+(\\d+|x)/\\+(\\d+|x)(?![^.\\n]*until end of turn)"
+        },
+        {
+          "job": "enters trigger",
+          "weight": 2,
+          "text": "whenever (a|another|one or more)( other)? (creatures?|creature tokens?|tokens?)( you control)? enters?\\b|whenever you (create|create or sacrifice) (a|one or more)"
+        },
+        {
+          "job": "count scaler",
+          "weight": 1,
+          "text": "(number of|for each) (other )?creatures? you control(?! with)",
+          "notTags": ["sweeper"]
+        },
+        {
+          "job": "lasting keyword anthem",
+          "weight": 1,
+          "anyTags": ["keyword-anthem"],
+          "notTags": ["typal"],
+          "text": "(^|\\. |• )(other )?creatures you control have",
+          "notText": "nontoken|until end of turn"
+        },
+        {
+          "job": "team pump",
+          "weight": 1,
+          "priority": -1,
+          "text": "(^|\\. |• )(other )?creatures you control get \\+(\\d+|x)/\\+(\\d+|x)[^.\\n]*until end of turn"
+        },
+        {
+          "job": "team pump",
+          "weight": 1,
+          "priority": -1,
+          "anyTags": ["overrun"],
+          "notTags": ["typal"]
+        },
+        {
+          "job": "tap for value",
+          "weight": 0.5,
+          "priority": -1,
+          "text": "^convoke\\b|^tap (two|three|four|five|x) untapped creatures you control"
+        }
+      ],
+      "minimums": {
+        "20": [
+          {
+            "setup": 3,
+            "repeatable": 2,
+            "payoff": 2
+          },
+          {
+            "setup": 4,
+            "payoff": 2
+          }
+        ],
+        "40": [
+          {
+            "setup": 6,
+            "repeatable": 3,
+            "payoff": 4
+          },
+          {
+            "setup": 8,
+            "payoff": 4
+          }
+        ],
+        "60": [
+          {
+            "setup": 9,
+            "repeatable": 4,
+            "payoff": 6
+          },
+          {
+            "setup": 12,
+            "payoff": 6
+          }
+        ],
+        "100": [
+          {
+            "setup": 14,
+            "repeatable": 7,
+            "payoff": 8
+          },
+          {
+            "setup": 18,
+            "payoff": 8
+          }
+        ]
+      }
+    },
+    "counters": {
+      "resource": "+1/+1 counters and the creatures carrying them",
+      "setup": [
+        {
+          "job": "spreader",
+          "weight": 2,
+          "text": "^([^\\n—]*— )?(at the beginning of|whenever)[^\\n]*put (a|an|one|two|x) \\+1/\\+1 counters? on (another|target|each|up to)|^(?![^:\\n]*(sacrifice|exile|discard) (this|it\\b))[^:\\n]*\\{[^:\\n]*:[^\\n]*put (a|an|one|two|x) \\+1/\\+1 counters? on (another|target|each|up to)",
+          "notTags": ["group-hug"],
+          "repeatable": true
+        },
+        {
+          "job": "spreader with a hidden cost",
+          "weight": 1,
+          "text": "^([^\\n—]*— )?(at the beginning of|whenever)[^\\n]*put (a|an|one|two|x) \\+1/\\+1 counters? on (another|target|each|up to)|^(?![^:\\n]*(sacrifice|exile|discard) (this|it\\b))[^:\\n]*\\{[^:\\n]*:[^\\n]*put (a|an|one|two|x) \\+1/\\+1 counters? on (another|target|each|up to)",
+          "anyTags": ["group-hug"],
+          "repeatable": true
+        },
+        {
+          "job": "mass placer",
+          "weight": 1.5,
+          "text": "distribute [^.\\n]*\\+1/\\+1 counters|put (a|an|one|two|x) \\+1/\\+1 counters? on each (other )?creature you control",
+          "repeatable": true
+        },
+        {
+          "job": "single placer",
+          "weight": 1,
+          "text": "put (a|an|one|two) \\+1/\\+1 counters? on (target|up to)|\\bbolster \\d|^support \\d|^reinforce\\b",
+          "notTags": ["removal"]
+        },
+        {
+          "job": "single placer on removal",
+          "weight": 0.5,
+          "text": "put (a|an|one|two) \\+1/\\+1 counters? on (target|up to)|\\bbolster \\d|^support \\d",
+          "anyTags": ["removal"]
+        },
+        {
+          "job": "self-grower",
+          "weight": 1,
+          "text": "^(evolve|outlast|training)\\b|\\badapt \\d",
+          "repeatable": true
+        },
+        {
+          "job": "self-grower",
+          "weight": 1,
+          "anyTags": ["gains-pp-counters"],
+          "notTags": ["gives-pp-counters", "synergy-pw-specific"],
+          "text": "(^([^\\n—]*— )?(at the beginning of|whenever)|^[^:\\n]*\\{[^:\\n]*:)[^\\n]*\\+1/\\+1 counters? on ",
+          "notText": "^[^:\\n]*remove [^:\\n]*\\+1/\\+1 counters? from (this creature|it)\\b[^:\\n]*:|enters with [^.\\n]*\\+1/\\+1 counters? on it",
+          "repeatable": true
+        },
+        {
+          "job": "grows itself once",
+          "weight": 0.5,
+          "anyTags": ["gains-pp-counters"],
+          "notTags": ["gives-pp-counters", "synergy-pw-specific"],
+          "notText": "^[^:\\n]*remove [^:\\n]*\\+1/\\+1 counters? from (this creature|it)\\b[^:\\n]*:"
+        },
+        {
+          "job": "enters with counters",
+          "weight": 0.5,
+          "text": "enters with [^.\\n]*\\+1/\\+1 counters? on it",
+          "notText": "^[^:\\n]*remove [^:\\n]*\\+1/\\+1 counters? from (this creature|it)\\b[^:\\n]*:"
+        }
+      ],
+      "payoff": [
+        {
+          "job": "counter lord",
+          "weight": 2,
+          "text": "creatures? you control with (a |one or more )?\\+1/\\+1 counters? on (it|them),? (has|have|gets?|gains?)\\b"
+        },
+        {
+          "job": "damage trigger",
+          "weight": 2,
+          "text": "whenever (a|one or more) creatures? you control with (a |one or more )?\\+1/\\+1 counters? on (it|them) (deals|attacks?)"
+        },
+        {
+          "job": "multiplier",
+          "weight": 2,
+          "text": "one or more (\\+1/\\+1 )?counters would be put on [^.\\n]*you control|if you would put one or more (\\+1/\\+1 )?counters on [^.\\n]*you control|double the number of \\+1/\\+1 counters on each creature you control"
+        },
+        {
+          "job": "multiplier",
+          "weight": 2,
+          "anyTags": ["repeatable-proliferate"]
+        },
+        {
+          "job": "cash-in",
+          "weight": 1,
+          "text": "(for each|number of) creatures? you control with (a |one or more )?\\+1/\\+1 counters?",
+          "notText": "creatures? you control with [^\\n]*(you gain \\d+ life|scry 1)\\.?$"
+        },
+        {
+          "job": "rewards creatures with counters",
+          "weight": 1,
+          "text": "creatures? you control with (a |one or more )?\\+1/\\+1 counters?",
+          "notText": "creatures? you control with [^\\n]*(you gain \\d+ life|scry 1)\\.?$"
+        },
+        {
+          "job": "rewards counters",
+          "weight": 1,
+          "anyTags": ["pp-counters-matter", "counters-matter"],
+          "text": "(creatures?|permanents?)( you control)? with (a |one or more )?(\\+1/\\+1 )?counters? on (it|them)|modified creatures?|\\+1/\\+1 counters? (on|among) (creatures|permanents) you control|counters? you(\\'ve)? put on",
+          "notText": "^[^:\\n]*remove [^:\\n]*counters? from (this creature|it)\\b[^:\\n]*:|creatures? you control with [^\\n]*(you gain \\d+ life|scry 1)\\.?$"
+        },
+        {
+          "job": "small reward",
+          "weight": 0.5,
+          "text": "creatures? you control with [^\\n]*(you gain \\d+ life|scry 1)\\.?$"
+        }
+      ],
+      "minimums": {
+        "20": [
+          {
+            "setup": 3,
+            "repeatable": 2,
+            "payoff": 2
+          },
+          {
+            "setup": 5,
+            "payoff": 2
+          }
+        ],
+        "40": [
+          {
+            "setup": 6,
+            "repeatable": 3,
+            "payoff": 3
+          },
+          {
+            "setup": 9,
+            "payoff": 3
+          }
+        ],
+        "60": [
+          {
+            "setup": 10,
+            "repeatable": 4,
+            "payoff": 5
+          },
+          {
+            "setup": 13,
+            "payoff": 5
+          }
+        ],
+        "100": [
+          {
+            "setup": 14,
+            "repeatable": 7,
+            "payoff": 8
+          },
+          {
+            "setup": 22,
+            "payoff": 8
+          }
+        ]
+      }
+    },
+    "aristocrats": {
+      "resource": "creature deaths you cause: bodies to sacrifice and outlets to sacrifice them",
+      "setup": [
+        {
+          "job": "value outlet",
+          "weight": 2,
+          "priority": 2,
+          "text": "^([^\\n—]*— )?[^:\\n]*\\bsacrifice (a|another) (other )?(nontoken )?(creature|artifact or creature|creature or artifact|permanent)\\b[^:\\n]*:[^\\n]*(deals? \\d+ damage|draw a card|loses? \\d+ life|each opponent loses)",
+          "repeatable": true
+        },
+        {
+          "job": "repeatable outlet",
+          "weight": 2,
+          "priority": 2,
+          "text": "^([^\\n—]*— )?[^:\\n]*\\bsacrifice (a|another) (other )?(nontoken )?(creature|artifact or creature|creature or artifact|permanent)\\b[^:\\n]*:",
+          "repeatable": true
+        },
+        {
+          "job": "one-shot outlet",
+          "weight": 0.5,
+          "priority": 2,
+          "text": "as an additional cost to cast this spell, sacrifice (a|an|one or more|two|x) (creature|artifact or creature|creature or artifact|permanent)s?\\b|^exploit\\b|^casualty \\d|^emerge\\b|^when this creature enters, you may sacrifice (a|another) creature"
+        },
+        {
+          "job": "token engine fodder",
+          "weight": 2,
+          "text": "(\\{T\\}|\\}|^([^\\n—]*— )?at the beginning of|^([^\\n—]*— )?whenever)[^.\\n]*create[^.\\n]*creature tokens?|^(myriad|mobilize)\\b",
+          "notText": "^[^:\\n]*(sacrifice|exile|discard) (this|it\\b)[^:\\n]*:[^\\n]*create|^[^\\n]*(if you gained|pay \\{E\\}|nontoken|whenever you cast)[^\\n]*create[^.\\n]*creature token|(its controller|that player|each opponent|target opponent|each other player|their controller|each player) creates?"
+        },
+        {
+          "job": "token engine fed by deaths or another resource",
+          "weight": 1,
+          "text": "(\\{T\\}|\\}|^([^\\n—]*— )?at the beginning of|^([^\\n—]*— )?whenever)[^.\\n]*create[^.\\n]*creature tokens?",
+          "notText": "^[^:\\n]*(sacrifice|exile|discard) (this|it\\b)[^:\\n]*:[^\\n]*create|(its controller|that player|each opponent|target opponent|each other player|their controller|each player) creates?"
+        },
+        {
+          "job": "token burst fodder",
+          "weight": 1,
+          "text": "creates? (two|three|four|five|x|that many|a number of)[^.\\n]*creature tokens",
+          "notText": "(its controller|that player|each opponent|target opponent|each other player|their controller|each player) creates?"
+        },
+        {
+          "job": "fodder with a death trigger",
+          "weight": 1,
+          "types": ["creature"],
+          "text": "^([^\\n—]*— )?when (this creature|[^,.\\n]*?) (enters or )?dies, (?!all creatures|each creature|each player)|^(afterlife|persist|undying)\\b"
+        },
+        {
+          "job": "self-recurring fodder",
+          "weight": 1,
+          "types": ["creature"],
+          "text": "return this card from your graveyard to the battlefield"
+        },
+        {
+          "job": "creature plus one token",
+          "weight": 0.5,
+          "types": ["creature"],
+          "text": "^([^\\n—]*— )?when(ever)? [^.\\n]*(enters|dies)[^.\\n]*, create (a|an|one) [^.\\n]*creature token",
+          "notText": "(its controller|that player|each opponent|target opponent|each other player|their controller|each player) creates?"
+        },
+        {
+          "job": "weak fodder",
+          "weight": 0.5,
+          "types": ["creature"],
+          "text": "gains (undying|persist) until end of turn"
+        }
+      ],
+      "payoff": [
+        {
+          "job": "drain or value on each death",
+          "weight": 2,
+          "priority": 1,
+          "text": "whenever (this creature or )?(a|another|one or more)( other)? creatures?( you control)? dies?\\b",
+          "notText": "dies?, scry 1\\.$"
+        },
+        {
+          "job": "sacrifice trigger",
+          "weight": 2,
+          "priority": 1,
+          "text": "whenever you (create or )?sacrifice (a|another|one or more)( other)? (creatures?|permanents?|tokens?|artifact or creature|creature or artifact)\\b"
+        },
+        {
+          "job": "drain on each death",
+          "weight": 2,
+          "priority": 1,
+          "anyTags": ["blood-artist-ability"],
+          "notText": "nontoken|(enchanted|equipped) creature dies"
+        },
+        {
+          "job": "nontoken deaths only",
+          "weight": 1,
+          "priority": 1,
+          "text": "whenever (this creature or )?(a|another|one or more)( other)? nontoken creatures?( you control)? dies?\\b",
+          "notText": "dies?, scry 1\\.$"
+        },
+        {
+          "job": "scry rider on deaths",
+          "weight": 0.5,
+          "priority": 1,
+          "text": "whenever (this creature or )?(a|another|one or more)( other)? creatures?( you control)? dies?\\b"
+        },
+        {
+          "job": "morbid: rewards a death this turn",
+          "weight": 0.5,
+          "anyTags": ["morbid"],
+          "priority": 1
+        }
+      ],
+      "minimums": {
+        "20": {
+          "setup": 4,
+          "repeatable": 1,
+          "payoff": 2
+        },
+        "40": {
+          "setup": 8,
+          "repeatable": 2,
+          "payoff": 3
+        },
+        "60": {
+          "setup": 12,
+          "repeatable": 3,
+          "payoff": 4
+        },
+        "100": {
+          "setup": 16,
+          "repeatable": 5,
+          "payoff": 6
+        }
+      }
+    },
+    "graveyard": {
+      "resource": "cards in your own graveyard; for reanimation and undergrowth, creature cards there",
+      "setup": [
+        {
+          "job": "looter or rummager on a permanent",
+          "weight": 2,
+          "anyTags": ["repeatable-loot", "repeatable-rummage"],
+          "notTypes": ["instant", "sorcery"],
+          "notText": "\\bwhenever [^.\\n]*(attacks|deals combat damage|becomes tapped)[^.\\n]*?(draw|discard)",
+          "repeatable": true,
+          "priority": 1
+        },
+        {
+          "job": "loots on attack or combat damage",
+          "weight": 1,
+          "anyTags": ["repeatable-loot", "repeatable-rummage"],
+          "notTypes": ["instant", "sorcery"],
+          "text": "\\bwhenever [^.\\n]*(attacks|deals combat damage|becomes tapped)[^.\\n]*?(draw|discard)",
+          "repeatable": true,
+          "priority": 1
+        },
+        {
+          "job": "dredge",
+          "weight": 2,
+          "keywords": ["Dredge"],
+          "repeatable": true,
+          "priority": 1
+        },
+        {
+          "job": "mills itself two or more every turn",
+          "weight": 2,
+          "anyTags": ["mill-self"],
+          "notTypes": ["instant", "sorcery"],
+          "text": "(^(?![^:\\n]*sacrifice (this|it\\b))[^\\n]*?(\\{T\\}|\\}: )|\\bwhenever\\b|\\bat the beginning of\\b)[^.\\n]*?((\\bmill (two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|x) cards?\\b|\\b(target player|each player) mills (two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|x) cards?\\b|\\bhave target player mill (two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|x) cards?\\b)|\\bsurveil ([2-9]|x)\\b)",
+          "notText": "\\bwhenever [^.\\n]*(attacks|deals combat damage|becomes tapped)[^.\\n]*?(mill|surveil)",
+          "repeatable": true,
+          "priority": 1
+        },
+        {
+          "job": "mills itself one a turn",
+          "weight": 1,
+          "anyTags": ["mill-self"],
+          "notTypes": ["instant", "sorcery"],
+          "text": "(^(?![^:\\n]*sacrifice (this|it\\b))[^\\n]*?(\\{T\\}|\\}: )|\\bwhenever\\b|\\bat the beginning of\\b)[^.\\n]*?((\\bmill (a|one) cards?\\b|\\b(target player|each player) mills (a|one) cards?\\b|\\bhave target player mill (a|one) cards?\\b)|\\bsurveil 1\\b)",
+          "notText": "\\bwhenever [^.\\n]*(attacks|deals combat damage|becomes tapped)[^.\\n]*?(mill|surveil)",
+          "repeatable": true,
+          "priority": 1
+        },
+        {
+          "job": "mills itself two or more on attack",
+          "weight": 1,
+          "anyTags": ["mill-self"],
+          "notTypes": ["instant", "sorcery"],
+          "text": "\\bwhenever [^.\\n]*(attacks|deals combat damage|becomes tapped)[^.\\n]*?((\\bmill (two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|x) cards?\\b|\\b(target player|each player) mills (two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|x) cards?\\b|\\bhave target player mill (two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|x) cards?\\b)|\\bsurveil ([2-9]|x)\\b)",
+          "repeatable": true,
+          "priority": 1
+        },
+        {
+          "job": "mills itself one on attack",
+          "weight": 0.5,
+          "anyTags": ["mill-self"],
+          "notTypes": ["instant", "sorcery"],
+          "text": "\\bwhenever [^.\\n]*(attacks|deals combat damage|becomes tapped)[^.\\n]*?((\\bmill (a|one) cards?\\b|\\b(target player|each player) mills (a|one) cards?\\b|\\bhave target player mill (a|one) cards?\\b)|\\bsurveil 1\\b)"
+        },
+        {
+          "job": "discards as a tap cost",
+          "weight": 1,
+          "notTypes": ["instant", "sorcery"],
+          "text": "^(?![^:\\n]*sacrifice (this|it\\b))[^:\\n]*\\{T\\}[^:\\n]*\\bdiscard (a|one|two) cards?[^:\\n]*:",
+          "repeatable": true,
+          "priority": 1
+        },
+        {
+          "job": "free discard outlet",
+          "weight": 1,
+          "anyTags": ["free-discard-outlet"],
+          "notTypes": ["instant", "sorcery"],
+          "repeatable": true,
+          "priority": 1
+        },
+        {
+          "job": "free sacrifice outlet",
+          "weight": 1,
+          "allTags": ["free-sacrifice-outlet"],
+          "notTypes": ["instant", "sorcery"],
+          "text": "^[^:\\n]*\\bsacrifice (a|another) (other )?creature[^:\\n]*:",
+          "repeatable": true,
+          "priority": 1
+        },
+        {
+          "job": "big one-shot self-mill",
+          "weight": 1,
+          "text": "(\\bmill (three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|x) cards?\\b|\\b(target player|each player) mills (three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|x) cards?\\b|\\bhave target player mill (three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|x) cards?\\b)|the rest into your graveyard",
+          "priority": 1
+        },
+        {
+          "job": "big one-shot self-mill",
+          "weight": 1,
+          "anyTags": ["mulch"],
+          "priority": 1
+        },
+        {
+          "job": "entomb",
+          "weight": 1,
+          "anyTags": ["tutor-to-graveyard"],
+          "priority": 1
+        },
+        {
+          "job": "loot spell with flashback",
+          "weight": 1.5,
+          "anyTags": ["loot", "rummage"],
+          "keywords": ["Flashback"],
+          "text": "\\bdiscards? two cards",
+          "priority": 1
+        },
+        {
+          "job": "loots or rummages two cards once",
+          "weight": 1,
+          "anyTags": ["loot", "rummage"],
+          "text": "\\bdiscards? two cards",
+          "priority": 1
+        },
+        {
+          "job": "loots or rummages one card once",
+          "weight": 0.5,
+          "anyTags": ["loot", "rummage"]
+        },
+        {
+          "job": "mills two on enters and dies",
+          "weight": 1,
+          "types": ["creature"],
+          "text": "\\bwhen this creature enters or dies, mill two cards",
+          "priority": 1
+        },
+        {
+          "job": "mills two once on a creature",
+          "weight": 0.5,
+          "types": ["creature"],
+          "text": "\\bmill two cards",
+          "notTags": ["removal", "counterspell", "bounce", "cantrip", "draw"]
+        },
+        {
+          "job": "cycling",
+          "weight": 0.5,
+          "keywords": ["Cycling"],
+          "notTypes": ["land"]
+        },
+        {
+          "job": "one-shot sacrifice or discard",
+          "weight": 0.5,
+          "text": "\\bsacrifice a creature\\b|\\bdiscard a creature card|\\beach player discards a card"
+        }
+      ],
+      "payoff": [
+        {
+          "job": "reanimation",
+          "weight": 1,
+          "anyTags": ["reanimate-creature"],
+          "notTags": ["reanimate-self"]
+        },
+        {
+          "job": "counts your graveyard",
+          "weight": 1,
+          "anyTags": ["cards-in-graveyard-matter", "threshold", "undergrowth"],
+          "text": "your graveyard|all graveyards|each graveyard|cards in graveyards"
+        },
+        {
+          "job": "body needs a full graveyard",
+          "weight": 1,
+          "allTags": ["lhurgoyf"],
+          "anyTags": ["cards-in-graveyard-matter", "threshold", "undergrowth"],
+          "text": "your graveyard|all graveyards|each graveyard|cards in graveyards",
+          "priority": 2
+        },
+        {
+          "job": "body needs a full graveyard",
+          "weight": 1,
+          "allTags": ["cda-power"],
+          "anyTags": ["cards-in-graveyard-matter", "threshold", "undergrowth"],
+          "text": "your graveyard|all graveyards|each graveyard|cards in graveyards",
+          "priority": 2
+        },
+        {
+          "job": "body needs a full graveyard",
+          "weight": 1,
+          "allTags": ["restricted-attacker"],
+          "anyTags": ["cards-in-graveyard-matter", "threshold", "undergrowth"],
+          "text": "your graveyard|all graveyards|each graveyard|cards in graveyards",
+          "priority": 2
+        },
+        {
+          "job": "delve or escape",
+          "weight": 1,
+          "keywords": ["Delve", "Escape"]
+        },
+        {
+          "job": "exiles cards from your graveyard as a cost",
+          "weight": 1,
+          "anyTags": ["graveyard-fuel"],
+          "notTags": ["hate-graveyard", "graveyard-fuel-self"]
+        },
+        {
+          "job": "regrowth to hand",
+          "weight": 0.5,
+          "anyTags": ["regrowth-creature", "recursion-creature"]
+        },
+        {
+          "job": "self-recursion or flashback",
+          "weight": 0.5,
+          "text": "\\b(return|cast|play) this card from your graveyard"
+        },
+        {
+          "job": "self-recursion or flashback",
+          "weight": 0.5,
+          "keywords": ["Flashback", "Unearth"]
+        },
+        {
+          "job": "self-recursion or flashback",
+          "weight": 0.5,
+          "anyTags": ["castable-from-graveyard"]
+        }
+      ],
+      "exclude": [
+        {
+          "job": "shuffles the graveyard away (restock)",
+          "anyTags": ["restock"]
+        }
+      ],
+      "minimums": {
+        "20": {
+          "setupWeight": 3,
+          "payoffWeight": 2
+        },
+        "40": {
+          "setupWeight": 5,
+          "repeatable": 1,
+          "payoffWeight": 4
+        },
+        "60": {
+          "setupWeight": 8,
+          "repeatable": 2,
+          "payoffWeight": 6
+        },
+        "100": {
+          "setupWeight": 14,
+          "repeatable": 6,
+          "payoffWeight": 10
+        }
+      }
+    },
+    "spells": {
+      "resource": "instant and sorcery casts (any noncreature spell for prowess)",
+      "setup": [
+        {
+          "job": "cost reducer for instants and sorceries",
+          "weight": 2,
+          "anyTags": [
+            "cost-reducer-instant-sorcery",
+            "cost-reducer-instant",
+            "cost-reducer-sorcery"
+          ],
+          "text": "\\b(instant|sorcery|instant and sorcery|instant or sorcery|noncreature) spells you cast cost",
+          "notTypes": ["instant", "sorcery"],
+          "repeatable": true
+        },
+        {
+          "job": "returns an instant or sorcery",
+          "weight": 1,
+          "anyTags": [
+            "regrowth-instant",
+            "regrowth-sorcery",
+            "recursion-instant",
+            "recursion-sorcery"
+          ],
+          "notTypes": ["instant", "sorcery"]
+        },
+        {
+          "job": "instant or sorcery, mana value 2 or less",
+          "weight": 1,
+          "types": ["instant", "sorcery"],
+          "maxMv": 2
+        },
+        {
+          "job": "instant or sorcery, mana value 2 or less, cantrip",
+          "weight": 1.25,
+          "types": ["instant", "sorcery"],
+          "allTags": ["cantrip"],
+          "maxMv": 2
+        },
+        {
+          "job": "instant or sorcery, mana value 2 or less, castable from the graveyard",
+          "weight": 1.5,
+          "types": ["instant", "sorcery"],
+          "allTags": ["castable-from-graveyard"],
+          "maxMv": 2
+        },
+        {
+          "job": "instant or sorcery, mana value 2 or less, cantrip castable from the graveyard",
+          "weight": 1.75,
+          "types": ["instant", "sorcery"],
+          "allTags": ["cantrip", "castable-from-graveyard"],
+          "maxMv": 2
+        },
+        {
+          "job": "instant or sorcery, mana value 3",
+          "weight": 0.75,
+          "types": ["instant", "sorcery"],
+          "minMv": 3,
+          "maxMv": 3
+        },
+        {
+          "job": "instant or sorcery, mana value 3, cantrip",
+          "weight": 1,
+          "types": ["instant", "sorcery"],
+          "allTags": ["cantrip"],
+          "minMv": 3,
+          "maxMv": 3
+        },
+        {
+          "job": "instant or sorcery, mana value 3, castable from the graveyard",
+          "weight": 1.25,
+          "types": ["instant", "sorcery"],
+          "allTags": ["castable-from-graveyard"],
+          "minMv": 3,
+          "maxMv": 3
+        },
+        {
+          "job": "instant or sorcery, mana value 3, cantrip castable from the graveyard",
+          "weight": 1.5,
+          "types": ["instant", "sorcery"],
+          "allTags": ["cantrip", "castable-from-graveyard"],
+          "minMv": 3,
+          "maxMv": 3
+        },
+        {
+          "job": "instant or sorcery, mana value 4",
+          "weight": 0.5,
+          "types": ["instant", "sorcery"],
+          "minMv": 4,
+          "maxMv": 4
+        },
+        {
+          "job": "instant or sorcery, mana value 4, cantrip",
+          "weight": 0.75,
+          "types": ["instant", "sorcery"],
+          "allTags": ["cantrip"],
+          "minMv": 4,
+          "maxMv": 4
+        },
+        {
+          "job": "instant or sorcery, mana value 4, castable from the graveyard",
+          "weight": 1,
+          "types": ["instant", "sorcery"],
+          "allTags": ["castable-from-graveyard"],
+          "minMv": 4,
+          "maxMv": 4
+        },
+        {
+          "job": "instant or sorcery, mana value 4, cantrip castable from the graveyard",
+          "weight": 1.25,
+          "types": ["instant", "sorcery"],
+          "allTags": ["cantrip", "castable-from-graveyard"],
+          "minMv": 4,
+          "maxMv": 4
+        },
+        {
+          "job": "instant or sorcery, mana value 5 or more",
+          "weight": 0.25,
+          "types": ["instant", "sorcery"],
+          "minMv": 5
+        },
+        {
+          "job": "instant or sorcery, mana value 5 or more, cantrip",
+          "weight": 0.5,
+          "types": ["instant", "sorcery"],
+          "allTags": ["cantrip"],
+          "minMv": 5
+        },
+        {
+          "job": "instant or sorcery, mana value 5 or more, castable from the graveyard",
+          "weight": 0.75,
+          "types": ["instant", "sorcery"],
+          "allTags": ["castable-from-graveyard"],
+          "minMv": 5
+        },
+        {
+          "job": "instant or sorcery, mana value 5 or more, cantrip castable from the graveyard",
+          "weight": 1,
+          "types": ["instant", "sorcery"],
+          "allTags": ["cantrip", "castable-from-graveyard"],
+          "minMv": 5
+        },
+        {
+          "job": "adventure spell",
+          "weight": 0.75,
+          "typeLine": "(instant|sorcery)\\W+adventure"
+        }
+      ],
+      "payoff": [
+        {
+          "job": "cast trigger",
+          "weight": 1,
+          "notTypes": ["instant", "sorcery"],
+          "text": "\\bwhenever you (cast|copy|cast or copy) an? (instant|sorcery|noncreature)",
+          "notTags": [
+            "restricted-mana",
+            "impulse-instant",
+            "impulse-sorcery",
+            "gives-flash",
+            "turns-off-defender-self"
+          ]
+        },
+        {
+          "job": "prowess",
+          "weight": 1,
+          "notTypes": ["instant", "sorcery"],
+          "keywords": ["Prowess"]
+        },
+        {
+          "job": "cast trigger",
+          "weight": 1,
+          "notTypes": ["instant", "sorcery"],
+          "allTags": ["cast-trigger-you"],
+          "anyTags": ["synergy-instant", "synergy-sorcery", "synergy-noncreature"],
+          "notTags": [
+            "restricted-mana",
+            "impulse-instant",
+            "impulse-sorcery",
+            "gives-flash",
+            "turns-off-defender-self"
+          ]
+        },
+        {
+          "job": "counts instants and sorceries in your graveyard",
+          "weight": 1,
+          "notTypes": ["instant", "sorcery"],
+          "text": "instant and(/or)? sorcery cards (you own )?in (exile and in )?your graveyard",
+          "notTags": ["restricted-mana", "impulse-instant", "impulse-sorcery", "gives-flash"]
+        },
+        {
+          "job": "density check",
+          "weight": 0.5,
+          "notTypes": ["instant", "sorcery"],
+          "anyTags": ["turns-off-defender-self"],
+          "text": "\\bwhenever you (cast|copy|cast or copy) an? (instant|sorcery|noncreature)"
+        },
+        {
+          "job": "density check",
+          "weight": 0.5,
+          "notTypes": ["instant", "sorcery"],
+          "text": "\\bif an? (instant or sorcery|instant|sorcery) card is revealed|\\bif you('ve| have) cast an? (instant|sorcery|noncreature|instant or sorcery) spell this turn",
+          "notTags": ["restricted-mana", "impulse-instant", "impulse-sorcery", "gives-flash"]
+        }
+      ],
+      "minimums": {
+        "20": {
+          "setup": 3,
+          "payoff": 3
+        },
+        "40": {
+          "setup": 9,
+          "payoff": 5
+        },
+        "60": {
+          "setup": 15,
+          "payoff": 6
+        },
+        "100": {
+          "setup": 24,
+          "payoff": 8
+        }
+      }
+    },
+    "lifegain": {
+      "resource": "life-gain events: each source that gains life once is one event",
+      "setup": [
+        {
+          "job": "lifelink body",
+          "weight": 2,
+          "keywords": ["Lifelink"],
+          "types": ["creature"],
+          "notTags": ["opponent-lifegain"],
+          "maxMv": 4,
+          "priority": 1,
+          "repeatable": true
+        },
+        {
+          "job": "lifelink body",
+          "weight": 1,
+          "keywords": ["Lifelink"],
+          "types": ["creature"],
+          "notTags": ["opponent-lifegain"],
+          "minMv": 5,
+          "priority": 1,
+          "repeatable": true
+        },
+        {
+          "job": "repeatable gainer",
+          "weight": 2,
+          "anyTags": ["repeatable-lifegain"],
+          "notTags": ["opponent-lifegain"],
+          "maxMv": 4,
+          "priority": 1,
+          "repeatable": true
+        },
+        {
+          "job": "repeatable gainer",
+          "weight": 1,
+          "anyTags": ["repeatable-lifegain"],
+          "notTags": ["opponent-lifegain"],
+          "minMv": 5,
+          "priority": 1,
+          "repeatable": true
+        },
+        {
+          "job": "repeatable gainer",
+          "weight": 2,
+          "text": "whenever [^.\\n]*you (may )?gain (\\d+|x|that much) life|at the beginning of [^.\\n]*you gain (\\d+|x) life|\\{t\\}(?![^:\\n]*sacrifice)[^:\\n]*: [^.\\n]*you gain[^.\\n]*\\.(?! (shuffle|exile) this)|\\bextort\\b|(enchanted|equipped) creature has lifelink",
+          "notTypes": ["instant", "sorcery"],
+          "notTags": ["opponent-lifegain"],
+          "maxMv": 4,
+          "priority": 1,
+          "repeatable": true
+        },
+        {
+          "job": "repeatable gainer",
+          "weight": 1,
+          "text": "whenever [^.\\n]*you (may )?gain (\\d+|x|that much) life|at the beginning of [^.\\n]*you gain (\\d+|x) life|\\{t\\}(?![^:\\n]*sacrifice)[^:\\n]*: [^.\\n]*you gain[^.\\n]*\\.(?! (shuffle|exile) this)|\\bextort\\b|(enchanted|equipped) creature has lifelink",
+          "notTypes": ["instant", "sorcery"],
+          "notTags": ["opponent-lifegain"],
+          "minMv": 5,
+          "priority": 1,
+          "repeatable": true
+        },
+        {
+          "job": "repeatable gainer whose reward only improves itself",
+          "weight": 0,
+          "keywords": ["Lifelink"],
+          "types": ["creature"],
+          "notTags": ["opponent-lifegain"],
+          "text": "transform (this creature|it)|this creature gets|counters? on this creature",
+          "notText": "each opponent|target (opponent|player)|draw|create",
+          "priority": 3,
+          "repeatable": true
+        },
+        {
+          "job": "repeatable gainer whose reward only improves itself",
+          "weight": 0,
+          "anyTags": ["repeatable-lifegain"],
+          "notTags": ["opponent-lifegain"],
+          "text": "transform (this creature|it)|this creature gets|counters? on this creature",
+          "notText": "each opponent|target (opponent|player)|draw|create",
+          "priority": 3,
+          "repeatable": true
+        },
+        {
+          "job": "repeatable gainer whose reward only improves itself",
+          "weight": 0,
+          "text": "(whenever [^.\\n]*you (may )?gain (\\d+|x|that much) life|at the beginning of [^.\\n]*you gain (\\d+|x) life|\\{t\\}(?![^:\\n]*sacrifice)[^:\\n]*: [^.\\n]*you gain[^.\\n]*\\.(?! (shuffle|exile) this)|\\bextort\\b|(enchanted|equipped) creature has lifelink)[\\s\\S]*(transform (this creature|it)|this creature gets|counters? on this creature)|(transform (this creature|it)|this creature gets|counters? on this creature)[\\s\\S]*(whenever [^.\\n]*you (may )?gain (\\d+|x|that much) life|at the beginning of [^.\\n]*you gain (\\d+|x) life|\\{t\\}(?![^:\\n]*sacrifice)[^:\\n]*: [^.\\n]*you gain[^.\\n]*\\.(?! (shuffle|exile) this)|\\bextort\\b|(enchanted|equipped) creature has lifelink)",
+          "notTypes": ["instant", "sorcery"],
+          "notTags": ["opponent-lifegain"],
+          "notText": "each opponent|target (opponent|player)|draw|create",
+          "priority": 3,
+          "repeatable": true
+        },
+        {
+          "job": "one-shot gainer",
+          "weight": 1,
+          "anyTags": ["lifegain"],
+          "notTags": ["opponent-lifegain", "removal", "counterspell"],
+          "text": "you gain",
+          "maxMv": 4
+        },
+        {
+          "job": "one-shot gainer",
+          "weight": 0.5,
+          "anyTags": ["lifegain"],
+          "notTags": ["opponent-lifegain", "removal", "counterspell"],
+          "text": "you gain",
+          "minMv": 5
+        },
+        {
+          "job": "one-shot gainer",
+          "weight": 1,
+          "anyTags": ["lifegain"],
+          "notTags": ["opponent-lifegain", "removal", "counterspell"],
+          "notTypes": ["instant", "sorcery"],
+          "notText": "(its controller|each player) gains",
+          "maxMv": 4
+        },
+        {
+          "job": "one-shot gainer",
+          "weight": 0.5,
+          "anyTags": ["lifegain"],
+          "notTags": ["opponent-lifegain", "removal", "counterspell"],
+          "notTypes": ["instant", "sorcery"],
+          "notText": "(its controller|each player) gains",
+          "minMv": 5
+        },
+        {
+          "job": "one-shot gainer",
+          "weight": 1,
+          "anyTags": ["lifegain"],
+          "notTags": ["opponent-lifegain", "removal", "counterspell"],
+          "types": ["instant", "sorcery"],
+          "notText": "lifelink until end of turn|(its controller|each player) gains",
+          "maxMv": 4
+        },
+        {
+          "job": "one-shot gainer",
+          "weight": 0.5,
+          "anyTags": ["lifegain"],
+          "notTags": ["opponent-lifegain", "removal", "counterspell"],
+          "types": ["instant", "sorcery"],
+          "notText": "lifelink until end of turn|(its controller|each player) gains",
+          "minMv": 5
+        }
+      ],
+      "payoff": [
+        {
+          "job": "once a turn",
+          "weight": 1,
+          "text": "you gain life for the first time each turn|(if|as long as) you gained (or lost )?life this turn|whenever you gain life[^\\n]*only once each turn",
+          "notTags": ["removal"],
+          "priority": 2
+        },
+        {
+          "job": "threshold",
+          "weight": 1,
+          "text": "gained \\d+ or more life",
+          "notTags": ["removal"],
+          "priority": 2
+        },
+        {
+          "job": "amount",
+          "weight": 1,
+          "text": "amount of life you('ve)? gained this turn|whenever you gain life[^.\\n]*that much",
+          "notTags": ["removal"],
+          "priority": 2
+        },
+        {
+          "job": "per event",
+          "weight": 1,
+          "text": "whenever you gain life|whenever you gain or lose life",
+          "notTags": ["removal"],
+          "priority": 2
+        },
+        {
+          "job": "per event",
+          "weight": 1,
+          "anyTags": ["pridemate", "lifegain-to-damage"],
+          "notTags": ["removal"],
+          "priority": 2
+        },
+        {
+          "job": "removal with a lifegain payoff clause",
+          "weight": 0.5,
+          "allTags": ["removal"],
+          "text": "you gain life for the first time each turn|(if|as long as) you gained (or lost )?life this turn|gained \\d+ or more life|amount of life you('ve)? gained this turn|whenever you gain life|whenever you gain or lose life",
+          "priority": 2
+        },
+        {
+          "job": "removal with a lifegain payoff clause",
+          "weight": 0.5,
+          "allTags": ["removal"],
+          "anyTags": ["pridemate", "lifegain-to-damage"],
+          "priority": 2
+        },
+        {
+          "job": "increaser",
+          "weight": 0.5,
+          "anyTags": ["lifegain-increaser"],
+          "priority": 2
+        },
+        {
+          "job": "life total",
+          "weight": 0.5,
+          "text": "you have \\d+ or more life|more life than (an|each|that) (opponent|player)",
+          "sizes": [20, 40, 60],
+          "priority": 1
+        }
+      ],
+      "exclude": [
+        {
+          "job": "punishes lifegain",
+          "anyTags": ["hate-lifegain"]
+        },
+        {
+          "job": "keyword soup",
+          "anyTags": ["keyword-soup"]
+        },
+        {
+          "job": "drawback creature",
+          "anyTags": ["drawback"],
+          "notTags": ["pridemate", "lifegain-to-damage"]
+        },
+        {
+          "job": "land with a gain rider",
+          "types": ["land"]
+        }
+      ],
+      "minimums": {
+        "20": {
+          "setup": 5,
+          "repeatable": 3,
+          "payoff": 3
+        },
+        "40": {
+          "setup": 7,
+          "repeatable": 5,
+          "payoff": 4
+        },
+        "60": {
+          "setup": 10,
+          "repeatable": 8,
+          "payoff": 6
+        },
+        "100": {
+          "setup": 16,
+          "repeatable": 12,
+          "payoff": 10
+        }
+      }
+    },
+    "artifacts": {
+      "resource": "artifacts you control: on the battlefield, entering, cast, or sacrificed",
+      "setup": [
+        {
+          "job": "repeatable artifact token maker",
+          "weight": 2,
+          "anyTags": ["repeatable-artifact-tokens"],
+          "notTypes": ["land"],
+          "maxMv": 4,
+          "repeatable": true
+        },
+        {
+          "job": "repeatable artifact token maker",
+          "weight": 1,
+          "anyTags": ["repeatable-artifact-tokens"],
+          "notTypes": ["land"],
+          "minMv": 5,
+          "repeatable": true
+        },
+        {
+          "job": "artifact land",
+          "weight": 1,
+          "types": ["land"],
+          "typeLine": "\bartifact\b[^/]*\bland\b"
+        },
+        {
+          "job": "artifact",
+          "weight": 1,
+          "types": ["artifact"],
+          "maxMv": 4
+        },
+        {
+          "job": "artifact",
+          "weight": 0.5,
+          "types": ["artifact"],
+          "minMv": 5
+        },
+        {
+          "job": "artifact token maker",
+          "weight": 1,
+          "text": "investigate|fabricate \\d|incubate|create [^.\\n]*\\b(treasure|clue|food|blood|powerstone|map|gold|junk|lander|mutagen|vibranium)\\b[^.\\n]*tokens?|artifact (creature )?tokens?",
+          "notText": "its controller creates|gift a|(target|each) opponent creates|that player creates",
+          "notTypes": ["instant", "sorcery", "land"],
+          "maxMv": 4
+        },
+        {
+          "job": "artifact token maker",
+          "weight": 0.5,
+          "text": "investigate|fabricate \\d|incubate|create [^.\\n]*\\b(treasure|clue|food|blood|powerstone|map|gold|junk|lander|mutagen|vibranium)\\b[^.\\n]*tokens?|artifact (creature )?tokens?",
+          "notText": "its controller creates|gift a|(target|each) opponent creates|that player creates",
+          "notTypes": ["instant", "sorcery", "land"],
+          "minMv": 5
+        },
+        {
+          "job": "artifact token maker",
+          "weight": 0.5,
+          "text": "investigate|fabricate \\d|incubate|create [^.\\n]*\\b(treasure|clue|food|blood|powerstone|map|gold|junk|lander|mutagen|vibranium)\\b[^.\\n]*tokens?|artifact (creature )?tokens?",
+          "notText": "its controller creates|gift a|(target|each) opponent creates|that player creates",
+          "types": ["instant", "sorcery"],
+          "maxMv": 4
+        },
+        {
+          "job": "artifact token maker",
+          "weight": 0.25,
+          "text": "investigate|fabricate \\d|incubate|create [^.\\n]*\\b(treasure|clue|food|blood|powerstone|map|gold|junk|lander|mutagen|vibranium)\\b[^.\\n]*tokens?|artifact (creature )?tokens?",
+          "notText": "its controller creates|gift a|(target|each) opponent creates|that player creates",
+          "types": ["instant", "sorcery"],
+          "minMv": 5
+        }
+      ],
+      "payoff": [
+        {
+          "job": "count",
+          "weight": 1,
+          "anyTags": [
+            "artifact-count-matters",
+            "metalcraft",
+            "affinity-for-artifacts",
+            "improvise"
+          ],
+          "notTags": ["hate-artifact"],
+          "notTypes": ["land"],
+          "priority": 1
+        },
+        {
+          "job": "count",
+          "weight": 1,
+          "text": "for each artifact (and\\/or [a-z]+ )?you control|(two|three) or more artifacts|number of artifacts you control|artifact creatures you control get|number of artifact creatures you control",
+          "notTags": ["hate-artifact"],
+          "notTypes": ["land"],
+          "priority": 1
+        },
+        {
+          "job": "enters",
+          "weight": 1,
+          "anyTags": ["artifactfall"],
+          "notTags": ["hate-artifact"],
+          "notTypes": ["land"],
+          "priority": 1
+        },
+        {
+          "job": "enters",
+          "weight": 1,
+          "text": "whenever (an|another|one or more) [^.\\n]*artifacts? you control enters?",
+          "notTags": ["hate-artifact"],
+          "notTypes": ["land"],
+          "priority": 1
+        },
+        {
+          "job": "cast",
+          "weight": 1,
+          "text": "whenever you cast an artifact spell",
+          "notTags": ["hate-artifact"],
+          "notTypes": ["land"],
+          "priority": 1
+        },
+        {
+          "job": "sacrifice",
+          "weight": 1,
+          "text": "sacrifice an artifact[:,]|sacrifice (two|three) artifacts|whenever you sacrifice an artifact",
+          "notTags": ["hate-artifact"],
+          "notTypes": ["land"],
+          "priority": 1
+        },
+        {
+          "job": "cost reducer",
+          "weight": 0.5,
+          "anyTags": ["cost-reducer-artifact"],
+          "notTags": ["hate-artifact"],
+          "notTypes": ["land"],
+          "priority": 1
+        },
+        {
+          "job": "needs one artifact",
+          "weight": 0.5,
+          "text": "as long as you control (an|another) artifact|if you control an artifact",
+          "notTags": ["hate-artifact"],
+          "notTypes": ["artifact", "land"],
+          "priority": 1
+        }
+      ],
+      "minimums": {
+        "20": {
+          "setup": 4,
+          "payoff": 3
+        },
+        "40": {
+          "setup": 6,
+          "payoff": 4
+        },
+        "60": {
+          "setup": 10,
+          "payoff": 6
+        },
+        "100": {
+          "setup": 20,
+          "payoff": 10
+        }
+      }
+    },
+    "auras": {
+      "resource": "attachments on your creatures",
+      "setup": [
+        {
+          "job": "Equipment",
+          "weight": 2,
+          "typeLine": "\\bEquipment\\b",
+          "text": "equipped creature (gets \\+|has|gains)",
+          "notTypes": ["creature"],
+          "notText": "equipped creature gets \\+\\d+/-\\d[\\s\\S]*whenever equipped creature dies|equipped creature has [^.\\n]*\\bshroud\\b",
+          "priority": 2,
+          "repeatable": true
+        },
+        {
+          "job": "sticky Aura, returns to hand",
+          "weight": 1.5,
+          "typeLine": "^[^/]*\\bAura\\b",
+          "text": "^enchant [^\\n]*\\bcreature\\b(?=[\\s\\S]*(enchanted (creature|permanent)|enchanted (creature|permanent) is [^,.\\n]*, it) (gets \\+|has|gains|can't be blocked))(?=[\\s\\S]*return (it|this card) to its owner's hand)",
+          "notTags": ["shrink", "humble", "prevent-blocker"],
+          "notText": "enchanted (creature|permanent) (gets -\\d|can't (attack|block)|doesn't untap|loses all abilities|loses flying)|is goaded|sacrifice this (creature|permanent)|has phasing\\.|enchanted creature's controller (loses|sacrifices)",
+          "priority": 2,
+          "repeatable": true
+        },
+        {
+          "job": "sticky Aura, umbra armor",
+          "weight": 1.5,
+          "typeLine": "^[^/]*\\bAura\\b",
+          "keywords": ["Umbra armor", "Totem armor"],
+          "text": "^enchant [^\\n]*\\bcreature\\b[\\s\\S]*(enchanted (creature|permanent)|enchanted (creature|permanent) is [^,.\\n]*, it) (gets \\+|has|gains|can't be blocked)",
+          "notTags": ["shrink", "humble", "prevent-blocker"],
+          "notText": "enchanted (creature|permanent) (gets -\\d|can't (attack|block)|doesn't untap|loses all abilities|loses flying)|is goaded|sacrifice this (creature|permanent)|has phasing\\.|enchanted creature's controller (loses|sacrifices)",
+          "priority": 2,
+          "repeatable": true
+        },
+        {
+          "job": "sticky Aura, bestow",
+          "weight": 1.5,
+          "keywords": ["Bestow"],
+          "text": "enchanted creature (gets \\+|has|gains)",
+          "notTags": ["shrink", "humble", "prevent-blocker"],
+          "notText": "enchanted (creature|permanent) (gets -\\d|can't (attack|block)|doesn't untap|loses all abilities|loses flying)|is goaded|sacrifice this (creature|permanent)|has phasing\\.|enchanted creature's controller (loses|sacrifices)",
+          "priority": 2,
+          "repeatable": true
+        },
+        {
+          "job": "buff Aura",
+          "weight": 1,
+          "typeLine": "^[^/]*\\bAura\\b",
+          "text": "^enchant [^\\n]*\\bcreature\\b[\\s\\S]*(enchanted (creature|permanent)|enchanted (creature|permanent) is [^,.\\n]*, it) (gets \\+|has|gains|can't be blocked)",
+          "notTags": ["shrink", "humble", "prevent-blocker"],
+          "notText": "enchanted (creature|permanent) (gets -\\d|can't (attack|block)|doesn't untap|loses all abilities|loses flying)|is goaded|sacrifice this (creature|permanent)|has phasing\\.|enchanted creature's controller (loses|sacrifices)",
+          "priority": 2
+        },
+        {
+          "job": "Aura or Equipment finder",
+          "weight": 1,
+          "text": "search your library for [^.\\n]*\\b(aura|equipment)\\b[^.\\n]*cards?"
+        }
+      ],
+      "payoff": [
+        {
+          "job": "cast or enter engine",
+          "weight": 2,
+          "notTypes": ["instant", "sorcery"],
+          "text": "whenever you cast an? (aura|equipment)|whenever an? (aura|equipment) (you control )?(enters|becomes attached)"
+        },
+        {
+          "job": "heroic or valiant",
+          "weight": 2,
+          "keywords": ["Heroic", "Valiant"]
+        },
+        {
+          "job": "grows when targeted",
+          "weight": 1,
+          "anyTags": ["heroic"],
+          "notKeywords": ["Heroic", "Valiant"],
+          "text": "becomes the target of a spell[^.\\n]*(put an? \\+1/\\+1 counter on (it|this creature)|(it|this creature) gets \\+)"
+        },
+        {
+          "job": "equipped or enchanted bonus",
+          "weight": 1,
+          "types": ["creature"],
+          "text": "as long as (this creature|it) is (enchanted|equipped)|for each (aura|equipment)[^.\\n]*attached"
+        },
+        {
+          "job": "carrier",
+          "weight": 1,
+          "keywords": [
+            "Hexproof",
+            "Double strike",
+            "Flying",
+            "Menace",
+            "Shadow",
+            "Fear",
+            "Intimidate",
+            "Skulk",
+            "Horsemanship"
+          ],
+          "types": ["creature"],
+          "maxMv": 3,
+          "notKeywords": ["Defender"],
+          "notText": "can't attack",
+          "minPower": 1
+        },
+        {
+          "job": "carrier",
+          "weight": 1,
+          "anyTags": ["unblockable", "fake-flying"],
+          "types": ["creature"],
+          "maxMv": 3,
+          "notKeywords": ["Defender"],
+          "notText": "can't attack",
+          "minPower": 1
+        },
+        {
+          "job": "carrier with power 0",
+          "weight": 0.5,
+          "keywords": [
+            "Hexproof",
+            "Double strike",
+            "Flying",
+            "Menace",
+            "Shadow",
+            "Fear",
+            "Intimidate",
+            "Skulk",
+            "Horsemanship"
+          ],
+          "types": ["creature"],
+          "maxMv": 3,
+          "notKeywords": ["Defender"],
+          "notText": "can't attack",
+          "maxPower": 0
+        },
+        {
+          "job": "carrier with power 0",
+          "weight": 0.5,
+          "anyTags": ["unblockable", "fake-flying"],
+          "types": ["creature"],
+          "maxMv": 3,
+          "notKeywords": ["Defender"],
+          "notText": "can't attack",
+          "maxPower": 0
+        }
+      ],
+      "minimums": {
+        "20": {
+          "setup": 2,
+          "setupWeight": 4,
+          "payoff": 1
+        },
+        "40": {
+          "setup": 7,
+          "setupWeight": 11,
+          "payoff": 5
+        },
+        "60": {
+          "setup": 12,
+          "setupWeight": 18,
+          "payoff": 8
+        },
+        "100": {
+          "setup": 18,
+          "setupWeight": 30,
+          "payoff": 8
+        }
+      }
+    },
+    "flyers": {
+      "resource": "evasive power attacking each turn",
+      "setup": [
+        {
+          "job": "evasive attacker, power 2 or more",
+          "weight": 2,
+          "types": ["creature"],
+          "keywords": ["Flying", "Menace", "Shadow", "Fear", "Intimidate", "Skulk", "Horsemanship"],
+          "notKeywords": ["Defender"],
+          "notText": "can't attack",
+          "minPower": 2,
+          "repeatable": true
+        },
+        {
+          "job": "evasive attacker, power 1",
+          "weight": 1,
+          "types": ["creature"],
+          "keywords": ["Flying", "Menace", "Shadow", "Fear", "Intimidate", "Skulk", "Horsemanship"],
+          "notKeywords": ["Defender"],
+          "notText": "can't attack",
+          "minPower": 1,
+          "maxPower": 1,
+          "repeatable": true
+        },
+        {
+          "job": "fake flying, power 2 or more",
+          "weight": 2,
+          "types": ["creature"],
+          "anyTags": ["fake-flying"],
+          "notKeywords": ["Defender"],
+          "notText": "can't attack",
+          "minPower": 2,
+          "repeatable": true
+        },
+        {
+          "job": "fake flying, power 1",
+          "weight": 1,
+          "types": ["creature"],
+          "anyTags": ["fake-flying"],
+          "notKeywords": ["Defender"],
+          "notText": "can't attack",
+          "minPower": 1,
+          "maxPower": 1,
+          "repeatable": true
+        },
+        {
+          "job": "unblockable, power 2 or more",
+          "weight": 2,
+          "types": ["creature"],
+          "text": "can't be blocked\\.$",
+          "notKeywords": ["Defender"],
+          "notText": "can't attack",
+          "minPower": 2,
+          "repeatable": true
+        },
+        {
+          "job": "unblockable, power 1",
+          "weight": 1,
+          "types": ["creature"],
+          "text": "can't be blocked\\.$",
+          "notKeywords": ["Defender"],
+          "notText": "can't attack",
+          "minPower": 1,
+          "maxPower": 1,
+          "repeatable": true
+        },
+        {
+          "job": "landwalk, power 2 or more",
+          "weight": 1,
+          "types": ["creature"],
+          "keywords": [
+            "Landwalk",
+            "Islandwalk",
+            "Swampwalk",
+            "Forestwalk",
+            "Mountainwalk",
+            "Plainswalk",
+            "Desertwalk",
+            "Legendary landwalk",
+            "Nonbasic landwalk"
+          ],
+          "notKeywords": ["Defender"],
+          "notText": "can't attack",
+          "minPower": 2,
+          "repeatable": true
+        },
+        {
+          "job": "landwalk, power 1",
+          "weight": 0.5,
+          "types": ["creature"],
+          "keywords": [
+            "Landwalk",
+            "Islandwalk",
+            "Swampwalk",
+            "Forestwalk",
+            "Mountainwalk",
+            "Plainswalk",
+            "Desertwalk",
+            "Legendary landwalk",
+            "Nonbasic landwalk"
+          ],
+          "notKeywords": ["Defender"],
+          "notText": "can't attack",
+          "minPower": 1,
+          "maxPower": 1,
+          "repeatable": true
+        },
+        {
+          "job": "conditional unblockable, power 2 or more",
+          "weight": 1,
+          "types": ["creature"],
+          "text": "can't be blocked (as long as|if|this turn)",
+          "notKeywords": ["Defender"],
+          "notText": "can't attack",
+          "minPower": 2,
+          "repeatable": true
+        },
+        {
+          "job": "conditional unblockable, power 1",
+          "weight": 0.5,
+          "types": ["creature"],
+          "text": "can't be blocked (as long as|if|this turn)",
+          "notKeywords": ["Defender"],
+          "notText": "can't attack",
+          "minPower": 1,
+          "maxPower": 1,
+          "repeatable": true
+        },
+        {
+          "job": "team flying granter",
+          "weight": 2,
+          "anyTags": ["gives-flying"],
+          "notTags": ["typal"],
+          "notTypes": ["instant", "sorcery"],
+          "text": "(^|: |\\. )(other )?creatures you control (have|gain) flying(?![^.\\n]*until end of turn)",
+          "repeatable": true
+        },
+        {
+          "job": "flying granter on each attack or tap",
+          "weight": 2,
+          "anyTags": ["gives-flying"],
+          "notTags": ["typal"],
+          "notTypes": ["instant", "sorcery"],
+          "text": "(whenever [^,\\n]*attacks|\\{t\\}[^:\\n]*:)[^.\\n]*gains flying",
+          "repeatable": true
+        },
+        {
+          "job": "Aura or Equipment that grants flying",
+          "weight": 1,
+          "anyTags": ["gives-flying"],
+          "notTags": ["typal"],
+          "notTypes": ["instant", "sorcery"],
+          "text": "(enchanted|equipped) creature [^.\\n]*\\b(has|gains) [^.\\n]*flying",
+          "repeatable": true
+        }
+      ],
+      "payoff": [
+        {
+          "job": "flyer lord",
+          "weight": 2,
+          "notTypes": ["instant", "sorcery"],
+          "text": "creatures you control with flying get \\+[1-9]",
+          "notTags": ["typal"],
+          "notText": "without flying|if you control a creature with flying|(creature tokens|enchanted creatures|equipped creatures) you control",
+          "priority": 1
+        },
+        {
+          "job": "weak flyer lord",
+          "weight": 1,
+          "notTypes": ["instant", "sorcery"],
+          "text": "creatures you control with flying get \\+0/",
+          "notTags": ["typal"],
+          "notText": "without flying|if you control a creature with flying|(creature tokens|enchanted creatures|equipped creatures) you control",
+          "priority": 1
+        },
+        {
+          "job": "flyer trigger or discount",
+          "weight": 1,
+          "notTypes": ["instant", "sorcery"],
+          "text": "(whenever|for each)[^.\\n]*creatures? you control with flying|spells with flying you cast cost",
+          "notTags": ["typal"],
+          "notText": "without flying|if you control a creature with flying|(creature tokens|enchanted creatures|equipped creatures) you control",
+          "priority": 1
+        },
+        {
+          "job": "lasting anthem",
+          "weight": 1,
+          "notTypes": ["instant", "sorcery"],
+          "text": "^(other )?creatures you control get \\+[1-9]",
+          "notTags": ["typal"],
+          "notText": "^(other )?creatures you control get \\+\\d[^\\n]*until end of turn|without flying|if you control a creature with flying|(creature tokens|enchanted creatures|equipped creatures) you control",
+          "priority": 1
+        }
+      ],
+      "minimums": {
+        "20": {
+          "setup": 4,
+          "setupWeight": 6
+        },
+        "40": {
+          "setup": 9,
+          "setupWeight": 14
+        },
+        "60": {
+          "setup": 10,
+          "setupWeight": 17
+        },
+        "100": {
+          "setup": 18,
+          "setupWeight": 30
+        }
+      }
+    },
+    "burn": {
+      "resource": "damage to the opponent",
+      "setup": [
+        {
+          "job": "burn spell that can hit a player",
+          "weight": 1,
+          "types": ["instant", "sorcery"],
+          "text": "damage (equal to [^.\\n]*? )?to (any (other )?target|target player|target opponent|each opponent)|divided (evenly|as you choose)[^.\\n]* among|choose any target|any number of targets|each of (up to )?(one or )?\\w+ targets|(target player|target opponent|each opponent) loses (\\d+|x) life",
+          "notText": "damage to that creature's controller|unless that creature's controller|each player"
+        },
+        {
+          "job": "pinger that reaches a player",
+          "weight": 2,
+          "notTypes": ["instant", "sorcery"],
+          "text": "\\{t\\}(?![^:\\n]*sacrifice (?!an?\\b|another\\b|two\\b|x\\b))[^:\\n]*: [^.\\n]*deals? (\\d+|x) damage to [^.\\n]*(any (other )?target|target (player|opponent)|each opponent|defending player)",
+          "priority": 1,
+          "repeatable": true
+        },
+        {
+          "job": "punisher on opponent actions",
+          "weight": 2,
+          "notTypes": ["instant", "sorcery"],
+          "text": "whenever an opponent [^,.\\n]*, [^.\\n]*(deals? \\d+ damage to (that player|each opponent)|that player loses \\d+ life)",
+          "priority": 1,
+          "repeatable": true
+        },
+        {
+          "job": "symmetric punisher, multiplayer",
+          "weight": 2,
+          "notTypes": ["instant", "sorcery"],
+          "text": "whenever a player [^,.\\n]*, [^.\\n]*(deals? \\d+ damage to (that player|each opponent)|that player loses \\d+ life)",
+          "sizes": [100],
+          "priority": 1,
+          "repeatable": true
+        },
+        {
+          "job": "one-shot damage on a body",
+          "weight": 0.5,
+          "types": ["creature"],
+          "text": "when [^.\\n]*(enters|dies)[^.\\n]*deals? (\\d+|x) damage to [^.\\n]*(any (other )?target|target (player|opponent)|each opponent|defending player)"
+        }
+      ],
+      "payoff": [
+        {
+          "job": "spells into damage",
+          "weight": 2,
+          "notTypes": ["instant", "sorcery"],
+          "text": "whenever you cast (or copy )?(an instant or sorcery|a noncreature|an instant|a sorcery|a red) spell[^\\n]*?(deals? (\\d+|x) damage|loses \\d+ life)",
+          "notTags": ["impulse-instant"],
+          "notText": "(instant|sorcery) cards? in your graveyard"
+        },
+        {
+          "job": "prowess",
+          "weight": 1,
+          "keywords": ["Prowess"],
+          "notTags": ["impulse-instant"],
+          "notText": "(instant|sorcery) cards? in your graveyard"
+        },
+        {
+          "job": "prowess-like pump",
+          "weight": 1,
+          "anyTags": ["prowess-like"],
+          "notTypes": ["instant", "sorcery"],
+          "notTags": ["impulse-instant"],
+          "notText": "(instant|sorcery) cards? in your graveyard"
+        },
+        {
+          "job": "spell pump",
+          "weight": 1,
+          "notTypes": ["instant", "sorcery"],
+          "text": "whenever you cast (or copy )?(an instant or sorcery|a noncreature|an instant|a sorcery|a red) spell[^\\n]*?(gets \\+|put an? \\+1/\\+1 counter|untap (this|it\\b|that creature))",
+          "notTags": ["impulse-instant"],
+          "notText": "(instant|sorcery) cards? in your graveyard"
+        },
+        {
+          "job": "tokens on cast",
+          "weight": 0.5,
+          "notTypes": ["instant", "sorcery"],
+          "text": "whenever you cast (or copy )?(an instant or sorcery|a noncreature|an instant|a sorcery|a red) spell[^\\n]*?create",
+          "notTags": ["impulse-instant"],
+          "notText": "(instant|sorcery) cards? in your graveyard"
+        }
+      ],
+      "minimums": {
+        "20": {
+          "setup": 2,
+          "setupWeight": 4,
+          "repeatableOrPayoff": 3
+        },
+        "40": {
+          "setup": 7,
+          "setupWeight": 10,
+          "repeatableOrPayoff": 3
+        },
+        "60": {
+          "setup": 10,
+          "setupWeight": 14,
+          "repeatableOrPayoff": 4
+        },
+        "100": {
+          "setup": 3,
+          "setupWeight": 12,
+          "repeatableOrPayoff": 6
+        }
+      }
+    },
+    "landfall": {
+      "resource": "lands entering under your control",
+      "setup": [
+        {
+          "job": "land ramp or extra land drop",
+          "weight": 1,
+          "anyTags": [
+            "tutor-land-to-battlefield",
+            "sneak-land",
+            "play-additional-land",
+            "multi-land-ramp",
+            "reanimate-land",
+            "crucible-of-worlds"
+          ],
+          "notTags": ["donate-rampant-growth", "control-changing-effects"],
+          "notTypes": ["land"],
+          "notText": "its controller (may search|searches)|their controller may search",
+          "priority": 1
+        },
+        {
+          "job": "puts lands from hand every turn",
+          "weight": 2,
+          "text": "^[^:\\n]*\\{T\\}[^:\\n]*: (you may )?put a land card from your hand onto the battlefield|additional lands? on each of your turns",
+          "notText": "its controller (may search|searches)|their controller may search",
+          "repeatable": true,
+          "priority": 1
+        },
+        {
+          "job": "land swap on your own land",
+          "weight": 0.5,
+          "text": "destroy target land\\. its controller may search",
+          "notTypes": ["land"],
+          "priority": 1
+        },
+        {
+          "job": "fetch land",
+          "weight": 1,
+          "types": ["land"],
+          "text": "sacrifice this land: search your library for [^.\\n]*onto the battlefield",
+          "priority": 1
+        },
+        {
+          "job": "bounce land",
+          "weight": 1,
+          "types": ["land"],
+          "text": "return a land you control to its owner's hand",
+          "priority": 1
+        }
+      ],
+      "payoff": [
+        {
+          "job": "lasting reward per land",
+          "weight": 1,
+          "text": "whenever (a land|one or more lands|an? (forest|island|mountain|plains|swamp)|this land or another land) you control enters?[^\\n]*(create|counters? on|gain \\d+ life|draws?|investigate|\\{E\\}|exile target|each opponent|damage to)",
+          "notText": "whenever (a land|one or more lands|an? (forest|island|mountain|plains|swamp)|this land or another land) you control enters?[^\\n]*(mills?\\b|quest counter)",
+          "notTags": ["landfall-other"]
+        },
+        {
+          "job": "lasting reward per land, modal",
+          "weight": 1,
+          "text": "whenever (a land|one or more lands|an? (forest|island|mountain|plains|swamp)|this land or another land) you control enters?[^\\n]*choose (one|two)[\\s\\S]*(create|counters? on|gain \\d+ life|draws?|investigate|\\{E\\}|exile target|each opponent|damage to)",
+          "notText": "whenever (a land|one or more lands|an? (forest|island|mountain|plains|swamp)|this land or another land) you control enters?[^\\n]*(mills?\\b|quest counter)",
+          "notTags": ["landfall-other"]
+        },
+        {
+          "job": "one-turn reward per land",
+          "weight": 0.5,
+          "text": "whenever (a land|one or more lands|an? (forest|island|mountain|plains|swamp)|this land or another land) you control enters?",
+          "notText": "whenever (a land|one or more lands|an? (forest|island|mountain|plains|swamp)|this land or another land) you control enters?([^\\n]*mills?\\b|(?![^\\n]*\\+\\d+/\\+\\d+)[^\\n]*gains? [a-z, ]+ until end of turn)",
+          "notTags": ["landfall-other"]
+        },
+        {
+          "job": "one-turn keyword per land",
+          "weight": 0.25,
+          "text": "whenever (a land|one or more lands|an? (forest|island|mountain|plains|swamp)|this land or another land) you control enters?(?![^\\n]*\\+\\d+/\\+\\d+)[^\\n]*gains? [a-z, ]+ until end of turn",
+          "notTags": ["landfall-other"]
+        },
+        {
+          "job": "land-this-turn threshold",
+          "weight": 0.25,
+          "text": "if you had a land enter|a land entered the battlefield under your control this turn",
+          "notTags": ["landfall-other"]
+        }
+      ],
+      "minimums": {
+        "20": {
+          "setup": 1,
+          "payoff": 3
+        },
+        "40": {
+          "setup": 3,
+          "payoff": 3
+        },
+        "60": {
+          "setup": 5,
+          "payoff": 5
+        },
+        "100": {
+          "setup": 14,
+          "payoff": 8.5
+        }
+      }
+    },
+    "mill": {
+      "resource": "cards gone from the opponent's library",
+      "setup": [
+        {
+          "job": "engine, two or more a turn",
+          "weight": 2,
+          "anyTags": ["mill-opponent"],
+          "notTypes": ["instant", "sorcery"],
+          "text": "(^(?![^:\\n]*sacrifice (this|it\\b))[^\\n]*?(\\{T\\}|\\}: )|\\bat the beginning of\\b|\\bwhenever a land you control enters|\\bwhenever you (draw|cast)\\b)[^.\\n]*?((\\bmills? (two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|x) cards?\\b|\\bexiles the top (two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|x) cards? of their library)|into their graveyard|\\bexiles the top \\w+ cards of their library)",
+          "notText": "\\beach player mills",
+          "repeatable": true,
+          "priority": 1
+        },
+        {
+          "job": "engine, one a turn",
+          "weight": 1,
+          "anyTags": ["mill-opponent"],
+          "notTypes": ["instant", "sorcery"],
+          "text": "(^(?![^:\\n]*sacrifice (this|it\\b))[^\\n]*?(\\{T\\}|\\}: )|\\bat the beginning of\\b|\\bwhenever a land you control enters|\\bwhenever you (draw|cast)\\b)[^.\\n]*?((\\bmills? (a|one) cards?\\b|\\bexiles the top (a|one) cards? of their library)|\\bexiles the top card of their library)",
+          "notText": "\\beach player mills",
+          "repeatable": true
+        },
+        {
+          "job": "fed engine",
+          "weight": 1,
+          "anyTags": ["mill-opponent"],
+          "notTypes": ["instant", "sorcery"],
+          "text": "(\\bwhenever (this creature or )?another [^.\\n]*enters|\\bwhenever [^.\\n]*(attacks|deals combat damage))[^.\\n]*?(((\\bmills? (a|one) cards?\\b|\\bexiles the top (a|one) cards? of their library)|\\bexiles the top card of their library)|((\\bmills? (two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|x) cards?\\b|\\bexiles the top (two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|x) cards? of their library)|into their graveyard|\\bexiles the top \\w+ cards of their library))",
+          "notText": "\\beach player mills",
+          "repeatable": true
+        },
+        {
+          "job": "fed engine",
+          "weight": 1,
+          "anyTags": ["mill-opponent"],
+          "notTypes": ["instant", "sorcery"],
+          "text": "\\bwhenever\\b[^.\\n]*?(((\\bmills? (a|one) cards?\\b|\\bexiles the top (a|one) cards? of their library)|\\bexiles the top card of their library)|((\\bmills? (two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|x) cards?\\b|\\bexiles the top (two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|x) cards? of their library)|into their graveyard|\\bexiles the top \\w+ cards of their library))",
+          "notText": "\\beach player mills",
+          "repeatable": true
+        },
+        {
+          "job": "fed engine",
+          "weight": 1,
+          "keywords": ["Ingest"],
+          "repeatable": true
+        },
+        {
+          "job": "fed engine, mills that many",
+          "weight": 1,
+          "anyTags": ["mill-opponent"],
+          "notTypes": ["instant", "sorcery"],
+          "text": "\\bwhenever\\b[^.\\n]*\\bmills? that many cards?\\b",
+          "notText": "\\beach player mills",
+          "repeatable": true
+        },
+        {
+          "job": "big one-shot",
+          "weight": 1,
+          "anyTags": ["mill-opponent"],
+          "text": "(\\bmills? (four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|x) cards?\\b|\\bexiles the top (four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|x) cards? of their library)",
+          "notText": "\\beach player mills",
+          "notTags": ["counterspell", "removal", "bounce"]
+        },
+        {
+          "job": "small one-shot",
+          "weight": 0.5,
+          "anyTags": ["mill-opponent"],
+          "text": "((\\bmills? (a|one|two|three) cards?\\b|\\bexiles the top (a|one|two|three) cards? of their library)|into their graveyard)",
+          "notText": "\\beach player mills",
+          "notTags": ["counterspell", "removal", "bounce"]
+        }
+      ],
+      "payoff": [
+        {
+          "job": "rewards milled opponents",
+          "weight": 1,
+          "anyTags": ["synergy-mill"],
+          "text": "opponent|defending player|that player|target player|its controller|each player|their|chosen player|a library|a graveyard|all graveyards|a single graveyard"
+        },
+        {
+          "job": "rewards milled opponents",
+          "weight": 1,
+          "anyTags": ["synergy-mill"],
+          "notText": "your (library|graveyard)"
+        },
+        {
+          "job": "counts opponents' graveyards",
+          "weight": 1,
+          "anyTags": ["cards-in-graveyard-matter"],
+          "text": "opponents' graveyards?|an opponent has|its controller's graveyard|defending player has",
+          "notText": "your graveyard"
+        },
+        {
+          "job": "multiplier",
+          "weight": 2,
+          "anyTags": ["synergy-mill"],
+          "text": "twice that many|that many cards plus|mills? x cards, where x is the number of cards put into",
+          "priority": 2
+        }
+      ],
+      "minimums": {
+        "20": {
+          "setup": 6,
+          "repeatable": 4
+        },
+        "40": {
+          "setup": 8,
+          "repeatable": 4,
+          "payoff": 1
+        },
+        "60": {
+          "setup": 12,
+          "repeatable": 6,
+          "payoff": 2
+        },
+        "100": {
+          "setup": 16,
+          "repeatable": 8,
+          "payoff": 3
+        }
+      }
+    },
+    "enchantments": {
+      "resource": "enchantments cast, entering, on the battlefield, and leaving",
+      "setup": [
+        {
+          "job": "repeatable enchantment token maker",
+          "weight": 2,
+          "allTags": ["repeatable-enchantment-tokens"],
+          "text": "create [^.\\n]*\\b(role|enchantment[^.\\n]*) tokens?",
+          "notTypes": ["instant", "sorcery", "land"],
+          "maxMv": 4
+        },
+        {
+          "job": "repeatable enchantment token maker",
+          "weight": 1,
+          "allTags": ["repeatable-enchantment-tokens"],
+          "text": "create [^.\\n]*\\b(role|enchantment[^.\\n]*) tokens?",
+          "notTypes": ["instant", "sorcery", "land"],
+          "minMv": 5
+        },
+        {
+          "job": "enchantment",
+          "weight": 1,
+          "types": ["enchantment"],
+          "notTypes": ["land"],
+          "maxMv": 4
+        },
+        {
+          "job": "enchantment",
+          "weight": 0.5,
+          "types": ["enchantment"],
+          "notTypes": ["land"],
+          "minMv": 5
+        },
+        {
+          "job": "enchantment token maker",
+          "weight": 1,
+          "text": "create [^.\\n]*\\b(role|enchantment[^.\\n]*) tokens?",
+          "notTypes": ["instant", "sorcery", "land"],
+          "maxMv": 4
+        },
+        {
+          "job": "enchantment token maker",
+          "weight": 0.5,
+          "text": "create [^.\\n]*\\b(role|enchantment[^.\\n]*) tokens?",
+          "notTypes": ["instant", "sorcery", "land"],
+          "minMv": 5
+        },
+        {
+          "job": "enchantment token maker",
+          "weight": 0.5,
+          "text": "create [^.\\n]*\\b(role|enchantment[^.\\n]*) tokens?",
+          "types": ["instant", "sorcery"],
+          "maxMv": 4
+        },
+        {
+          "job": "enchantment token maker",
+          "weight": 0.25,
+          "text": "create [^.\\n]*\\b(role|enchantment[^.\\n]*) tokens?",
+          "types": ["instant", "sorcery"],
+          "minMv": 5
+        }
+      ],
+      "payoff": [
+        {
+          "job": "enchantress",
+          "weight": 1,
+          "text": "whenever you cast an enchantment spell",
+          "notTags": ["hate-enchantment", "removal-enchantment", "synergy-shrine"],
+          "notTypes": ["land"],
+          "priority": 1
+        },
+        {
+          "job": "constellation or enters",
+          "weight": 1,
+          "text": "constellation|eerie|whenever (an|another|one or more) [^.\\n]*enchantments? you control enters?",
+          "notTags": ["hate-enchantment", "removal-enchantment", "synergy-shrine"],
+          "notTypes": ["land"],
+          "priority": 1
+        },
+        {
+          "job": "count",
+          "weight": 1,
+          "anyTags": ["ethereal-armor", "affinity-for-enchantments"],
+          "notTags": ["hate-enchantment", "removal-enchantment", "synergy-shrine"],
+          "notTypes": ["land"],
+          "priority": 1
+        },
+        {
+          "job": "count",
+          "weight": 1,
+          "text": "for each (other )?enchantment|number of enchantments you control",
+          "notTags": ["hate-enchantment", "removal-enchantment", "synergy-shrine"],
+          "notTypes": ["land"],
+          "priority": 1
+        },
+        {
+          "job": "leaving",
+          "weight": 1,
+          "text": "enchantment you control is put into a graveyard",
+          "notTags": ["hate-enchantment", "removal-enchantment", "synergy-shrine"],
+          "notTypes": ["land"],
+          "priority": 1
+        },
+        {
+          "job": "cost reducer",
+          "weight": 0.5,
+          "anyTags": ["cost-reducer-enchantment"],
+          "notTags": ["hate-enchantment", "removal-enchantment", "synergy-shrine"],
+          "notTypes": ["land"],
+          "priority": 1
+        },
+        {
+          "job": "needs one enchantment",
+          "weight": 0.5,
+          "text": "if you control an enchantment|as long as you control an enchantment",
+          "notTags": ["hate-enchantment", "removal-enchantment", "synergy-shrine"],
+          "notTypes": ["enchantment", "land"],
+          "priority": 1
+        }
+      ],
+      "minimums": {
+        "20": {
+          "setup": 3,
+          "payoff": 3
+        },
+        "40": {
+          "setup": 5,
+          "payoff": 4
+        },
+        "60": {
+          "setup": 8,
+          "payoff": 6
+        },
+        "100": {
+          "setup": 20,
+          "payoff": 10
+        }
+      }
+    },
+    "bigCreatures": {
+      "resource": "mana beyond the land count",
+      "setup": [
+        {
+          "job": "lasting mana or land ramp",
+          "weight": 1,
+          "anyTags": ["mana-dork", "mana-rock", "tutor-land-to-battlefield"],
+          "notTags": [
+            "mana-dork-egg",
+            "ritual",
+            "restricted-mana",
+            "donate-rampant-growth",
+            "donate-mana",
+            "donate-token"
+          ],
+          "notTypes": ["land"],
+          "maxMv": 4,
+          "notText": "its controller (may search|searches)|their controller may search",
+          "repeatable": true
+        },
+        {
+          "job": "taps for mana",
+          "weight": 1,
+          "notTypes": ["land"],
+          "maxMv": 4,
+          "text": "^(?![^:\\n]*sacrifice)[^:\\n]*\\{T\\}[^:\\n]*: add (?![^\\n]*(spend this mana only|can't be spent))",
+          "repeatable": true,
+          "notText": "enchanted land (loses all land types and abilities and )?has \"\\{T\\}: add one mana"
+        },
+        {
+          "job": "puts creatures from hand onto the battlefield",
+          "weight": 1,
+          "notTypes": ["instant", "sorcery", "land"],
+          "text": "put an? (creature|permanent) card from your hand onto the battlefield",
+          "repeatable": true
+        },
+        {
+          "job": "creature cost reducer",
+          "weight": 0.5,
+          "notTypes": ["instant", "sorcery", "land"],
+          "text": "creature spells you cast cost \\{\\d\\} less",
+          "repeatable": true
+        },
+        {
+          "job": "one-shot mana burst",
+          "weight": 0.25,
+          "notTypes": ["land"],
+          "text": "sacrifice this [^:\\n]*: add|^add \\{|create[^.\\n]*treasure"
+        },
+        {
+          "job": "basic land to hand",
+          "weight": 0.25,
+          "allTags": ["tutor-land", "tutor-to-hand"],
+          "notTags": ["tutor-land-to-battlefield"],
+          "notTypes": ["land"]
+        }
+      ],
+      "payoff": [
+        {
+          "job": "big creature at 6+",
+          "weight": 1,
+          "types": ["creature"],
+          "minMv": 6,
+          "minPower": 5,
+          "notKeywords": ["Defender"],
+          "notText": "this creature can't attack( unless| alone|\\.| or block)"
+        },
+        {
+          "job": "big evasive creature at 6+",
+          "weight": 1,
+          "types": ["creature"],
+          "minMv": 6,
+          "minPower": 4,
+          "keywords": ["Flying", "Trample"],
+          "notKeywords": ["Defender"],
+          "notText": "this creature can't attack( unless| alone|\\.| or block)"
+        },
+        {
+          "job": "big creature at 6+ with an enters trigger",
+          "weight": 1,
+          "types": ["creature"],
+          "minMv": 6,
+          "minPower": 4,
+          "text": "\\bwhen [^.\\n]*enters",
+          "notKeywords": ["Defender"],
+          "notText": "this creature can't attack( unless| alone|\\.| or block)"
+        },
+        {
+          "job": "five-drop threat",
+          "weight": 0.75,
+          "types": ["creature"],
+          "minMv": 5,
+          "maxMv": 5,
+          "minPower": 5,
+          "notKeywords": ["Defender"],
+          "notText": "this creature can't attack( unless| alone|\\.| or block)"
+        },
+        {
+          "job": "evasive five-drop",
+          "weight": 0.75,
+          "types": ["creature"],
+          "minMv": 5,
+          "maxMv": 5,
+          "minPower": 4,
+          "keywords": ["Flying", "Trample"],
+          "notKeywords": ["Defender"],
+          "notText": "this creature can't attack( unless| alone|\\.| or block)"
+        },
+        {
+          "job": "five-drop with an enters trigger",
+          "weight": 0.75,
+          "types": ["creature"],
+          "minMv": 5,
+          "maxMv": 5,
+          "minPower": 4,
+          "text": "\\bwhen [^.\\n]*enters",
+          "notKeywords": ["Defender"],
+          "notText": "this creature can't attack( unless| alone|\\.| or block)"
+        },
+        {
+          "job": "X spell or X creature",
+          "weight": 1,
+          "notTypes": ["land"],
+          "text": "\\bx damage|\\bx \\+1/\\+1 counters|\\bdraws? x cards|\\bcreates? x\\b",
+          "notText": "where x is|x is (equal|the)|x can't"
+        }
+      ],
+      "minimums": {
+        "20": {
+          "setup": 2,
+          "repeatable": 2,
+          "payoff": 2
+        },
+        "40": {
+          "setup": 4,
+          "repeatable": 4,
+          "payoff": 4
+        },
+        "60": {
+          "setup": 6,
+          "repeatable": 6,
+          "payoff": 6
+        },
+        "100": {
+          "setup": 10,
+          "repeatable": 10,
+          "payoff": 12
+        }
+      }
+    },
+    "tappers": {
+      "resource": "opposing creatures tapped when it matters",
+      "setup": [
+        {
+          "job": "taps a creature every turn",
+          "weight": 2,
+          "text": "^[^:\\n]*\\{T\\}[^:\\n]*: tap target (creature|nonland permanent|permanent)\\.",
+          "notText": "tap target (?!creature|permanent|nonland|artifact|land)[a-z]+\\.|activate only if you control",
+          "repeatable": true
+        },
+        {
+          "job": "taps a creature again and again",
+          "weight": 2,
+          "allTags": ["tapper-creature", "repeatable-crime"],
+          "notTags": ["lockdown-creature", "hate-typal"],
+          "notTypes": ["instant", "sorcery"],
+          "notText": "tap target (?!creature|permanent|nonland|artifact|land)[a-z]+\\.|activate only if you control",
+          "repeatable": true
+        },
+        {
+          "job": "taps on entering",
+          "weight": 1,
+          "text": "\\bwhen [^.\\n]*enters, (you may )?tap (or untap )?(it and )?(up to \\w+ |x )?target[^.\\n]*(creature|permanent)|\\bwhen [^.\\n]*enters, tap all [^.\\n]*creatures"
+        },
+        {
+          "job": "taps and freezes on entering",
+          "weight": 1.5,
+          "text": "\\bwhen [^.\\n]*enters, (you may )?tap (or untap )?(it and )?(up to \\w+ |x )?target[^\\n]*((doesn't|don't) untap during (its|their) controllers?'s? next untap|(doesn't|don't) untap during that player's next untap|stun counters?)"
+        },
+        {
+          "job": "tap spell, one creature",
+          "weight": 0.5,
+          "types": ["instant", "sorcery"],
+          "text": "\\btap (target|up to one target) creatures?\\b",
+          "notText": "\\btap (target|up to \\w+ target|all) creatures? you control"
+        },
+        {
+          "job": "tap spell, one creature, with freeze",
+          "weight": 0.75,
+          "types": ["instant", "sorcery"],
+          "text": "^(?=[\\s\\S]*((doesn't|don't) untap during (its|their) controllers?'s? next untap|(doesn't|don't) untap during that player's next untap|stun counters?))[\\s\\S]*\\btap (target|up to one target) creatures?\\b",
+          "notText": "\\btap (target|up to \\w+ target|all) creatures? you control"
+        },
+        {
+          "job": "tap spell, several creatures",
+          "weight": 1,
+          "types": ["instant", "sorcery"],
+          "text": "\\btap (up to (two|three|four|five|x) target|(two|three|x) target|all) creatures",
+          "notText": "\\btap (target|up to \\w+ target|all) creatures? you control"
+        },
+        {
+          "job": "tap spell, several creatures, with freeze",
+          "weight": 1.5,
+          "types": ["instant", "sorcery"],
+          "text": "^(?=[\\s\\S]*((doesn't|don't) untap during (its|their) controllers?'s? next untap|(doesn't|don't) untap during that player's next untap|stun counters?))[\\s\\S]*\\btap (up to (two|three|four|five|x) target|(two|three|x) target|all) creatures",
+          "notText": "\\btap (target|up to \\w+ target|all) creatures? you control"
+        }
+      ],
+      "payoff": [
+        {
+          "job": "tap-trigger engine",
+          "weight": 1,
+          "text": "whenever you tap (an|one or more) untapped creatures? (an opponent controls|your opponents control)|whenever a creature an opponent controls becomes tapped",
+          "notText": "whenever you tap an untapped creature an opponent controls, this creature gets \\+\\d+/\\+\\d+ until end of turn",
+          "priority": 1
+        },
+        {
+          "job": "removal for tapped creatures",
+          "weight": 0.5,
+          "text": "(destroy|exile) target tapped creature|damage to target tapped creature|less to cast if it targets a tapped creature"
+        },
+        {
+          "job": "counts or bounces tapped creatures",
+          "weight": 0.5,
+          "text": "for each tapped creature (target opponent controls|your opponents control|an opponent controls|defending player controls)|return target tapped creature"
+        }
+      ],
+      "exclude": [
+        {
+          "job": "lock Aura, removal",
+          "typeLine": "\\bAura\\b",
+          "text": "^enchant (creature|permanent)[\\s\\S]*(enchanted (creature|permanent) doesn't untap|can't become untapped|tap enchanted (creature|permanent)|if enchanted creature is untapped, tap it)"
+        }
+      ],
+      "minimums": {
+        "20": {
+          "setup": 3,
+          "repeatable": 2,
+          "payoff": 1
+        },
+        "40": {
+          "setup": 5,
+          "repeatable": 3,
+          "payoff": 1
+        },
+        "60": {
+          "setup": 8,
+          "repeatable": 4,
+          "payoff": 2
+        },
+        "100": {
+          "setup": 15,
+          "repeatable": 8,
+          "payoff": 4
+        }
+      }
+    },
+    "groupHug": {
+      "resource": "extra cards the opponent draws and cards in the opponent's hand; at 100 also lands and mana given away",
+      "setup": [
+        {
+          "job": "repeatable symmetric draw",
+          "weight": 2,
+          "repeatable": true,
+          "text": "^([^\\n\\u2014]*\\u2014 )?(whenever|at the beginning of)[^\\n]*\\b((each player|each other player|each opponent|target opponent|(up to )?two target players|any number of target opponents|you and (target|that|another target|defending) (opponent|player)|defending player)|that player)\\b(?:(?!\\byou\\b)[^.\\n]){0,60}?\\b(may )?(each )?draws?\\b(?! step)|\\b(that|each) player draws (an|\\w+) additional cards?|^([^\\n\\u2014]*\\u2014 )?(?![^:\\n]*\\bsacrifice\\b)[^:\\n]*\\}[^:\\n]*:[^\\n]*\\b(each player|each other player|each opponent|target opponent|(up to )?two target players|any number of target opponents|you and (target|that|another target|defending) (opponent|player)|defending player)\\b(?:(?!\\byou\\b)[^.\\n]){0,60}?\\b(may )?(each )?draws?\\b(?! step)",
+          "notText": "\\bgift an? |cumulative upkeep|rather than pay this spell's mana cost, you may have|from an opponent's graveyard to their hand|can't draw|skips? (their|that|your) draw"
+        },
+        {
+          "job": "one-shot draw gift",
+          "weight": 1,
+          "text": "\\b(each player|each other player|each opponent|target opponent|(up to )?two target players|any number of target opponents|you and (target|that|another target|defending) (opponent|player)|defending player)\\b(?:(?!\\byou\\b)[^.\\n]){0,60}?\\b(may )?(each )?draws?\\b(?! step)",
+          "notText": "\\bgift an? |cumulative upkeep|rather than pay this spell's mana cost, you may have|from an opponent's graveyard to their hand|can't draw|skips? (their|that|your) draw"
+        },
+        {
+          "job": "flexible draw",
+          "weight": 0.5,
+          "text": "\\btarget player (may )?draws?\\b",
+          "notText": "\\bgift an? |cumulative upkeep|rather than pay this spell's mana cost, you may have|from an opponent's graveyard to their hand|can't draw|skips? (their|that|your) draw"
+        },
+        {
+          "job": "land or mana gift",
+          "weight": 1,
+          "sizes": [100],
+          "text": "\\b(each player|each opponent|each other player|target opponent|that player)\\b[^.\\n]{0,30}?\\b(may )?(search(es)? their library for [^.\\n]*land|put (a|up to \\w+) land cards? from their hand onto the battlefield|play an additional land)|\\b(each player|that player|target opponent) adds\\b|\\b(each player|each opponent|target opponent|you and target opponent)( each)? creates? (a|an|\\w+) treasure|\\blands tap for an additional",
+          "notText": "\\bgift an? |cumulative upkeep|rather than pay this spell's mana cost, you may have|from an opponent's graveyard to their hand|can't draw|skips? (their|that|your) draw"
+        }
+      ],
+      "payoff": [
+        {
+          "job": "draw punisher",
+          "weight": 2,
+          "priority": 1,
+          "text": "whenever (an opponent|a player|enchanted (player|opponent)) draws (a|their \\w+) card[^.\\n]*(damage|loses? \\d+ life|you (may )?(draw|gain)|create|may pay \\{\\d\\})",
+          "notText": "can't draw (more than one card|cards)|skips that draw|\\d minus the number of cards"
+        },
+        {
+          "job": "repeatable full-hand punisher",
+          "weight": 2,
+          "priority": 1,
+          "notTypes": ["instant", "sorcery"],
+          "text": "(for each card in|number of cards in) (that player's|their|target opponent's|defending player's|enchanted player's|the chosen player's) hand|\\b(that|the) player (is your opponent and )?has \\w+ or more cards in hand[^.\\n]*(damage|loses? \\d+ life)",
+          "notText": "can't draw (more than one card|cards)|skips that draw|\\d minus the number of cards"
+        },
+        {
+          "job": "one-shot full-hand burn",
+          "weight": 1,
+          "priority": 1,
+          "types": ["instant", "sorcery"],
+          "text": "(for each card in|number of cards in) (that player's|their|target opponent's|defending player's|enchanted player's|the chosen player's) hand|\\b(that|the) player (is your opponent and )?has \\w+ or more cards in hand[^.\\n]*(damage|loses? \\d+ life)",
+          "notText": "can't draw (more than one card|cards)|skips that draw|\\d minus the number of cards"
+        }
+      ],
+      "minimums": {
+        "20": {
+          "setup": 4,
+          "payoff": 3,
+          "payoffWeight": 5
+        },
+        "40": {
+          "setup": 6,
+          "payoff": 4
+        },
+        "60": {
+          "setup": 10,
+          "repeatable": 4,
+          "payoff": 6,
+          "payoffWeight": 10
+        },
+        "100": {
+          "setup": 10,
+          "repeatable": 6,
+          "payoff": 6
+        }
+      }
+    },
+    "goad": {
+      "resource": "forced attacks by opposing creatures",
+      "setup": [
+        {
+          "job": "lasting forcer (trigger)",
+          "weight": 2,
+          "repeatable": true,
+          "text": "^([^\\n\\u2014]*\\u2014 )?(whenever|at the beginning of)\\b[^\\n]*(\\bgoad (target|all|each|up to|that|those|it|them|another|any|one|two|three|x|a|an)\\b|\\b(is|are) goaded\\b|\\b(target|opponents?|enchanted|equipped|each|all|creatures|player|those|that creature|the creature)\\b[^.\\n\"]*?\\b(attacks?\\b[^.,\"\\n]{0,50}?\\bif able|must attack\\b))",
+          "notText": "\\b(creatures|\\w+s) you control (have [^.\\n]*)?(attack|must attack)|gets \\+\\d+/\\+\\d+[^.\\n]*and attacks each combat if able|^(all creatures|each creature) (attack|attacks|have)\\b|(enchanted|equipped) creature gets \\+\\d+/\\+\\d+[^.\\n]*is goaded"
+        },
+        {
+          "job": "lasting forcer (activated)",
+          "weight": 2,
+          "repeatable": true,
+          "text": "^([^\\n\\u2014]*\\u2014 )?((?![^:\\n]*\\bsacrifice\\b)[^:\\n]*\\}[^:\\n]*|[+\\u2212]?\\d+):[^\\n]*(\\bgoad (target|all|each|up to|that|those|it|them|another|any|one|two|three|x|a|an)\\b|\\b(is|are) goaded\\b|\\b(target|opponents?|enchanted|equipped|each|all|creatures|player|those|that creature|the creature)\\b[^.\\n\"]*?\\b(attacks?\\b[^.,\"\\n]{0,50}?\\bif able|must attack\\b))",
+          "notText": "\\b(creatures|\\w+s) you control (have [^.\\n]*)?(attack|must attack)|gets \\+\\d+/\\+\\d+[^.\\n]*and attacks each combat if able|^(all creatures|each creature) (attack|attacks|have)\\b|(enchanted|equipped) creature gets \\+\\d+/\\+\\d+[^.\\n]*is goaded"
+        },
+        {
+          "job": "lasting forcer (static)",
+          "weight": 2,
+          "repeatable": true,
+          "notTypes": ["instant", "sorcery"],
+          "text": "^(?!(when|until|during)\\b)(?![^\\n]*until (your next turn|end of turn))(?=[^\\n]*(each combat|\\b(is|are) goaded\\b|\\bmust attack\\b))[^\\n]*(\\bgoad (target|all|each|up to|that|those|it|them|another|any|one|two|three|x|a|an)\\b|\\b(is|are) goaded\\b|\\b(target|opponents?|enchanted|equipped|each|all|creatures|player|those|that creature|the creature)\\b[^.\\n\"]*?\\b(attacks?\\b[^.,\"\\n]{0,50}?\\bif able|must attack\\b))",
+          "notText": "\\b(creatures|\\w+s) you control (have [^.\\n]*)?(attack|must attack)|gets \\+\\d+/\\+\\d+[^.\\n]*and attacks each combat if able|^(all creatures|each creature) (attack|attacks|have)\\b|(enchanted|equipped) creature gets \\+\\d+/\\+\\d+[^.\\n]*is goaded"
+        },
+        {
+          "job": "pump and goad",
+          "weight": 2,
+          "repeatable": true,
+          "sizes": [100],
+          "text": "(enchanted|equipped) creature gets \\+\\d+/\\+\\d+[^.\\n]*is goaded"
+        },
+        {
+          "job": "pump and goad",
+          "weight": 1,
+          "sizes": [20, 40, 60],
+          "text": "(enchanted|equipped) creature gets \\+\\d+/\\+\\d+[^.\\n]*is goaded"
+        },
+        {
+          "job": "one-shot forcer",
+          "weight": 1,
+          "notTypes": ["instant", "sorcery"],
+          "text": "(\\bgoad (target|all|each|up to|that|those|it|them|another|any|one|two|three|x|a|an)\\b|\\b(is|are) goaded\\b|\\b(target|opponents?|enchanted|equipped|each|all|creatures|player|those|that creature|the creature)\\b[^.\\n\"]*?\\b(attacks?\\b[^.,\"\\n]{0,50}?\\bif able|must attack\\b))",
+          "notText": "\\b(creatures|\\w+s) you control (have [^.\\n]*)?(attack|must attack)|gets \\+\\d+/\\+\\d+[^.\\n]*and attacks each combat if able|^(all creatures|each creature) (attack|attacks|have)\\b|(enchanted|equipped) creature gets \\+\\d+/\\+\\d+[^.\\n]*is goaded"
+        },
+        {
+          "job": "one-shot forcer",
+          "weight": 1,
+          "types": ["instant", "sorcery"],
+          "text": "(\\bgoad (target|all|each|up to|that|those|it|them|another|any|one|two|three|x|a|an)\\b|\\b(is|are) goaded\\b|\\b(target|opponents?|enchanted|equipped|each|all|creatures|player|those|that creature|the creature)\\b[^.\\n\"]*?\\b(attacks?\\b[^.,\"\\n]{0,50}?\\bif able|must attack\\b))",
+          "notText": "\\b(creatures|\\w+s) you control (have [^.\\n]*)?(attack|must attack)|gets \\+\\d+/\\+\\d+[^.\\n]*and attacks each combat if able|^(all creatures|each creature) (attack|attacks|have)\\b|(^|\\. )target creature attacks this turn if able"
+        },
+        {
+          "job": "one-turn trick on one creature",
+          "weight": 0.5,
+          "types": ["instant", "sorcery"],
+          "text": "(^|\\. )target creature attacks this turn if able"
+        },
+        {
+          "job": "symmetric forcer",
+          "weight": 1,
+          "sizes": [100],
+          "text": "^(all creatures|each creature) (attack|attacks|have)\\b[^\\n]*if able"
+        },
+        {
+          "job": "symmetric forcer",
+          "weight": 0.5,
+          "sizes": [20, 40, 60],
+          "text": "^(all creatures|each creature) (attack|attacks|have)\\b[^\\n]*if able"
+        }
+      ],
+      "payoff": [
+        {
+          "job": "attack drain or punisher",
+          "weight": 1,
+          "priority": 1,
+          "text": "whenever (a creature attacks you( or a planeswalker you control)?, (its|that creature's) controller loses|an attacking creature dies|a goaded creature|enchanted creature (attacks|attacks or blocks|becomes tapped)[^.\\n]*(its controller loses|that creature's controller))",
+          "notText": "enchanted creature (gets [^.\\n]*and )?(is goaded|attacks (each combat|this turn) if able)"
+        },
+        {
+          "job": "rewards attacks on opponents",
+          "weight": 0.5,
+          "sizes": [100],
+          "anyTags": ["attacking-opponents-matters"]
+        }
+      ],
+      "minimums": {
+        "20": {
+          "setup": 5,
+          "payoff": 2
+        },
+        "40": {
+          "setup": 7,
+          "payoff": 3
+        },
+        "60": {
+          "setup": 10,
+          "repeatable": 6,
+          "payoff": 4
+        },
+        "100": {
+          "setup": 15,
+          "repeatable": 10,
+          "payoff": 5
+        }
+      }
+    },
+    "energy": {
+      "resource": "energy counters on you",
+      "setup": [
+        {
+          "job": "multiplier",
+          "weight": 1,
+          "priority": 4,
+          "text": "if you would get one or more \\{E\\}"
+        },
+        {
+          "job": "repeatable maker",
+          "weight": 2,
+          "repeatable": true,
+          "priority": 2,
+          "text": "^([^\\n\\u2014]*\\u2014 )?(whenever|at the beginning of|landfall)[^\\n]*?, [^\\n]*\\bget ((?:\\{E\\})+|an amount of \\{E\\}|that many \\{E\\}|\\w+ \\{E\\})|^([^\\n\\u2014]*\\u2014 )?(?![^:\\n]*\\bsacrifice\\b)[^:\\n]*\\}[^:\\n]*:[^\\n]*\\bget ((?:\\{E\\})+|an amount of \\{E\\}|that many \\{E\\}|\\w+ \\{E\\})",
+          "notText": "^(?![^\\n]*: add one mana)(?![^\\n]*(sacrifice (this \\w+|it)|tap this \\w+) unless you pay)([^:\\n]*\\{E\\}[^:\\n]*:|([^\\n\\u2014]*\\u2014 )?(whenever|at the beginning of)[^\\n]*?, [^\\n]*\\bpay(ing)? (any amount of |an amount of |one or more |x |\\w+ )?\\{E\\})"
+        },
+        {
+          "job": "one-shot maker, three or more",
+          "weight": 1.5,
+          "priority": 2,
+          "text": "\\bget ((\\{E\\}){3,}|(three|four|five|six|seven|eight) \\{E\\})",
+          "notText": "^(?![^\\n]*: add one mana)(?![^\\n]*(sacrifice (this \\w+|it)|tap this \\w+) unless you pay)([^:\\n]*\\{E\\}[^:\\n]*:|([^\\n\\u2014]*\\u2014 )?(whenever|at the beginning of)[^\\n]*?, [^\\n]*\\bpay(ing)? (any amount of |an amount of |one or more |x |\\w+ )?\\{E\\})|^([^\\n\\u2014]*\\u2014 )?(whenever|at the beginning of|landfall)[^\\n]*?, [^\\n]*\\bget ((?:\\{E\\})+|an amount of \\{E\\}|that many \\{E\\}|\\w+ \\{E\\})|^([^\\n\\u2014]*\\u2014 )?(?![^:\\n]*\\bsacrifice\\b)[^:\\n]*\\}[^:\\n]*:[^\\n]*\\bget ((?:\\{E\\})+|an amount of \\{E\\}|that many \\{E\\}|\\w+ \\{E\\})"
+        },
+        {
+          "job": "one-shot maker",
+          "weight": 1,
+          "priority": 2,
+          "text": "\\bget ((?:\\{E\\})+|an amount of \\{E\\}|that many \\{E\\}|\\w+ \\{E\\})",
+          "notText": "^(?![^\\n]*: add one mana)(?![^\\n]*(sacrifice (this \\w+|it)|tap this \\w+) unless you pay)([^:\\n]*\\{E\\}[^:\\n]*:|([^\\n\\u2014]*\\u2014 )?(whenever|at the beginning of)[^\\n]*?, [^\\n]*\\bpay(ing)? (any amount of |an amount of |one or more |x |\\w+ )?\\{E\\})|^([^\\n\\u2014]*\\u2014 )?(whenever|at the beginning of|landfall)[^\\n]*?, [^\\n]*\\bget ((?:\\{E\\})+|an amount of \\{E\\}|that many \\{E\\}|\\w+ \\{E\\})|^([^\\n\\u2014]*\\u2014 )?(?![^:\\n]*\\bsacrifice\\b)[^:\\n]*\\}[^:\\n]*:[^\\n]*\\bget ((?:\\{E\\})+|an amount of \\{E\\}|that many \\{E\\}|\\w+ \\{E\\})"
+        }
+      ],
+      "payoff": [
+        {
+          "job": "get trigger",
+          "weight": 2,
+          "priority": 5,
+          "text": "whenever you get one or more \\{E\\}"
+        },
+        {
+          "job": "variable spend, repeatable",
+          "weight": 2,
+          "priority": 3,
+          "text": "^(?=[\\s\\S]*?(?:pay (any amount of|one or more|an amount of|x) \\{E\\}|the amount of \\{E\\} you have))[\\s\\S]*?(?:^(?![^\\n]*: add one mana)(?![^\\n]*(sacrifice (this \\w+|it)|tap this \\w+) unless you pay)([^:\\n]*\\{E\\}[^:\\n]*:|([^\\n\\u2014]*\\u2014 )?(whenever|at the beginning of)[^\\n]*?, [^\\n]*\\bpay(ing)? (any amount of |an amount of |one or more |x |\\w+ )?\\{E\\}))"
+        },
+        {
+          "job": "variable spend",
+          "weight": 1,
+          "priority": 3,
+          "text": "pay (any amount of|one or more|an amount of|x) \\{E\\}|the amount of \\{E\\} you have"
+        },
+        {
+          "job": "repeatable sink",
+          "weight": 2,
+          "priority": 2,
+          "text": "^(?![^\\n]*: add one mana)(?![^\\n]*(sacrifice (this \\w+|it)|tap this \\w+) unless you pay)([^:\\n]*\\{E\\}[^:\\n]*:|([^\\n\\u2014]*\\u2014 )?(whenever|at the beginning of)[^\\n]*?, [^\\n]*\\bpay(ing)? (any amount of |an amount of |one or more |x |\\w+ )?\\{E\\})"
+        },
+        {
+          "job": "spend only",
+          "weight": 1,
+          "priority": 2,
+          "text": "^(?![^\\n]*: add one mana)(?![^\\n]*(sacrifice (this \\w+|it)|tap this \\w+) unless you pay)[^\\n]*\\bpay(ing)? (any amount of |an amount of |one or more |x |\\w+ )?\\{E\\}",
+          "notText": "\\bget ((?:\\{E\\})+|an amount of \\{E\\}|that many \\{E\\}|\\w+ \\{E\\})"
+        }
+      ],
+      "minimums": {
+        "20": {
+          "setup": 4,
+          "payoff": 4
+        },
+        "40": {
+          "setup": 6,
+          "payoff": 6
+        },
+        "60": {
+          "setup": 8,
+          "repeatable": 3,
+          "payoff": 8,
+          "payoffWeight": 12
+        },
+        "100": {
+          "setup": 12,
+          "repeatable": 6,
+          "payoff": 10
+        }
+      }
+    }
+  }
+}

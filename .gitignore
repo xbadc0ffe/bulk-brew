@@ -40,3 +40,6 @@ test-bulk/
 apps/mobile/ios/App/Pods/
 apps/mobile/ios/App/App.xcworkspace/xcuserdata/
 apps/mobile/ios/DerivedData/
+
+# Builder review working data (docs/algo-review.md); reports live in docs/review/
+data/review/
