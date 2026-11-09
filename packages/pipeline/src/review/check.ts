@@ -92,7 +92,7 @@ export const THRESHOLDS = {
 } as const;
 
 /** Bump when a check changes, so stored results are recomputed. */
-export const CHECKER_VERSION = '3';
+export const CHECKER_VERSION = '4';
 
 export const FLAGS = [
   'size',
@@ -139,7 +139,10 @@ export interface LegalityResult {
   overLimit: { name: string; qty: number; limit: number }[];
   /** Identity at 100 (the Commander rule); castable with the colors below 100, as the core's playableWith. */
   colorRule: 'identity' | 'castable';
+  /** Colors for spells: the commander's identity at 100, else the deck's own. */
   allowed: Color[];
+  /** Colors for lands and basics: also the requested ones, so a dual land of a color the deck dropped is legal. */
+  allowedLands: Color[];
   offColor: string[];
   /** Below 100: cards whose identity leaves the colors but whose costs fit them, such as hybrid cards. Not a failure. */
   identityOutside: string[];
@@ -323,7 +326,7 @@ function basicsOf(d: ReviewDeck): [Color, number][] {
 }
 
 /**
- * The colors the deck may use: the commander's identity at 100, else the deck's own
+ * The colors the deck's spells may use: the commander's identity at 100, else the deck's own
  * (a best fit can use fewer than were requested), or the request's in older files.
  */
 export function allowedColors(d: ReviewDeck, index: CardIndex): Color[] {
@@ -337,6 +340,10 @@ export function checkLegality(d: ReviewDeck, ctx: CheckContext): LegalityResult 
   const size = d.request.size;
   const commanderDeck = isCommanderSize(size);
   const allowed = allowedColors(d, ctx.index);
+  // A best fit can drop a requested color but keep a dual land that makes it; that is legal.
+  const allowedLands = commanderDeck
+    ? allowed
+    : normalizeColors([...new Set([...allowed, ...d.request.colors])]);
   const { list, missing } = entriesOf(d, ctx);
   const limit = maxCopiesFor(ctx.settings, ctx.config, size);
   const overLimit: LegalityResult['overLimit'] = [];
@@ -346,15 +353,17 @@ export function checkLegality(d: ReviewDeck, ctx: CheckContext): LegalityResult 
     name: m.name,
     why: 'not in the data pack',
   }));
-  for (const { card, qty } of list) {
+  for (const { card, qty, facts } of list) {
     if (!isBasicLand(card)) {
       // Card text such as "a deck can have any number of cards named" allows more at any size.
       const most = Math.max(limit, commanderCopies(card));
       if (qty > most) overLimit.push({ name: card.name, qty, limit: most });
     }
-    const fits = commanderDeck ? identityWithin(card, allowed) : playableWith(card, allowed);
+    // Modal spell-lands are spells, as in the mana check.
+    const colors = facts.land && !facts.mdfcLand ? allowedLands : allowed;
+    const fits = commanderDeck ? identityWithin(card, colors) : playableWith(card, colors);
     if (!fits) offColor.push(card.name);
-    else if (!identityWithin(card, allowed)) identityOutside.push(card.name);
+    else if (!identityWithin(card, colors)) identityOutside.push(card.name);
     if (card.unset) illegal.push({ name: card.name, why: 'Un-set card' });
     if (commanderDeck && card.commanderLegality)
       illegal.push({
@@ -364,7 +373,7 @@ export function checkLegality(d: ReviewDeck, ctx: CheckContext): LegalityResult 
   }
   const names = ctx.config.landRules.basics.names;
   for (const [c, qty] of basicsOf(d)) {
-    if (!allowed.includes(c)) offColor.push(`${qty} ${names[c]}`);
+    if (!allowedLands.includes(c)) offColor.push(`${qty} ${names[c]}`);
   }
   let commander: LegalityResult['commander'] = null;
   if (commanderDeck) {
@@ -394,6 +403,7 @@ export function checkLegality(d: ReviewDeck, ctx: CheckContext): LegalityResult 
     overLimit,
     colorRule: commanderDeck ? 'identity' : 'castable',
     allowed,
+    allowedLands,
     offColor,
     identityOutside,
     illegal,

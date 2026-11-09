@@ -210,13 +210,28 @@ const LEADER = card({
   manaCost: '{B}{G}',
 });
 const ELF = card({ name: 'Elf', colors: ['G'], identity: ['G'], manaCost: '{G}' });
+function dual(name: string, identity: Color[]): CardRecord {
+  return card({
+    name,
+    typeLine: 'Land',
+    types: ['land'],
+    manaCost: '',
+    mv: 0,
+    colors: [],
+    identity,
+    text: `{T}, Pay 1 life: Add {${identity[0]}} or {${identity[1]}}.`,
+    produces: identity,
+  });
+}
+const PEATLAND = dual('Peatland', ['B', 'G']);
+const TUNDRA = dual('Tundra', ['W', 'U']);
 
 const INDEX = new CardIndex({
   schema: 2,
   version: 'test',
   builtAt: 'test',
-  cardCount: 9,
-  cards: [SWAMP, ZOMBIE, GOBLIN, HYBRID, RATS, SILLY, BANNED, LEADER, ELF],
+  cardCount: 11,
+  cards: [SWAMP, ZOMBIE, GOBLIN, HYBRID, RATS, SILLY, BANNED, LEADER, ELF, PEATLAND, TUNDRA],
 });
 const CTX: CheckContext = {
   index: INDEX,
@@ -306,6 +321,32 @@ describe('legality', () => {
     expect(checkLegality(d, CTX).offColor).toEqual([]);
     d.deck.colors = ['B'];
     expect(checkLegality(d, CTX).offColor).toEqual(['Goblin']);
+  });
+
+  it('allows lands of any requested color in a deck that dropped one, and no others', () => {
+    // A BG request built as mono-black keeps a B/G dual land: legal. A W/U one is not.
+    const d = deck(
+      60,
+      ['B', 'G'],
+      [
+        [ZOMBIE, 4],
+        [PEATLAND, 4],
+      ],
+      { B: 52 },
+    );
+    d.deck.colors = ['B'];
+    const l = checkLegality(d, CTX);
+    expect(l).toMatchObject({ allowed: ['B'], allowedLands: ['B', 'G'], offColor: [] });
+    expect(l.identityOutside).toEqual([]);
+    expect(checkDeck(d, CTX, { file: 'f', stamp: 's', determinism: null }).flags).not.toContain(
+      'colors',
+    );
+    d.deck.cards.push({ id: TUNDRA.id, name: TUNDRA.name, qty: 1 });
+    d.deck.basics = { B: 51 };
+    expect(checkLegality(d, CTX).offColor).toEqual(['Tundra']);
+    expect(checkDeck(d, CTX, { file: 'f', stamp: 's', determinism: null }).flags).toContain(
+      'colors',
+    );
   });
 
   it('holds a Commander deck to singleton, the commander identity, and Commander legality', () => {
