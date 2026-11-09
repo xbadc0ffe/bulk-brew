@@ -2,7 +2,11 @@
 
 ## Status
 
-Not started. The session that runs this brief keeps this section current: what is done, what is running, what it found, and where each result lives.
+In progress since 2026-11-08. The session that runs this brief keeps this section current: what is done, what is running, what it found, and where each result lives. The step-by-step record is `docs/review/log.md`.
+
+- Phase 1 done, not yet committed: `docs/review/research.md` (five families plus our builder, every claim checked by a second agent, notes in `docs/review/research/*.verify.md`), `docs/review/our-builder.md`, `docs/review/our-builder-themes.md`, `docs/review/shortlist.md` with `shortlist-objections.md`. Final prototypes: `a-objective` and `a-search` (the current builder's code with an honest supply-and-demand objective, plus a search variant) and `b-grow` and `b-oldrules` (seed and grow, with and without the theme rules).
+- Phase 2 groundwork done and reviewed: `review:cards`, `review:build` (head, head-web, v26.0.30, random), `review:pools` (103 pools), `review:anchors` (170 real decks), `review:requests` (73,141 jobs), `review:check`, `review:packets`, `review:collate`, `docs/review/rubric.md`, `docs/review/themes.md` (21 styles). In flight when the session's usage limit hit: `theme-rules.json` with its calibration against real decks, the hand-built reference decks, and the build of the new shape and two-color jobs.
+- Next: commit Phase 1 and the groundwork after `npm run check`; build the four prototypes against `theme-rules.json` (develop on plain-01 to plain-10 and the public pools only); run them on the jobs; make judging batches; calibrate the panel on the anchors; collate; write `docs/review/report.md`. `docs/review/log.md` has the step-by-step record.
 
 ## How to start
 
