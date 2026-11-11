@@ -394,28 +394,32 @@ Its weak spot is 20 cards (7 of 12 decent, 1 of 5 themed halves), which Phase 4 
 
 ## What to build next
 
-Every phase ships on two rules. **Decent rate**: a fresh blind panel on held-out pools (new plain seeds, and theme pools on bases no author has seen), with at least 40 judged decks per size and request kind, so a gap of about 20 points means something (a 15-point gap needs about 60), and the same requests given to both versions where possible, so the singles are paired as well as the head-to-head games. **Style mix**: a change that skews best fit toward one style is a regression even if its decent rate or style match rises, counted as decks gained and lost per style on the same pools. Resemblance to real decks is reported as a diagnostic only, never as a gate.
+Every phase ships on two rules. **Decent rate**: a fresh blind panel on held-out pools (new plain seeds, and theme pools on bases no author has seen), with at least 40 judged decks per size and request kind, so a gap of about 20 points means something (a 15-point gap needs about 60), and the same requests given to both versions where possible, so the singles are paired as well as the head-to-head games. **The first option and the rest of the list**: the first deck the user sees must be judged decent at least as often as today's, and the list below it must still offer the other styles the pool can really build. The style mix itself is not a gate (see the owner's third decision below); it is reported so a skew caused by a scoring artifact, rather than by what the bulk genuinely builds best, can still be caught. Resemblance to real decks is reported as a diagnostic only, never as a gate.
 
 ### Owner decisions before the first phase
 
-- **Config format**: the theme rules as a new config file, with regular expressions over oracle text, and where B's precomputed bulk baseline lives.
-- **A requested style that is not viable**: hide it from the Build page, show it with what it lacks, or build the best fit in its place, as the iOS Build button does today.
-- **The plan picker's lean**: how often a plain shape should win best fit on plain bulk, and how clearly a theme must beat the plain deck the same pool makes.
-- **Build time on a phone**: the budget for one deck and for the Build page's whole option list.
+Asked after the report; answered by the owner on 2026-11-11.
+
+- **Config format**: the theme rules as a new config file, with regular expressions over oracle text, and where B's precomputed bulk baseline lives. **Decided: yes, a new config file.**
+- **A requested style that is not viable**: hide it from the Build page, show it with what it lacks, or build the best fit in its place, as the iOS Build button does today. **Decided: show a note that says why the request cannot be built, then show something that can be built, as similar to the request as possible.**
+- **The plan picker's lean**: how often a plain shape should win best fit on plain bulk, and how clearly a theme must beat the plain deck the same pool makes. **Decided: best fit means the best deck, with no target mix. Aggro and Midrange being common from bulk is fine. The other options must stay a scroll away for anyone who wants something more unusual.**
+- **Build time on a phone**: the budget for one deck and for the Build page's whole option list. **Decided: speed is not a goal in itself; it only needs to stay well short of minutes, since a build that slow would point to a bad algorithm.**
 
 ### Phase 1: B for requested styles at 60, 100, and 40
 
 Port `algos/b/` (`b-grow`) into `packages/core` as the builder for requested themed styles and the three shapes at 60, 100, and 40, with the theme rules in `config/` and a loader in the core (no Node), the bulk baseline computed by the pipeline, and the Build page's style list from B's honest viability. First fix the rule findings: Sphinx's Tutelage as Graveyard setup, and opponent mill (Ruin Crab) entering a self-mill deck. Keep `head`'s best fit at 60 and 100 for now (decent 15 times in 16), and keep `head` at 20 until Phase 4. At 40 the gain should be largest: `head` was decent 3 times in 11.
 
-- **Ship rule**: B's themed decent rate on held-out pools above `head`'s by more than the noise at each size; under the owner's rule for a non-viable style, the rate over all requests not below `head`'s; and judges also asked whether each themed deck is a decent deck of its named style. Report which styles drop out of the lists (`b-grow` declines Energy in 432 of 460 requests, Goad in 116 of 118, Group hug in 298 of 300; `main.md`).
-- **Needs from the owner**: the config format, the non-viable semantics, the phone budget.
+When a requested style is not viable, the app shows a note that says what the pool lacks (for example, "no repeatable way to fill the graveyard") and then builds the nearest thing it can: the closest viable style when one shares the theme's resource, else the best fit. The deck is labelled for what it is, never for the style that was asked.
+
+- **Ship rule**: B's themed decent rate on held-out pools above `head`'s by more than the noise at each size; with the note-and-nearest rule, the rate over all requests not below `head`'s; and judges also asked whether each themed deck is a decent deck of its named style. Report which styles drop out of the lists (`b-grow` declines Energy in 432 of 460 requests, Goad in 116 of 118, Group hug in 298 of 300; `main.md`).
+- **Needs from the owner**: nothing further; the config format, the non-viable behaviour, and the time budget are decided above.
 
 ### Phase 2: one plan picker
 
-Today three pickers disagree. At 60 and 100 the core's best fit was decent 15 of 16 times and the web's first option 9 of 16, and on six public pools the core's best fit was never the web's first option. The web leans to Midrange (36% of development best fits at 60) and Aggro; B leans to Control (15 of 50) and never picks Aggro at 60; A' leans to shapes at 60 and Ramp at 100. The five same-request pairs at 60 and 100 went 4 to 1 to the web's option, against the singles, so this needs its own test. At 40 the best fit and the web's first option both rest on the hand-rule deck score (decent 3 of 5 and 2 of 5). Build one ranking for best fit, the web's first option, and the Analyze pane at every size; fix B's quality measure so cheap creatures are not penalized; ask a theme to beat the plain deck by a clear margin rather than by richness noise.
+Today three pickers disagree. At 60 and 100 the core's best fit was decent 15 of 16 times and the web's first option 9 of 16, and on six public pools the core's best fit was never the web's first option. The web leans to Midrange (36% of development best fits at 60) and Aggro; B leans to Control (15 of 50) and never picks Aggro at 60; A' leans to shapes at 60 and Ramp at 100. The five same-request pairs at 60 and 100 went 4 to 1 to the web's option, against the singles, so this needs its own test. At 40 the best fit and the web's first option both rest on the hand-rule deck score (decent 3 of 5 and 2 of 5). Build one ranking for best fit, the web's first option, and the Analyze pane at every size, with one rule: the deck the panel would score highest comes first, whatever its style. Fix B's quality measure so cheap creatures are not penalized (otherwise Aggro never wins, which would be a scoring artifact, not a fact about the bulk); ask a theme to beat the plain deck by a clear margin rather than by richness noise, so the first option is the better deck and not the more unusual one. Keep every other viable style in the list below the first option, so a user who wants something more unusual can scroll to it.
 
-- **Ship rule**: best-fit decent rate on held-out pools not below `head`'s best fit by more than the noise at each size, and the style-mix rule against today's mix on the same pools.
-- **Needs from the owner**: the lean.
+- **Ship rule**: first-option decent rate on held-out pools not below `head`'s best fit by more than the noise at each size, and the other viable styles still present in the list. The style mix is reported, not gated.
+- **Needs from the owner**: nothing further; the lean is decided above (best fit means the best deck).
 
 ### Phase 3: matcher cleanup for the scan and the Analyze pane
 

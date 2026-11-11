@@ -98,6 +98,13 @@ Every style counts setup and payoff this way, so expect the same problem in othe
 
 The owner approved the following for this review. They cover the "stop and ask" items in `CLAUDE.md` for this work.
 
+Decisions the owner made on 2026-11-11, after reading the report, for the builder work that follows:
+
+- The theme rules may become a new config file (one that reads card text with patterns, not only tags).
+- A requested style the pool cannot support gets a note that says why, and then the nearest thing the app can build.
+- Best fit means the best deck. There is no target mix of styles; Aggro and Midrange being common from bulk is fine, and the other buildable styles stay in the list below for anyone who wants something more unusual.
+- Build speed is not a goal in itself. It only needs to stay well short of minutes; a build that slow would mean a bad algorithm.
+
 - **Multi-agent orchestration.** The Fable session coordinates and Opus agents do the work: research, implementation, review, and judging. Use the Agent tool with `model: "opus"` for every agent, the Workflow tool for large fan-outs, and `isolation: "worktree"` for agents that write code in parallel. Heavy use is expected. If a workflow size setting caps a fan-out, run it in batches.
 - **Web research** into how other deck builders and draft bots work: papers, documentation, and open-source code read for ideas. Never copy code from another project into this MIT repo; reimplement ideas and credit them in the report. Check and record each project's license.
 - **New tooling and prototypes** under `packages/pipeline/src/review/`, with `npm run review:*` scripts, and gitignored output in `data/review/` (add it to `.gitignore`). Reports go in `docs/review/` and are committed. Prototypes may import from `@bulk-brew/core` but must not change it.
