@@ -454,7 +454,7 @@
           "weight": 2,
           "anyTags": ["repeatable-loot", "repeatable-rummage"],
           "notTypes": ["instant", "sorcery"],
-          "notText": "\\bwhenever [^.\\n]*(attacks|deals combat damage|becomes tapped)[^.\\n]*?(draw|discard)|(?<![\\s\\S])(?![\\s\\S]*^(?![^:\\n]*(\\{([4-9]|[1-9]\\d)\\}|\\{3\\}[^:\\n]*\\{[wubrg](/[wubrgp])?\\}|\\{[wubrg](/[wubrgp])?\\}[^:\\n]*\\{3\\})[^:\\n]*:)[^\\n]*\\b(draw[^\\n]*\\bdiscard|discard[^\\n]*\\bdraw))(?=[\\s\\S]*^(?=[^:\\n]*(\\{([4-9]|[1-9]\\d)\\}|\\{3\\}[^:\\n]*\\{[wubrg](/[wubrgp])?\\}|\\{[wubrg](/[wubrgp])?\\}[^:\\n]*\\{3\\})[^:\\n]*:)[^\\n]*\\b(draw|discard))",
+          "notText": "\\bwhenever [^.\\n]*(attacks|deals combat damage|becomes tapped)[^.\\n]*?(draw|discard)|(?<![\\s\\S])(?![\\s\\S]*^(?![^:\\n]*(\\{([4-9]|[1-9]\\d)\\}|\\{3\\}[^:\\n]*\\{[wubrgcs](/[wubrgp])?\\}|\\{[wubrgcs](/[wubrgp])?\\}[^:\\n]*\\{3\\}|\\{2\\}([^:\\n]*\\{[wubrgcs](/[wubrgp])?\\}){2}|\\{1\\}([^:\\n]*\\{[wubrgcs](/[wubrgp])?\\}){3}|(\\{[wubrgcs](/[wubrgp])?\\}[^:\\n]*){3}\\{[wubrgcs](/[wubrgp])?\\})[^:\\n]*:)[^\\n]*\\b(draw[^\\n]*\\bdiscard|discard[^\\n]*\\bdraw))(?=[\\s\\S]*^(?=[^:\\n]*(\\{([4-9]|[1-9]\\d)\\}|\\{3\\}[^:\\n]*\\{[wubrgcs](/[wubrgp])?\\}|\\{[wubrgcs](/[wubrgp])?\\}[^:\\n]*\\{3\\}|\\{2\\}([^:\\n]*\\{[wubrgcs](/[wubrgp])?\\}){2}|\\{1\\}([^:\\n]*\\{[wubrgcs](/[wubrgp])?\\}){3}|(\\{[wubrgcs](/[wubrgp])?\\}[^:\\n]*){3}\\{[wubrgcs](/[wubrgp])?\\})[^:\\n]*:)[^\\n]*\\b(draw|discard))",
           "repeatable": true,
           "priority": 1
         },
@@ -464,7 +464,7 @@
           "anyTags": ["repeatable-loot", "repeatable-rummage"],
           "notTypes": ["instant", "sorcery"],
           "text": "\\bwhenever [^.\\n]*(attacks|deals combat damage|becomes tapped)[^.\\n]*?(draw|discard)",
-          "notText": "(?<![\\s\\S])(?![\\s\\S]*^(?![^:\\n]*(\\{([4-9]|[1-9]\\d)\\}|\\{3\\}[^:\\n]*\\{[wubrg](/[wubrgp])?\\}|\\{[wubrg](/[wubrgp])?\\}[^:\\n]*\\{3\\})[^:\\n]*:)[^\\n]*\\b(draw[^\\n]*\\bdiscard|discard[^\\n]*\\bdraw))(?=[\\s\\S]*^(?=[^:\\n]*(\\{([4-9]|[1-9]\\d)\\}|\\{3\\}[^:\\n]*\\{[wubrg](/[wubrgp])?\\}|\\{[wubrg](/[wubrgp])?\\}[^:\\n]*\\{3\\})[^:\\n]*:)[^\\n]*\\b(draw|discard))",
+          "notText": "(?<![\\s\\S])(?![\\s\\S]*^(?![^:\\n]*(\\{([4-9]|[1-9]\\d)\\}|\\{3\\}[^:\\n]*\\{[wubrgcs](/[wubrgp])?\\}|\\{[wubrgcs](/[wubrgp])?\\}[^:\\n]*\\{3\\}|\\{2\\}([^:\\n]*\\{[wubrgcs](/[wubrgp])?\\}){2}|\\{1\\}([^:\\n]*\\{[wubrgcs](/[wubrgp])?\\}){3}|(\\{[wubrgcs](/[wubrgp])?\\}[^:\\n]*){3}\\{[wubrgcs](/[wubrgp])?\\})[^:\\n]*:)[^\\n]*\\b(draw[^\\n]*\\bdiscard|discard[^\\n]*\\bdraw))(?=[\\s\\S]*^(?=[^:\\n]*(\\{([4-9]|[1-9]\\d)\\}|\\{3\\}[^:\\n]*\\{[wubrgcs](/[wubrgp])?\\}|\\{[wubrgcs](/[wubrgp])?\\}[^:\\n]*\\{3\\}|\\{2\\}([^:\\n]*\\{[wubrgcs](/[wubrgp])?\\}){2}|\\{1\\}([^:\\n]*\\{[wubrgcs](/[wubrgp])?\\}){3}|(\\{[wubrgcs](/[wubrgp])?\\}[^:\\n]*){3}\\{[wubrgcs](/[wubrgp])?\\})[^:\\n]*:)[^\\n]*\\b(draw|discard))",
           "repeatable": true,
           "priority": 1
         },

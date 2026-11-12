@@ -1,6 +1,14 @@
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { CardIndex, COLOR_CLASSES, type CardRecord, type DataPack } from '@bulk-brew/core';
+import {
+  CardIndex,
+  COLOR_CLASSES,
+  parsePack,
+  type CardRecord,
+  type DataPack,
+} from '@bulk-brew/core';
+import { PACK_FILE } from '../src/build.ts';
 import { loadConfigDir } from '../src/check-config.ts';
 import { ROOT } from '../src/corpus.ts';
 import { rulesDefs, withBulkBaseline } from '../src/review/algos/b/defs.ts';
@@ -39,9 +47,20 @@ const looter = {
 const CARDS: CardRecord[] = [
   card({ name: 'Blue Looter', ...looter }),
   card({ name: 'Blue Looter Two', ...looter, rarity: 'uncommon' }),
+  // A plain card in the mean, so leaving the next two out shows in it.
+  card({ name: 'Blue Bear' }),
   card({ name: 'Rare Looter', ...looter, rarity: 'rare' }),
   card({ name: 'Joke Looter', ...looter, unset: true }),
   card({ name: 'Red Looter', ...looter, colors: ['R'], identity: ['R'] }),
+  // Goad setup weighs 1 at 60 and 2 at 100, so it shows the size the rules were read at.
+  card({
+    name: 'Goad Aura',
+    colors: ['R'],
+    identity: ['R'],
+    types: ['enchantment'],
+    typeLine: 'Enchantment — Aura',
+    text: 'Enchant creature\nEnchanted creature gets +2/+0 and is goaded.',
+  }),
   card({ name: 'Gold Looter', ...looter, colors: ['U', 'R'], identity: ['U', 'R'] }),
   card({
     name: 'Token Maker',
@@ -100,10 +119,21 @@ describe('the bulk baseline', () => {
         for (const [key, v] of Object.entries(per[k]))
           expect(got[key], `${style} ${k} ${key}`).toBeCloseTo(v, 6);
       }
-    // Both blue bulk cards loot; the rare and the Un-set card stay out.
-    expect(bulk.styles.graveyard!.U).toMatchObject({ setupWeight: 2, repeatable: 1 });
-    expect(bulk.styles.graveyard!.M.repeatable).toBe(1);
-    expect(bulk.styles.graveyard!.B.payoffUnits).toBe(1);
+  });
+
+  // Pinned on their own too, so a change to both computations still shows.
+  it('reads commons and uncommons, nonlands and modal land cards, at 60, per color class', () => {
+    const at = (style: string, k: (typeof COLOR_CLASSES)[number]) => bulk.styles[style]![k];
+    // Two looters and a bear: the rare and the Un-set looters would raise the mean.
+    expect(at('graveyard', 'U').setupWeight).toBeCloseTo(4 / 3, 6);
+    expect(at('graveyard', 'U').repeatable).toBeCloseTo(2 / 3, 6);
+    expect(at('graveyard', 'M').repeatable).toBe(1);
+    expect(at('graveyard', 'B').payoffUnits).toBe(1);
+    // Goad Aura weighs 1 at 60 (2 and repeatable at 100), over two red cards.
+    expect(at('goad', 'R')).toMatchObject({ setupWeight: 0.5, repeatable: 0 });
+    // The plain land stays out of the colorless mean; the modal land card is in green's.
+    expect(at('artifacts', 'C').setupUnits).toBe(1);
+    expect(at('spells', 'G').setupUnits).toBe(0.5);
   });
 
   it('records the data and rules it came from, and versions the content', () => {
@@ -118,3 +148,15 @@ describe('the bulk baseline', () => {
     expect(computeThemeBulk({ ...PACK, version: 'next' }, CONFIG).version).not.toBe(bulk.version);
   });
 });
+
+// The version check in validateConfig misses a rules edit made without a version bump.
+const PACK_PATH = path.join(ROOT, 'data', 'packs', PACK_FILE);
+const LOCAL_PACK = existsSync(PACK_PATH) ? parsePack(readFileSync(PACK_PATH, 'utf8')) : undefined;
+describe.skipIf(!LOCAL_PACK || LOCAL_PACK.version !== CONFIG.themeBulk?.dataVersion)(
+  'the shipped baseline',
+  () => {
+    it('is what npm run theme:bulk writes for its pack and the rules', { timeout: 60_000 }, () => {
+      expect(computeThemeBulk(LOCAL_PACK!, CONFIG)).toEqual(CONFIG.themeBulk);
+    });
+  },
+);

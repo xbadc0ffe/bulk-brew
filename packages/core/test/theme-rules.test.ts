@@ -243,6 +243,28 @@ describe('the shipped rules', () => {
       'setup 0.5',
       'setup 2',
     ]);
+    // Four mana in any mix of generic and colored or hybrid pips is dear; X and triggers are not.
+    const loot = 'Draw a card, then discard a card.';
+    const texts = [
+      `{2}{U}{R}: ${loot}`,
+      `{1}{U}{U}{U}: ${loot}`,
+      `{3}{U/R}: ${loot}`,
+      `{1}{U}{U}, {T}: ${loot}`,
+      `{X}{U}, {T}: Draw X cards, then discard X cards.`,
+      '{T}, Discard a card: Draw a card.',
+      'Whenever you cast a noncreature spell, you may draw a card. If you do, discard a card.',
+      `{5}{U}: ${loot}\n{T}: ${loot}`,
+    ];
+    expect(texts.map((text, i) => job(card({ name: `Cost ${i}`, tags, text })))).toEqual([
+      'setup 0.5',
+      'setup 0.5',
+      'setup 0.5',
+      'setup 2',
+      'setup 2',
+      'setup 2',
+      'setup 2',
+      'setup 2',
+    ]);
   });
 
   it('marks the styles whose setup needs their own payoffs, and their kin', () => {
