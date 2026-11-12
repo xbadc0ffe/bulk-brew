@@ -4,6 +4,12 @@
 
 import type { CardType, Color, DeckSize } from './types.ts';
 import { validateLearnedConfig, type LearnedConfig } from './learned.ts';
+import {
+  checkThemeBulk,
+  checkThemeRules,
+  type ThemeBulkConfig,
+  type ThemeRulesFile,
+} from './theme-rules.ts';
 
 /** Facts tags cannot express. Implemented in matchers.ts. */
 export type DerivedPredicate =
@@ -450,12 +456,19 @@ export interface BulkBrewConfig {
   landRules: LandRulesConfig;
   builderWeights: BuilderWeightsConfig;
   cardStrength: CardStrengthConfig;
+  /** Setup and payoff jobs per themed style, read from oracle text, type lines, and tags. */
+  themeRules: ThemeRulesFile;
+  /** Each style's mean tally per bulk card of each color class (config/theme-bulk.json), when bundled. */
+  themeBulk?: ThemeBulkConfig;
   /** Plan profiles and tag data learned from real decks (config/learned/), when bundled. */
   learned?: LearnedConfig;
 }
 
-/** File name in config/ for each bundle key. */
-export const CONFIG_FILES: Record<Exclude<keyof BulkBrewConfig, 'learned'>, string> = {
+/** File name in config/ for each required bundle key. */
+export const CONFIG_FILES: Record<
+  Exclude<keyof BulkBrewConfig, 'learned' | 'themeBulk'>,
+  string
+> = {
   deckTemplates: 'deck-templates.json',
   curveProfiles: 'curve-profiles.json',
   roles: 'roles.json',
@@ -464,7 +477,11 @@ export const CONFIG_FILES: Record<Exclude<keyof BulkBrewConfig, 'learned'>, stri
   landRules: 'land-rules.json',
   builderWeights: 'builder-weights.json',
   cardStrength: 'card-strength.json',
+  themeRules: 'theme-rules.json',
 };
+
+/** The bulk baseline in config/, written by npm run theme:bulk; optional like the learned files. */
+export const THEME_BULK_FILE = 'theme-bulk.json';
 
 /** Files in config/learned/ for each part of the learned config. */
 export const LEARNED_FILES: Record<keyof LearnedConfig, string> = {
@@ -484,6 +501,8 @@ export function configVersion(c: BulkBrewConfig): string {
     `l${c.landRules.version}`,
     `w${c.builderWeights.version}`,
     `k${c.cardStrength.version}`,
+    `h${c.themeRules.version}`,
+    ...(c.themeBulk ? [`q${c.themeBulk.version}`] : []),
     ...learned,
   ].join('.');
 }
@@ -572,6 +591,10 @@ export function collectTagReferences(c: BulkBrewConfig): Set<string> {
     take(s.payoff);
   }
   for (const e of c.cardStrength.effects) take(e.match);
+  for (const s of Object.values(c.themeRules?.styles ?? {}))
+    for (const rule of [...(s.setup ?? []), ...(s.payoff ?? []), ...(s.exclude ?? [])])
+      for (const t of [...(rule.anyTags ?? []), ...(rule.allTags ?? []), ...(rule.notTags ?? [])])
+        out.add(t);
   for (const t of DERIVED_TAGS) out.add(t);
   return out;
 }
@@ -1086,6 +1109,20 @@ export function validateConfig(c: BulkBrewConfig): string[] {
       if (!isNum(e.value)) problems.push(`cardStrength.effects[${i}].value: must be a number`);
       checkMatcher(`cardStrength.effects[${i}].match`, e.match, problems);
     });
+
+  problems.push(...checkThemeRules(c.themeRules).map((p) => `themeRules: ${p}`));
+  const themed = c.archetypes.archetypes.filter((a) => a.kind === 'synergy').map((a) => a.id);
+  const ruled =
+    c.themeRules.styles && typeof c.themeRules.styles === 'object'
+      ? Object.keys(c.themeRules.styles)
+      : [];
+  for (const id of themed)
+    if (!ruled.includes(id)) problems.push(`themeRules: no rules for the themed style "${id}"`);
+  for (const id of ruled)
+    if (!themed.includes(id))
+      problems.push(`themeRules.styles.${id}: not a synergy archetype in archetypes.json`);
+  if (c.themeBulk !== undefined)
+    problems.push(...checkThemeBulk(c.themeBulk, c.themeRules).map((p) => `themeBulk: ${p}`));
 
   if (c.learned) problems.push(...validateLearnedConfig(c.learned, archetypeIds));
 

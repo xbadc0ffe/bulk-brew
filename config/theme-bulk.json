@@ -1,0 +1,925 @@
+{
+  "version": "1w1e1xl",
+  "dataVersion": "2026-11-03",
+  "rulesVersion": "3",
+  "styles": {
+    "aristocrats": {
+      "W": {
+        "setupUnits": 0.060389,
+        "setupWeight": 0.074439,
+        "repeatable": 0.00299,
+        "payoffUnits": 0.004335,
+        "payoffWeight": 0.007623
+      },
+      "U": {
+        "setupUnits": 0.031453,
+        "setupWeight": 0.037961,
+        "repeatable": 0.00124,
+        "payoffUnits": 0.00124,
+        "payoffWeight": 0.002169
+      },
+      "B": {
+        "setupUnits": 0.10404,
+        "setupWeight": 0.14353,
+        "repeatable": 0.030073,
+        "payoffUnits": 0.019593,
+        "payoffWeight": 0.033262
+      },
+      "R": {
+        "setupUnits": 0.053972,
+        "setupWeight": 0.072165,
+        "repeatable": 0.006367,
+        "payoffUnits": 0.004093,
+        "payoffWeight": 0.007126
+      },
+      "G": {
+        "setupUnits": 0.04767,
+        "setupWeight": 0.063305,
+        "repeatable": 0.002452,
+        "payoffUnits": 0.006131,
+        "payoffWeight": 0.008277
+      },
+      "M": {
+        "setupUnits": 0.100306,
+        "setupWeight": 0.142164,
+        "repeatable": 0.014293,
+        "payoffUnits": 0.014038,
+        "payoffWeight": 0.023226
+      },
+      "C": {
+        "setupUnits": 0.05597,
+        "setupWeight": 0.07434,
+        "repeatable": 0.009185,
+        "payoffUnits": 0.003731,
+        "payoffWeight": 0.006602
+      }
+    },
+    "artifacts": {
+      "W": {
+        "setupUnits": 0.049103,
+        "setupWeight": 0.051794,
+        "repeatable": 0.00299,
+        "payoffUnits": 0.008819,
+        "payoffWeight": 0.008819
+      },
+      "U": {
+        "setupUnits": 0.049272,
+        "setupWeight": 0.0533,
+        "repeatable": 0.004029,
+        "payoffUnits": 0.016424,
+        "payoffWeight": 0.016424
+      },
+      "B": {
+        "setupUnits": 0.046097,
+        "setupWeight": 0.051868,
+        "repeatable": 0.00729,
+        "payoffUnits": 0.008961,
+        "payoffWeight": 0.008961
+      },
+      "R": {
+        "setupUnits": 0.053669,
+        "setupWeight": 0.062765,
+        "repeatable": 0.0094,
+        "payoffUnits": 0.014554,
+        "payoffWeight": 0.014554
+      },
+      "G": {
+        "setupUnits": 0.035714,
+        "setupWeight": 0.042152,
+        "repeatable": 0.007051,
+        "payoffUnits": 0.002146,
+        "payoffWeight": 0.002146
+      },
+      "M": {
+        "setupUnits": 0.064446,
+        "setupWeight": 0.077718,
+        "repeatable": 0.014803,
+        "payoffUnits": 0.015569,
+        "payoffWeight": 0.015569
+      },
+      "C": {
+        "setupUnits": 0.82434,
+        "setupWeight": 0.840987,
+        "repeatable": 0.017796,
+        "payoffUnits": 0.016935,
+        "payoffWeight": 0.016935
+      }
+    },
+    "auras": {
+      "W": {
+        "setupUnits": 0.060389,
+        "setupWeight": 0.075037,
+        "repeatable": 0.016741,
+        "payoffUnits": 0.076831,
+        "payoffWeight": 0.081315
+      },
+      "U": {
+        "setupUnits": 0.031608,
+        "setupWeight": 0.037341,
+        "repeatable": 0.007127,
+        "payoffUnits": 0.105826,
+        "payoffWeight": 0.107685
+      },
+      "B": {
+        "setupUnits": 0.029465,
+        "setupWeight": 0.037211,
+        "repeatable": 0.008809,
+        "payoffUnits": 0.067436,
+        "payoffWeight": 0.068348
+      },
+      "R": {
+        "setupUnits": 0.040934,
+        "setupWeight": 0.054275,
+        "repeatable": 0.014251,
+        "payoffUnits": 0.021377,
+        "payoffWeight": 0.024409
+      },
+      "G": {
+        "setupUnits": 0.035561,
+        "setupWeight": 0.043378,
+        "repeatable": 0.00981,
+        "payoffUnits": 0.01073,
+        "payoffWeight": 0.013182
+      },
+      "M": {
+        "setupUnits": 0.024502,
+        "setupWeight": 0.031138,
+        "repeatable": 0.006636,
+        "payoffUnits": 0.079888,
+        "payoffWeight": 0.08244
+      },
+      "C": {
+        "setupUnits": 0.122847,
+        "setupWeight": 0.245121,
+        "repeatable": 0.122273,
+        "payoffUnits": 0.022675,
+        "payoffWeight": 0.022675
+      }
+    },
+    "bigCreatures": {
+      "W": {
+        "setupUnits": 0.005007,
+        "setupWeight": 0.005007,
+        "repeatable": 0.00299,
+        "payoffUnits": 0.021525,
+        "payoffWeight": 0.021525
+      },
+      "U": {
+        "setupUnits": 0.009374,
+        "setupWeight": 0.009374,
+        "repeatable": 0.008057,
+        "payoffUnits": 0.033623,
+        "payoffWeight": 0.033623
+      },
+      "B": {
+        "setupUnits": 0.007214,
+        "setupWeight": 0.007214,
+        "repeatable": 0.003341,
+        "payoffUnits": 0.04192,
+        "payoffWeight": 0.04192
+      },
+      "R": {
+        "setupUnits": 0.016222,
+        "setupWeight": 0.016222,
+        "repeatable": 0.009703,
+        "payoffUnits": 0.060643,
+        "payoffWeight": 0.060643
+      },
+      "G": {
+        "setupUnits": 0.083001,
+        "setupWeight": 0.083001,
+        "repeatable": 0.077866,
+        "payoffUnits": 0.087523,
+        "payoffWeight": 0.087523
+      },
+      "M": {
+        "setupUnits": 0.023864,
+        "setupWeight": 0.023864,
+        "repeatable": 0.020929,
+        "payoffUnits": 0.059342,
+        "payoffWeight": 0.059342
+      },
+      "C": {
+        "setupUnits": 0.148536,
+        "setupWeight": 0.148536,
+        "repeatable": 0.134328,
+        "payoffUnits": 0.051521,
+        "payoffWeight": 0.051521
+      }
+    },
+    "burn": {
+      "W": {
+        "setupUnits": 0.004036,
+        "setupWeight": 0.004634,
+        "repeatable": 0.000598,
+        "payoffUnits": 0.003288,
+        "payoffWeight": 0.003288
+      },
+      "U": {
+        "setupUnits": 0.004803,
+        "setupWeight": 0.008832,
+        "repeatable": 0.004029,
+        "payoffUnits": 0.012395,
+        "payoffWeight": 0.012395
+      },
+      "B": {
+        "setupUnits": 0.022175,
+        "setupWeight": 0.025213,
+        "repeatable": 0.003038,
+        "payoffUnits": 0.000911,
+        "payoffWeight": 0.001519
+      },
+      "R": {
+        "setupUnits": 0.097483,
+        "setupWeight": 0.115979,
+        "repeatable": 0.018496,
+        "payoffUnits": 0.01789,
+        "payoffWeight": 0.021831
+      },
+      "G": {
+        "setupUnits": 0.002606,
+        "setupWeight": 0.003219,
+        "repeatable": 0.000613,
+        "payoffUnits": 0.000613,
+        "payoffWeight": 0.000613
+      },
+      "M": {
+        "setupUnits": 0.030373,
+        "setupWeight": 0.03803,
+        "repeatable": 0.007657,
+        "payoffUnits": 0.018377,
+        "payoffWeight": 0.020419
+      },
+      "C": {
+        "setupUnits": 0.015212,
+        "setupWeight": 0.027268,
+        "repeatable": 0.012055,
+        "payoffUnits": 0.001148,
+        "payoffWeight": 0.001148
+      }
+    },
+    "counters": {
+      "W": {
+        "setupUnits": 0.05994,
+        "setupWeight": 0.072347,
+        "repeatable": 0.036173,
+        "payoffUnits": 0.007175,
+        "payoffWeight": 0.010762
+      },
+      "U": {
+        "setupUnits": 0.028509,
+        "setupWeight": 0.030059,
+        "repeatable": 0.019213,
+        "payoffUnits": 0.004338,
+        "payoffWeight": 0.007127
+      },
+      "B": {
+        "setupUnits": 0.04435,
+        "setupWeight": 0.047691,
+        "repeatable": 0.027947,
+        "payoffUnits": 0.004708,
+        "payoffWeight": 0.006531
+      },
+      "R": {
+        "setupUnits": 0.029715,
+        "setupWeight": 0.031079,
+        "repeatable": 0.019102,
+        "payoffUnits": 0.002426,
+        "payoffWeight": 0.003032
+      },
+      "G": {
+        "setupUnits": 0.098099,
+        "setupWeight": 0.117106,
+        "repeatable": 0.056714,
+        "payoffUnits": 0.015021,
+        "payoffWeight": 0.021766
+      },
+      "M": {
+        "setupUnits": 0.077591,
+        "setupWeight": 0.094181,
+        "repeatable": 0.05513,
+        "payoffUnits": 0.010975,
+        "payoffWeight": 0.01659
+      },
+      "C": {
+        "setupUnits": 0.033582,
+        "setupWeight": 0.038175,
+        "repeatable": 0.017796,
+        "payoffUnits": 0.00287,
+        "payoffWeight": 0.004592
+      }
+    },
+    "enchantments": {
+      "W": {
+        "setupUnits": 0.142601,
+        "setupWeight": 0.143498,
+        "repeatable": 0,
+        "payoffUnits": 0.006577,
+        "payoffWeight": 0.006577
+      },
+      "U": {
+        "setupUnits": 0.134878,
+        "setupWeight": 0.135497,
+        "repeatable": 0,
+        "payoffUnits": 0.003719,
+        "payoffWeight": 0.003719
+      },
+      "B": {
+        "setupUnits": 0.107306,
+        "setupWeight": 0.107609,
+        "repeatable": 0,
+        "payoffUnits": 0.003493,
+        "payoffWeight": 0.003493
+      },
+      "R": {
+        "setupUnits": 0.090813,
+        "setupWeight": 0.091116,
+        "repeatable": 0,
+        "payoffUnits": 0.000606,
+        "payoffWeight": 0.000606
+      },
+      "G": {
+        "setupUnits": 0.102085,
+        "setupWeight": 0.102085,
+        "repeatable": 0,
+        "payoffUnits": 0.003985,
+        "payoffWeight": 0.003985
+      },
+      "M": {
+        "setupUnits": 0.056406,
+        "setupWeight": 0.056406,
+        "repeatable": 0,
+        "payoffUnits": 0.004849,
+        "payoffWeight": 0.004849
+      },
+      "C": {
+        "setupUnits": 0.004592,
+        "setupWeight": 0.004592,
+        "repeatable": 0,
+        "payoffUnits": 0.001148,
+        "payoffWeight": 0.001148
+      }
+    },
+    "energy": {
+      "W": {
+        "setupUnits": 0.000598,
+        "setupWeight": 0.000747,
+        "repeatable": 0,
+        "payoffUnits": 0.002691,
+        "payoffWeight": 0.005082
+      },
+      "U": {
+        "setupUnits": 0.00124,
+        "setupWeight": 0.00124,
+        "repeatable": 0,
+        "payoffUnits": 0.004338,
+        "payoffWeight": 0.008367
+      },
+      "B": {
+        "setupUnits": 0.000304,
+        "setupWeight": 0.000304,
+        "repeatable": 0,
+        "payoffUnits": 0.001215,
+        "payoffWeight": 0.002126
+      },
+      "R": {
+        "setupUnits": 0.000606,
+        "setupWeight": 0.000606,
+        "repeatable": 0,
+        "payoffUnits": 0.003942,
+        "payoffWeight": 0.006974
+      },
+      "G": {
+        "setupUnits": 0.001226,
+        "setupWeight": 0.00138,
+        "repeatable": 0,
+        "payoffUnits": 0.002146,
+        "payoffWeight": 0.004292
+      },
+      "M": {
+        "setupUnits": 0.002042,
+        "setupWeight": 0.002808,
+        "repeatable": 0.00051,
+        "payoffUnits": 0.004084,
+        "payoffWeight": 0.007147
+      },
+      "C": {
+        "setupUnits": 0.00287,
+        "setupWeight": 0.004305,
+        "repeatable": 0.000574,
+        "payoffUnits": 0.001722,
+        "payoffWeight": 0.00287
+      }
+    },
+    "flyers": {
+      "W": {
+        "setupUnits": 0.14858,
+        "setupWeight": 0.256502,
+        "repeatable": 0.14858,
+        "payoffUnits": 0.001794,
+        "payoffWeight": 0.001794
+      },
+      "U": {
+        "setupUnits": 0.221878,
+        "setupWeight": 0.356368,
+        "repeatable": 0.225906,
+        "payoffUnits": 0.002169,
+        "payoffWeight": 0.003409
+      },
+      "B": {
+        "setupUnits": 0.131531,
+        "setupWeight": 0.225395,
+        "repeatable": 0.132442,
+        "payoffUnits": 0,
+        "payoffWeight": 0
+      },
+      "R": {
+        "setupUnits": 0.052153,
+        "setupWeight": 0.087629,
+        "repeatable": 0.054275,
+        "payoffUnits": 0.001516,
+        "payoffWeight": 0.001516
+      },
+      "G": {
+        "setupUnits": 0.020846,
+        "setupWeight": 0.027284,
+        "repeatable": 0.021766,
+        "payoffUnits": 0.000307,
+        "payoffWeight": 0.000307
+      },
+      "M": {
+        "setupUnits": 0.141399,
+        "setupWeight": 0.242471,
+        "repeatable": 0.14242,
+        "payoffUnits": 0.005105,
+        "payoffWeight": 0.006636
+      },
+      "C": {
+        "setupUnits": 0.054822,
+        "setupWeight": 0.086969,
+        "repeatable": 0.055109,
+        "payoffUnits": 0,
+        "payoffWeight": 0
+      }
+    },
+    "goad": {
+      "W": {
+        "setupUnits": 0.000299,
+        "setupWeight": 0.000299,
+        "repeatable": 0,
+        "payoffUnits": 0,
+        "payoffWeight": 0
+      },
+      "U": {
+        "setupUnits": 0.003254,
+        "setupWeight": 0.004803,
+        "repeatable": 0.001549,
+        "payoffUnits": 0.00031,
+        "payoffWeight": 0.00031
+      },
+      "B": {
+        "setupUnits": 0.001671,
+        "setupWeight": 0.002886,
+        "repeatable": 0.001215,
+        "payoffUnits": 0.002126,
+        "payoffWeight": 0.002126
+      },
+      "R": {
+        "setupUnits": 0.006974,
+        "setupWeight": 0.010916,
+        "repeatable": 0.003942,
+        "payoffUnits": 0.000303,
+        "payoffWeight": 0.000303
+      },
+      "G": {
+        "setupUnits": 0.000307,
+        "setupWeight": 0.000307,
+        "repeatable": 0,
+        "payoffUnits": 0,
+        "payoffWeight": 0
+      },
+      "M": {
+        "setupUnits": 0.002552,
+        "setupWeight": 0.003063,
+        "repeatable": 0.00051,
+        "payoffUnits": 0.00051,
+        "payoffWeight": 0.00051
+      },
+      "C": {
+        "setupUnits": 0.003444,
+        "setupWeight": 0.005741,
+        "repeatable": 0.002296,
+        "payoffUnits": 0,
+        "payoffWeight": 0
+      }
+    },
+    "graveyard": {
+      "W": {
+        "setupUnits": 0.018087,
+        "setupWeight": 0.018386,
+        "repeatable": 0.006577,
+        "payoffUnits": 0.03139,
+        "payoffWeight": 0.03139
+      },
+      "U": {
+        "setupUnits": 0.090487,
+        "setupWeight": 0.117756,
+        "repeatable": 0.043694,
+        "payoffUnits": 0.030834,
+        "payoffWeight": 0.030834
+      },
+      "B": {
+        "setupUnits": 0.067132,
+        "setupWeight": 0.070778,
+        "repeatable": 0.024909,
+        "payoffUnits": 0.09432,
+        "payoffWeight": 0.09432
+      },
+      "R": {
+        "setupUnits": 0.042298,
+        "setupWeight": 0.051546,
+        "repeatable": 0.018799,
+        "payoffUnits": 0.029715,
+        "payoffWeight": 0.029715
+      },
+      "G": {
+        "setupUnits": 0.033875,
+        "setupWeight": 0.035714,
+        "repeatable": 0.007664,
+        "payoffUnits": 0.041845,
+        "payoffWeight": 0.041845
+      },
+      "M": {
+        "setupUnits": 0.063042,
+        "setupWeight": 0.07657,
+        "repeatable": 0.028076,
+        "payoffUnits": 0.059214,
+        "payoffWeight": 0.059214
+      },
+      "C": {
+        "setupUnits": 0.037026,
+        "setupWeight": 0.047933,
+        "repeatable": 0.025832,
+        "payoffUnits": 0.013203,
+        "payoffWeight": 0.013203
+      }
+    },
+    "groupHug": {
+      "W": {
+        "setupUnits": 0.00299,
+        "setupWeight": 0.003288,
+        "repeatable": 0.000299,
+        "payoffUnits": 0,
+        "payoffWeight": 0
+      },
+      "U": {
+        "setupUnits": 0.008677,
+        "setupWeight": 0.010536,
+        "repeatable": 0.001859,
+        "payoffUnits": 0.00031,
+        "payoffWeight": 0.00031
+      },
+      "B": {
+        "setupUnits": 0.002126,
+        "setupWeight": 0.002126,
+        "repeatable": 0,
+        "payoffUnits": 0.000608,
+        "payoffWeight": 0.001215
+      },
+      "R": {
+        "setupUnits": 0.002274,
+        "setupWeight": 0.003487,
+        "repeatable": 0.001213,
+        "payoffUnits": 0.00091,
+        "payoffWeight": 0.00091
+      },
+      "G": {
+        "setupUnits": 0.000613,
+        "setupWeight": 0.000613,
+        "repeatable": 0,
+        "payoffUnits": 0.000613,
+        "payoffWeight": 0.00092
+      },
+      "M": {
+        "setupUnits": 0.002297,
+        "setupWeight": 0.003318,
+        "repeatable": 0.001021,
+        "payoffUnits": 0.001531,
+        "payoffWeight": 0.001531
+      },
+      "C": {
+        "setupUnits": 0.004879,
+        "setupWeight": 0.006028,
+        "repeatable": 0.001148,
+        "payoffUnits": 0.001722,
+        "payoffWeight": 0.003444
+      }
+    },
+    "landfall": {
+      "W": {
+        "setupUnits": 0.001794,
+        "setupWeight": 0.001794,
+        "repeatable": 0,
+        "payoffUnits": 0.00284,
+        "payoffWeight": 0.00284
+      },
+      "U": {
+        "setupUnits": 0.001549,
+        "setupWeight": 0.001549,
+        "repeatable": 0,
+        "payoffUnits": 0.002247,
+        "payoffWeight": 0.002247
+      },
+      "B": {
+        "setupUnits": 0.000608,
+        "setupWeight": 0.000608,
+        "repeatable": 0,
+        "payoffUnits": 0.001595,
+        "payoffWeight": 0.001595
+      },
+      "R": {
+        "setupUnits": 0.003184,
+        "setupWeight": 0.003184,
+        "repeatable": 0,
+        "payoffUnits": 0.004851,
+        "payoffWeight": 0.004851
+      },
+      "G": {
+        "setupUnits": 0.047517,
+        "setupWeight": 0.049356,
+        "repeatable": 0.001839,
+        "payoffUnits": 0.009887,
+        "payoffWeight": 0.009887
+      },
+      "M": {
+        "setupUnits": 0.012762,
+        "setupWeight": 0.013272,
+        "repeatable": 0.00051,
+        "payoffUnits": 0.005487,
+        "payoffWeight": 0.005487
+      },
+      "C": {
+        "setupUnits": 0.007463,
+        "setupWeight": 0.008611,
+        "repeatable": 0.001148,
+        "payoffUnits": 0.001148,
+        "payoffWeight": 0.001148
+      }
+    },
+    "lifegain": {
+      "W": {
+        "setupUnits": 0.113602,
+        "setupWeight": 0.172496,
+        "repeatable": 0.068161,
+        "payoffUnits": 0.007474,
+        "payoffWeight": 0.007474
+      },
+      "U": {
+        "setupUnits": 0.002479,
+        "setupWeight": 0.004648,
+        "repeatable": 0.002169,
+        "payoffUnits": 0.000155,
+        "payoffWeight": 0.000155
+      },
+      "B": {
+        "setupUnits": 0.091738,
+        "setupWeight": 0.145808,
+        "repeatable": 0.061665,
+        "payoffUnits": 0.008202,
+        "payoffWeight": 0.008202
+      },
+      "R": {
+        "setupUnits": 0.000152,
+        "setupWeight": 0.000152,
+        "repeatable": 0,
+        "payoffUnits": 0.000152,
+        "payoffWeight": 0.000152
+      },
+      "G": {
+        "setupUnits": 0.062538,
+        "setupWeight": 0.081545,
+        "repeatable": 0.020846,
+        "payoffUnits": 0.003679,
+        "payoffWeight": 0.003679
+      },
+      "M": {
+        "setupUnits": 0.094181,
+        "setupWeight": 0.151863,
+        "repeatable": 0.06585,
+        "payoffUnits": 0.007147,
+        "payoffWeight": 0.007147
+      },
+      "C": {
+        "setupUnits": 0.06659,
+        "setupWeight": 0.107348,
+        "repeatable": 0.040758,
+        "payoffUnits": 0.000574,
+        "payoffWeight": 0.000574
+      }
+    },
+    "mill": {
+      "W": {
+        "setupUnits": 0,
+        "setupWeight": 0,
+        "repeatable": 0,
+        "payoffUnits": 0,
+        "payoffWeight": 0
+      },
+      "U": {
+        "setupUnits": 0.022467,
+        "setupWeight": 0.028974,
+        "repeatable": 0.014255,
+        "payoffUnits": 0.003719,
+        "payoffWeight": 0.003719
+      },
+      "B": {
+        "setupUnits": 0.002126,
+        "setupWeight": 0.002126,
+        "repeatable": 0.000304,
+        "payoffUnits": 0.002734,
+        "payoffWeight": 0.002734
+      },
+      "R": {
+        "setupUnits": 0.000303,
+        "setupWeight": 0.000303,
+        "repeatable": 0,
+        "payoffUnits": 0,
+        "payoffWeight": 0
+      },
+      "G": {
+        "setupUnits": 0.000153,
+        "setupWeight": 0.000153,
+        "repeatable": 0,
+        "payoffUnits": 0.000307,
+        "payoffWeight": 0.000307
+      },
+      "M": {
+        "setupUnits": 0.00536,
+        "setupWeight": 0.00587,
+        "repeatable": 0.001531,
+        "payoffUnits": 0.001531,
+        "payoffWeight": 0.001531
+      },
+      "C": {
+        "setupUnits": 0.010907,
+        "setupWeight": 0.013777,
+        "repeatable": 0.009759,
+        "payoffUnits": 0.000574,
+        "payoffWeight": 0.000574
+      }
+    },
+    "spells": {
+      "W": {
+        "setupUnits": 0.200374,
+        "setupWeight": 0.205082,
+        "repeatable": 0,
+        "payoffUnits": 0.004783,
+        "payoffWeight": 0.004783
+      },
+      "U": {
+        "setupUnits": 0.261233,
+        "setupWeight": 0.273164,
+        "repeatable": 0.00062,
+        "payoffUnits": 0.019833,
+        "payoffWeight": 0.019833
+      },
+      "B": {
+        "setupUnits": 0.230559,
+        "setupWeight": 0.235039,
+        "repeatable": 0,
+        "payoffUnits": 0.001519,
+        "payoffWeight": 0.001519
+      },
+      "R": {
+        "setupUnits": 0.253487,
+        "setupWeight": 0.260537,
+        "repeatable": 0,
+        "payoffUnits": 0.025167,
+        "payoffWeight": 0.025167
+      },
+      "G": {
+        "setupUnits": 0.217505,
+        "setupWeight": 0.222333,
+        "repeatable": 0,
+        "payoffUnits": 0.000613,
+        "payoffWeight": 0.000613
+      },
+      "M": {
+        "setupUnits": 0.167177,
+        "setupWeight": 0.174962,
+        "repeatable": 0.001531,
+        "payoffUnits": 0.027565,
+        "payoffWeight": 0.027565
+      },
+      "C": {
+        "setupUnits": 0.031142,
+        "setupWeight": 0.031429,
+        "repeatable": 0,
+        "payoffUnits": 0.004018,
+        "payoffWeight": 0.004018
+      }
+    },
+    "tappers": {
+      "W": {
+        "setupUnits": 0.039238,
+        "setupWeight": 0.069581,
+        "repeatable": 0.029596,
+        "payoffUnits": 0.00583,
+        "payoffWeight": 0.00583
+      },
+      "U": {
+        "setupUnits": 0.039588,
+        "setupWeight": 0.062674,
+        "repeatable": 0.016734,
+        "payoffUnits": 0.00124,
+        "payoffWeight": 0.00124
+      },
+      "B": {
+        "setupUnits": 0.001063,
+        "setupWeight": 0.001671,
+        "repeatable": 0.000608,
+        "payoffUnits": 0.000608,
+        "payoffWeight": 0.000608
+      },
+      "R": {
+        "setupUnits": 0.00091,
+        "setupWeight": 0.001364,
+        "repeatable": 0.000303,
+        "payoffUnits": 0,
+        "payoffWeight": 0
+      },
+      "G": {
+        "setupUnits": 0.001839,
+        "setupWeight": 0.003372,
+        "repeatable": 0.001533,
+        "payoffUnits": 0,
+        "payoffWeight": 0
+      },
+      "M": {
+        "setupUnits": 0.014038,
+        "setupWeight": 0.021695,
+        "repeatable": 0.006636,
+        "payoffUnits": 0.001787,
+        "payoffWeight": 0.001787
+      },
+      "C": {
+        "setupUnits": 0.014351,
+        "setupWeight": 0.02698,
+        "repeatable": 0.012055,
+        "payoffUnits": 0.000287,
+        "payoffWeight": 0.000287
+      }
+    },
+    "tokens": {
+      "W": {
+        "setupUnits": 0.041256,
+        "setupWeight": 0.052018,
+        "repeatable": 0.010762,
+        "payoffUnits": 0.044694,
+        "payoffWeight": 0.058744
+      },
+      "U": {
+        "setupUnits": 0.014255,
+        "setupWeight": 0.019523,
+        "repeatable": 0.005268,
+        "payoffUnits": 0.004803,
+        "payoffWeight": 0.005733
+      },
+      "B": {
+        "setupUnits": 0.024301,
+        "setupWeight": 0.032807,
+        "repeatable": 0.008505,
+        "payoffUnits": 0.006531,
+        "payoffWeight": 0.00805
+      },
+      "R": {
+        "setupUnits": 0.028199,
+        "setupWeight": 0.038205,
+        "repeatable": 0.010006,
+        "payoffUnits": 0.018193,
+        "payoffWeight": 0.024257
+      },
+      "G": {
+        "setupUnits": 0.030963,
+        "setupWeight": 0.044758,
+        "repeatable": 0.013795,
+        "payoffUnits": 0.022072,
+        "payoffWeight": 0.02943
+      },
+      "M": {
+        "setupUnits": 0.06049,
+        "setupWeight": 0.088055,
+        "repeatable": 0.027565,
+        "payoffUnits": 0.029862,
+        "payoffWeight": 0.039561
+      },
+      "C": {
+        "setupUnits": 0.026406,
+        "setupWeight": 0.036739,
+        "repeatable": 0.010333,
+        "payoffUnits": 0.008037,
+        "payoffWeight": 0.013777
+      }
+    }
+  }
+}

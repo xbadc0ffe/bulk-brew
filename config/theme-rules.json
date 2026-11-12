@@ -1,8 +1,14 @@
 {
-  "version": "2",
+  "version": "3",
   "styles": {
     "tokens": {
       "resource": "creature tokens that stay on the battlefield, counted in bodies",
+      "kin": ["aristocrats"],
+      "lacks": {
+        "setup": "few cards that make creature tokens",
+        "repeatable": "no token engine that keeps making tokens",
+        "payoff": "few cards that reward a wide board"
+      },
       "setup": [
         {
           "job": "token engine",
@@ -137,6 +143,11 @@
     },
     "counters": {
       "resource": "+1/+1 counters and the creatures carrying them",
+      "lacks": {
+        "setup": "few cards that put +1/+1 counters on creatures",
+        "repeatable": "few cards that keep adding +1/+1 counters turn after turn",
+        "payoff": "few cards that reward +1/+1 counters"
+      },
       "setup": [
         {
           "job": "spreader",
@@ -294,6 +305,12 @@
     },
     "aristocrats": {
       "resource": "creature deaths you cause: bodies to sacrifice and outlets to sacrifice them",
+      "kin": ["tokens", "graveyard"],
+      "lacks": {
+        "setup": "few creatures to sacrifice and ways to sacrifice them",
+        "repeatable": "no repeatable way to sacrifice creatures",
+        "payoff": "few cards that reward creatures dying"
+      },
       "setup": [
         {
           "job": "value outlet",
@@ -425,13 +442,19 @@
     },
     "graveyard": {
       "resource": "cards in your own graveyard; for reanimation and undergrowth, creature cards there",
+      "kin": ["aristocrats"],
+      "lacks": {
+        "setupWeight": "few cards that fill your graveyard",
+        "repeatable": "no repeatable way to fill the graveyard",
+        "payoffWeight": "few cards that use a full graveyard"
+      },
       "setup": [
         {
           "job": "looter or rummager on a permanent",
           "weight": 2,
           "anyTags": ["repeatable-loot", "repeatable-rummage"],
           "notTypes": ["instant", "sorcery"],
-          "notText": "\\bwhenever [^.\\n]*(attacks|deals combat damage|becomes tapped)[^.\\n]*?(draw|discard)",
+          "notText": "\\bwhenever [^.\\n]*(attacks|deals combat damage|becomes tapped)[^.\\n]*?(draw|discard)|(?<![\\s\\S])(?![\\s\\S]*^(?![^:\\n]*(\\{([4-9]|[1-9]\\d)\\}|\\{3\\}[^:\\n]*\\{[wubrg](/[wubrgp])?\\}|\\{[wubrg](/[wubrgp])?\\}[^:\\n]*\\{3\\})[^:\\n]*:)[^\\n]*\\b(draw[^\\n]*\\bdiscard|discard[^\\n]*\\bdraw))(?=[\\s\\S]*^(?=[^:\\n]*(\\{([4-9]|[1-9]\\d)\\}|\\{3\\}[^:\\n]*\\{[wubrg](/[wubrgp])?\\}|\\{[wubrg](/[wubrgp])?\\}[^:\\n]*\\{3\\})[^:\\n]*:)[^\\n]*\\b(draw|discard))",
           "repeatable": true,
           "priority": 1
         },
@@ -441,6 +464,7 @@
           "anyTags": ["repeatable-loot", "repeatable-rummage"],
           "notTypes": ["instant", "sorcery"],
           "text": "\\bwhenever [^.\\n]*(attacks|deals combat damage|becomes tapped)[^.\\n]*?(draw|discard)",
+          "notText": "(?<![\\s\\S])(?![\\s\\S]*^(?![^:\\n]*(\\{([4-9]|[1-9]\\d)\\}|\\{3\\}[^:\\n]*\\{[wubrg](/[wubrgp])?\\}|\\{[wubrg](/[wubrgp])?\\}[^:\\n]*\\{3\\})[^:\\n]*:)[^\\n]*\\b(draw[^\\n]*\\bdiscard|discard[^\\n]*\\bdraw))(?=[\\s\\S]*^(?=[^:\\n]*(\\{([4-9]|[1-9]\\d)\\}|\\{3\\}[^:\\n]*\\{[wubrg](/[wubrgp])?\\}|\\{[wubrg](/[wubrgp])?\\}[^:\\n]*\\{3\\})[^:\\n]*:)[^\\n]*\\b(draw|discard))",
           "repeatable": true,
           "priority": 1
         },
@@ -675,6 +699,11 @@
     },
     "spells": {
       "resource": "instant and sorcery casts (any noncreature spell for prowess)",
+      "kin": ["burn"],
+      "lacks": {
+        "setup": "few cheap instants and sorceries",
+        "payoff": "few cards that reward casting instants and sorceries"
+      },
       "setup": [
         {
           "job": "cost reducer for instants and sorceries",
@@ -898,6 +927,11 @@
     },
     "lifegain": {
       "resource": "life-gain events: each source that gains life once is one event",
+      "lacks": {
+        "setup": "few cards that gain life",
+        "repeatable": "few cards that gain life again and again",
+        "payoff": "few cards that reward gaining life"
+      },
       "setup": [
         {
           "job": "lifelink body",
@@ -1149,6 +1183,10 @@
     },
     "artifacts": {
       "resource": "artifacts you control: on the battlefield, entering, cast, or sacrificed",
+      "lacks": {
+        "setup": "few artifacts",
+        "payoff": "few cards that reward playing artifacts"
+      },
       "setup": [
         {
           "job": "repeatable artifact token maker",
@@ -1309,6 +1347,12 @@
     },
     "auras": {
       "resource": "attachments on your creatures",
+      "kin": ["enchantments"],
+      "lacks": {
+        "setup": "few Auras and Equipment to put on creatures",
+        "setupWeight": "few Equipment or Auras that outlast the creature wearing them",
+        "payoff": "few good creatures to carry Auras and Equipment"
+      },
       "setup": [
         {
           "job": "Equipment",
@@ -1477,6 +1521,10 @@
     },
     "flyers": {
       "resource": "evasive power attacking each turn",
+      "lacks": {
+        "setup": "few creatures with flying or other evasion",
+        "setupWeight": "few evasive creatures with real power"
+      },
       "setup": [
         {
           "job": "evasive attacker, power 2 or more",
@@ -1690,6 +1738,12 @@
     },
     "burn": {
       "resource": "damage to the opponent",
+      "kin": ["spells"],
+      "lacks": {
+        "setup": "few spells that can hit the opponent",
+        "setupWeight": "little damage aimed at the opponent",
+        "repeatableOrPayoff": "few cards that deal damage every turn or reward casting spells"
+      },
       "setup": [
         {
           "job": "burn spell that can hit a player",
@@ -1796,6 +1850,11 @@
     },
     "landfall": {
       "resource": "lands entering under your control",
+      "kin": ["bigCreatures"],
+      "lacks": {
+        "setup": "few cards that put extra lands onto the battlefield",
+        "payoff": "few cards that reward lands entering"
+      },
       "setup": [
         {
           "job": "land ramp or extra land drop",
@@ -1899,6 +1958,12 @@
     },
     "mill": {
       "resource": "cards gone from the opponent's library",
+      "setupNeedsPayoff": true,
+      "lacks": {
+        "setup": "few cards that mill the opponent",
+        "repeatable": "no repeatable way to mill the opponent",
+        "payoff": "few cards that reward a milled opponent"
+      },
       "setup": [
         {
           "job": "engine, two or more a turn",
@@ -2021,6 +2086,11 @@
     },
     "enchantments": {
       "resource": "enchantments cast, entering, on the battlefield, and leaving",
+      "kin": ["auras"],
+      "lacks": {
+        "setup": "few enchantments",
+        "payoff": "few cards that reward playing enchantments"
+      },
       "setup": [
         {
           "job": "repeatable enchantment token maker",
@@ -2160,6 +2230,12 @@
     },
     "bigCreatures": {
       "resource": "mana beyond the land count",
+      "kin": ["landfall"],
+      "lacks": {
+        "setup": "few cards that make extra mana",
+        "repeatable": "few lasting sources of extra mana",
+        "payoff": "few big creatures or X spells to spend the mana on"
+      },
       "setup": [
         {
           "job": "lasting mana or land ramp",
@@ -2310,6 +2386,11 @@
     },
     "tappers": {
       "resource": "opposing creatures tapped when it matters",
+      "lacks": {
+        "setup": "few cards that tap opposing creatures",
+        "repeatable": "no repeatable way to tap opposing creatures",
+        "payoff": "few cards that reward tapped opposing creatures"
+      },
       "setup": [
         {
           "job": "taps a creature every turn",
@@ -2417,6 +2498,13 @@
     },
     "groupHug": {
       "resource": "extra cards the opponent draws and cards in the opponent's hand; at 100 also lands and mana given away",
+      "setupNeedsPayoff": true,
+      "lacks": {
+        "setup": "few cards that give the opponent extra cards",
+        "repeatable": "no card that gives extra cards every turn",
+        "payoff": "few cards that punish the opponent for drawing",
+        "payoffWeight": "few cards that punish the opponent again and again"
+      },
       "setup": [
         {
           "job": "repeatable symmetric draw",
@@ -2495,6 +2583,11 @@
     },
     "goad": {
       "resource": "forced attacks by opposing creatures",
+      "lacks": {
+        "setup": "few cards that force opposing creatures to attack",
+        "repeatable": "no lasting way to force opposing creatures to attack",
+        "payoff": "few cards that reward forced attacks"
+      },
       "setup": [
         {
           "job": "lasting forcer (trigger)",
@@ -2602,6 +2695,13 @@
     },
     "energy": {
       "resource": "energy counters on you",
+      "setupNeedsPayoff": true,
+      "lacks": {
+        "setup": "few cards that give you energy",
+        "repeatable": "few cards that give you energy again and again",
+        "payoff": "few cards that spend energy",
+        "payoffWeight": "few cards that spend energy again and again"
+      },
       "setup": [
         {
           "job": "multiplier",

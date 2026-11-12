@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 import {
   CONFIG_FILES,
   LEARNED_FILES,
+  THEME_BULK_FILE,
   cardMatches,
   collectTagReferences,
   configVersion,
@@ -43,6 +44,9 @@ export function loadConfigDir(dir: string): BulkBrewConfig {
     if (existsSync(p)) learned[key] = JSON.parse(readFileSync(p, 'utf8'));
   }
   if (Object.keys(learned).length === Object.keys(LEARNED_FILES).length) bundle.learned = learned;
+  // So is the bulk baseline, written by npm run theme:bulk.
+  const bulk = path.join(dir, THEME_BULK_FILE);
+  if (existsSync(bulk)) bundle.themeBulk = JSON.parse(readFileSync(bulk, 'utf8'));
   return bundle as unknown as BulkBrewConfig;
 }
 

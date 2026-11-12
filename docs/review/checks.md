@@ -2,7 +2,7 @@
 
 `npm run review:check` runs cheap checks on every stored review deck, independent of any judge. They back up the blind panel (`docs/review/rubric.md`); they do not replace it. Each check reuses the core's own rules where the core exports them. Where it cannot, or where the number only stands in for a judgment, the output says so.
 
-Code: `packages/pipeline/src/review/check.ts` (the checks and the command) and `theme-rules.ts` (theme counting). Tests: `packages/pipeline/test/review-check.test.ts`.
+Code: `packages/pipeline/src/review/check.ts` (the checks and the command) and `theme-rules.ts` (reads the rules file; the theme counting is the core's, `packages/core/src/theme-rules.ts`). Tests: `packages/pipeline/test/review-check.test.ts`.
 
 ## Commands
 
@@ -19,7 +19,7 @@ npm run review:check -- --decks data/review/decks/head --rebuild
 | `--out <dir>`    | Where results go. Default `data/review/checks`.                                                                                                                                                         |
 | `--force`        | Recompute every check. Without it, a stored result is reused when the deck file, its `builtAt`, and the stamp (checker, data pack, config, and theme-rules versions) all match.                         |
 | `--rebuild`      | Build each deck once more and compare (see Determinism). Slow at scale; off by default.                                                                                                                 |
-| `--rules <file>` | Theme rules file. Default `packages/pipeline/src/review/theme-rules.json`.                                                                                                                              |
+| `--rules <file>` | Theme rules file. Default `config/theme-rules.json`.                                                                                                                                                    |
 
 The pack, config, and default settings load once per run. About 2 seconds for 200 decks without `--rebuild`. The exit code is 1 when a deck file cannot be read, else 0; flags never change it.
 
@@ -60,7 +60,7 @@ Copies meeting the builder's own roles from `config/roles.json`, through the cor
 
 ### 5. Theme counts (`themes`)
 
-Honest setup and payoff counts from `packages/pipeline/src/review/theme-rules.json`, written from `docs/review/themes.md`. Until that file exists, `themes` is `null` in every result and the summary says so.
+Honest setup and payoff counts from `config/theme-rules.json`, written from `docs/review/themes.md`. Until that file exists, `themes` is `null` in every result and the summary says so.
 
 For the built archetype (`themes.archetype`), and for the requested style when it differs (`themes.requested`), each count holds `setupCopies`, `setupWeighted` (copies times job weight), `payoffCopies`, `payoffWeighted`, `dualResolved` (copies that met both jobs and were counted once), `excludedCopies`, `repeatableSetupCopies`, `ratio` (weighted setup per payoff copy, null without payoffs), and the `setup` and `payoff` cards with their jobs. A style the rules do not describe gives `{ "style": ..., "covered": false }`; plain shapes and tribes are never flagged for lacking a theme. Every card in the deck counts, basics and the commander included.
 
@@ -143,7 +143,7 @@ Each result has a `flags` array the report can count. The thresholds live in one
 | `nondeterministic` | the rebuild differs                                                                                                                    |
 | `slow`             | build time over 1,000 ms at 100, 300 ms at other sizes                                                                                 |
 
-Theme flags read the requested style when the request named one, else the built archetype, and only when the rules describe that style. With minimums for several alternatives, the flags name the side the closest alternative misses (`themes.*.minimums.short`). A style the rules cover without minimums falls back to the old placeholders in `THRESHOLDS`: weighted setup below 5 at 100, 3 at 60, 2 at 40, 1 at 20; payoff copies below 3 at 100, 2 at 60, 1 at 40 and 20; weighted setup per payoff copy below 0.75 or above 4. Every style in rules version 2 has minimums. The rules, their minimums, and how they were checked against real decks: `docs/review/theme-rules.md`.
+Theme flags read the requested style when the request named one, else the built archetype, and only when the rules describe that style. With minimums for several alternatives, the flags name the side the closest alternative misses (`themes.*.minimums.short`). A style the rules cover without minimums falls back to the old placeholders in `THRESHOLDS`: weighted setup below 5 at 100, 3 at 60, 2 at 40, 1 at 20; payoff copies below 3 at 100, 2 at 60, 1 at 40 and 20; weighted setup per payoff copy below 0.75 or above 4. Every style in rules version 3 has minimums. The rules, their minimums, and how they were checked against real decks: `docs/review/theme-rules.md`.
 
 ### How the thresholds were set
 

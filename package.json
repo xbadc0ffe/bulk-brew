@@ -38,6 +38,7 @@
     "edhrec:fetch": "node packages/pipeline/src/edhrec-fetch.ts",
     "spellbook:fetch": "node packages/pipeline/src/spellbook-fetch.ts",
     "learn:build": "node packages/pipeline/src/learn-build.ts",
+    "theme:bulk": "node packages/pipeline/src/theme-bulk.ts",
     "rules:fetch": "node scripts/fetch-comp-rules.mjs",
     "smoke": "node scripts/smoke-web.mjs",
     "review:cards": "node packages/pipeline/src/review/cards.ts",

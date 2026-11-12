@@ -17,6 +17,8 @@ import synergyRules from '../../../../config/synergy-rules.json';
 import landRules from '../../../../config/land-rules.json';
 import builderWeights from '../../../../config/builder-weights.json';
 import cardStrength from '../../../../config/card-strength.json';
+import themeRules from '../../../../config/theme-rules.json';
+import themeBulk from '../../../../config/theme-bulk.json';
 import settingsDefaults from '../../../../config/settings.defaults.json';
 import displayTags from '../../../../config/display-tags.json';
 import learnedPlans from '../../../../config/learned/plans.json';
@@ -31,6 +33,8 @@ export const CONFIG: BulkBrewConfig = {
   landRules,
   builderWeights,
   cardStrength,
+  themeRules,
+  themeBulk,
   learned: { plans: learnedPlans, tags: learnedTags },
 } as unknown as BulkBrewConfig;
 

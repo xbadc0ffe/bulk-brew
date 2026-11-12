@@ -10,6 +10,7 @@ import {
   loadThemeRules,
   matchCard,
   nearestThemeSize,
+  type ThemeLacks,
   type ThemeRulesFile,
   type ThemeStyleRules,
 } from '../src/review/theme-rules.ts';
@@ -44,10 +45,21 @@ function noBody(partial: Partial<CardRecord> & Pick<CardRecord, 'name'>): CardRe
   return c;
 }
 
+/** A phrase for every floor, so a fixture with minimums compiles. */
+const LACKS: ThemeLacks = {
+  setup: 'few s',
+  setupWeight: 'few s',
+  repeatable: 'no r',
+  payoff: 'few p',
+  payoffWeight: 'few p',
+  repeatableOrPayoff: 'few r or p',
+};
+
 function style(s: ThemeStyleRules) {
-  return compileThemeRules({ version: 't', styles: { x: s } } satisfies ThemeRulesFile).styles.get(
-    'x',
-  )!;
+  return compileThemeRules({
+    version: 't',
+    styles: { x: { lacks: LACKS, ...s } },
+  } satisfies ThemeRulesFile).styles.get('x')!;
 }
 
 describe('theme rule conditions', () => {
@@ -255,5 +267,22 @@ describe('the theme rules file', () => {
       'payoff',
       'payoff',
     ]);
+  });
+
+  it.skipIf(!HAS_PACK)('reads an expensive loot as a one-off and opponent mill as Mill', () => {
+    const ctx = loadReviewContext();
+    const job = (style: string, name: string) => {
+      const m = matchCard(findCard(ctx.index, name)!, rules!.styles.get(style)!, 60);
+      return !m || m.as === 'excluded' ? 'neither' : `${m.as} ${m.weight}`;
+    };
+    // Its loot costs six mana; its draw trigger mills the opponent.
+    expect(job('graveyard', "Sphinx's Tutelage")).toBe('setup 0.5');
+    for (const name of ['Merfolk Looter', 'Rummaging Goblin', 'Thought Courier', 'Looter il-Kor'])
+      expect(job('graveyard', name), name).toBe('setup 2');
+    // A cheap loot line keeps a card with a dear draw line a looter.
+    expect(job('graveyard', 'Qiqirn Merchant')).toBe('setup 2');
+    expect(job('graveyard', 'Ruin Crab')).toBe('neither');
+    expect(job('mill', 'Ruin Crab')).toBe('setup 2');
+    expect(rules!.styles.get('mill')!.setupNeedsPayoff).toBe(true);
   });
 });

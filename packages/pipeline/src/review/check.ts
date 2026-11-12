@@ -266,7 +266,7 @@ export interface DeckCheck extends CheckBase {
   mana: ManaResult;
   curve: CurveResult;
   interaction: InteractionResult;
-  /** null when packages/pipeline/src/review/theme-rules.json does not exist. */
+  /** null when config/theme-rules.json does not exist. */
   themes: ThemeSection | null;
   dead: DeadResult;
   timing: TimingResult;
@@ -1145,7 +1145,7 @@ const USAGE = `usage:
   --out      Where results go (default data/review/checks).
   --force    Recompute every check, even one stored for the same deck and versions.
   --rebuild  Build each deck once more through the runner and compare (slow; skips real decks).
-  --rules    Theme rules file (default packages/pipeline/src/review/theme-rules.json).`;
+  --rules    Theme rules file (default config/theme-rules.json).`;
 
 /** Values after --decks up to the next flag, so a shell-expanded glob works too. */
 function deckSpecs(): string[] {
@@ -1185,9 +1185,7 @@ async function main(): Promise<number> {
   const rebuild = flag('rebuild');
   const rulesArg = arg('rules');
   const rulesFile = rulesArg ? path.resolve(ROOT, rulesArg) : DEFAULT_THEME_RULES_FILE;
-  const rulesName = rulesArg
-    ? rel(rulesFile as string)
-    : 'packages/pipeline/src/review/theme-rules.json';
+  const rulesName = rulesArg ? rel(rulesFile as string) : 'config/theme-rules.json';
 
   // The runner's builds need learned data attached; the checks themselves do not read it.
   const review = loadReviewContext({ learned: rebuild });

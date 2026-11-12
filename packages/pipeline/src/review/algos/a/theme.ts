@@ -293,7 +293,7 @@ export function loadRulesOrExample(): LoadedRules {
       example: false,
     };
   console.warn(
-    "WARNING: packages/pipeline/src/review/theme-rules.json is missing; A' uses EXAMPLE_THEME_RULES (Graveyard only). Other styles build with the current matchers.",
+    "WARNING: config/theme-rules.json is missing; A' uses EXAMPLE_THEME_RULES (Graveyard only). Other styles build with the current matchers.",
   );
   return {
     rules: compileThemeRules(EXAMPLE_THEME_RULES, 'EXAMPLE_THEME_RULES'),
