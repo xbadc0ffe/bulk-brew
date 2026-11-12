@@ -204,7 +204,7 @@ The `v26.0.30` version runs the 26.0.30 core and `config/` from a git worktree, 
 
 ## The 26.0.35 worktree
 
-The `v26.0.35` version, "Builder at 26.0.35 (before phase 1)", runs the core and `config/` of commit `e8b05fa` ("Add the brief for builder phase 1") from a git worktree, on the current data pack and `data/learned.json`. It keeps today's builder as a fixed baseline while phase 1 changes `packages/core` and `config/`. Code: `algos/v26-0-35.ts`.
+The `v26.0.35` version, "Builder at 26.0.35 (before phase 1)", runs the core and `config/` of commit `e8b05fa` ("Add the brief for builder phase 1") from a git worktree, with that commit's `data/learned.json`, on the current data pack. It keeps today's builder as a fixed baseline while phase 1 changes `packages/core` and `config/`. Code: `algos/v26-0-35.ts`.
 
 - The worktree's path comes from `REVIEW_WORKTREE_26_0_35`. The default is `../bulk-brew-26.0.35`, next to the repo.
 - Create it from the repo root with:
@@ -216,11 +216,11 @@ The `v26.0.35` version, "Builder at 26.0.35 (before phase 1)", runs the core and
   The core there has no dependencies, so the worktree needs no `npm install`.
 
 - It works like the 26.0.30 adapter (above), with two differences:
-  - that `config/` has `config/learned/plans.json` and `tags.json`, which load into the bundle's `learned` key the way that core's `loadConfigDir` reads its `LEARNED_FILES`: only when every file is there;
-  - that core reads card-level learned data from `index.learned`, so the adapter builds its own `CardIndex` from the pack and attaches the old core's `LearnedCards` made from the same `data/learned.json` (the file's shape is unchanged).
+  - that `config/` has `config/learned/plans.json` and `tags.json`, which load into the bundle's `learned` key the way that core's `loadConfigDir` reads its `LEARNED_FILES`; that loader skips them unless every file is there, and the commit has them all, so the adapter stops with an error when one is missing rather than build without them;
+  - that core reads card-level learned data from `index.learned`, so the adapter builds its own `CardIndex` from the pack and attaches the worktree's `data/learned.json`, read by that core's `parseLearnedData` as its `attachLearned` does. A later `learn:build` in the repo cannot move the baseline, and a file the old core cannot read stops the run.
 - Each deck's notes give the config version and the learned data version, as `head`'s do.
 
-Checked on 2026-11-11, while `head` was still the same code: `bulk-blue` U 60 Graveyard, and `elf-tribe` at 100 under Lathril as best fit and as `tribal:Elf`, each built with `--twice` (identical on rebuild) and gave the same name, archetype, colors, commander, cards, basics, and explanation as `head`. Without the card-level learned data, the Lathril best fit came out with other cards, so the attach matters.
+Checked on 2026-11-11, while `head` was still the same code: `bulk-blue` U 60 Graveyard, and `elf-tribe` at 100 under Lathril as best fit and as `tribal:Elf`, each built with `--twice` (identical on rebuild) and gave the same name, archetype, colors, commander, cards, basics, and explanation as `head`. Without the card-level learned data, the Lathril best fit came out with other cards, so the attach matters. A second check after the adapter read the worktree's own learned file: `plain-15` at 100 as best fit under Red XIII (RG) and under Rith (WRG), `theme-aristocrats-01` W 40 Tokens, `plain-01` WU 60 Tokens, and `theme-graveyard-02` U 60 Graveyard gave the same deck and explanation as `head`; four of the five change when `head` builds them without card-level learned data.
 
 ## Build times
 

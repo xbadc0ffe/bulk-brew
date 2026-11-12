@@ -23,7 +23,7 @@ import {
 } from '@bulk-brew/core';
 import { arg, flag, ROOT } from '../corpus.ts';
 import { createContext, deckFileName, loadPool, type ReviewJob } from './build.ts';
-import type { ColorCounts, IndexEntry, PoolKind } from './pools.ts';
+import { seedPrefixProblem, type ColorCounts, type IndexEntry, type PoolKind } from './pools.ts';
 import type { ReviewSize } from './version.ts';
 import { listVersions } from './versions.ts';
 
@@ -328,8 +328,9 @@ function main(): number {
   const force = flag('force');
   const twoColor = !flag('no-two-color');
   const prefix = arg('prefix');
-  if (prefix !== undefined && !/^[A-Za-z0-9]+$/.test(prefix)) {
-    console.error(`--prefix takes a seed prefix of letters and digits; got ${prefix}`);
+  const prefixProblem = prefix === undefined ? undefined : seedPrefixProblem(prefix);
+  if (prefixProblem) {
+    console.error(`--prefix ${prefixProblem}`);
     return 2;
   }
   if (kinds.some((k) => !KIND_ORDER.includes(k))) {

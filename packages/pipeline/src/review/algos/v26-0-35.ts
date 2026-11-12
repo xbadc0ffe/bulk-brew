@@ -11,7 +11,6 @@ import {
   normalizeColors,
   type Color,
   type DataPack,
-  type LearnedDataFile,
   type Pool,
   type Settings,
 } from '@bulk-brew/core';
@@ -57,7 +56,7 @@ interface OldCore {
   CONFIG_FILES: Record<string, string>;
   LEARNED_FILES: Record<string, string>;
   CardIndex: new (pack: DataPack) => { learned?: object };
-  LearnedCards: new (file: LearnedDataFile) => object;
+  parseLearnedData(json: string): { data?: { version: string }; problems: string[] };
   BuildError: abstract new (...args: never[]) => Error;
   buildDeck(request: OldBuildRequest, pool: Pool, index: object, config: object): OldBuildResult;
   validateConfig(config: object): string[];
@@ -69,7 +68,7 @@ interface Loaded {
   config: object;
   settings: Settings;
   index: object;
-  learned?: string;
+  learned: string;
 }
 
 let loaded: Loaded | undefined;
@@ -96,7 +95,9 @@ async function load(ctx: PrepareContext): Promise<Loaded> {
         'the old builder cannot run on this pack.',
     );
   }
-  // Read the old config/ the way its check-config.ts loadConfigDir does: learned files only when all are there.
+  // Read the old config/ the way its check-config.ts loadConfigDir does. That loader skips
+  // config/learned/ unless every file is there; the commit has them all, so a missing one
+  // is an error here rather than a quiet build without them.
   const configDir = path.join(dir, 'config');
   const bundle: Record<string, unknown> = {};
   for (const [key, file] of Object.entries(core.CONFIG_FILES)) {
@@ -105,28 +106,30 @@ async function load(ctx: PrepareContext): Promise<Loaded> {
   const learnedConfig: Record<string, unknown> = {};
   for (const [key, file] of Object.entries(core.LEARNED_FILES)) {
     const p = path.join(configDir, 'learned', file);
-    if (existsSync(p)) learnedConfig[key] = JSON.parse(readFileSync(p, 'utf8'));
+    if (!existsSync(p)) throw new VersionLoadError(`the 26.0.35 worktree has no ${p}`);
+    learnedConfig[key] = JSON.parse(readFileSync(p, 'utf8'));
   }
-  if (Object.keys(learnedConfig).length === Object.keys(core.LEARNED_FILES).length)
-    bundle.learned = learnedConfig;
+  bundle.learned = learnedConfig;
   const problems = core.validateConfig(bundle);
   if (problems.length)
     throw new VersionLoadError(`26.0.35 config problems: ${problems.join('; ')}`);
   const settings = JSON.parse(
     readFileSync(path.join(configDir, 'settings.defaults.json'), 'utf8'),
   ) as Settings;
-  // The pack is plain data; the old index reads the same parsed object. Its card-level
-  // learned data must be the old core's own class, built from the same data/learned.json.
+  // The pack is plain data; the old index reads the same parsed object. The card-level
+  // learned data is the worktree's own data/learned.json, read by the old core the way
+  // that commit's attachLearned does, so a later learn:build cannot move the baseline.
   const index = new core.CardIndex(pack);
-  const learned = ctx.index.learned;
-  if (learned) index.learned = new core.LearnedCards(learned.file);
-  return {
-    core,
-    config: bundle,
-    settings,
-    index,
-    ...(learned ? { learned: learned.version } : {}),
-  };
+  const learnedFile = path.join(dir, 'data', 'learned.json');
+  if (!existsSync(learnedFile))
+    throw new VersionLoadError(`the 26.0.35 worktree has no data/learned.json at ${learnedFile}`);
+  const parsed = core.parseLearnedData(readFileSync(learnedFile, 'utf8'));
+  if (!parsed.data)
+    throw new VersionLoadError(
+      `the 26.0.35 core cannot read ${learnedFile}: ${parsed.problems.join('; ')}`,
+    );
+  index.learned = parsed.data;
+  return { core, config: bundle, settings, index, learned: parsed.data.version };
 }
 
 function toOldRequest(request: ReviewRequest, settings: Settings): OldBuildRequest {
@@ -166,11 +169,11 @@ function toBuiltDeck(result: OldBuildResult): BuiltDeck {
 const v26_0_35: BuilderVersion = {
   id: 'v26.0.35',
   label: 'Builder at 26.0.35 (before phase 1)',
-  notes: `26.0.35 core and config/ (with config/learned/) from a worktree at ${COMMIT.slice(0, 7)}, current data pack and data/learned.json. Ignores the seed.`,
+  notes: `26.0.35 core and config/ (with config/learned/) from a worktree at ${COMMIT.slice(0, 7)}, its data/learned.json, and the current data pack. Ignores the seed.`,
   async prepare(ctx) {
     loaded ??= await load(ctx);
     const { core, config, learned } = loaded;
-    return `Config ${core.configVersion(config)}${learned ? `, learned data ${learned}` : ''}.`;
+    return `Config ${core.configVersion(config)}, learned data ${learned}.`;
   },
   build(ctx) {
     if (!loaded) throw new Error('v26.0.35: prepare() must run before build()');

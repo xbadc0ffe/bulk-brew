@@ -103,6 +103,18 @@ export const themeSeed = (style: string, n: number): number =>
 export const SEED_PREFIX = /^[A-Za-z0-9]+$/;
 
 /**
+ * Why a seed prefix cannot be used, or undefined when it can. A pool kind is
+ * refused: unprefixed ids start with one ("plain-01", "public-bulk-blue"), so
+ * picking the set "plain" would also pick the first round's pools.
+ */
+export function seedPrefixProblem(prefix: string): string | undefined {
+  if (!SEED_PREFIX.test(prefix)) return `takes letters and digits only, got "${prefix}"`;
+  if ((KINDS as readonly string[]).includes(prefix.toLowerCase()))
+    return `cannot be a pool kind (${KINDS.join(', ')}), got "${prefix}"`;
+  return undefined;
+}
+
+/**
  * Ids, files, and seed text of plain and theme pools. A seed prefix gives a new
  * set of pools ("h1-plain-01" from "review:h1:plain:1"); without one the names
  * and seeds are the original ones.
@@ -339,8 +351,8 @@ function readOptions(): Options {
   if (only) opts.only = only as PoolKind;
   const prefix = arg('seed-prefix');
   if (prefix !== undefined) {
-    if (!SEED_PREFIX.test(prefix))
-      throw new Error(`--seed-prefix takes letters and digits only, got "${prefix}"`);
+    const problem = seedPrefixProblem(prefix);
+    if (problem) throw new Error(`--seed-prefix ${problem}`);
     if (only === 'public' || only === 'owner')
       throw new Error('--seed-prefix applies to plain and theme pools only');
     opts.prefix = prefix;

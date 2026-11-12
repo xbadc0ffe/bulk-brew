@@ -21,10 +21,12 @@ import {
   findDeckFiles,
   makeBatch,
   packetCard,
+  pairStyleShown,
   poolKindOf,
   renderPairPacket,
   renderSinglePacket,
   requestedStyleLine,
+  resolvePlan,
   selectDecks,
   shuffled,
   styleTexts,
@@ -420,12 +422,36 @@ describe('makeBatch', () => {
       'decks/head/b.json': null,
       'decks/head/e.json': 'tribal:Elf',
     });
-    // Pairs from different requests show none, and an unknown style shows as its id.
+    // Either deck shown as A, a same-request pair shows the request, never what either deck built.
+    for (const [x, y] of [
+      [asked, other],
+      [other, asked],
+    ] as const) {
+      const text = renderPairPacket('pair-0001', x.deck, y.deck, INDEX, undefined, {
+        match: 'same-request',
+        styles: STYLES,
+      });
+      expect(text).toContain(
+        '- Colors: Black (B)\n- Requested style: Graveyard. Fill the graveyard, then get paid for it.\n',
+      );
+      expect(text).not.toMatch(/tokens|Party|Grave Plan/i);
+    }
+    // Pairs that may answer different requests show no style line, not a false "none".
     const pair = renderPairPacket('pair-0001', asked.deck, other.deck, INDEX, undefined, {
       match: 'same-pool',
       styles: STYLES,
     });
-    expect(pair).toContain('- Colors: Black (B)\n- Requested style: none (the builder picked)\n');
+    expect(pair).toContain('- Colors: Black (B)\n\n');
+    expect(pair).not.toContain('Requested style');
+    expect(pairStyleShown('same-pool', asked.deck)).toBeUndefined();
+    // A same-request best fit pair says the builder picked.
+    expect(pairStyleShown('same-request', free.deck)).toBeNull();
+    expect(
+      renderPairPacket('pair-0001', free.deck, free.deck, INDEX, undefined, {
+        match: 'same-request',
+        styles: STYLES,
+      }),
+    ).toContain('- Colors: Black (B)\n- Requested style: none (the builder picked)\n\n');
     expect(requestedStyleLine('energy', STYLES)).toBe('- Requested style: energy.');
     expect(requestedStyleLine(undefined)).toBe('- Requested style: none (the builder picked)');
   });
@@ -613,17 +639,24 @@ describe('plan sampling', () => {
       r.selected
         .filter((s) => s.deck.version === version)
         .map((s) => `${s.deck.pool.id} ${s.deck.request.style ?? 'bestfit'}`);
-    // Two of three head decks, then new decks for those two requests plus one more.
+    // Every h1 head deck, then the new decks for those requests. The new Graveyard deck on
+    // h1-plain-02 built Tokens, so it cannot pair; the top-up draws only from h1 pools,
+    // since the entry takes entry 1's pool prefix.
     const r = pick([
-      { version: 'head', poolPrefix: 'h1-', count: 2 },
-      { version: 'new', sameAs: 1, count: 3 },
+      { version: 'head', poolPrefix: 'h1-', count: 3 },
+      { version: 'new', sameAs: 1, count: 9 },
     ]);
-    const head = pools(r, 'head');
-    expect(head).toHaveLength(2);
-    const mine = pools(r, 'new');
-    expect(mine).toHaveLength(3);
-    for (const h of head) expect(mine).toContain(h);
-    expect(r.notes).toContain('plan entry 2 (new): 2 decks on the requests of entry 1');
+    expect(pools(r, 'head')).toHaveLength(3);
+    expect(pools(r, 'new').sort()).toEqual([
+      'h1-plain-01 graveyard',
+      'h1-plain-02 graveyard',
+      'h1-plain-03 bestfit',
+      'h1-plain-04 bestfit',
+    ]);
+    expect(r.scope.map((s) => s.file)).not.toContain('decks/new/plain-01-graveyard-s1.json');
+    expect(r.notes).toContain(
+      'plan entry 2 (new): 2 of 3 requests of entry 1 matched (0 declined, 1 built another style, 0 with no deck left to draw), 2 more drawn at random',
+    );
     // The other filters still apply: the substituted new deck is skipped, and the count caps the matches.
     const kept = pick([
       { version: 'head', poolPrefix: 'h1-', count: 3 },
@@ -653,6 +686,44 @@ describe('plan sampling', () => {
         { version: 'new', sameAs: 2, count: 1 },
       ]),
     ).toThrow(/earlier entry/);
+  });
+
+  it('leaves out requests the paired version declined or built in another style, and says so', () => {
+    const decks = [
+      ...DECKS2,
+      deck('head', 'h1-plain-05', 'graveyard'),
+      stored('decks/new/h1-plain-05-graveyard-s1.json', {
+        version: 'new',
+        poolId: 'h1-plain-05',
+        source: 'data/review/pools/plain/h1-plain-05.json',
+        style: 'graveyard',
+        error: 'no theme',
+      }),
+    ];
+    const plan: PlanEntry[] = [
+      { version: 'head', poolPrefix: 'h1-', styles: ['graveyard'], count: 9 },
+      { version: 'new', sameAs: 1, substituted: false, count: 9 },
+    ];
+    const r = selectDecks(decks, { seed: 1, plan, anchors: 0 });
+    // Entry 2 takes entry 1's prefix and styles: only the kept h1 Graveyard deck is left to draw.
+    expect(r.selected.filter((s) => s.deck.version === 'new').map((s) => s.file)).toEqual([
+      'decks/new/h1-plain-01-graveyard-s1.json',
+    ]);
+    expect(r.notes).toEqual([
+      'plan entry 1 (head): 3 of 9 decks found',
+      'plan entry 2 (new): 1 of 3 requests of entry 1 matched (1 declined, 1 built another style, 0 with no deck left to draw), 0 more drawn at random',
+      'plan entry 2 (new): 1 of 9 decks found',
+    ]);
+    // An explicit field wins over the one it would take.
+    expect(
+      resolvePlan([plan[0]!, { version: 'new', sameAs: 1, styles: ['bestfit'], count: 1 }])[1],
+    ).toEqual({
+      version: 'new',
+      sameAs: 1,
+      poolPrefix: 'h1-',
+      styles: ['bestfit'],
+      count: 1,
+    });
   });
 
   it('finds deck files by a glob whose first wildcard is in a folder name', () => {
@@ -1099,5 +1170,42 @@ describe('collate', () => {
     expect(md).toContain('- Of its style: no. A plain deck with a few graveyard cards.');
     expect(md).toContain('- Of its style: no style shown');
     expect(md).toContain('| head | 4 | 1 (25%) | 1 | 1 (100%) |');
+  });
+
+  it('counts a deck of its style only when it is decent, and keeps judges words on one line', () => {
+    const k: BatchKey = {
+      ...key,
+      batch: 'styled2',
+      packets: {
+        'p-0001': {
+          kind: 'single',
+          ...ref('head', 'g1', 'plain', 'graveyard'),
+          archetype: 'graveyard',
+          styleShown: 'graveyard',
+        },
+      },
+      inventory: [
+        { version: 'head', size: 60, style: 'graveyard', kind: 'plain', built: 1, declined: 0 },
+      ],
+    };
+    const answer = {
+      ...GOOD,
+      score: 2,
+      decent: false,
+      plan: 'Loot and grow.\n## Not a heading',
+      reason: 'It loots.\n| not | a table |',
+      decent_of_style: true,
+      style_reason: 'Graveyard all the way.\n\nReally.',
+    };
+    const d = collate(k, [{ id: 'p-0001', file: 'j/p-0001.json', text: JSON.stringify(answer) }]);
+    expect(d.invalid).toEqual([]);
+    expect(d.warnings[0]!.problems).toContain(
+      '"decent_of_style" true for a deck that is not decent',
+    );
+    expect(d.bySize[0]).toMatchObject({ styleJudged: 1, decentOfStyle: 0, decentOfStyleRate: 0 });
+    const md = renderCollation(d);
+    expect(md).toContain('- Plan: Loot and grow. ## Not a heading\n');
+    expect(md).toContain('- Reason: It loots. | not | a table |\n');
+    expect(md).toContain('- Of its style: yes. Graveyard all the way. Really.\n');
   });
 });
