@@ -1,6 +1,6 @@
 # Judging rubric: decent bulk decks
 
-Each packet holds one deck, or two labeled A and B for a pair: size, colors, the requested style, commander if any, and every card with its copies, cost, type line, power and toughness or loyalty, and oracle text (every face of a two-faced card), lands included. The deck's name is removed. Judge whether each is a decent bulk deck, not whether it is a good deck.
+Each packet holds one deck, or two labeled A and B for a pair: size, colors, the requested style (in a pair, only when both decks were built for the same request), commander if any, and every card with its copies, cost, type line, power and toughness or loyalty, and oracle text (every face of a two-faced card), lands included. The deck's name is removed. Judge whether each is a decent bulk deck, not whether it is a good deck.
 
 ## The bar
 
@@ -99,7 +99,7 @@ After judging the deck by the bar, answer one more question: is this a decent de
 
 ## The pair question
 
-For two decks of the same size and colors, perhaps with different plans, pick the better one by the same bar, or `tie`, with a one-line reason. Prefer the deck that better meets the bar: a plan, setup and payoff that feed each other, a curve and mana that cast it, interaction, a way to win, and few dead cards. Card strength counts only through those: a stronger card that also serves the plan is a real edge, a stronger card that serves no plan is not. A plain deck that works beats a themed deck that does not. The order is random; do not favor A or B.
+For two decks of the same size and colors, perhaps with different plans, pick the better one by the same bar, or `tie`, with a one-line reason. Prefer the deck that better meets the bar: a plan, setup and payoff that feed each other, a curve and mana that cast it, interaction, a way to win, and few dead cards. Card strength counts only through those: a stronger card that also serves the plan is a real edge, a stronger card that serves no plan is not. A plain deck that works beats a themed deck that does not. A requested style line, when a pair shows one, does not change the pick: choose by the bar as if no style were shown. The order is random; do not favor A or B.
 
 ## Anchors
 

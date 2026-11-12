@@ -112,7 +112,7 @@ export type PairMatch = 'same-request' | 'same-pool' | 'same-colors';
 export interface PairKey {
   kind: 'pair';
   pair: { A: DeckRef; B: DeckRef; match: PairMatch };
-  /** The requested style the packet showed (same-request pairs only), or null. */
+  /** Same-request pairs only: the requested style the packet showed, or null for "none". Other pairs show no style line. */
   styleShown?: string | null;
 }
 
@@ -274,12 +274,16 @@ export function requestedStyleLine(style: string | undefined, styles?: StyleText
   return s ? `- Requested style: ${s.label}. ${s.description}` : `- Requested style: ${style}.`;
 }
 
-/** A pair shows a requested style only when both decks answer the same request. */
+/**
+ * A pair shows the requested style only when both decks answer the same
+ * request: the style, or null for best fit. Other pairs may answer different
+ * requests, so they show no style line at all (undefined).
+ */
 export function pairStyleShown(
   match: PairMatch | undefined,
   a: Pick<ReviewDeck, 'request'>,
-): string | undefined {
-  return match === 'same-request' ? a.request.style : undefined;
+): string | null | undefined {
+  return match === 'same-request' ? (a.request.style ?? null) : undefined;
 }
 
 function pad(n: number, width: number): string {
@@ -618,9 +622,10 @@ export function renderPairPacket(
     '',
     `- Size: ${a.request.size} cards`,
     same ? `- Colors: ${colorsA}` : `- Colors: Deck A ${colorsA}; Deck B ${colorsB}`,
-    requestedStyleLine(pairStyleShown(opts.match, a), opts.styles),
-    '',
   ];
+  const shown = pairStyleShown(opts.match, a);
+  if (shown !== undefined) lines.push(requestedStyleLine(shown ?? undefined, opts.styles));
+  lines.push('');
   // Each list opens with its own Commander group when it has one.
   for (const [label, cards] of [
     ['A', ca],
@@ -684,6 +689,32 @@ function matchesPlan(s: StoredDeck, e: PlanEntry): boolean {
   return true;
 }
 
+/**
+ * The plan as drawn: a `sameAs` entry takes the size, kinds, styles, and pool
+ * prefix of the entry it pairs with unless it gives its own, so its top-up and
+ * the pairs drawn from the plan's scope stay on that entry's pools and requests.
+ */
+export function resolvePlan(plan: readonly PlanEntry[]): PlanEntry[] {
+  const out: PlanEntry[] = [];
+  plan.forEach((e, i) => {
+    if (e.sameAs === undefined) {
+      out.push(e);
+      return;
+    }
+    const n = e.sameAs;
+    const t = Number.isInteger(n) && n >= 1 && n <= i ? out[n - 1] : undefined;
+    if (!t) throw new Error(`plan entry ${i + 1}: "sameAs" must name an earlier entry (1 to ${i})`);
+    out.push({
+      ...(t.size !== undefined ? { size: t.size } : {}),
+      ...(t.kinds ? { kinds: t.kinds } : {}),
+      ...(t.styles ? { styles: t.styles } : {}),
+      ...(t.poolPrefix !== undefined ? { poolPrefix: t.poolPrefix } : {}),
+      ...e,
+    });
+  });
+  return out;
+}
+
 /** Group decks by a key, keys sorted, each group in the given order. */
 function groupBy(decks: readonly StoredDeck[], keyOf: (s: StoredDeck) => string) {
   const groups = new Map<string, StoredDeck[]>();
@@ -724,18 +755,15 @@ export function selectDecks(
 
   let scope: StoredDeck[];
   if (opts.plan) {
-    scope = built.filter(
-      (s) => !isAnchor(s.deck.version) && opts.plan!.some((e) => matchesPlan(s, e)),
-    );
+    const plan = resolvePlan(opts.plan);
+    scope = built.filter((s) => !isAnchor(s.deck.version) && plan.some((e) => matchesPlan(s, e)));
     const drawnBy: StoredDeck[][] = [];
-    opts.plan.forEach((e, i) => {
+    plan.forEach((e, i) => {
       const pool = built.filter((s) => matchesPlan(s, e) && !taken.has(s.file));
       const drawn: StoredDeck[] = [];
+      let paired: string | undefined;
       if (e.sameAs !== undefined) {
-        const earlier = Number.isInteger(e.sameAs) ? drawnBy[e.sameAs - 1] : undefined;
-        if (!earlier)
-          throw new Error(`plan entry ${i + 1}: "sameAs" must name an earlier entry (1 to ${i})`);
-        // The decks for the earlier entry's requests, in the order it drew them.
+        const earlier = drawnBy[e.sameAs - 1]!;
         const byRequest = new Map<string, StoredDeck[]>();
         for (const s of pool) {
           const k = requestKeyNoSeed(s.deck);
@@ -743,22 +771,52 @@ export function selectDecks(
           if (list) list.push(s);
           else byRequest.set(k, [s]);
         }
+        // Every deck file of this version, declined ones included, to say why a request found no match.
+        const mine = new Map<string, StoredDeck[]>();
+        for (const s of decks) {
+          if (s.deck.version !== e.version) continue;
+          const k = requestKeyNoSeed(s.deck);
+          const list = mine.get(k);
+          if (list) list.push(s);
+          else mine.set(k, [s]);
+        }
+        // A deck built in another style is a declined request in collation, so it breaks the pairing.
+        const usable = (s: StoredDeck) =>
+          e.substituted === true || !builtAnotherStyle(s.deck.request, s.deck.deck.archetype);
+        let declined = 0;
+        let other = 0;
+        let missing = 0;
+        let tried = 0;
+        // The decks for the earlier entry's requests, in the order it drew them.
         for (const ref of earlier) {
           if (drawn.length >= e.count) break;
-          const match = byRequest.get(requestKeyNoSeed(ref.deck))?.shift();
-          if (match) drawn.push(match);
+          tried++;
+          const k = requestKeyNoSeed(ref.deck);
+          const list = byRequest.get(k) ?? [];
+          const at = list.findIndex(usable);
+          if (at >= 0) {
+            drawn.push(list.splice(at, 1)[0]!);
+            continue;
+          }
+          const all = mine.get(k) ?? [];
+          if (all.some((s) => s.deck.error)) declined++;
+          else if (all.some((s) => builtAnotherStyle(s.deck.request, s.deck.deck.archetype)))
+            other++;
+          else missing++;
         }
-        notes.push(
-          `plan entry ${i + 1} (${e.version}): ${drawn.length} decks on the requests of entry ${e.sameAs}`,
-        );
+        paired =
+          `plan entry ${i + 1} (${e.version}): ${drawn.length} of ${tried} requests of entry ${e.sameAs} matched` +
+          ` (${declined} declined, ${other} built another style, ${missing} with no deck left to draw)`;
       }
-      const matched = new Set(drawn.map((s) => s.file));
+      const matched = drawn.length;
+      const taking = new Set(drawn.map((s) => s.file));
       drawn.push(
         ...shuffled(
-          pool.filter((s) => !matched.has(s.file)),
+          pool.filter((s) => !taking.has(s.file)),
           `review:packets:${opts.seed}:plan:${i}`,
         ).slice(0, e.count - drawn.length),
       );
+      if (paired) notes.push(`${paired}, ${drawn.length - matched} more drawn at random`);
       drawn.forEach(take);
       drawnBy.push(drawn);
       if (drawn.length < e.count)
@@ -962,10 +1020,11 @@ export function makeBatch(input: MakeBatchInput): Batch {
   const pw = Math.max(4, String(pairs.length).length);
   pairs.forEach((p, i) => {
     const id = `pair-${pad(i + 1, pw)}`;
+    const shown = pairStyleShown(p.match, p.A.deck);
     keyed[id] = {
       kind: 'pair',
       pair: { A: deckRef(p.A, listFor(p.A)), B: deckRef(p.B, listFor(p.B)), match: p.match },
-      styleShown: pairStyleShown(p.match, p.A.deck) ?? null,
+      ...(shown !== undefined ? { styleShown: shown } : {}),
     };
     packets.push({
       id,

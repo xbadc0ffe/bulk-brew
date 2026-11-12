@@ -117,7 +117,7 @@ What this means for testing:
 
 ## Seed prefixes: new pools for a new round
 
-`plain-01` to `plain-30` and the theme pools on them were development pools for the prototypes, so a later round needs pools no one has built on. A seed prefix (letters and digits) makes a new set the same way:
+`plain-01` to `plain-30` and the theme pools on them were development pools for the prototypes, so a later round needs pools no one has built on. A seed prefix (letters and digits, and not a pool kind: `plain`, `theme`, `public`, and `owner` are refused in any case, since the first round's ids start with them) makes a new set the same way:
 
 ```sh
 npm run review:pools -- --seed-prefix h1

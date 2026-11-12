@@ -11,6 +11,7 @@ import {
   poolNames,
   restrictSource,
   SEED_PREFIX,
+  seedPrefixProblem,
   themeSeed,
   twoDigits,
   withFallback,
@@ -62,6 +63,16 @@ describe('seeds', () => {
     expect(SEED_PREFIX.test('h1')).toBe(true);
     expect(SEED_PREFIX.test('h-1')).toBe(false);
     expect(SEED_PREFIX.test('')).toBe(false);
+  });
+
+  it('refuse a seed prefix that is not letters and digits or that names a pool kind', () => {
+    expect(seedPrefixProblem('h1')).toBeUndefined();
+    expect(seedPrefixProblem('H2b')).toBeUndefined();
+    expect(seedPrefixProblem('h-1')).toMatch(/letters and digits/);
+    expect(seedPrefixProblem('')).toMatch(/letters and digits/);
+    // "plain-01" starts with "plain-", so the set "plain" would take in the first round's pools.
+    for (const kind of ['plain', 'theme', 'public', 'owner', 'Public'])
+      expect(seedPrefixProblem(kind), kind).toMatch(/pool kind/);
   });
 });
 

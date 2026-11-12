@@ -484,7 +484,8 @@ function stat(
   const requests = built + declined;
   // Only styled requests can be decent of their style; best fit shows none.
   const ofStyle = judged.filter((j) => typeof j.answer.decent_of_style === 'boolean');
-  const decentOfStyle = ofStyle.filter((j) => j.answer.decent_of_style).length;
+  // The rubric's "decent of its style" is a decent deck first; a true on a deck below 3 is a warning and counts as no.
+  const decentOfStyle = ofStyle.filter((j) => j.answer.decent_of_style && j.answer.decent).length;
   const styledRows = rows.filter((r) => r.style !== 'bestfit');
   const styledBuilt = styledRows.reduce((n, r) => n + r.built, 0);
   const styledRequests = styledRows.reduce((n, r) => n + r.built + r.declined, 0);
@@ -1002,19 +1003,21 @@ export function renderCollation(c: Collation): string {
     'Per version and size: the two lowest scored and the highest scored deck from public and plain pools.',
     '',
   );
+  // Judges' words stay on their bullet: a newline could start a heading or a table.
+  const oneLine = (s: string) => s.replace(/\s*\n\s*/g, ' ').trim();
   for (const e of c.examples) {
     L.push(
       `### ${e.version} ${e.size}, ${e.which}: score ${e.score} (${e.packet})`,
       '',
       `- Deck: \`${e.file}\` (pool ${e.pool}, ${e.colors}, ${e.style})`,
-      `- Plan: ${e.plan}`,
-      `- Reason: ${e.reason}`,
+      `- Plan: ${oneLine(e.plan)}`,
+      `- Reason: ${oneLine(e.reason)}`,
       ...(e.decentOfStyle === undefined
         ? []
         : [
             e.decentOfStyle === null
               ? '- Of its style: no style shown'
-              : `- Of its style: ${e.decentOfStyle ? 'yes' : 'no'}. ${e.styleReason ?? ''}`.trimEnd(),
+              : `- Of its style: ${e.decentOfStyle ? 'yes' : 'no'}. ${oneLine(e.styleReason ?? '')}`.trimEnd(),
           ]),
       `- Dead: ${e.dead.join(', ') || 'none'}`,
       `- Failures: ${e.failures.join(', ')}`,
