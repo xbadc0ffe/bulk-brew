@@ -8,8 +8,9 @@ import path from 'node:path';
 import { arg, ROOT } from '../corpus.ts';
 import {
   ANCHOR_VERSIONS,
+  argAll,
   builtAnotherStyle,
-  findDeckFiles,
+  findAllDeckFiles,
   inventoryOf,
   JUDGMENTS_DIR,
   KEYS_DIR,
@@ -59,6 +60,10 @@ export interface SingleAnswer {
   decent: boolean;
   score: 1 | 2 | 3 | 4 | 5;
   reason: string;
+  /** A decent deck of the requested style; null when the packet showed none. Absent in batches made before. */
+  decent_of_style?: boolean | null;
+  /** One sentence; empty when decent_of_style is null. */
+  style_reason?: string;
   failures: Failure[];
 }
 
@@ -89,6 +94,8 @@ const SINGLE_KEYS = [
   'reason',
   'failures',
 ];
+/** The one-deck shape once packets show the requested style. */
+const STYLE_KEYS = ['decent_of_style', 'style_reason'];
 const PAIR_KEYS = ['better', 'reason'];
 const DEAD_LIMIT: Record<number, number> = { 60: 4, 40: 3, 20: 2, 100: 7 };
 
@@ -128,16 +135,32 @@ function nameKey(copies: Record<string, number>): Map<string, string> {
 
 /**
  * Check a one-deck answer against the rubric's shape and consistency rules.
- * Pass the deck's copies to check card names and count dead copies.
+ * Pass the deck's copies to check card names and count dead copies, and the
+ * style the packet showed (null for none) to require the style fields; keys
+ * made before packets showed a style pass undefined and get the old shape.
  */
-export function checkSingle(raw: unknown, copies?: Record<string, number>, size?: number): Check {
+export function checkSingle(
+  raw: unknown,
+  copies?: Record<string, number>,
+  size?: number,
+  styleShown?: string | null,
+): Check {
   const errors: string[] = [];
   const warnings: string[] = [];
   if (!isObject(raw)) return { errors: ['not a JSON object'], warnings };
   const a = raw;
-  exactKeys(a, SINGLE_KEYS, errors);
+  const styled = styleShown !== undefined;
+  exactKeys(a, styled ? [...SINGLE_KEYS, ...STYLE_KEYS] : SINGLE_KEYS, errors);
   text(a, 'plan', errors);
   text(a, 'reason', errors);
+  if (styled && 'decent_of_style' in a) {
+    if (styleShown === null && a.decent_of_style !== null)
+      errors.push('"decent_of_style" must be null: the packet showed no requested style');
+    if (styleShown !== null && typeof a.decent_of_style !== 'boolean')
+      errors.push('"decent_of_style" must be true or false: the packet showed a requested style');
+  }
+  if (styled && 'style_reason' in a && typeof a.style_reason !== 'string')
+    errors.push('"style_reason" must be a string');
   for (const k of ['setup', 'payoff']) {
     if (!(k in a)) continue;
     const list = a[k];
@@ -205,6 +228,16 @@ export function checkSingle(raw: unknown, copies?: Record<string, number>, size?
   );
   if (missesPlan && (a.score as number) > 2)
     warnings.push(`score ${a.score} with a plan or setup or payoff failure (should be 2 or less)`);
+  if (styled) {
+    // A decent deck of the style is a decent deck first.
+    if (a.decent_of_style === true && a.decent === false)
+      warnings.push('"decent_of_style" true for a deck that is not decent');
+    const said = (a.style_reason as string).trim();
+    if (styleShown !== null && !said)
+      warnings.push('"style_reason" is empty though the packet showed a requested style');
+    if (styleShown === null && said)
+      warnings.push('"style_reason" should be empty when the packet showed no requested style');
+  }
   const named = [
     ...(a.setup as PlanCard[]).map((c) => c.card),
     ...(a.payoff as PlanCard[]).map((c) => c.card),
@@ -278,6 +311,17 @@ export interface Stat {
   decentRateAll: number | null;
   /** built / (built + declined), from the deck files. */
   builtShare: number | null;
+  /** Judged built decks whose packet showed a requested style. */
+  styleJudged: number;
+  /** Of those, judged a decent deck of that style. */
+  decentOfStyle: number;
+  /** decentOfStyle / styleJudged. */
+  decentOfStyleRate: number | null;
+  /**
+   * Over every styled request, counting a declined or substituted one as not
+   * decent of its style: decentOfStyleRate times the styled requests' built share.
+   */
+  decentOfStyleRateAll: number | null;
   meanScore: number | null;
   /** Mean dead copies per judged deck, from the judges' dead lists and the packet's copies. */
   meanDeadCopies: number | null;
@@ -349,6 +393,9 @@ export interface Example {
   score: number;
   plan: string;
   reason: string;
+  /** Present when the judge answered the style question: null when no style was shown. */
+  decentOfStyle?: boolean | null;
+  styleReason?: string;
   dead: string[];
   failures: Failure[];
 }
@@ -367,6 +414,8 @@ export interface AnotherStyleRow {
   substituted: number;
   /** Judged decks left out of the tables because they built another style. */
   judgedSetAside: number;
+  /** Of those, judged decent: how good the nearest deck was, kept apart from the request it missed. */
+  setAsideDecent: number;
 }
 
 export interface Collation {
@@ -422,7 +471,7 @@ function substitute(ref: Pick<DeckRef, 'request' | 'archetype'>): boolean {
 
 function stat(
   judged: readonly Judged[],
-  rows: readonly Pick<InventoryRow, 'built' | 'declined' | 'substituted'>[],
+  rows: readonly Pick<InventoryRow, 'style' | 'built' | 'declined' | 'substituted'>[],
 ): Stat {
   const built = rows.reduce((n, r) => n + r.built, 0);
   const declined = rows.reduce((n, r) => n + r.declined, 0);
@@ -433,6 +482,12 @@ function stat(
   const mean = (f: (j: Judged) => number) =>
     judged.length ? round(judged.reduce((n, j) => n + f(j), 0) / judged.length) : null;
   const requests = built + declined;
+  // Only styled requests can be decent of their style; best fit shows none.
+  const ofStyle = judged.filter((j) => typeof j.answer.decent_of_style === 'boolean');
+  const decentOfStyle = ofStyle.filter((j) => j.answer.decent_of_style).length;
+  const styledRows = rows.filter((r) => r.style !== 'bestfit');
+  const styledBuilt = styledRows.reduce((n, r) => n + r.built, 0);
+  const styledRequests = styledRows.reduce((n, r) => n + r.built + r.declined, 0);
   return {
     judged: judged.length,
     decent,
@@ -440,6 +495,13 @@ function stat(
     decentRateAll:
       judged.length && requests ? round((decent / judged.length) * (built / requests)) : null,
     builtShare: share(built, requests),
+    styleJudged: ofStyle.length,
+    decentOfStyle,
+    decentOfStyleRate: share(decentOfStyle, ofStyle.length),
+    decentOfStyleRateAll:
+      ofStyle.length && styledRequests
+        ? round((decentOfStyle / ofStyle.length) * (styledBuilt / styledRequests))
+        : null,
     meanScore: mean((j) => j.answer.score),
     meanDeadCopies: mean((j) => j.dead),
     failures,
@@ -487,7 +549,7 @@ export function collate(
     }
     const check =
       entry.kind === 'single'
-        ? checkSingle(parsed.value, entry.copies, entry.request.size)
+        ? checkSingle(parsed.value, entry.copies, entry.request.size, entry.styleShown)
         : checkPair(parsed.value);
     if (parsed.warning) check.warnings.unshift(parsed.warning);
     if (check.errors.length) {
@@ -512,16 +574,18 @@ export function collate(
     if (e.duplicateOf) seconds.set(e.duplicateOf, [...(seconds.get(e.duplicateOf) ?? []), id]);
   const judged: Judged[] = [];
   const setAside = new Map<string, number>();
+  const setAsideDecent = new Map<string, number>();
   for (const [id, e] of single) {
     if (e.duplicateOf) continue;
     const useId = [id, ...(seconds.get(id) ?? [])].find((x) => singles.has(x));
     if (!useId) continue;
+    const answer = singles.get(useId)!;
     // Another style built counts as declined, so its judgment stays out of every table.
     if (substitute(e)) {
       setAside.set(e.version, (setAside.get(e.version) ?? 0) + 1);
+      if (answer.decent) setAsideDecent.set(e.version, (setAsideDecent.get(e.version) ?? 0) + 1);
       continue;
     }
-    const answer = singles.get(useId)!;
     judged.push({ id: useId, ref: e, answer, dead: deadCopies(answer.dead, e.copies) });
   }
 
@@ -571,6 +635,7 @@ export function collate(
       styled: styled.reduce((n, r) => n + r.built + r.declined, 0),
       substituted: styled.reduce((n, r) => n + (r.substituted ?? 0), 0),
       judgedSetAside: setAside.get(version) ?? 0,
+      setAsideDecent: setAsideDecent.get(version) ?? 0,
     };
     if (row.styled || row.judgedSetAside) anotherStyle.push(row);
   }
@@ -681,6 +746,12 @@ export function collate(
       score: j.answer.score,
       plan: j.answer.plan,
       reason: j.answer.reason,
+      ...('decent_of_style' in j.answer
+        ? {
+            decentOfStyle: j.answer.decent_of_style ?? null,
+            styleReason: j.answer.style_reason ?? '',
+          }
+        : {}),
       dead: j.answer.dead,
       failures: j.answer.failures,
     });
@@ -717,22 +788,22 @@ export function collate(
 
 /**
  * Read the key and every answer file of a batch, count built and declined decks
- * over every deck file under `decks` (default: the folder the batch was drawn
- * from), then collate. With no deck files there, the key's inventory is used.
+ * over every deck file under `decks` and `also` (default: the specs the batch
+ * was drawn from), then collate. With no deck files there, the key's inventory is used.
  */
 export function collateFromDisk(
   batch: string,
-  opts: { keysDir?: string; judgmentsDir?: string; decks?: string } = {},
+  opts: { keysDir?: string; judgmentsDir?: string; decks?: string; also?: string[] } = {},
 ): Collation {
   const keyFile = path.join(opts.keysDir ?? KEYS_DIR, `${batch}.json`);
   if (!existsSync(keyFile)) throw new Error(`no key for batch "${batch}" at ${keyFile}`);
   const key = JSON.parse(readFileSync(keyFile, 'utf8')) as BatchKey;
-  const spec = opts.decks ?? key.options.decks;
-  const files = findDeckFiles(spec);
+  const specs = [opts.decks ?? key.options.decks, ...(opts.also ?? key.options.also ?? [])];
+  const files = findAllDeckFiles(specs);
   const counts = files.length
     ? {
         inventory: inventoryOf(readDecks(files).decks),
-        from: `${files.length} deck files under ${spec}, read when collating`,
+        from: `${files.length} deck files under ${specs.join(', ')}, read when collating`,
       }
     : undefined;
   const dir = path.join(opts.judgmentsDir ?? JUDGMENTS_DIR, batch);
@@ -773,6 +844,8 @@ function statCells(s: Stat): string[] {
     String(s.judged),
     s.judged ? `${pct(s.decentRate)} (${s.decent})` : '-',
     pct(s.decentRateAll),
+    s.styleJudged ? `${pct(s.decentOfStyleRate)} (${s.decentOfStyle} of ${s.styleJudged})` : '-',
+    pct(s.decentOfStyleRateAll),
     num(s.meanScore),
     num(s.meanDeadCopies),
     failureText(s.failures),
@@ -794,6 +867,8 @@ const STAT_HEAD = [
   'Judged',
   'Decent, built',
   'Decent, all requests',
+  'Of style, built',
+  'Of style, all requests',
   'Mean score',
   'Dead copies',
   'Failures',
@@ -809,6 +884,8 @@ export function renderCollation(c: Collation): string {
     'Each deck counts once, with its first valid judgment; second copies feed only the agreement table.',
     '',
     `"Declined" counts deck files with an error (the version could not build the request) or built in another style than the one requested, out of all deck files for the row, from ${c.countsFrom}. "Decent, built" is over judged built decks. "Decent, all requests" counts a declined request as not decent: the built rate times the share of requests the version built.`,
+    '',
+    '"Of style, built" is the share of judged built decks with a requested style that the judge called a decent deck of that style. "Of style, all requests" is over every styled request, counting a declined or substituted one as not decent of its style.',
     '',
     '## By version and size',
     '',
@@ -831,18 +908,27 @@ export function renderCollation(c: Collation): string {
   L.push(
     '## Built another style',
     '',
-    'A styled request the version answered with another style, such as a Graveyard request built as Midrange. Each counts as declined in every table above, and its judgment, if any, is left out. Best fit has no style and never counts here.',
+    'A styled request the version answered with another style, such as a Graveyard request built as Midrange. Each counts as declined in every table above, and its judgment, if any, is left out. Best fit has no style and never counts here. "Set aside, decent" says how many of the judged ones were decent decks all the same.',
     '',
   );
   if (c.anotherStyle.length)
     L.push(
       ...table(
-        ['Version', 'Styled requests', 'Built another style', 'Judged decks set aside'],
+        [
+          'Version',
+          'Styled requests',
+          'Built another style',
+          'Judged decks set aside',
+          'Set aside, decent',
+        ],
         c.anotherStyle.map((r) => [
           r.version,
           String(r.styled),
           `${r.substituted}${r.styled ? ` (${pct(r.substituted / r.styled)})` : ''}`,
           String(r.judgedSetAside),
+          r.judgedSetAside
+            ? `${r.setAsideDecent} (${pct(r.setAsideDecent / r.judgedSetAside)})`
+            : '-',
         ]),
       ),
       '',
@@ -923,6 +1009,13 @@ export function renderCollation(c: Collation): string {
       `- Deck: \`${e.file}\` (pool ${e.pool}, ${e.colors}, ${e.style})`,
       `- Plan: ${e.plan}`,
       `- Reason: ${e.reason}`,
+      ...(e.decentOfStyle === undefined
+        ? []
+        : [
+            e.decentOfStyle === null
+              ? '- Of its style: no style shown'
+              : `- Of its style: ${e.decentOfStyle ? 'yes' : 'no'}. ${e.styleReason ?? ''}`.trimEnd(),
+          ]),
       `- Dead: ${e.dead.join(', ') || 'none'}`,
       `- Failures: ${e.failures.join(', ')}`,
       '',
@@ -954,14 +1047,15 @@ function main(): number {
   const batch = arg('batch');
   if (!batch) {
     console.error(
-      'Usage: npm run review:collate -- --batch <name> [--decks <folder or glob>] [--out data/review/results]',
+      'Usage: npm run review:collate -- --batch <name> [--decks <folder or glob>] [--also <folder or glob>]... [--out data/review/results]',
     );
     return 2;
   }
   let c: Collation;
   try {
     const decks = arg('decks');
-    c = collateFromDisk(batch, decks ? { decks } : {});
+    const also = argAll('also');
+    c = collateFromDisk(batch, { ...(decks ? { decks } : {}), ...(also.length ? { also } : {}) });
   } catch (err) {
     console.error((err as Error).message);
     return 1;

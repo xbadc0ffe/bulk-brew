@@ -8,7 +8,9 @@ import {
   indexEntry,
   mergeLists,
   plainSeed,
+  poolNames,
   restrictSource,
+  SEED_PREFIX,
   themeSeed,
   twoDigits,
   withFallback,
@@ -37,6 +39,29 @@ describe('seeds', () => {
     expect(themeSeed('tokens', 1)).not.toBe(themeSeed('counters', 1));
     expect(twoDigits(3)).toBe('03');
     expect(twoDigits(30)).toBe('30');
+  });
+
+  it('keep the original names without a seed prefix and name the prefix with one', () => {
+    const plain = poolNames();
+    expect(plain.plainId(1)).toBe('plain-01');
+    expect(plain.plainFile(1)).toBe('plain/plain-01.json');
+    expect(plain.plainSeedText(1)).toBe('review:plain:1');
+    expect(plain.themeId('graveyard', 2)).toBe('theme-graveyard-02');
+    expect(plain.themeFile('graveyard', 2)).toBe('theme/graveyard-02.json');
+    expect(plain.themeSeedText('graveyard', 2)).toBe('review:theme:graveyard:2');
+    expect(plain.themesFile).toBe('themes.json');
+    const h1 = poolNames('h1');
+    expect(h1.plainId(12)).toBe('h1-plain-12');
+    expect(h1.plainFile(12)).toBe('plain/h1-plain-12.json');
+    expect(h1.plainSeedText(12)).toBe('review:h1:plain:12');
+    expect(h1.themeId('tokens', 3)).toBe('h1-theme-tokens-03');
+    expect(h1.themeFile('tokens', 3)).toBe('theme/h1-tokens-03.json');
+    expect(h1.themeSeedText('tokens', 3)).toBe('review:h1:theme:tokens:3');
+    expect(h1.themesFile).toBe('themes-h1.json');
+    expect(hash32(h1.plainSeedText(1))).not.toBe(plainSeed(1));
+    expect(SEED_PREFIX.test('h1')).toBe(true);
+    expect(SEED_PREFIX.test('h-1')).toBe(false);
+    expect(SEED_PREFIX.test('')).toBe(false);
   });
 });
 

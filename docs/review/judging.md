@@ -20,6 +20,7 @@ npm run review:packets -- --batch <name> --plan data/review/scratch/plan.json --
 | `--quota <n>`      | Draw n decks per version, per size, per pool kind. Give this or `--plan`, not both.                                                                                            |
 | `--plan <file>`    | A sampling plan (below). Paths are relative to the repo root.                                                                                                                  |
 | `--decks <spec>`   | A folder (searched recursively for `.json`), one file, or a glob with `*`, `**`, `?`, and `{a,b}`. Default `data/review/decks`. Quote globs so the shell does not expand them. |
+| `--also <spec>`    | More deck files, as `--decks` reads them, such as anchors or hand-built decks outside a `--decks` glob. Repeat it for more. A file found twice counts once. Kept in the key.   |
 | `--seed <n>`       | Whole number, default 1. Every draw and every shuffle comes from it.                                                                                                           |
 | `--pairs <n>`      | Pair packets to make, default 0.                                                                                                                                               |
 | `--two-judges <x>` | Share of each version's single packets copied for a second judge, from 0 to 1. Default 0.25.                                                                                   |
@@ -32,7 +33,7 @@ npm run review:packets -- --batch <name> --plan data/review/scratch/plan.json --
 
 - Every file that is not a review deck (no `version`, `request`, `deck`, and `pool`) is skipped and noted in the key.
 - A deck file with `error` set is never drawn. It counts as **declined**: the version could not build that request. The key's `inventory` records, per version, size, requested style, and pool kind, how many of all the deck files the spec found were built and how many declined. Collation recounts them from the deck files (below).
-- **Another style built counts as declined.** When a request names a style and the deck's `deck.archetype` is not that style, the version answered a different question, such as a Graveyard request built as Midrange. Ids compare whole, so `tribal:Elf` must come back as `tribal:Elf`. A best-fit request has no style and never counts. Such a deck can still be drawn, but the inventory counts it as declined, with the number of them in `substituted`, and collation leaves its judgment out (below). The reason: packets hide the requested style, and the rubric lets a plain deck be decent, so a substituted deck could otherwise pass as a decent build of the theme (`docs/review/shortlist.md`, objection 5).
+- **Another style built counts as declined.** When a request names a style and the deck's `deck.archetype` is not that style, the version answered a different question, such as a Graveyard request built as Midrange. Ids compare whole, so `tribal:Elf` must come back as `tribal:Elf`. A best-fit request has no style and never counts. Such a deck can still be drawn, but the inventory counts it as declined, with the number of them in `substituted`, and collation leaves its judgment out (below). The reason: the rubric lets a plain deck be decent whatever was asked for, so a substituted deck could otherwise pass as a decent build of the theme (`docs/review/shortlist.md`, objection 5).
 - **Anchors.** For each anchor version (`random`, `real`) and each size, `--anchors` decks (25 by default) are drawn without replacement, in quota and plan mode alike; a size with fewer gives all it has, and the key notes the shortfall. Before the cap, every anchor joined: on 2026-11-08 `data/review/decks/random/` held 2,963 piles, and `--quota 2` gave 3,131 anchor decks beside 34 builder decks. With `--no-anchors`, plan entries can still sample anchors, such as `{ "version": "random", "size": 60, "kinds": ["plain"], "count": 10 }`.
 - **Quota.** For each version (anchors aside), each size, and each pool kind, n decks are drawn without replacement. A group with fewer than n decks gives all it has, and the key notes the shortfall.
 - **Plan.** A JSON array; each entry draws `count` decks that match it, without replacement across entries:
@@ -45,7 +46,24 @@ npm run review:packets -- --batch <name> --plan data/review/scratch/plan.json --
   ]
   ```
 
-  `version` and `count` are required. `size`, `kinds`, and `styles` narrow the match when given. A style is the requested style id, or `bestfit` for a best fit request.
+  `version` and `count` are required. `size`, `kinds`, and `styles` narrow the match when given. A style is the requested style id, or `bestfit` for a best fit request. Three more fields narrow or steer an entry:
+  - `poolPrefix`: the pool id must start with it, such as `"h1-"` for one seed prefix's pools (`docs/review/pools.md`).
+  - `substituted`: `true` takes only decks built in another style than the one requested (such as a note-and-nearest deck), `false` only decks that kept it. Best fit never substitutes, so it counts as kept. Absent takes any.
+  - `sameAs`: the number (from 1) of an earlier entry. This entry first takes its own version's decks for the requests that entry drew, in the order it drew them: the same pool (id and cards), size, colors, style, secondary, and commander, with the seed ignored so a one-seed version matches either `random` pile. Its other fields still filter, and `count` caps it. Then it tops up at random to `count`. The key's notes say how many matched. This makes paired singles: two versions judged on the same requests.
+
+  ```json
+  [
+    {
+      "version": "head",
+      "poolPrefix": "h1-",
+      "size": 60,
+      "styles": ["graveyard", "tokens"],
+      "count": 40
+    },
+    { "version": "v26.0.35", "sameAs": 1, "count": 40 },
+    { "version": "head", "poolPrefix": "h1-", "substituted": true, "count": 10 }
+  ]
+  ```
 
 - **Pool kind** comes from where the pool file lives: `data/review/pools/<kind>/` gives `plain`, `theme`, `public`, or `owner`; `eval/pools/` is `public`; `test-bulk/` is `owner`; anything else is `other`.
 
@@ -85,25 +103,27 @@ Everything is under `data/review/`, which is gitignored.
 
 Packet numbers are a seeded shuffle, so the number says nothing about the version, pool, or request. A single packet holds:
 
-- a header: size, the deck's own colors (`deck.colors`, or the request's in older files), and the commander at 100 cards;
+- a header: size, the deck's own colors (`deck.colors`, or the request's in older files), the requested style, and the commander at 100 cards;
 - the deck list grouped by type (Commander, Creatures, Planeswalkers, Instants, Sorceries, Artifacts, Enchantments, Battles, Lands), with copies and a count per group, basics included;
 - `## Cards`: one block per distinct card, sorted by name, with copies, mana cost and mana value, type line, power and toughness or loyalty, keywords, and the oracle text. Two-faced, split, and adventure cards show each face's name, cost, type, stats, and text.
 
 A pair packet has the same header (with each deck's colors when they differ), a list for Deck A and one for Deck B, and one card block per distinct card in either deck, with copies in each ("Copies: A 4, B 0").
 
+**The requested style.** The line after Colors tells the judge what was asked for, in the config's words: `- Requested style: Graveyard. Fill the graveyard, then bring things back or get paid for what is in it.`, the label and description from `config/archetypes.json`. A tribe reads `- Requested style: Elf tribe. Elf creatures and the cards that reward them.` A best-fit request reads `- Requested style: none (the builder picked)`. A pair shows the style only when it is a same-request pair whose request names one, and the "none" line otherwise. The line comes from `request.style` alone, never from what the version built: not `deck.archetype`, the deck's name, or a secondary style. The judge answers whether the deck is a decent deck of that style (`docs/review/rubric.md`, "The requested style").
+
 Lands are shown the same way for every version. A plain basic a version lists among its cards joins the basics, and a name listed twice shows once with its copies added. Builders never play snow basics, so in a `real` deck they would stand out: when no card in the deck reads snow ("snow" or `{S}` in its text or cost), each snow basic shows as the plain basic of its type, which plays the same. A deck that reads snow keeps them, since its payoffs need them. Wastes and Snow-Covered Wastes stay as they are. In the 170 `real` decks of 2026-11-08, one deck has snow basics, and it reads snow.
 
-Card facts come from the data pack's `CardIndex`, copied field by field (`packetCard` in `packets.ts`). The renderer reads only the deck's card ids and copies, its basics, the request's size and colors, and the commander. So a packet never shows anything that gives a version or an anchor away (the list in `docs/review/anchors.md`): not `version`, `versionNotes`, the pool (`id`, `source`, `hash`), `deck.name`, `archetype`, the requested style, any `why`, `explanation`, or the deck's file name. Nor does it show anything the builder thinks of a card: no tags, roles, styles, strength, rarity, or popularity rank. The tests check each of these fields with a marker string. A card missing from the pack shows "Text missing from the data pack." so the judge can say so.
+Card facts come from the data pack's `CardIndex`, copied field by field (`packetCard` in `packets.ts`). The renderer reads only the deck's card ids and copies, its basics, the request's size, colors, and style, and the commander. So a packet never shows anything that gives a version or an anchor away (the list in `docs/review/anchors.md`): not `version`, `versionNotes`, the pool (`id`, `source`, `hash`), `deck.name`, `archetype`, the secondary style, any `why`, `explanation`, or the deck's file name. Nor does it show anything the builder thinks of a card: no tags, roles, styles, strength, rarity, or popularity rank. The tests check each of these fields with a marker string. A card missing from the pack shows "Text missing from the data pack." so the judge can say so.
 
 ### The key
 
 `data/review/keys/<batch>.json` sits outside the packet folder. It holds:
 
-- `options`: the flags, including the plan and the seed;
+- `options`: the flags, including the plan, the seed, and `also` when given;
 - `dataVersion` and `rubricHash` (FNV-1a of the rubric text the prompt carried);
 - `packets`: for every packet id, either
-  - a single: `{ kind: "single", file, version, pool: { id, source, kind }, request, archetype, copies, duplicateOf? }`, where `archetype` is the style the version built, or
-  - a pair: `{ kind: "pair", pair: { A, B, match } }`, where A and B have the same fields as a single;
+  - a single: `{ kind: "single", file, version, pool: { id, source, kind }, request, archetype, copies, duplicateOf?, styleShown }`, where `archetype` is the style the version built and `styleShown` the requested style the packet showed (null for none), or
+  - a pair: `{ kind: "pair", pair: { A, B, match }, styleShown }`, where A and B have the same fields as a single;
 - `inventory`: built and declined counts, and `substituted`, the declined decks that built another style (above);
 - `notes`: shortfalls and skipped files.
 
@@ -122,31 +142,31 @@ The coordinator:
 ## Collating
 
 ```sh
-npm run review:collate -- --batch <name> [--decks <folder or glob>] [--out data/review/results]
+npm run review:collate -- --batch <name> [--decks <folder or glob>] [--also <folder or glob>]... [--out data/review/results]
 ```
 
-It counts built and declined decks over every deck file under `--decks` (default: the spec the batch was drawn from, recorded in the key), per version, size, and requested style, whether or not a deck was sampled. A deck built in another style than its request named counts as declined there, as in the key (above). When no deck file is found there, it uses the key's inventory instead. The report says which it used. Rows are given only for versions the batch knew.
+It counts built and declined decks over every deck file under `--decks` and `--also` (default: the specs the batch was drawn from, recorded in the key; each flag given replaces the key's), per version, size, and requested style, whether or not a deck was sampled. A deck built in another style than its request named counts as declined there, as in the key (above). When no deck file is found there, it uses the key's inventory instead. The report says which it used. Rows are given only for versions the batch knew.
 
-**Another style built.** A judged deck whose key entry has a requested style and an `archetype` that differs from it is a declined request, not a built deck, in every table: its judgment is left out of the decent rates, scores, dead copies, failures, anchors, and examples, and a pair that holds it is left out of head to head (the report gives the number). Packets never show the requested style, and the rubric lets a plain deck be decent, so without this a Graveyard request answered with a fair Midrange deck would count as a decent Graveyard build. Its judgment still counts toward judge agreement, which measures the judges, not the request. Keys made before `archetype` was recorded have none, and their decks never count as substitutes; make such a batch again with `--force` to apply the rule.
+**Another style built.** A judged deck whose key entry has a requested style and an `archetype` that differs from it is a declined request, not a built deck, in every table: its judgment is left out of the decent rates, scores, dead copies, failures, anchors, and examples, and a pair that holds it is left out of head to head (the report gives the number). The rubric lets a plain deck be decent whatever was asked for, so without this a Graveyard request answered with a fair Midrange deck would count as a decent Graveyard build. Its judgment still counts toward judge agreement, which measures the judges, not the request. Keys made before `archetype` was recorded have none, and their decks never count as substitutes; make such a batch again with `--force` to apply the rule.
 
 It reads every `data/review/judgments/<batch>/*.json`, takes the packet id from the file name, and checks each answer:
 
-- **Errors** make an answer invalid; it is listed with the reasons and left out. They are: not JSON, an unknown packet id, a missing or extra key, a wrong type or value, a `decent` that does not match the score (decent means 3 or more), an empty `failures`, an unknown failure value, or `none` next to another failure. A JSON object wrapped in a code fence is read, with a warning.
-- **Warnings** break one of the rubric's consistency rules; the answer still counts. They are: `no-plan` without the plan "no clear plan" or the reverse; `no-plan` with an `enough_` field true; an `enough_` field false without its failure; `interaction` none without `no-interaction`; `win` none without `no-win`; a score above 2 with a plan, setup, or payoff failure; a card named more than once across setup, payoff, and dead; a name that is not in the deck (a face's name is accepted); and dead copies at or above the rubric's bar without `dead-cards`.
+- **Errors** make an answer invalid; it is listed with the reasons and left out. They are: not JSON, an unknown packet id, a missing or extra key, a wrong type or value, a `decent` that does not match the score (decent means 3 or more), an empty `failures`, an unknown failure value, `none` next to another failure, a `decent_of_style` that is not true or false when the packet showed a requested style or not null when it showed none (the key's `styleShown` says which), or a `style_reason` that is not a string. Keys made before packets showed the style have no `styleShown`; their answers keep the old shape, and the two style fields are extra keys there. A JSON object wrapped in a code fence is read, with a warning.
+- **Warnings** break one of the rubric's consistency rules; the answer still counts. They are: `no-plan` without the plan "no clear plan" or the reverse; `no-plan` with an `enough_` field true; an `enough_` field false without its failure; `interaction` none without `no-interaction`; `win` none without `no-win`; a score above 2 with a plan, setup, or payoff failure; a card named more than once across setup, payoff, and dead; a name that is not in the deck (a face's name is accepted); dead copies at or above the rubric's bar without `dead-cards`; `decent_of_style` true for a deck that is not decent; and an empty `style_reason` with a shown style, or a filled one without.
 
 Each deck counts once, with its first packet's answer, or the copy's answer when the first is missing or invalid. Copies otherwise feed only the agreement table.
 
 The results, in `data/review/results/<batch>.json` and `.md`:
 
-- **By version and size,** and **by version and requested style** (`bestfit` for best fit): decks judged; two decent rates side by side, over judged built decks and over all requests (a declined request counts as not decent: the first rate times built / (built + declined)); mean score; mean dead copies (from the judges' dead lists and the packet's copies); the failures histogram; and declined out of all deck files for the row, with how many of the declined built another style.
-- **Built another style:** per version, the styled requests in the deck files, how many the version answered with another style (each counted as declined above), and how many judged decks were set aside for it.
+- **By version and size,** and **by version and requested style** (`bestfit` for best fit): decks judged; two decent rates side by side, over judged built decks and over all requests (a declined request counts as not decent: the first rate times built / (built + declined)); two rates of decent decks of the requested style, "Of style, built" over judged built decks whose packet showed a style (`decentOfStyle` of `styleJudged`) and "Of style, all requests" over every styled request, a declined or substituted one counting as not decent of its style (the first rate times the styled requests' built share); mean score; mean dead copies (from the judges' dead lists and the packet's copies); the failures histogram; and declined out of all deck files for the row, with how many of the declined built another style. Best fit rows have no style rates, and batches made before the style line show "-" there.
+- **Built another style:** per version, the styled requests in the deck files, how many the version answered with another style (each counted as declined above), how many judged decks were set aside for it, and how many of those the judges found decent all the same (`setAsideDecent`): how good the nearest deck was, kept apart from the request it missed.
 - **Anchors:** for `random` and `real`, the share scored 3 or more, and whether the panel failed most random piles and passed most real decks. If it did not, fix the rubric before trusting the other tables.
 - **Agreement:** for decks judged twice, how often the two judges agreed on `decent`, the share of equal scores, and the mean score difference.
 - **Head to head:** per pair of versions and per match step (`same-request`, `same-pool`, `same-colors`), from the first version's side (alphabetical), wins, losses, ties, and the win share with a tie as half, pooled over which deck was A. Steps are never pooled: only `same-request` rows compare two versions on the same pool and request. Declined builds never enter pairs, so a version skips the comparisons on requests it declines; the report says so beside the table. Pairs with a deck that built another style are left out and counted. An order check counts how often A, B, or a tie was picked, over every valid pair answer.
-- **Example decks:** per version and size, the highest scored and the two lowest scored decks from public and plain pools, with the judge's plan, reason, dead cards, and failures. Owner pools are never quoted.
+- **Example decks:** per version and size, the highest scored and the two lowest scored decks from public and plain pools, with the judge's plan, reason, the style answer and `style_reason` when the batch asked it, dead cards, and failures. Owner pools are never quoted.
 - Invalid answers, answers with warnings, and unanswered packets.
 
-From a script, `collate(key, answers, counts?)` returns the same tables as data (counts from the key's inventory unless `counts` is given), `collateFromDisk(batch, { decks })` reads the files first, and `renderCollation` writes the Markdown. `makeBatch` builds a batch in memory.
+From a script, `collate(key, answers, counts?)` returns the same tables as data (counts from the key's inventory unless `counts` is given), `collateFromDisk(batch, { decks, also })` reads the files first, and `renderCollation` writes the Markdown. `makeBatch` builds a batch in memory; pass `styles: styleTexts(config.archetypes.archetypes)` for the config's words in the style line, as the command does.
 
 ## Check run
 

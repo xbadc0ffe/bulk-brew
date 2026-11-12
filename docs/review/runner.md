@@ -8,6 +8,7 @@ Code: `packages/pipeline/src/review/`.
 - `versions.ts`: the registry.
 - `algos/head.ts`: the current builder.
 - `algos/v26-0-30.ts`: the builder before the learned work.
+- `algos/v26-0-35.ts`: the builder at 26.0.35, before builder phase 1 (`docs/builder-phase1.md`).
 - `build.ts`: the runner and its in-process API.
 
 ## The interface
@@ -86,7 +87,7 @@ npm run review:build -- --pool eval/pools/bulk-black.txt --colors B [flags]
 
 | Flag                 | Meaning                                                                                                                                                                                         |
 | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--version <id>`     | `head` (default), `v26.0.30`, or a registered prototype                                                                                                                                         |
+| `--version <id>`     | `head` (default), `v26.0.30`, `v26.0.35`, or a registered prototype                                                                                                                             |
 | `--pool <file>`      | A decklist text file, or a JSON pool `{ "id": "...", "cards": [[oracleId, qty], ...] }`. Paths are relative to the repo root.                                                                   |
 | `--colors <letters>` | WUBRG letters in any order, such as `B` or `UB`. Required below 100 cards. At 100 cards, leave it out or give the commander's identity.                                                         |
 | `--size <n>`         | 60 (default), 40, 20, or 100                                                                                                                                                                    |
@@ -200,6 +201,26 @@ The `v26.0.30` version runs the 26.0.30 core and `config/` from a git worktree, 
   - the pack's schema differs from the old core's `DATA_SCHEMA_VERSION` (2 for both today).
 - The old `buildDeck(request, pool, index, config)` and `BuildRequest` match the current ones, apart from fields the current core added: `learnedVersion` on decks and `closeness` in scores. The adapter maps every field explicitly.
 - The adapter turns the old core's own `BuildError` into the current one.
+
+## The 26.0.35 worktree
+
+The `v26.0.35` version, "Builder at 26.0.35 (before phase 1)", runs the core and `config/` of commit `e8b05fa` ("Add the brief for builder phase 1") from a git worktree, on the current data pack and `data/learned.json`. It keeps today's builder as a fixed baseline while phase 1 changes `packages/core` and `config/`. Code: `algos/v26-0-35.ts`.
+
+- The worktree's path comes from `REVIEW_WORKTREE_26_0_35`. The default is `../bulk-brew-26.0.35`, next to the repo.
+- Create it from the repo root with:
+
+  ```sh
+  git worktree add --detach ../bulk-brew-26.0.35 e8b05fa7d7ce7369beeb20a4f6b3e3dc03d9fa7a
+  ```
+
+  The core there has no dependencies, so the worktree needs no `npm install`.
+
+- It works like the 26.0.30 adapter (above), with two differences:
+  - that `config/` has `config/learned/plans.json` and `tags.json`, which load into the bundle's `learned` key the way that core's `loadConfigDir` reads its `LEARNED_FILES`: only when every file is there;
+  - that core reads card-level learned data from `index.learned`, so the adapter builds its own `CardIndex` from the pack and attaches the old core's `LearnedCards` made from the same `data/learned.json` (the file's shape is unchanged).
+- Each deck's notes give the config version and the learned data version, as `head`'s do.
+
+Checked on 2026-11-11, while `head` was still the same code: `bulk-blue` U 60 Graveyard, and `elf-tribe` at 100 under Lathril as best fit and as `tribal:Elf`, each built with `--twice` (identical on rebuild) and gave the same name, archetype, colors, commander, cards, basics, and explanation as `head`. Without the card-level learned data, the Lathril best fit came out with other cards, so the attach matters.
 
 ## Build times
 

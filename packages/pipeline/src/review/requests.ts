@@ -3,7 +3,7 @@
 // the same requests. Rules and counts: docs/review/requests.md.
 //
 // Usage: npm run review:requests -- [--pools plain,theme,public,owner] [--plain 30]
-//   [--sizes 60,100,40,20] [--versions head,head-web,v26.0.30,random]
+//   [--prefix <p>] [--sizes 60,100,40,20] [--versions head,head-web,v26.0.30,random]
 //   [--bestfit-only head-web,random] [--no-two-color] [--out data/review/jobs] [--force]
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -135,9 +135,17 @@ export function hasTwoColor(kind: PoolKind, size: ReviewSize, on = true): boolea
   return on && kind === 'plain' && TWO_COLOR_SIZES.includes(size);
 }
 
-/** "theme-energy-01" is the energy pool; plain and public pools have no enriched style. */
+/**
+ * "theme-energy-01" and "h1-theme-energy-01" (a seed prefix, docs/review/pools.md)
+ * are energy pools; plain and public pools have no enriched style.
+ */
 export function themeStyleOf(poolId: string): string | undefined {
-  return /^theme-(.+)-\d+$/.exec(poolId)?.[1];
+  return /^(?:[A-Za-z0-9]+-)?theme-(.+)-\d+$/.exec(poolId)?.[1];
+}
+
+/** Pools made with a seed prefix ("h1-plain-01"), or every pool when no prefix is given. */
+export function hasPrefix(poolId: string, prefix?: string): boolean {
+  return prefix === undefined || poolId.startsWith(`${prefix}-`);
 }
 
 /**
@@ -319,6 +327,11 @@ function main(): number {
   const outDir = path.resolve(ROOT, arg('out') ?? DEFAULT_OUT);
   const force = flag('force');
   const twoColor = !flag('no-two-color');
+  const prefix = arg('prefix');
+  if (prefix !== undefined && !/^[A-Za-z0-9]+$/.test(prefix)) {
+    console.error(`--prefix takes a seed prefix of letters and digits; got ${prefix}`);
+    return 2;
+  }
   if (kinds.some((k) => !KIND_ORDER.includes(k))) {
     console.error(`--pools takes ${KIND_ORDER.join(', ')}; got ${kinds.join(',')}`);
     return 2;
@@ -345,7 +358,7 @@ function main(): number {
   const { index, config, settings } = ctx;
   const byKind = new Map<PoolKind, IndexEntry[]>();
   for (const e of JSON.parse(readFileSync(indexFile, 'utf8')) as IndexEntry[]) {
-    if (!kinds.includes(e.kind)) continue;
+    if (!kinds.includes(e.kind) || !hasPrefix(e.id, prefix)) continue;
     byKind.set(e.kind, [...(byKind.get(e.kind) ?? []), e]);
   }
   const entries: IndexEntry[] = [];
@@ -447,6 +460,7 @@ function main(): number {
     configVersion: configVersion(config),
     scope: {
       pools: KIND_ORDER.filter((k) => kinds.includes(k)),
+      ...(prefix !== undefined ? { prefix } : {}),
       plain: entries.filter((e) => e.kind === 'plain').length,
       sizes: ordered,
       versions,
@@ -565,7 +579,8 @@ function main(): number {
   console.log(
     `\n${requests.length} requests per version (bestfit ${reasons.bestfit ?? 0}, shape ${reasons.shape ?? 0}, ` +
       `viable ${reasons.viable ?? 0}, enriched ${reasons.enriched ?? 0}; two-color slice ${sliced}` +
-      `${twoColor ? '' : ', turned off'}); ${entries.length} pools; data ${index.dataVersion}`,
+      `${twoColor ? '' : ', turned off'}); ${entries.length} pools` +
+      `${prefix !== undefined ? ` with prefix ${prefix}` : ''}; data ${index.dataVersion}`,
   );
   if (noCommander.length) console.log(`no commander at 100 for: ${noCommander.join(', ')}`);
   if (preferred.length)
