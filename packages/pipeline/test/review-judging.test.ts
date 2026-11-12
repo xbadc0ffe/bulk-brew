@@ -10,6 +10,7 @@ import {
   deadCopies,
   parseAnswer,
   renderCollation,
+  requestKindOf,
   type AnswerFile,
   type SingleAnswer,
 } from '../src/review/collate.ts';
@@ -910,6 +911,20 @@ describe('collate', () => {
     });
     const gy = c.byStyle.find((r) => r.version === 'head' && r.style === 'graveyard')!;
     expect(gy).toMatchObject({ judged: 1, decent: 0, built: 1, declined: 2, decentRateAll: 0 });
+  });
+
+  it('splits each version and size by request kind, and the kinds add up to the size row', () => {
+    const head = c.bySize.find((r) => r.version === 'head' && r.size === 60)!;
+    const kinds = c.byKind.filter((r) => r.version === 'head' && r.size === 60);
+    expect(kinds.map((r) => r.kind)).toEqual([...new Set(kinds.map((r) => r.kind))]);
+    expect(kinds.reduce((n, r) => n + r.judged, 0)).toBe(head.judged);
+    expect(kinds.reduce((n, r) => n + r.built + r.declined, 0)).toBe(head.built + head.declined);
+    const themed = kinds.find((r) => r.kind === 'themed')!;
+    const gy = c.byStyle.find((r) => r.version === 'head' && r.style === 'graveyard')!;
+    expect(themed.judged).toBeGreaterThanOrEqual(gy.judged);
+    expect(requestKindOf('bestfit')).toBe('bestfit');
+    expect(requestKindOf('aggro')).toBe('shape');
+    expect(requestKindOf('tribal:Elf')).toBe('themed');
   });
 
   it('takes built and declined counts from the deck files when given', () => {

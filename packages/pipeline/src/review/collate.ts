@@ -343,6 +343,25 @@ export interface StyleRow extends Stat {
   style: string;
 }
 
+/** What a request asked for: nothing (best fit), a plain shape by name, or a themed style. */
+export type RequestKind = 'bestfit' | 'shape' | 'themed';
+
+// The shapes' ids never change (SPEC.md "Decisions"), so the collator needs no config.
+const SHAPE_STYLES: ReadonlySet<string> = new Set(['aggro', 'midrange', 'control']);
+const KIND_ORDER: readonly RequestKind[] = ['themed', 'shape', 'bestfit'];
+
+export function requestKindOf(style: string): RequestKind {
+  if (style === 'bestfit') return 'bestfit';
+  return SHAPE_STYLES.has(style) ? 'shape' : 'themed';
+}
+
+/** One version at one size for one kind of request: the rows the ship rule reads. */
+export interface KindRow extends Stat {
+  version: string;
+  size: number;
+  kind: RequestKind;
+}
+
 export interface AnchorRow {
   version: string;
   judged: number;
@@ -430,6 +449,8 @@ export interface Collation {
   invalid: FileProblem[];
   warnings: FileProblem[];
   bySize: SizeRow[];
+  /** Per version, size, and request kind (themed, shape, best fit). */
+  byKind: KindRow[];
   byStyle: StyleRow[];
   anotherStyle: AnotherStyleRow[];
   anchors: AnchorRow[];
@@ -600,6 +621,7 @@ export function collate(
   ].sort(versionOrder);
 
   const bySize: SizeRow[] = [];
+  const byKind: KindRow[] = [];
   const byStyle: StyleRow[] = [];
   const anotherStyle: AnotherStyleRow[] = [];
   for (const version of versions) {
@@ -607,14 +629,15 @@ export function collate(
     const mine = judged.filter((j) => j.ref.version === version);
     const sizes = new Set([...inv.map((r) => r.size), ...mine.map((j) => j.ref.request.size)]);
     for (const size of SIZE_ORDER.filter((s) => sizes.has(s))) {
-      bySize.push({
-        version,
-        size,
-        ...stat(
-          mine.filter((j) => j.ref.request.size === size),
-          inv.filter((r) => r.size === size),
-        ),
-      });
+      const atSize = mine.filter((j) => j.ref.request.size === size);
+      const invAtSize = inv.filter((r) => r.size === size);
+      bySize.push({ version, size, ...stat(atSize, invAtSize) });
+      for (const kind of KIND_ORDER) {
+        const j = atSize.filter((x) => requestKindOf(styleOf(x.ref.request)) === kind);
+        const rows = invAtSize.filter((r) => requestKindOf(r.style) === kind);
+        if (j.length === 0 && rows.length === 0) continue;
+        byKind.push({ version, size, kind, ...stat(j, rows) });
+      }
     }
     const styles = new Set([
       ...inv.map((r) => r.style),
@@ -776,6 +799,7 @@ export function collate(
     invalid,
     warnings,
     bySize,
+    byKind,
     byStyle,
     anotherStyle,
     anchors,
@@ -895,6 +919,19 @@ export function renderCollation(c: Collation): string {
     ...table(
       ['Version', 'Size', ...STAT_HEAD],
       c.bySize.map((r) => [r.version, String(r.size), ...statCells(r)]),
+    ),
+    '',
+  );
+  L.push(
+    '## By version, size, and request kind',
+    '',
+    'Themed means a request for a synergy style; shape means Aggro, Midrange, or Control by name.',
+    '',
+  );
+  L.push(
+    ...table(
+      ['Version', 'Size', 'Kind', ...STAT_HEAD],
+      c.byKind.map((r) => [r.version, String(r.size), r.kind, ...statCells(r)]),
     ),
     '',
   );
