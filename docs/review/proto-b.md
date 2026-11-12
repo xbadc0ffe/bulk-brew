@@ -4,6 +4,8 @@ B builds the way a person does: pick a plan from honest counts, seed the payoffs
 
 Date: 2026-11-08. Data pack 2026-11-03. Theme rules version 2 (`packages/pipeline/src/review/theme-rules.json`).
 
+**Now in the core (2026-11-11).** The algorithm lives on as the app's builder for styles the player asks for by name at 60, 40, and 100 cards, in `packages/core/src/grow.ts` (`buildDeck` routes there; best fit, 20-card packets, secondary styles, and tribes keep the classic builder). It reads the rules from `config/theme-rules.json` and the bulk baseline from `config/theme-bulk.json`, and its constants from `config/builder-weights.json` under `grow`. What differs from the prototype below: a commander counts once (`commanderCredit` 1, the prototype's 3); the gate has a third rule, so setup for a style marked `setupNeedsPayoff` (Mill, Group hug, Energy) enters another deck only beside a payoff of its own and within the floors' ratio, which keeps Ruin Crab out of Graveyard and plain decks; a requested style the pool cannot support is answered with a note and the nearest deck (the first buildable style in its `kin` list, else today's best fit, else the plain shape the pool fills best when today's best fit would carry the asked-for name) instead of a decline; a deck whose lands would fall outside the template's range counts as unfillable, where the prototype checked only the slack over the formula; and tribes are left to the classic builder. Best fit (`chooseBestFit`) is ported but not wired in. The prototype here stays as it was, for the review.
+
 Two versions share one algorithm:
 
 - `b-grow`: setup and payoff jobs, weights, exclusions, and per-size floors from the theme rules.

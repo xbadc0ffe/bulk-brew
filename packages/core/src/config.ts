@@ -401,6 +401,8 @@ export interface BuilderWeightsConfig {
     brackets: Record<string, number>;
     weight: PerSize<number>;
   };
+  /** The grow builder (grow.ts): styles asked for by name at 60, 40, and 100 cards. */
+  grow: GrowWeights;
   /**
    * Pick penalties, in card strength points, for spells that strain a
    * multi-color mana base: pips of a secondary or splash color, double pips,
@@ -414,6 +416,30 @@ export interface BuilderWeightsConfig {
     splashDouble: number;
     splashEarly: number;
   };
+}
+
+/** Judgment constants of the grow builder, set from the theme guide (docs/review/proto-b.md). */
+export interface GrowWeights {
+  /** Best fit: a theme whose pool holds this many times its floors counts in full; less scores less. */
+  marginFull: number;
+  /** Best fit: richness over plain bulk counts up to this. */
+  richnessCap: number;
+  /** Seed this much over the payoff floor when both halves of the pool hold twice their floors. */
+  richSeed: number;
+  /** Copies a commander's theme job counts as; the rules count it as one card. */
+  commanderCredit: number;
+  /** Best fit: a theme the commander pays off scores this much higher. */
+  commanderPlan: number;
+  /** Off-plan payoffs at or above this weight need their own setup in the deck. */
+  offPlanGateWeight: number;
+  /** A theme card whose mana value slot is already at its curve target counts this much. */
+  fullSlot: number;
+  /** Extra value for the plan's setup in the role and curve fills while the deck sits at its setup floor. */
+  setupPull: number;
+  /** The setup pull fades to nothing at this multiple of the setup floor. */
+  setupTarget: number;
+  /** A style whose pool reaches this share of its floors is offered as short (note and nearest deck); below it, left out. */
+  nearMargin: number;
 }
 
 export interface StrengthEffect {
@@ -1025,6 +1051,29 @@ export function validateConfig(c: BulkBrewConfig): string[] {
   for (const key of ['60', '40', '20', '100'] as const)
     if (!isNum(combos?.weight?.[key]) || combos.weight[key]! < 0)
       problems.push(`builderWeights.combos.weight.${key}: must be a non-negative number`);
+
+  const gw = bw.grow;
+  // [key, lowest, highest]: the ranges where each constant still means what its comment says.
+  const growRanges: [keyof GrowWeights, number, number][] = [
+    ['marginFull', 1, 10],
+    ['richnessCap', 1, 10],
+    ['richSeed', 1, 3],
+    ['commanderCredit', 0, 10],
+    ['commanderPlan', 1, 3],
+    ['offPlanGateWeight', 0, 10],
+    ['fullSlot', 0, 1],
+    ['setupPull', 0, 2],
+    ['setupTarget', 1, 5],
+    ['nearMargin', 0, 1],
+  ];
+  if (!gw || typeof gw !== 'object') problems.push('builderWeights.grow: missing');
+  else
+    for (const [k, lo, hi] of growRanges)
+      if (!isNum(gw[k]) || gw[k] < lo || gw[k] > hi)
+        problems.push(`builderWeights.grow.${k}: must be a number from ${lo} to ${hi}`);
+  // setupTarget is the fade's upper end; at 1 the pull would divide by zero.
+  if (isNum(gw?.setupTarget) && gw.setupTarget <= 1)
+    problems.push('builderWeights.grow.setupTarget: must be above 1');
 
   const cast = bw.castability;
   for (const k of [

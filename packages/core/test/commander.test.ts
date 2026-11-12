@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BuildError, buildDeck, styleCounts } from '../src/builder.ts';
+import { BuildError, buildClassic, buildDeck, styleCounts } from '../src/builder.ts';
 import { planOptions } from '../src/options.ts';
 import {
   commanderCanBuild,
@@ -217,7 +217,7 @@ describe('Commander builds', () => {
     expect(scans.get('W')!.size).toBe(100);
   });
 
-  it('refuses a style the pool cannot build when the style is required', () => {
+  it('answers a style the pool cannot build with a note, or refuses it on the classic path', () => {
     const loose = buildDeck(
       { ...request, commander: 'lead', style: 'tokens' },
       pool,
@@ -225,8 +225,18 @@ describe('Commander builds', () => {
       CONFIG,
     );
     expect(loose.deck.archetype).not.toBe('tokens');
+    // Asked for by the player: the nearest deck the pool can build, labelled for what it is.
+    const asked = buildDeck(
+      { ...request, commander: 'lead', style: 'tokens', requireStyle: true },
+      pool,
+      index,
+      CONFIG,
+    );
+    expect(asked.deck.archetype).not.toBe('tokens');
+    expect(asked.explanation.nearest?.requested).toBe('tokens');
+    expect(asked.explanation.notes[0]).toMatch(/^Asked for Tokens: your bulk list has /);
     expect(() =>
-      buildDeck(
+      buildClassic(
         { ...request, commander: 'lead', style: 'tokens', requireStyle: true },
         pool,
         index,

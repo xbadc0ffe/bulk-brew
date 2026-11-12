@@ -16,6 +16,7 @@ import {
 } from './config.ts';
 import { listCandidates, type Candidate } from './candidates.ts';
 import { colorsLabel, isCommanderSize, normalizeColors } from './colors.ts';
+import { growViability } from './grow.ts';
 import { creatureTypes, inTribe } from './matchers.ts';
 import type { CardIndex } from './pack.ts';
 import {
@@ -219,11 +220,16 @@ export function scanCandidates(
   }
   const possible = !notes.some((n) => n.startsWith('needs '));
   const tribes = tribesOf(cands);
-  const archetypes = config.archetypes.archetypes.map((a) =>
-    a.kind === 'synergy'
-      ? reportSynergy(a, config, cands, template, colors, possible)
-      : reportComposition(a, cands, config, template, spells, spellSlots, possible),
-  );
+  // The theme rules' view, for the sizes the grow builder builds; the old fields stay as they were.
+  const rules = size === 20 ? undefined : growViability(cands, config, size);
+  const archetypes = config.archetypes.archetypes.map((a) => {
+    if (a.kind !== 'synergy')
+      return reportComposition(a, cands, config, template, spells, spellSlots, possible);
+    const report = reportSynergy(a, config, cands, template, colors, possible);
+    const r = rules?.[a.id];
+    if (r) report.rules = { viable: r.viable, margin: r.margin, lacks: r.lacks };
+    return report;
+  });
   return {
     color,
     colors,

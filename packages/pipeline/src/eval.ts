@@ -346,7 +346,8 @@ function main(): number {
             settings,
             id: `${name}-${size}-${color}-${style}`,
             createdAt: 'eval',
-            ...(style === 'best' ? {} : { style }),
+            // A requested style is the player's pick, as the app sends it.
+            ...(style === 'best' ? {} : { style, requireStyle: true }),
           };
           const t1 = Date.now();
           try {

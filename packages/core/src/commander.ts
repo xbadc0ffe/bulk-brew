@@ -6,7 +6,7 @@
 // basic lands and cards whose text allows more.
 
 import type { BulkBrewConfig } from './config.ts';
-import { BuildError, buildDeck, styleCounts } from './builder.ts';
+import { BuildError, buildClassic, styleCounts } from './builder.ts';
 import { factsFor, listCandidates, type Candidate } from './candidates.ts';
 import type { CardIndex } from './pack.ts';
 import { commanderTribes, scanPool, secondaryLabel, tribeOf } from './scan.ts';
@@ -242,7 +242,8 @@ export function commanderCanBuild(
   settings: Settings,
 ): boolean {
   try {
-    const { deck } = buildDeck(
+    // Today's builder and its matchers, until the commander list reads the theme rules too.
+    const { deck } = buildClassic(
       { size: 100, colors: [], commander, style, requireStyle: true, settings },
       pool,
       index,

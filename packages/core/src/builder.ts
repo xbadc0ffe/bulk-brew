@@ -35,9 +35,14 @@ import {
   ManaBaseError,
   planLandCount,
   type ColorPlan,
+  type LandPick,
+  type LandPlan,
   type ManaBase,
   type SpellCopies,
 } from './lands.ts';
+// A cycle: grow.ts reuses this file's reporting and checks, and buildDeck routes to it.
+// Both use the other's exports only inside functions, never at load time.
+import { buildGrowDeck, growBuilds } from './grow.ts';
 import {
   colorsLabel,
   identityWithin,
@@ -1310,7 +1315,7 @@ function creditCommander(
 }
 
 /** The commander for a 100-card request, or a plain-language reason it cannot lead. */
-function commanderFor(request: BuildRequest, pool: Pool, index: CardIndex): CardRecord {
+export function commanderFor(request: BuildRequest, pool: Pool, index: CardIndex): CardRecord {
   const rarities = request.settings.rarities?.length ? request.settings.rarities : undefined;
   if (!request.commander) throw new BuildError('Pick a commander for a 100-card deck.');
   const card = index.get(request.commander);
@@ -1339,22 +1344,24 @@ interface Attempt {
   notes: string[];
 }
 
-function attempt(
+/**
+ * Everything the fills, swaps, and deck score read for one archetype. The
+ * learned selection is costly; the grow builder only scores with this, so it
+ * leaves it out.
+ */
+function contextFor(
   archetype: Archetype,
   template: DeckTemplate,
   cands: Candidate[],
   config: BulkBrewConfig,
-  request: BuildRequest,
+  size: DeckSize,
   index: CardIndex,
-  colorLabel: string,
   plan: ColorPlan,
   penalty: Map<string, number>,
   secondary: SecondaryTheme | undefined,
   commander: CardRecord | undefined,
-): Attempt {
-  const { size, settings } = request;
-  // A Commander deck builds its 99 around the commander, who takes the hundredth slot.
-  const deckSize = commander ? size - 1 : size;
+  withSelection = true,
+): Ctx {
   // A shape as secondary style sets the curve, type mix, and roles under a themed primary.
   const shape = secondary?.shape;
   const spells = cands.filter((c) => c.facts.spell);
@@ -1415,17 +1422,50 @@ function attempt(
     },
     theme,
     profile: planShapeOf(archetype, config, size),
-    selection: learnedAt(config, size)
-      ? selectionFor(
-          config,
-          index,
-          spells,
-          archetype.kind === 'synergy' ? archetype.id : undefined,
-          size,
-          commander,
-        )
-      : undefined,
+    selection:
+      withSelection && learnedAt(config, size)
+        ? selectionFor(
+            config,
+            index,
+            spells,
+            archetype.kind === 'synergy' ? archetype.id : undefined,
+            size,
+            commander,
+          )
+        : undefined,
   };
+  return ctx;
+}
+
+function attempt(
+  archetype: Archetype,
+  template: DeckTemplate,
+  cands: Candidate[],
+  config: BulkBrewConfig,
+  request: BuildRequest,
+  index: CardIndex,
+  colorLabel: string,
+  plan: ColorPlan,
+  penalty: Map<string, number>,
+  secondary: SecondaryTheme | undefined,
+  commander: CardRecord | undefined,
+): Attempt {
+  const { size, settings } = request;
+  // A Commander deck builds its 99 around the commander, who takes the hundredth slot.
+  const deckSize = commander ? size - 1 : size;
+  const ctx = contextFor(
+    archetype,
+    template,
+    cands,
+    config,
+    size,
+    index,
+    plan,
+    penalty,
+    secondary,
+    commander,
+  );
+  const theme = ctx.theme;
   const notes: string[] = [];
 
   let lands = template.baseLands;
@@ -1510,16 +1550,195 @@ export function commanderPull(
 }
 
 /** "Anafenza, Kin-Tree Spirit" becomes "Anafenza"; the front face of a two-faced name. */
-function shortName(name: string): string {
+export function commanderShortName(name: string): string {
   return (name.split(' // ')[0] ?? name).split(',')[0]!.trim();
 }
 
-/**
- * Build one deck. Throws BuildError with a plain-language message when the
- * pool cannot make a deck of the requested size and color.
- */
+/** Weighted enabler and payoff pairs of the synergy rules, the five fullest, as the explanation lists them. */
+function synergyLines(t: Tally, config: BulkBrewConfig): string[] {
+  return config.synergyRules.rules
+    .map((rule) => ({
+      rule,
+      e: t.ruleEnablers.get(rule.id) ?? 0,
+      p: t.rulePayoffs.get(rule.id) ?? 0,
+    }))
+    .filter((s) => s.e > 0 && s.p > 0)
+    .sort((a, b) => Math.min(b.e, b.p) - Math.min(a.e, a.p) || (a.rule.id < b.rule.id ? -1 : 1))
+    .slice(0, 5)
+    .map((s) => `${s.rule.note.replace(/\.$/, '')}: ${s.e} enablers, ${s.p} payoffs`);
+}
 
+function roleCounts(t: Tally, ctx: Ctx): BuildExplanation['roles'] {
+  const roles: BuildExplanation['roles'] = {};
+  for (const roleId of Object.keys(ctx.quotas)) {
+    roles[roleId] = { have: t.roles.get(roleId) ?? 0, want: ctx.quotas[roleId]!.target };
+  }
+  return roles;
+}
+
+/** "Wanted 4 removal, the bulk list had 2." for each role below its minimum. */
+function roleShortNotes(t: Tally, ctx: Ctx, cands: Candidate[]): string[] {
+  const notes: string[] = [];
+  for (const [roleId, q] of Object.entries(ctx.quotas)) {
+    const have = t.roles.get(roleId) ?? 0;
+    if (have < q.min) {
+      const inPool = countCopies(cands, (c) => c.facts.roles.includes(roleId));
+      notes.push(
+        `Wanted ${q.min} ${roleLabel(ctx, roleId).toLowerCase()}, the bulk list had ${inPool}.`,
+      );
+    }
+  }
+  return notes;
+}
+
+/** A note for each card played in more copies than its usual count, spells and lands by name. */
+export function copyNotes(
+  spells: readonly { cand: Candidate; qty: number }[],
+  nonbasics: readonly LandPick[],
+): string[] {
+  const picks = [...spells, ...nonbasics.map((p) => ({ cand: p.candidate, qty: p.qty }))].sort(
+    (a, b) =>
+      a.cand.facts.card.name < b.cand.facts.card.name
+        ? -1
+        : a.cand.facts.card.name > b.cand.facts.card.name
+          ? 1
+          : a.cand.facts.card.id < b.cand.facts.card.id
+            ? -1
+            : 1,
+  );
+  const notes: string[] = [];
+  for (const { cand, qty } of picks) {
+    if (qty > cand.preferred) {
+      notes.push(
+        `Played ${qty} copies of ${cand.facts.card.name}, more than the usual ${cand.preferred}, because the bulk list ran out of other cards.`,
+      );
+    }
+  }
+  return notes;
+}
+
+/** The land line every explanation ends its notes with. */
+export function landLine(lands: number, plan: LandPlan, mana: ManaBase): string {
+  const nonbasicCount = mana.nonbasics.reduce((n, p) => n + p.qty, 0);
+  return `${lands} lands: average cost ${plan.averageMv.toFixed(1)}, ${plan.cheapManaSources} cheap mana source${plan.cheapManaSources === 1 ? '' : 's'}, ${nonbasicCount} nonbasic.`;
+}
+
+/**
+ * The checks every finished deck passes, whichever builder made it: the card
+ * total, color or identity fit, copy limits, Commander legality, and lands
+ * inside the template's range. A failure is a bug, not a thin pool.
+ */
+export function checkBuiltDeck(
+  cards: readonly DeckCard[],
+  basics: Partial<Record<Color, number>>,
+  lands: number,
+  request: BuildRequest,
+  colors: readonly Color[],
+  commander: CardRecord | undefined,
+  config: BulkBrewConfig,
+  index: CardIndex,
+): void {
+  const { size, settings } = request;
+  const template = templateFor(config, size);
+  const basicCount = Object.values(basics).reduce((n, q) => n + (q ?? 0), 0);
+  const total = cards.reduce((n, c) => n + c.qty, 0) + basicCount;
+  if (total !== size) throw new Error(`builder produced ${total} cards for a ${size}-card deck`);
+  const limit = maxCopiesFor(settings, config, size);
+  for (const dc of cards) {
+    const card = index.get(dc.cardId)!;
+    const fits = isCommanderSize(size) ? identityWithin(card, colors) : playableWith(card, colors);
+    if (!fits) throw new Error(`builder chose off-color ${card.name}`);
+    const most = commander ? commanderCopies(card) : limit;
+    if (dc.qty > most) throw new Error(`builder exceeded the copy limit on ${card.name}`);
+    if (commander && card.commanderLegality)
+      throw new Error(`builder chose ${card.name}, which is not legal in Commander`);
+  }
+  if (lands < template.landFormula.min || lands > template.landFormula.max) {
+    throw new Error(`builder picked ${lands} lands, outside the template range`);
+  }
+}
+
+/** What both builders report about a finished spell list. */
+export interface SpellReport {
+  score: DeckScore;
+  /** Spell copies per mana value, 0 through 7, the commander left out. */
+  curve: number[];
+  roles: BuildExplanation['roles'];
+  synergies: string[];
+  /** Roles below their minimum, in the classic builder's words. */
+  roleNotes: string[];
+}
+
+/**
+ * Score and describe a spell list the grow builder chose, the way the classic
+ * builder does its own (same quotas, commander credit, synergy lines, and
+ * deck score), so the Build page ranks both on one scale.
+ */
+export function spellReport(
+  archetype: Archetype,
+  chosen: readonly { cand: Candidate; qty: number; why: string }[],
+  cands: Candidate[],
+  lands: number,
+  mana: ManaBase,
+  plan: ColorPlan,
+  config: BulkBrewConfig,
+  index: CardIndex,
+  size: DeckSize,
+  commander: CardRecord | undefined,
+): SpellReport {
+  const template = templateFor(config, size);
+  const ctx = contextFor(
+    archetype,
+    template,
+    cands,
+    config,
+    size,
+    index,
+    plan,
+    new Map(),
+    undefined,
+    commander,
+    false,
+  );
+  const state: State = {
+    slots: size - (commander ? 1 : 0) - lands,
+    chosen: new Map(chosen.map((c) => [c.cand.facts.card.id, { ...c }])),
+    order: [],
+  };
+  const t = tally(state, ctx);
+  return {
+    score: scoreDeck(state, ctx, mana, lands),
+    curve: t.curve,
+    roles: roleCounts(t, ctx),
+    synergies: synergyLines(t, config),
+    roleNotes: roleShortNotes(t, ctx, cands),
+  };
+}
+
+/**
+ * Build one deck. A style the player asked for (`requireStyle`) at 60, 40,
+ * or 100 cards, a theme the rules describe or a plain shape, without a
+ * secondary style, goes to the grow builder (grow.ts); everything else, best
+ * fit included, to the classic builder below. Throws BuildError with a
+ * plain-language message when the pool cannot make a deck of the requested
+ * size and color.
+ */
 export function buildDeck(
+  request: BuildRequest,
+  pool: Pool,
+  index: CardIndex,
+  config: BulkBrewConfig,
+): BuildResult {
+  if (growBuilds(request, config)) return buildGrowDeck(request, pool, index, config);
+  return buildClassic(request, pool, index, config);
+}
+
+/**
+ * The classic builder: scan, pick archetypes, fill in passes, improve by
+ * swaps. Best fit at every size, 20-card packets, secondary styles, tribes,
+ * and styles the player did not ask for by name.
+ */
+export function buildClassic(
   request: BuildRequest,
   pool: Pool,
   index: CardIndex,
@@ -1560,12 +1779,12 @@ export function buildDeck(
         : (report?.notes.join('; ') ??
           (tribeOf(request.style)
             ? commander
-              ? `${shortName(commander.name)} does not reward the ${tribeOf(request.style)} tribe`
+              ? `${commanderShortName(commander.name)} does not reward the ${tribeOf(request.style)} tribe`
               : 'a tribe leads only a Commander deck whose commander names it'
             : 'unknown archetype'));
       if (request.requireStyle) {
         throw new BuildError(
-          `Not enough cards to build ${a?.label ?? secondaryLabel(config, request.style)}${commander ? ` under ${shortName(commander.name)}` : ''}${why ? `: ${why}` : ''}.`,
+          `Not enough cards to build ${a?.label ?? secondaryLabel(config, request.style)}${commander ? ` under ${commanderShortName(commander.name)}` : ''}${why ? `: ${why}` : ''}.`,
         );
       }
       notes.push(
@@ -1679,7 +1898,7 @@ export function buildDeck(
       rankOf(best) > best.score.total && rest.some((at) => at.score.total > best!.score.total);
     notes.push(
       favored
-        ? `Compared ${tried.length} archetypes and kept ${best.archetype.label}, an archetype ${shortName(commander!.name)} leads. Next: ${shown.join(', ')}.`
+        ? `Compared ${tried.length} archetypes and kept ${best.archetype.label}, an archetype ${commanderShortName(commander!.name)} leads. Next: ${shown.join(', ')}.`
         : `Compared ${tried.length} archetypes and kept the strongest, ${best.archetype.label}. Next: ${shown.join(', ')}.`,
     );
   }
@@ -1709,36 +1928,10 @@ export function buildDeck(
     }
   }
   notes.push(...best.notes, ...mana.notes);
-  const picks = [
-    ...[...state.chosen.values()].map(({ cand, qty }) => ({ cand, qty })),
-    ...mana.nonbasics.map((p) => ({ cand: p.candidate, qty: p.qty })),
-  ].sort((a, b) =>
-    a.cand.facts.card.name < b.cand.facts.card.name
-      ? -1
-      : a.cand.facts.card.name > b.cand.facts.card.name
-        ? 1
-        : a.cand.facts.card.id < b.cand.facts.card.id
-          ? -1
-          : 1,
-  );
-  for (const { cand, qty } of picks) {
-    if (qty > cand.preferred) {
-      notes.push(
-        `Played ${qty} copies of ${cand.facts.card.name}, more than the usual ${cand.preferred}, because the bulk list ran out of other cards.`,
-      );
-    }
-  }
+  notes.push(...copyNotes([...state.chosen.values()], mana.nonbasics));
 
   const t = tally(state, ctx);
-  for (const [roleId, q] of Object.entries(ctx.quotas)) {
-    const have = t.roles.get(roleId) ?? 0;
-    if (have < q.min) {
-      const inPool = countCopies(cands, (c) => c.facts.roles.includes(roleId));
-      notes.push(
-        `Wanted ${q.min} ${roleLabel(ctx, roleId).toLowerCase()}, the bulk list had ${inPool}.`,
-      );
-    }
-  }
+  notes.push(...roleShortNotes(t, ctx, cands));
 
   const cards: DeckCard[] = [...state.chosen.values()]
     .sort((a, b) => {
@@ -1763,56 +1956,24 @@ export function buildDeck(
     cards.push(dc);
   }
 
-  const basicCount = Object.values(mana.basics).reduce((n, q) => n + (q ?? 0), 0);
-  const total = cards.reduce((n, c) => n + c.qty, 0) + basicCount;
-  if (total !== size) throw new Error(`builder produced ${total} cards for a ${size}-card deck`);
-  const limit = maxCopiesFor(settings, config, size);
-  for (const dc of cards) {
-    const card = index.get(dc.cardId)!;
-    const fits = isCommanderSize(size) ? identityWithin(card, colors) : playableWith(card, colors);
-    if (!fits) throw new Error(`builder chose off-color ${card.name}`);
-    const most = commander ? commanderCopies(card) : limit;
-    if (dc.qty > most) throw new Error(`builder exceeded the copy limit on ${card.name}`);
-    if (commander && card.commanderLegality)
-      throw new Error(`builder chose ${card.name}, which is not legal in Commander`);
-  }
-  if (lands < template.landFormula.min || lands > template.landFormula.max) {
-    throw new Error(`builder picked ${lands} lands, outside the template range`);
-  }
+  checkBuiltDeck(cards, mana.basics, lands, request, colors, commander, config, index);
 
-  const synergies = config.synergyRules.rules
-    .map((rule) => ({
-      rule,
-      e: t.ruleEnablers.get(rule.id) ?? 0,
-      p: t.rulePayoffs.get(rule.id) ?? 0,
-    }))
-    .filter((s) => s.e > 0 && s.p > 0)
-    .sort((a, b) => Math.min(b.e, b.p) - Math.min(a.e, a.p) || (a.rule.id < b.rule.id ? -1 : 1))
-    .slice(0, 5)
-    .map((s) => `${s.rule.note.replace(/\.$/, '')}: ${s.e} enablers, ${s.p} payoffs`);
-
-  const roles: BuildExplanation['roles'] = {};
-  for (const roleId of Object.keys(ctx.quotas)) {
-    roles[roleId] = { have: t.roles.get(roleId) ?? 0, want: ctx.quotas[roleId]!.target };
-  }
-  const nonbasicCount = mana.nonbasics.reduce((n, p) => n + p.qty, 0);
-  notes.push(
-    `${lands} lands: average cost ${plan.averageMv.toFixed(1)}, ${plan.cheapManaSources} cheap mana source${plan.cheapManaSources === 1 ? '' : 's'}, ${nonbasicCount} nonbasic.`,
-  );
+  notes.push(landLine(lands, plan, mana));
 
   const explanation: BuildExplanation = {
     archetype: archetype.id,
+    builder: 'classic',
     ...(secondaryInfo ? { secondary: secondaryInfo } : {}),
     curve: t.curve,
-    roles,
+    roles: roleCounts(t, ctx),
     lands: {
       count: lands,
       averageMv: plan.averageMv,
       cheapManaSources: plan.cheapManaSources,
-      nonbasics: nonbasicCount,
+      nonbasics: mana.nonbasics.reduce((n, p) => n + p.qty, 0),
       ...(colors.length > 1 ? { sources: mana.sources } : {}),
     },
-    synergies,
+    synergies: synergyLines(t, config),
     notes,
     score,
   };
@@ -1827,7 +1988,7 @@ export function buildDeck(
   const deckColors = used.length > 0 ? used : [colorPlanned.main];
   const deck: Deck = {
     id: request.id ?? '',
-    name: `${commander ? shortName(commander.name) : colorsLabel(deckColors)} ${archetype.label}${secondaryInfo ? ` with ${secondaryInfo.label}` : ''} ${size}`,
+    name: `${commander ? commanderShortName(commander.name) : colorsLabel(deckColors)} ${archetype.label}${secondaryInfo ? ` with ${secondaryInfo.label}` : ''} ${size}`,
     size,
     color: deckColors[0]!,
     ...(deckColors.length > 1 ? { colors: deckColors } : {}),

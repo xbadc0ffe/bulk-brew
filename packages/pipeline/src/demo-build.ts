@@ -81,8 +81,9 @@ function main(): number {
 
   const t3 = Date.now();
   try {
+    // A named style is the player's pick, as the app sends it: built, or answered with the nearest deck.
     const request = style
-      ? { size, colors, settings, style, id: 'demo', createdAt: 'demo' }
+      ? { size, colors, settings, style, requireStyle: true, id: 'demo', createdAt: 'demo' }
       : { size, colors, settings, id: 'demo', createdAt: 'demo' };
     const result = buildDeck(request, pool, index, config);
     const ms = Date.now() - t3;

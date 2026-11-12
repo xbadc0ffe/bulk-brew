@@ -152,7 +152,8 @@ export function hasPrefix(poolId: string, prefix?: string): boolean {
  * Best fit first, then each viable style in config order (the Aggro, Midrange,
  * and Control shapes as "shape", themed styles as "viable"), then extra viable
  * ids (a commander's tribes), then the enriched style when the scan did not
- * already list it.
+ * already list it. A themed style is viable when either the old matchers or
+ * the theme rules accept it, so both builders are asked for it.
  */
 export function styleRequests(
   scan: Pick<ScanReport, 'archetypes'>,
@@ -162,7 +163,7 @@ export function styleRequests(
   const out: { style?: string; reason: Reason }[] = [{ reason: 'bestfit' }];
   // The shapes are the plain baseline a themed deck must beat.
   for (const r of scan.archetypes)
-    if (r.viable)
+    if (r.kind === 'synergy' ? r.viable || r.rules?.viable : r.viable)
       out.push({ style: r.archetype, reason: r.kind === 'synergy' ? 'viable' : 'shape' });
   for (const id of [...extraViable].sort())
     if (!out.some((o) => o.style === id)) out.push({ style: id, reason: 'viable' });

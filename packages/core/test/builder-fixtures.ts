@@ -39,6 +39,13 @@ for (let mv = 1; mv <= 6; mv++) {
     if (i % 3 === 0) tags.push('repeatable-creature-tokens');
     if (i % 3 === 1 && mv >= 3) tags.push('anthem', 'power-boost-to-all');
     const keywords = i % 2 === 0 && mv >= 2 ? ['Flying'] : [];
+    // Text to match the tags, so the theme rules read the same cards as the matchers.
+    const text =
+      i % 3 === 0
+        ? 'At the beginning of your upkeep, create a 1/1 white Soldier creature token.'
+        : tags.includes('anthem')
+          ? 'Other creatures you control get +1/+1.'
+          : '';
     cards.push(
       card({
         id,
@@ -49,6 +56,7 @@ for (let mv = 1; mv <= 6; mv++) {
         toughness: String(mv),
         keywords,
         tags,
+        text,
       }),
     );
   }

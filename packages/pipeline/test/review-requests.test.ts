@@ -95,8 +95,18 @@ describe('pool colors', () => {
   });
 });
 
-function report(archetype: string, kind: ArchetypeReport['kind'], viable: boolean) {
-  return { archetype, kind, viable } as ArchetypeReport;
+function report(
+  archetype: string,
+  kind: ArchetypeReport['kind'],
+  viable: boolean,
+  rules?: boolean,
+) {
+  return {
+    archetype,
+    kind,
+    viable,
+    ...(rules === undefined ? {} : { rules: { viable: rules, margin: rules ? 1 : 0, lacks: '' } }),
+  } as ArchetypeReport;
 }
 
 describe('styleRequests', () => {
@@ -105,19 +115,23 @@ describe('styleRequests', () => {
       report('aggro', 'composition', true),
       report('midrange', 'composition', true),
       report('control', 'composition', false),
-      report('tokens', 'synergy', true),
+      report('tokens', 'synergy', true, false),
       report('mill', 'synergy', false),
       report('burn', 'synergy', true),
+      // The old matchers reject it, the theme rules accept it.
+      report('graveyard', 'synergy', false, true),
+      report('lifegain', 'synergy', false, false),
     ],
   };
 
-  it('puts best fit first, then every viable style in config order, shapes by name', () => {
+  it('puts best fit first, then every style either scan accepts in config order, shapes by name', () => {
     expect(styleRequests(scan)).toEqual([
       { reason: 'bestfit' },
       { style: 'aggro', reason: 'shape' },
       { style: 'midrange', reason: 'shape' },
       { style: 'tokens', reason: 'viable' },
       { style: 'burn', reason: 'viable' },
+      { style: 'graveyard', reason: 'viable' },
     ]);
   });
 
@@ -128,6 +142,7 @@ describe('styleRequests', () => {
       { style: 'midrange', reason: 'shape' },
       { style: 'tokens', reason: 'viable' },
       { style: 'burn', reason: 'viable' },
+      { style: 'graveyard', reason: 'viable' },
       { style: 'tribal:Elf', reason: 'viable' },
       { style: 'tribal:Zombie', reason: 'viable' },
       { style: 'mill', reason: 'enriched' },

@@ -214,7 +214,12 @@ export interface BuildRequest {
   colors: Color[];
   /** Preferred archetype id. Used when viable, otherwise the strongest viable one. */
   style?: string;
-  /** Throw a BuildError when the style is not viable, instead of building the best fit. */
+  /**
+   * The player asked for this style; a style the pool cannot support is
+   * answered with the nearest deck and a note, never a best fit in disguise.
+   * The grow builder takes these requests (see buildDeck); the classic path
+   * still throws a BuildError for a style it cannot build.
+   */
   requireStyle?: boolean;
   /** Commander card id; required for 100-card decks, which take its color identity. */
   commander?: string;
@@ -254,6 +259,13 @@ export interface DeckScore {
 /** Why the builder made the deck it made. Also the builder's debugging output. */
 export interface BuildExplanation {
   archetype: string;
+  /** Which builder made the deck: grow (styles asked for by name) or classic. Absent on older decks. */
+  builder?: 'grow' | 'classic';
+  /**
+   * Set when the style asked for could not be built and the nearest one was:
+   * the style asked for, and what the bulk list lacks for it in a plain sentence.
+   */
+  nearest?: { requested: string; lacks: string };
   /** The secondary style asked for, and whether the deck reached its minimums. */
   secondary?: { id: string; label: string; met: boolean };
   /**
@@ -294,6 +306,14 @@ export interface ArchetypeReport {
   /** How far above the minimums the pool sits, as a ratio; negative means short. */
   margin: number;
   notes: string[];
+  /**
+   * Synergy styles at 60, 40, and 100 cards: the pool against the theme rules'
+   * floors (growViability), which the grow builder builds from and the Build
+   * page's style list reads. `margin` is have over need, so 1 or more is
+   * viable; below `builderWeights.grow.nearMargin` the style is left out.
+   * `lacks` says what is missing in a plain phrase, empty when viable.
+   */
+  rules?: { viable: boolean; margin: number; lacks: string };
 }
 
 export interface ScanReport {

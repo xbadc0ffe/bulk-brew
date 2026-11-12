@@ -31,3 +31,18 @@ Every file carries a `version` field. A deck records the joined config version i
 Edit, then run `npm run config:check`: it validates shapes and cross-references, confirms every tag slug exists in the current data pack, and prints per-color match counts for each role, archetype, and display tag. The same validation runs in `npm test`.
 
 Builder tiebreaks in `builder-weights.json` apply in list order after one fixed leading check: a card that fills a curve bucket still below its target beats one that does not. Card id breaks any remaining tie.
+
+The `grow` block in `builder-weights.json` holds the constants of the grow builder (`packages/core/src/grow.ts`), which builds a style the player asks for by name at 60, 40, and 100 cards from the theme rules. The reasoning behind each is in `docs/review/proto-b.md`, "Constants".
+
+| Key                 | Meaning                                                                                                                                               |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `marginFull`        | Best fit (not used by `buildDeck` yet): a theme whose pool holds this many times its floors counts in full.                                           |
+| `richnessCap`       | Best fit: richness over plain bulk (`theme-bulk.json`) counts up to this.                                                                             |
+| `richSeed`          | Seed this much over the payoff floor when both halves of the pool hold twice their floors.                                                            |
+| `commanderCredit`   | Copies a commander's theme job counts as. The rules count a commander as one card, so 1.                                                              |
+| `commanderPlan`     | Best fit: a theme the commander pays off scores this much higher.                                                                                     |
+| `offPlanGateWeight` | A payoff of another style at this weight or more enters only when that style's setup in the deck covers it.                                           |
+| `fullSlot`          | A theme card whose mana value slot is already at its curve target counts this much in the seed and grow steps.                                        |
+| `setupPull`         | Extra value the plan's setup keeps in the role and curve fills while the deck sits at its setup floor.                                                |
+| `setupTarget`       | The setup pull fades to nothing at this multiple of the setup floor (above 1).                                                                        |
+| `nearMargin`        | A style whose pool reaches this share of its floors is short: offered, and answered with a note and the nearest deck. Below it the style is left out. |

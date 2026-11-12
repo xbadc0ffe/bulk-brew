@@ -1,5 +1,5 @@
 {
-  "version": "11",
+  "version": "12",
   "objective": {
     "curveDeviation": 1.0,
     "typeMixDeviation": 1.0,
@@ -52,6 +52,18 @@
       "40": { "enablers": 5, "payoffs": 1 },
       "20": { "enablers": 3, "payoffs": 1 }
     }
+  },
+  "grow": {
+    "marginFull": 1.5,
+    "richnessCap": 2,
+    "richSeed": 1.25,
+    "commanderCredit": 1,
+    "commanderPlan": 1.25,
+    "offPlanGateWeight": 1,
+    "fullSlot": 0.5,
+    "setupPull": 0.25,
+    "setupTarget": 1.5,
+    "nearMargin": 0.5
   },
   "castability": {
     "secondaryPip": 0.25,
