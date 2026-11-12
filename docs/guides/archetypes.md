@@ -79,6 +79,10 @@ The scan lists secondary choices for each primary, with near misses that show wh
 
 `synergy-rules.json` turns the same enabler and payoff pairs into weights the objective uses when counting how many enabler-payoff pairs a deck holds, plus a few cross-theme pairs: tokens feed sacrifice outlets (0.7), hexproof creatures like auras (0.6), haste granters like finishers (0.3). Weights above one are reserved for pairs that should dominate; none do today.
 
+## Theme rules for requested styles
+
+A style the player asks for at 60, 100, or 40 cards is built by the seed-and-grow builder (SPEC "Requested styles"), which reads `config/theme-rules.json` instead of the matchers above. The rules came out of the builder review's theme guide (`docs/review/themes.md`, the reasoning per style in `docs/review/theme-rules.md`) and differ from the matchers in three ways: a card counts once, as setup or as payoff, never both; a rider counts as nothing (surveil 1 on a removal spell is not Graveyard setup, a Food on a burn spell is not Lifegain setup); and setup is weighted, repeatable setup about twice a one-shot, with floors per size in those units. Each style also carries `kin` (the styles that share its resource, which the builder falls back to when the pool cannot support it), `setupNeedsPayoff` (Mill, Group hug, Energy: setup that does nothing without its payoffs, kept out of other themes' decks), and `lacks` (the plain phrases the apps show for a missed floor). Edit the file, then run `npm run config:check` and `npm run theme:bulk`. The matchers in `archetypes.json` still drive the scan's old viability, best fit, secondary styles, tribes, and the Analyze pane until builder phase 3 (`docs/review/report.md`).
+
 ## Roles
 
 See [Deck shapes](deck-shapes.md) for quotas. Definitions worth knowing:

@@ -192,6 +192,12 @@ A deck with cards grouped by type, basics by color, and a `BuildExplanation`: ar
 - **Best cards**: each build takes the best available cards from the current pool.
 - **Batch balanced** (later): several decks from one pool, holding back the stronger deck until deck-level scores are within tolerance.
 
+### Requested styles: seed and grow (phase 15)
+
+When the player asks for a style at 60, 100, or 40 cards (`requireStyle` on the request), a second builder runs: seed and grow (`packages/core/src/grow.ts`, the review's prototype `b-grow`, see `docs/review/proto-b.md` and `docs/review/report.md`). It reads the theme rules in `config/theme-rules.json`: for each themed style, setup jobs and payoff jobs over oracle text, type lines, tags, and keywords, each card counted once as the job it mostly does, a rider (surveil 1 on a removal spell) counted as nothing, repeatable setup weighing about twice a one-shot, and floors per size that a decent deck of the style needs (`docs/review/theme-rules.md`). The steps: pick the floor alternative the pool meets best; seed payoffs up to the payoff floor, each pick by how much of the floor it closes, its quality among cards of the same mana value and kind, and room on the curve; grow setup to the demand the seeded payoffs create; fill roles to their minimums and the curve slot by slot behind a payoff gate (a payoff of the plan enters only when the deck's setup covers it; a payoff of another style needs that style's setup in the deck; setup of a style flagged `setupNeedsPayoff`, such as cards that mill the opponent, needs that style's payoffs); then the land count and mana base as the classic builder sizes them. Aggro, Midrange, and Control by name build as plain shapes of the same steps. The commander counts once toward its theme job. The constants live in `builderWeights.grow`.
+
+When the requested style misses its floors, the builder answers with the nearest deck it can build and a note (`explanation.nearest`, also in the notes): the first style in the rules' `kin` list for it (styles that share the resource) that is viable, else today's best fit, or the best plain shape when best fit would name the requested style itself. The deck is named for what it is. Best fit at every size, 20-card packets, secondary styles, tribes, and a style requested without `requireStyle` (the Build page's option list with no archetype picked) keep the classic builder; `explanation.builder` records which one ran. The scan reports the rules' viability per themed style (`rules` on each synergy report: viable, margin, and what the pool lacks in plain words) and both apps list styles from it: Viable, or Short (pickable, answered with the note and the nearest deck) down to `grow.nearMargin` of the floors. `config/theme-bulk.json`, written by `npm run theme:bulk` after a rules edit or a new data pack, is the bulk baseline (each style's expected setup and payoff per color class over every common and uncommon) that the phase 2 plan picker reads; nothing computes it on the device.
+
 ## Build options (phase 11)
 
 The Build page has settings on the left and deck options on the right.
@@ -264,24 +270,25 @@ npm workspaces monorepo, TypeScript throughout.
 
 ## Milestones
 
-| Phase | Deliverable                                                                                                     | Status                            |
-| ----- | --------------------------------------------------------------------------------------------------------------- | --------------------------------- |
-| 1     | Repo bootstrap: monorepo, license, docs, download scripts, CI, Pages deploy, design brief                       | done                              |
-| 2     | Data pipeline: pack, manifest, edge-case tests, weekly refresh workflow                                         | done                              |
-| 3     | Core: pack loader, name resolution, pool model with import report and backup                                    | done                              |
-| 4     | Guides and config v1: templates, roles, archetypes, synergy and land rules                                      | done                              |
-| 5     | Archetype scan and builder v1: mono-color, all sizes, explanations, packet pairing                              | done                              |
-| 6     | Evaluation harness: test pools, rubric, results tracking                                                        | done                              |
-| 7     | Web app: full flow, card detail and art, backup, CSV import, offline, mobile layouts                            | done                              |
-| 7b    | Design pass: Claude Design restyles both apps from `docs/DESIGN_BRIEF.md`                                       | done                              |
-| 8     | iOS app: Capacitor project, bundled data, over-the-air data updates, TestFlight                                 | on hold until the owner starts it |
-| 9     | Deck strength: data pack schema 2, card strength and deck scores, best fit by building, guide-based config pass | done                              |
-| 10    | Colors: one to five colors, castability candidates, pip-based mana bases, fixing, saved deck migration          | done                              |
-| 11    | Build page: settings left, ranked deck options right, background worker, state kept                             | done                              |
-| 12    | Styles: primary and secondary styles, tribal as a secondary style, new styles                                   | done                              |
-| 13    | Commander: 100-card singleton, commander candidates and tiers, commander-anchored builds                        | done                              |
-| 14    | Analyze pane: recommended decks from a background worker, color pie, pool breakdown by color                    | done                              |
-| Later | Batch balanced mode, offline image download                                                                     |                                   |
+| Phase | Deliverable                                                                                                             | Status                                  |
+| ----- | ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| 1     | Repo bootstrap: monorepo, license, docs, download scripts, CI, Pages deploy, design brief                               | done                                    |
+| 2     | Data pipeline: pack, manifest, edge-case tests, weekly refresh workflow                                                 | done                                    |
+| 3     | Core: pack loader, name resolution, pool model with import report and backup                                            | done                                    |
+| 4     | Guides and config v1: templates, roles, archetypes, synergy and land rules                                              | done                                    |
+| 5     | Archetype scan and builder v1: mono-color, all sizes, explanations, packet pairing                                      | done                                    |
+| 6     | Evaluation harness: test pools, rubric, results tracking                                                                | done                                    |
+| 7     | Web app: full flow, card detail and art, backup, CSV import, offline, mobile layouts                                    | done                                    |
+| 7b    | Design pass: Claude Design restyles both apps from `docs/DESIGN_BRIEF.md`                                               | done                                    |
+| 8     | iOS app: Capacitor project, bundled data, over-the-air data updates, TestFlight                                         | on hold until the owner starts it       |
+| 9     | Deck strength: data pack schema 2, card strength and deck scores, best fit by building, guide-based config pass         | done                                    |
+| 10    | Colors: one to five colors, castability candidates, pip-based mana bases, fixing, saved deck migration                  | done                                    |
+| 11    | Build page: settings left, ranked deck options right, background worker, state kept                                     | done                                    |
+| 12    | Styles: primary and secondary styles, tribal as a secondary style, new styles                                           | done                                    |
+| 13    | Commander: 100-card singleton, commander candidates and tiers, commander-anchored builds                                | done                                    |
+| 14    | Analyze pane: recommended decks from a background worker, color pie, pool breakdown by color                            | done                                    |
+| 15    | Builder phase 1: theme rules as config, seed-and-grow builder for requested styles at 60, 100, and 40, note and nearest | done, panel in `docs/builder-phase1.md` |
+| Later | Builder phases 2 to 4 (`docs/review/report.md`), batch balanced mode, offline image download                            |                                         |
 
 ## Decisions
 
@@ -315,3 +322,9 @@ Resolved questions, kept so they are not reopened by accident.
 - The Analyze pane's deck search and the Build page's deck options each run in a Web Worker on a pack of only the pool's cards and basics. The Commander list's archetype checks still build on the main thread, one per tick.
 - Near miss is a display label only: not viable, the size is buildable, and at most 3 cards short in total (`NEAR_MISS_SHORTFALL` in `packages/ui/src/data/analysis.ts`). The builder never reads it.
 - Plain-language card tags are the config's role labels and style (archetype) labels, not raw Scryfall tags; the raw tags stay behind a disclosure.
+- The theme rules are a config file (`config/theme-rules.json`) that may read oracle text and type lines with regular expressions; a card counts once, as setup or as payoff, and a rider counts as nothing. The matchers in `archetypes.json` stay for the scan's old viability, best fit, and the Analyze pane until builder phase 3. Owner decision, 2026-11-11.
+- A requested style the pool cannot support gets a note that says what the pool lacks in plain words and then the nearest deck that can be built, labelled for what it is: never a best fit in disguise and never a bare error. `requireStyle` on a request means the player asked for the style. Owner decision, 2026-11-11.
+- Best fit means the best deck. There is no target mix of styles; Aggro and Midrange being common from bulk is fine, and the other viable styles stay in the Build page's list below the first option. Owner decision, 2026-11-11.
+- Speed is not a goal in itself. A build must stay well short of minutes; slower than that means a bad algorithm. Owner decision, 2026-11-11.
+- The commander counts once toward a theme job, as the rules count it; the prototype's three-fold credit was dropped.
+- Builder changes ship on a blind panel of agents judging held-out pools (`docs/review/judging.md`), never on the builder's own counts. Theme counts from the rules are never evidence that a builder is better.

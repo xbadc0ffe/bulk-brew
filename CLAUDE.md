@@ -67,6 +67,7 @@ npm run corpus:panel -- --a <old.json> --b <new.json>   # blind review packets f
 npm run edhrec:fetch     # EDHREC pages into data/edhrec/ (one request per second, at most weekly)
 npm run spellbook:fetch  # Commander Spellbook's combo file into data/spellbook/
 npm run learn:build      # learned data: config/learned/ and data/learned.json
+npm run theme:bulk       # config/theme-bulk.json, the bulk baseline; rerun after a theme rules edit or a new data pack
 ```
 
 After any builder or config change, run `npm run eval` and compare the per-size deltas with the committed baseline in `eval/results/`.
