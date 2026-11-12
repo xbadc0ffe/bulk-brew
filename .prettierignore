@@ -11,3 +11,5 @@ eval/results
 # Written by npm run learn:build
 config/learned
 data/learned.json
+# Agent worktrees (not part of this tree)
+.claude/worktrees

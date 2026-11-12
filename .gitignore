@@ -43,3 +43,6 @@ apps/mobile/ios/DerivedData/
 
 # Builder review working data (docs/algo-review.md); reports live in docs/review/
 data/review/
+
+# Agent worktrees
+.claude/worktrees/
