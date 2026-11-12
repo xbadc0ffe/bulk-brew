@@ -6,7 +6,7 @@
 // basic lands and cards whose text allows more.
 
 import type { BulkBrewConfig } from './config.ts';
-import { BuildError, buildClassic, styleCounts } from './builder.ts';
+import { BuildError, buildDeck, styleCounts } from './builder.ts';
 import { factsFor, listCandidates, type Candidate } from './candidates.ts';
 import type { CardIndex } from './pack.ts';
 import { commanderTribes, scanPool, secondaryLabel, tribeOf } from './scan.ts';
@@ -229,9 +229,10 @@ export function filterCommanders(
 }
 
 /**
- * Whether the pool can build the style under this commander: the deck keeps
- * the style and reaches its enabler and payoff minimums. This builds a whole
- * deck, so callers check one commander at a time.
+ * Whether the pool can build the style under this commander: the deck the
+ * options would build keeps the style, and a classic deck (a tribe) reaches
+ * its enabler and payoff minimums. This builds a whole deck, so callers
+ * check one commander at a time.
  */
 export function commanderCanBuild(
   commander: string,
@@ -242,14 +243,16 @@ export function commanderCanBuild(
   settings: Settings,
 ): boolean {
   try {
-    // Today's builder and its matchers, until the commander list reads the theme rules too.
-    const { deck } = buildClassic(
+    // Asked for by name, as the options build it.
+    const { deck, explanation } = buildDeck(
       { size: 100, colors: [], commander, style, requireStyle: true, settings },
       pool,
       index,
       config,
     );
-    if (deck.archetype !== style) return false;
+    if (deck.archetype !== style || explanation.nearest) return false;
+    // The grow builder builds a theme only to its floors, and answers a short one with another style.
+    if (explanation.builder === 'grow') return true;
     const theme = styleCounts(deck, index, config).find((s) => s.id === style);
     return (
       !theme ||

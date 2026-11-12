@@ -120,6 +120,18 @@ export function archetypeInfo(
   }
 }
 
+/**
+ * The note on a deck built in place of the style asked for: what the bulk
+ * list lacks for it and what was built instead. Undefined for any other deck.
+ */
+export function nearestNote(config: BulkBrewConfig, deck: Deck): string | undefined {
+  const nearest = deck.explanation?.nearest;
+  if (!nearest) return undefined;
+  const asked = archetypeInfo(config, nearest.requested).label;
+  const built = archetypeInfo(config, deck.archetype).label;
+  return `Asked for ${asked}: your bulk list has ${nearest.lacks}. Built ${built} instead.`;
+}
+
 /** The deck's colors in WUBRG order: its cards' colors plus its basics. */
 export function deckColors(deck: Deck, _index?: CardIndex): Color[] {
   // The deck's own colors plus the basics it runs; card identity would let a

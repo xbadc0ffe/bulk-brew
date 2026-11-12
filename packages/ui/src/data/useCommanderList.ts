@@ -116,8 +116,11 @@ export function useCommanderList(input: {
         continue;
       }
       // The scan of its colors counts the commander too, so a style it rules out the 99 cannot build.
+      // A theme reads the rules where the scan carries them, as the grow builder does.
       const report = scans.get(c.colors.join(''))?.archetypes.find((r) => r.archetype === style);
-      const viable = tribeOf(style) ? c.primaryTribes.includes(style) : report?.viable;
+      const viable = tribeOf(style)
+        ? c.primaryTribes.includes(style)
+        : (report?.rules?.viable ?? report?.viable);
       out.set(c.id, viable ? 'checking' : 'short');
     }
     return out;

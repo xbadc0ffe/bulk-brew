@@ -266,8 +266,17 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
     if (!building || !index || colors.length === 0) return;
     const handle = setTimeout(() => {
       try {
+        // A picked style is asked for by name: one the pool cannot support comes back
+        // as the nearest deck with a note, not a silent best fit.
         const request = style
-          ? { size, colors, settings: buildSettings, style, ...(commander ? { commander } : {}) }
+          ? {
+              size,
+              colors,
+              settings: buildSettings,
+              style,
+              requireStyle: true,
+              ...(commander ? { commander } : {}),
+            }
           : { size, colors, settings: buildSettings, ...(commander ? { commander } : {}) };
         setResult(buildDeck(request, pool.pool, index, config));
         setResultMaxCopies(maxCopies);

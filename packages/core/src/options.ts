@@ -7,6 +7,7 @@ import { BuildError, buildDeck } from './builder.ts';
 import { listCandidates } from './candidates.ts';
 import { normalizeColors } from './colors.ts';
 import type { BulkBrewConfig } from './config.ts';
+import { growBuilds } from './grow.ts';
 import type { CardIndex } from './pack.ts';
 import { commanderTribes, scanPool } from './scan.ts';
 import {
@@ -78,6 +79,9 @@ export function byStylePromise(a: ArchetypeReport, b: ArchetypeReport): number {
  * themes first by how deep they run, then the plain shapes; the plan takes
  * one from each subset in turn (subsets that use every picked color first),
  * so smaller color sets get built too. Capped at `buildOptions.maxBuilds`.
+ * A picked primary that the grow builder takes is planned by the theme
+ * rules: where the pool meets its floors, or reaches `grow.nearMargin` of
+ * them, since the build then answers with the nearest deck and a note.
  */
 export function planOptions(
   req: OptionsRequest,
@@ -92,12 +96,29 @@ export function planOptions(
   const perSubset: OptionPlan[][] = [];
   // A commander fixes the colors; other decks try every subset of the picked ones.
   const subsets = lead ? [picked] : colorSubsets(picked);
+  const nearMargin = config.builderWeights.grow.nearMargin;
+  // Each plan is built with requireStyle when a primary is picked; plan by the builder that runs.
+  const grows =
+    req.primary !== undefined &&
+    growBuilds(
+      {
+        size: req.size,
+        colors: picked,
+        style: req.primary,
+        requireStyle: true,
+        ...(req.secondary ? { secondary: req.secondary } : {}),
+        settings: req.settings,
+      },
+      config,
+    );
+  const plannable = (a: ArchetypeReport) =>
+    grows && a.rules ? a.rules.viable || a.rules.margin >= nearMargin : a.viable;
   for (const subset of subsets) {
     const scan =
       scans?.get(subset.join('')) ?? scanPool(pool, index, config, req.settings, req.size, subset);
     if (!scan.possible) continue;
     const styles = scan.archetypes
-      .filter((a) => a.viable && (!req.primary || a.archetype === req.primary))
+      .filter((a) => (req.primary ? a.archetype === req.primary && plannable(a) : a.viable))
       .sort(byStylePromise)
       .map((a) => a.archetype);
     // A tribe the commander's text names leads its options, ahead of the other themes.

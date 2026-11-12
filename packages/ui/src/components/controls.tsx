@@ -141,7 +141,12 @@ export function Stepper(props: {
 
 /** The 8px state dot. Always pair it with a label. */
 export function ViabilityDot({ state }: { state: Viability }) {
-  const fill = state === 'viable' ? 'bg-ink' : state === 'near' ? 'bg-fg-3' : 'bg-surface';
+  const fill =
+    state === 'viable'
+      ? 'bg-ink'
+      : state === 'short' || state === 'near'
+        ? 'bg-fg-3'
+        : 'bg-surface';
   return (
     <span
       aria-hidden
@@ -158,7 +163,7 @@ export function ViabilityMark({
 }: {
   state: Viability;
   detail?: string | undefined;
-  /** Overrides the default label ("Viable", "Near miss", "Not enough"). */
+  /** Overrides the default label ("Viable", "Short", "Near miss", "Not enough"). */
   label?: string | undefined;
 }) {
   return (

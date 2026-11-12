@@ -246,7 +246,8 @@ describe('Commander builds', () => {
   });
 
   it('checks whether a commander can build a style', () => {
-    // Nothing is viable here: a requested Midrange deck is only built as a last resort.
+    // Nothing is viable here: best fit builds Midrange only as a last resort, while
+    // Midrange asked for by name goes to the grow builder, which fills the plain shape.
     const midrange = buildDeck(
       { ...request, commander: 'lead', style: 'midrange' },
       pool,
@@ -254,14 +255,19 @@ describe('Commander builds', () => {
       CONFIG,
     );
     expect(midrange.deck.archetype).toBe('midrange');
-    expect(commanderCanBuild('lead', 'midrange', pool, index, CONFIG, SETTINGS)).toBe(false);
+    expect(commanderCanBuild('lead', 'midrange', pool, index, CONFIG, SETTINGS)).toBe(true);
 
     // Token makers and anthems make Tokens viable, and a commander with an anthem leads it.
+    // The tags feed today's matchers; the text feeds the theme rules the grow builder reads.
     const themed = cards.map((c, i) =>
       i % 9 === 3 || i % 9 === 4
-        ? { ...c, tags: ['multiple-bodies'] }
+        ? {
+            ...c,
+            tags: ['multiple-bodies'],
+            text: 'At the beginning of your upkeep, create a 1/1 white Soldier creature token.',
+          }
         : i % 9 === 5
-          ? { ...c, tags: ['anthem'] }
+          ? { ...c, tags: ['anthem'], text: 'Other creatures you control get +1/+1.' }
           : c,
     );
     const anthemLead = { ...lead, tags: ['anthem'] };
@@ -269,7 +275,40 @@ describe('Commander builds', () => {
     const listed = commanderCandidates(pool, tIndex, CONFIG, SETTINGS);
     expect(listed[0]!.supports).toContain('tokens');
     expect(commanderCanBuild('lead', 'tokens', pool, tIndex, CONFIG, SETTINGS)).toBe(true);
+    const built = buildDeck(
+      { ...request, commander: 'lead', style: 'tokens', requireStyle: true },
+      pool,
+      tIndex,
+      CONFIG,
+    );
+    expect(built.explanation.builder).toBe('grow');
     expect(commanderCanBuild('lead', 'counters', pool, tIndex, CONFIG, SETTINGS)).toBe(false);
+  });
+
+  it('trusts the grow builder for a themed style, as the options build it', () => {
+    // Tags without text: today's matchers find Tokens, the theme rules do not.
+    const tagged = cards.map((c, i) =>
+      i % 9 === 3 || i % 9 === 4
+        ? { ...c, tags: ['multiple-bodies'] }
+        : i % 9 === 5
+          ? { ...c, tags: ['anthem'] }
+          : c,
+    );
+    const tIndex = new CardIndex({
+      ...pack,
+      cards: [...tagged, { ...lead, tags: ['anthem'] }, plains],
+    });
+    const asked = { ...request, commander: 'lead', style: 'tokens', requireStyle: true };
+    // The classic builder would build Tokens and meet its minimums from the tags alone.
+    const classic = buildClassic(asked, pool, tIndex, CONFIG);
+    expect(classic.deck.archetype).toBe('tokens');
+    const [counts] = styleCounts(classic.deck, tIndex, CONFIG);
+    expect(counts!.enablers.have).toBeGreaterThanOrEqual(counts!.enablers.want);
+    expect(counts!.payoffs.have).toBeGreaterThanOrEqual(counts!.payoffs.want);
+    // The grow builder answers with the nearest deck, so the commander cannot build it.
+    const grown = buildDeck(asked, pool, tIndex, CONFIG);
+    expect(grown.explanation.nearest?.requested).toBe('tokens');
+    expect(commanderCanBuild('lead', 'tokens', pool, tIndex, CONFIG, SETTINGS)).toBe(false);
   });
 
   it('builds a tribe its commander names as the primary style', () => {

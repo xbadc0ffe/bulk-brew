@@ -23,6 +23,7 @@ import {
   useImport,
   useWindowedRows,
   ViabilityDot,
+  viabilityLabel,
   type AnalysisRow,
   type MvOp,
   type PoolFacets,
@@ -35,6 +36,7 @@ import { Chip, LargeTitle, Pushed, Sheet } from './parts.tsx';
 const fmt = (n: number) => n.toLocaleString('en-US');
 const plural = (n: number, word: string) => `${fmt(n)} ${word}${n === 1 ? '' : 's'}`;
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const lower = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
 
 /** Loading and error states for screens that need the card data. */
 export function PackGate({ children }: { children: ReactNode }) {
@@ -431,11 +433,16 @@ function FilterSheet(props: {
 function phoneNote(row: AnalysisRow): string {
   const states = DECK_SIZES.map((s) => ({ size: s, ...row.cells[s] }));
   const viable = states.filter((s) => s.state === 'viable');
+  const short = states.filter((s) => s.state === 'short');
   const near = states.filter((s) => s.state === 'near');
   if (viable.length === 3) return `Viable at every size. ${cap(states[0]!.detail)}.`;
-  if (near.length > 0) {
-    const miss = `Near miss at ${near.map((s) => s.size).join(' and ')}: ${near[0]!.detail}.`;
-    return viable.length ? `Viable at ${viable.map((s) => s.size).join(' and ')}. ${miss}` : miss;
+  if (short.length > 0 || near.length > 0) {
+    const at = (list: typeof states) => list.map((s) => s.size).join(' and ');
+    const parts = viable.length ? [`Viable at ${at(viable)}.`] : [];
+    // A short style's detail is a sentence of its own; here it follows a colon.
+    if (short.length) parts.push(`Short at ${at(short)}: ${lower(short[0]!.detail)}.`);
+    if (near.length) parts.push(`Near miss at ${at(near)}: ${near[0]!.detail}.`);
+    return parts.join(' ');
   }
   if (viable.length > 0) {
     const none = states.filter((s) => s.state === 'none').map((s) => s.size);
@@ -445,10 +452,13 @@ function phoneNote(row: AnalysisRow): string {
 }
 
 function Analysis() {
-  const { scans, pool, build } = useAppState();
+  const { scans, pool, build, config } = useAppState();
   const nav = useNav();
   const [color, setColor] = useState<Color>(() => build.color ?? 'W');
-  const rows = useMemo(() => (scans ? analysisRows(scans, color) : []), [scans, color]);
+  const rows = useMemo(
+    () => (scans ? analysisRows(scans, color, config) : []),
+    [scans, color, config],
+  );
   if (!scans || !pool.loaded) return <p className={`${phone.note} p-4`}>Loading</p>;
   const scan = scans[60][color];
   const sizes = buildableSizes(scans, color);
@@ -499,7 +509,7 @@ function Analysis() {
                     <span
                       key={s}
                       className="flex items-center gap-1"
-                      aria-label={`${s}: ${r.cells[s].state === 'viable' ? 'viable' : r.cells[s].state === 'near' ? 'near miss' : 'not enough'}`}
+                      aria-label={`${s}: ${viabilityLabel(r.cells[s].state).toLowerCase()}`}
                     >
                       <ViabilityDot state={r.cells[s].state} />
                       <span aria-hidden>{s}</span>

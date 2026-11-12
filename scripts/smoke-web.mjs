@@ -14,7 +14,10 @@
 // SMOKE_COLORS (such as "White,Blue"), SMOKE_STYLE, and SMOKE_SECONDARY pick
 // other choices; SMOKE_SIZE=100 with SMOKE_COMMANDER (part of a name) runs
 // Commander, where SMOKE_STYLE filters the commander list first, so it must be
-// a style that commander leads.
+// a style that commander leads. SMOKE_EXPECT_NOTE=1 checks that the first
+// option, once open, says the style asked for was short and what was built
+// instead ("Asked for Graveyard: ... Built Aristocrats instead."), for a style
+// the list marks Short.
 
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -196,6 +199,17 @@ try {
   const pickStyles = async () => {
     if (!process.env.SMOKE_STYLE) return;
     await click('^Best fit');
+    // The list fills once the color scans are in.
+    await waitForText(new RegExp(`\\n${process.env.SMOKE_STYLE}\\n`), 30000);
+    // The primary list as offered: each style's name and its label (Viable, Short, Near miss).
+    const offered = await evaluate(`[...document.querySelectorAll(
+      '[role="menu"][aria-label="Primary archetype"] [role="menuitemradio"]',
+    )].map((b) => {
+      const [name, state] = [b.querySelector('span span'), b.lastElementChild];
+      return name.textContent + (state && state.textContent ? ' (' + state.textContent + ')' : '');
+    }).join(', ')`);
+    log('styles', offered);
+    await shot('3-styles');
     await click(`^${process.env.SMOKE_STYLE}`);
     if (process.env.SMOKE_SECONDARY) {
       await click('^None');
@@ -248,6 +262,13 @@ try {
   };
   log('deck', oneLine(await openStrongest(), 160));
   await shot('3-deck');
+  if (process.env.SMOKE_EXPECT_NOTE === '1') {
+    const note = (await pageText()).match(
+      /Asked for [^:\n]+: your bulk list has [^\n]+?\. Built [^\n]+? instead\./,
+    );
+    if (!note) throw new Error('the deck view does not say the style asked for was short');
+    log('note', note[0]);
+  }
 
   // Build while a deck is open goes back to the options, like Back.
   await click('^Build$');

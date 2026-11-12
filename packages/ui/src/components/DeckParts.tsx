@@ -4,9 +4,9 @@ import { CardImage } from './CardImage.tsx';
 import { CurveChart, RoleBar, RoleBars, type Variant } from './controls.tsx';
 import { ColorBreakdown, TypeBreakdown } from './DeckStats.tsx';
 import { ManaCost } from '../ManaCost.tsx';
-import { archetypeInfo, deckGroups } from '../data/deckGroups.ts';
+import { archetypeInfo, deckGroups, nearestNote } from '../data/deckGroups.ts';
 import { deckColorShares, deckStyleRows, deckTypeCounts } from '../data/deckStats.ts';
-import { ui } from '../styles.ts';
+import { phone as phoneStyles, ui } from '../styles.ts';
 
 export interface DeckListProps {
   deck: Deck;
@@ -187,6 +187,8 @@ export function DeckExplanation({
   const info = archetypeInfo(config, deck.archetype);
   const label = phone ? 'text-[0.6875rem] tracking-[0.04em] text-fg-2 uppercase' : ui.sectionLabel;
   const small = phone ? 'text-[0.8125rem] text-fg-1' : 'text-[12px] text-fg-1';
+  // A style asked for that the bulk list could not support: say so before what was built.
+  const nearest = nearestNote(config, deck);
   if (!e) {
     return (
       <div className={`flex flex-col gap-1 ${phone ? 'text-[0.875rem]' : 'text-[13px]'}`}>
@@ -207,6 +209,7 @@ export function DeckExplanation({
         <span className={`font-semibold ${phone ? 'text-[1rem]' : 'text-[14px]'}`}>
           {info.label}
         </span>
+        {nearest && <p className={phone ? phoneStyles.error : ui.error}>{nearest}</p>}
         {info.description && <p className="leading-[1.5] text-fg-1">{info.description}</p>}
       </section>
       {shares && (

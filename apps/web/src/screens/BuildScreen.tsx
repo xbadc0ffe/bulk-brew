@@ -15,7 +15,6 @@ import {
 } from '@bulk-brew/core';
 import {
   archetypeInfo,
-  archetypeViability,
   ChoiceDialog,
   Dropdown,
   Pip,
@@ -23,9 +22,11 @@ import {
   Segmented,
   Stepper,
   scanShortfall,
+  styleChoicesFrom,
   Toggle,
   ui,
   useStatus,
+  type StyleChoice,
 } from '@bulk-brew/ui';
 import { useAppState } from '../app-context.ts';
 import { PackGate } from '../screens.tsx';
@@ -83,7 +84,7 @@ function BuildForm() {
   const styleScans = commanderMode ? colorScans(listed, commanders.scans) : options.scans;
   const choices = commanderMode
     ? commanderStyleChoices(config, listed, commanders.scans)
-    : styleChoices(config, options.scans);
+    : styleChoicesFrom(config, options.scans);
   // Say so when a changed setting drops the commander and the list comes back.
   const [seenCommander, setSeenCommander] = useState(flow.commander);
   const [notice, setNotice] = useState('');
@@ -351,14 +352,6 @@ function CommanderColors() {
   );
 }
 
-interface StyleChoice {
-  id: string;
-  label: string;
-  description: string;
-  /** Near misses cannot be picked; a commander style the pool is short for can, to see who leads it. */
-  state: 'viable' | 'near' | 'short';
-}
-
 /** Scans of the commanders' colors, keyed by color letters, for the style pickers. */
 function colorScans(
   list: readonly CommanderCandidate[],
@@ -375,8 +368,10 @@ function colorScans(
 
 /**
  * Styles to filter the commanders by: every style a listed commander leads.
- * Viable when some leader's colors can build it; short when none can, still
- * pickable so the player sees which commanders lead it.
+ * Viable when some leader's colors can build it (by the theme rules where
+ * the scan carries them, as the builder reads them); short when none can,
+ * still pickable so the player sees which commanders lead it, with what the
+ * bulk list lacks from the leader's colors closest to the floors.
  */
 function commanderStyleChoices(
   config: ReturnType<typeof useAppState>['config'],
@@ -387,20 +382,29 @@ function commanderStyleChoices(
   for (const a of config.archetypes.archetypes) {
     const leaders = list.filter((c) => commanderSuits(c, a.id, config));
     if (leaders.length === 0) continue;
-    const viable = leaders.some(
-      (c) => scans.get(c.colors.join(''))?.archetypes.find((r) => r.archetype === a.id)?.viable,
-    );
+    const reports = leaders.flatMap((c) => {
+      const r = scans.get(c.colors.join(''))?.archetypes.find((x) => x.archetype === a.id);
+      return r ? [r] : [];
+    });
+    const viable = reports.some((r) => r.rules?.viable ?? r.viable);
+    const closest = reports
+      .filter((r) => r.rules?.lacks)
+      .reduce<(typeof reports)[number] | undefined>(
+        (best, r) => (!best || r.rules!.margin > best.rules!.margin ? r : best),
+        undefined,
+      );
     // Plain shapes suit every commander, so a count says nothing there.
     const count =
       a.kind === 'synergy'
         ? `${leaders.length} ${leaders.length === 1 ? 'commander leads' : 'commanders lead'} it`
         : undefined;
+    const lacks = closest ? `has ${closest.rules!.lacks}` : 'is short of cards for it';
     out.push({
       id: a.id,
       label: a.label,
       description: viable
         ? `${a.description}${count ? ` ${capitalize(count)}.` : ''}`
-        : `${count ? `${capitalize(count)}, but your` : 'Your'} bulk list is short of cards for it`,
+        : `${count ? `${capitalize(count)}, but your` : 'Your'} bulk list ${lacks}`,
       state: viable ? 'viable' : 'short',
     });
   }
@@ -423,40 +427,6 @@ function commanderStyleChoices(
     });
   }
   return out.sort((x, y) => Number(x.state !== 'viable') - Number(y.state !== 'viable'));
-}
-
-/**
- * Styles worth offering for the picked colors: the best viability any subset
- * of them reaches, viable first. Near misses show what they lack and cannot
- * be picked, as on the old form.
- */
-function styleChoices(
-  config: ReturnType<typeof useAppState>['config'],
-  scans: ReadonlyMap<string, ScanReport>,
-): StyleChoice[] {
-  const out: StyleChoice[] = [];
-  for (const a of config.archetypes.archetypes) {
-    let best: StyleChoice | undefined;
-    for (const scan of scans.values()) {
-      const report = scan.archetypes.find((r) => r.archetype === a.id);
-      if (!report) continue;
-      const state = archetypeViability(report, scan);
-      if (state === 'viable') {
-        best = { id: a.id, label: a.label, description: a.description, state };
-        break;
-      }
-      if (state === 'near' && !best) {
-        best = {
-          id: a.id,
-          label: a.label,
-          description: capitalize(report.notes.join(', ')),
-          state,
-        };
-      }
-    }
-    if (best) out.push(best);
-  }
-  return out.sort((x, y) => (x.state === y.state ? 0 : x.state === 'viable' ? -1 : 1));
 }
 
 /** Secondary styles for the primary, with the best viability any color subset reaches. */

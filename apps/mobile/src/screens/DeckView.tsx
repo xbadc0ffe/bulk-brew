@@ -1,6 +1,13 @@
 import { useState, type ReactNode } from 'react';
 import { deckToDecklist, type Deck } from '@bulk-brew/core';
-import { CurveChart, DeckExplanation, DeckList, phone, Segmented } from '@bulk-brew/ui';
+import {
+  CurveChart,
+  DeckExplanation,
+  DeckList,
+  nearestNote,
+  phone,
+  Segmented,
+} from '@bulk-brew/ui';
 import { useAppState } from '../app-context.ts';
 import { exportActions } from '../deck-actions.ts';
 import { ActionSheet, Pushed, type SheetAction } from '../parts.tsx';
@@ -31,6 +38,8 @@ export function DeckScreen(props: {
   const [sheet, setSheet] = useState(false);
   if (!index) return null;
   const text = () => deckToDecklist(deck, index, config);
+  // Why it works shows the note in its explanation; Cards, the default tab, shows it here.
+  const nearest = tab === 'cards' ? nearestNote(config, deck) : undefined;
   return (
     <Pushed
       back={back}
@@ -53,6 +62,7 @@ export function DeckScreen(props: {
           onChange={setTab}
           variant="phone"
         />
+        {nearest && <p className={phone.error}>{nearest}</p>}
         <p role="status" className={status ? phone.note : 'sr-only'}>
           {status}
         </p>

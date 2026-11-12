@@ -11,6 +11,7 @@ import {
   type OptionsRequest,
 } from '../src/options.ts';
 import { CardIndex } from '../src/pack.ts';
+import { scanPool } from '../src/scan.ts';
 import type { ScanReport } from '../src/types.ts';
 import { bigPool, CONFIG_BUNDLE as CONFIG, PACK, SETTINGS } from './builder-fixtures.ts';
 
@@ -37,6 +38,66 @@ describe('planOptions', () => {
     const none = planOptions({ ...req, primary: 'lifegain' }, bigPool(), index, CONFIG);
     expect(none.plans).toHaveLength(0);
     expect(none.primaryUnavailable).toBe(true);
+  });
+});
+
+describe('planOptions with a primary the theme rules find short', () => {
+  // The fixture pack's white token engines, all but `keep` of them left out of the pool.
+  const makers = PACK.cards
+    .filter((c) => c.tags.includes('repeatable-creature-tokens'))
+    .map((c) => c.id);
+  function fewMakers(keep: number) {
+    const pool = bigPool();
+    makers.slice(keep).forEach((id) => delete pool.entries[id]);
+    return pool;
+  }
+  const req: OptionsRequest = {
+    size: 60,
+    colors: ['W', 'U'],
+    primary: 'tokens',
+    settings: SETTINGS,
+  };
+  const tokens = (pool: ReturnType<typeof bigPool>) =>
+    planOptions(req, pool, index, CONFIG)
+      .plans.map((p) => p.key)
+      .filter((k) => k.endsWith(':tokens'));
+
+  it('plans a short primary, and each build comes back as the nearest deck with a note', () => {
+    const pool = fewMakers(2);
+    const rules = scanPool(pool, index, CONFIG, SETTINGS, 60, ['W']).archetypes.find(
+      (a) => a.archetype === 'tokens',
+    )!.rules!;
+    expect(rules.viable).toBe(false);
+    expect(rules.margin).toBeGreaterThanOrEqual(CONFIG.builderWeights.grow.nearMargin);
+
+    const plan = planOptions(req, pool, index, CONFIG);
+    expect(plan.primaryUnavailable).toBe(false);
+    expect(tokens(pool)).toEqual(['WU:tokens', 'W:tokens']);
+    const result = buildOption(plan.plans[0]!, req, pool, index, CONFIG);
+    expect(result.deck.archetype).not.toBe('tokens');
+    expect(result.explanation.nearest).toEqual({ requested: 'tokens', lacks: rules.lacks });
+  });
+
+  it('leaves out a primary below short', () => {
+    const pool = fewMakers(1);
+    const rules = scanPool(pool, index, CONFIG, SETTINGS, 60, ['W']).archetypes.find(
+      (a) => a.archetype === 'tokens',
+    )!.rules!;
+    expect(rules.margin).toBeLessThan(CONFIG.builderWeights.grow.nearMargin);
+    const plan = planOptions(req, pool, index, CONFIG);
+    expect(plan.plans).toEqual([]);
+    expect(plan.primaryUnavailable).toBe(true);
+  });
+
+  it('plans by the old scan where the classic builder takes the request', () => {
+    // A secondary style keeps today's builder, and its matchers still find Tokens here.
+    const pool = fewMakers(2);
+    const withSecondary = { ...req, secondary: 'flyers' };
+    const plan = planOptions(withSecondary, pool, index, CONFIG);
+    expect(plan.plans.length).toBeGreaterThan(0);
+    const result = buildOption(plan.plans[0]!, withSecondary, pool, index, CONFIG);
+    expect(result.explanation.builder).toBe('classic');
+    expect(result.deck.archetype).toBe('tokens');
   });
 });
 

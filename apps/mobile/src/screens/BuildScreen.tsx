@@ -13,6 +13,9 @@ import {
   Stepper,
   Toggle,
   useStatus,
+  viabilityDetail,
+  viabilityLabel,
+  type Viability,
 } from '@bulk-brew/ui';
 import { useAppState } from '../app-context.ts';
 import { LargeTitle, ToggleRow } from '../parts.tsx';
@@ -33,6 +36,8 @@ function sizeLine(size: DeckSize): string {
 }
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+const STYLE_ORDER: Record<Viability, number> = { viable: 0, short: 1, near: 2, none: 3 };
 
 export function BuildScreen() {
   const { build } = useAppState();
@@ -55,9 +60,9 @@ function BuildForm() {
   const colorName = flow.colors.length > 0 ? colorsLabel(flow.colors) : undefined;
   const styles = scan
     ? scan.archetypes
-        .map((a) => ({ a, state: archetypeViability(a, scan) }))
+        .map((a) => ({ a, state: archetypeViability(a, scan, config) }))
         .filter((x) => x.state !== 'none')
-        .sort((x, y) => (x.state === y.state ? 0 : x.state === 'viable' ? -1 : 1))
+        .sort((x, y) => STYLE_ORDER[x.state] - STYLE_ORDER[y.state])
     : [];
   const label = flow.building
     ? 'Building…'
@@ -199,10 +204,13 @@ function BuildForm() {
                   description={
                     state === 'viable'
                       ? archetypeInfo(config, a.archetype).description
-                      : cap(a.notes.join(', '))
+                      : state === 'short'
+                        ? viabilityDetail(a, scan, state)
+                        : cap(a.notes.join(', '))
                   }
-                  state={state === 'viable' ? 'Viable' : 'Near miss'}
-                  disabled={state !== 'viable'}
+                  state={viabilityLabel(state)}
+                  // A short style builds the nearest deck with a note; a near miss cannot be built.
+                  disabled={state === 'near'}
                   checked={flow.style === a.archetype}
                   onSelect={() => flow.setStyle(a.archetype)}
                 />

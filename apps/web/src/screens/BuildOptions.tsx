@@ -16,7 +16,9 @@ import {
   deckColorShares,
   deckStyleRows,
   deckTypeCounts,
+  nearestNote,
   Pip,
+  primaryLacks,
   RoleBar,
   RoleBars,
   TextCard,
@@ -57,6 +59,7 @@ function OptionsBody({ options, onClear }: { options: DeckOptions; onClear(): vo
     );
   }
   if (options.primaryUnavailable) {
+    const lacks = flow.style ? primaryLacks(options.scans, flow.style) : undefined;
     return (
       <Centered>
         <p className="text-ink">No decks meet these settings.</p>
@@ -65,6 +68,11 @@ function OptionsBody({ options, onClear }: { options: DeckOptions; onClear(): vo
             ? `Your bulk list is short of cards to build ${archetypeInfo(config, flow.style).label} under ${lead.name}.`
             : 'None of the picked colors can build the picked primary archetype.'}
         </p>
+        {lacks && flow.style && (
+          <p>
+            {archetypeInfo(config, flow.style).label}: your bulk list has {lacks}.
+          </p>
+        )}
         <button type="button" className={`${ui.secondary} mt-2`} onClick={onClear}>
           Clear settings
         </button>
@@ -384,6 +392,8 @@ function OptionCard({ option, onOpen }: { option: DeckOption; onOpen(): void }) 
   const stretched = explanation.notes.find((n) => n.includes('is stretched'));
   const secondary = explanation.secondary;
   const title = `${colorsLabel(colors)} ${style.label}${secondary ? ` with ${secondary.label}` : ''}`;
+  // Built in place of the picked style: the title stays the deck's, the note says why.
+  const nearest = nearestNote(config, deck);
   const shares = useMemo(() => (index ? deckColorShares(deck, index) : []), [deck, index]);
   const types = useMemo(() => (index ? deckTypeCounts(deck, index) : []), [deck, index]);
   const styles = useMemo(
@@ -402,6 +412,7 @@ function OptionCard({ option, onOpen }: { option: DeckOption; onOpen(): void }) 
           ))}
         </span>
         <span className="text-[15px] font-semibold">{title}</span>
+        {nearest && <span className="text-[12px] text-fg-1">{nearest}</span>}
         <span className="text-[12px] text-fg-2">{style.description}</span>
       </span>
       <ColorBreakdown shares={shares} size={84} />

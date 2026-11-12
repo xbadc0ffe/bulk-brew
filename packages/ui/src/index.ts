@@ -25,7 +25,9 @@ export {
   archetypeViability,
   buildableSizes,
   curveBuckets,
+  primaryLacks,
   scanShortfall,
+  styleChoicesFrom,
   viabilityDetail,
   viabilityLabel,
   DECK_SIZES,
@@ -33,6 +35,7 @@ export {
   type AnalysisRow,
   type ScannedSize,
   type ScansBySize,
+  type StyleChoice,
   type Viability,
 } from './data/analysis.ts';
 export {
@@ -148,6 +151,7 @@ export {
   deckFilename,
   deckGroups,
   landCount,
+  nearestNote,
   savedLabel,
   type DeckGroup,
   type DeckRow,
