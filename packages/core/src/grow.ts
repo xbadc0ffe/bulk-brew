@@ -303,7 +303,12 @@ function lacksSentence(lacks: ThemeLacks, short: readonly StyleShort[]): string 
       worst = s;
   if (!worst) return 'too few cards for this style';
   const phrase = lacks[worst.floor] ?? `too few ${FLOOR_WORDS[worst.floor]}`;
-  return `${phrase} (${worst.have} of ${worst.need})`;
+  return `${phrase} (${wholeCount(worst.have)} of ${wholeCount(worst.need)})`;
+}
+
+/** Units and weights can be halves; a player reads whole cards. */
+function wholeCount(n: number): string {
+  return Number.isInteger(n) ? String(n) : `about ${Math.round(n)}`;
 }
 
 function round2(n: number): number {

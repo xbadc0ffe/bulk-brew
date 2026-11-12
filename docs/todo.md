@@ -19,6 +19,8 @@ Ranked. The current phase is at the top. Finished phases are removed, not struck
   - `rules.viable` on the scan reads the pool margin only, not whether the size can be built at all; the apps combine it with `scan.possible`.
   - The option cards' Roles bars count theme cards with the old matchers (`styleCounts`), so a grow deck's theme bar can read short of a minimum its rules floors meet; phase 3.
   - A style whose rules lack minimums at a size would fall back to setup and payoff floors with no `lacks` phrase; validation does not require minimums at every size (all 18 styles have them today).
+  - The scan's `rules` field does not pass the commander to `growViability`; it agrees with the builder only because the scan lists the commander as one candidate and `grow.commanderCredit` is 1. Raising the credit would make the two disagree.
+- A Commander deck opened from the Analyze pane can land on an empty options screen (seen on the live site before phase 1): Analyze's Commander best fit falls back to "Midrange anyway" when no style is viable at 100, but the deck options plan only viable styles, so after Back the page says "No decks meet these settings", which is misleading. Found during phase 1's smoke runs on Tymaret, Swarm, and Naban.
 - Found by the review, in the core or config (details in `docs/review/log.md`):
   - The per-color source rule (`colorWants` in `colors.ts`) is far stricter than real decks: median shortfall 3 sources at 60 and 40, 11 for multi-color Commander precons.
   - `config/roles.json` has no counterspell role; cheap interaction reads the `counterspell` tag directly.

@@ -35,7 +35,21 @@ describe('planOptions', () => {
     const tokens = planOptions({ ...req, primary: 'tokens' }, bigPool(), index, CONFIG);
     expect(tokens.plans.every((p) => p.style === 'tokens')).toBe(true);
 
-    const none = planOptions({ ...req, primary: 'lifegain' }, bigPool(), index, CONFIG);
+    // A style the pool cannot support is still planned: each build answers with the nearest deck.
+    const thin = planOptions({ ...req, primary: 'lifegain' }, bigPool(), index, CONFIG);
+    expect(thin.plans.length).toBeGreaterThan(0);
+    expect(thin.primaryUnavailable).toBe(false);
+    const built = buildOption(
+      thin.plans[0]!,
+      { ...req, primary: 'lifegain' },
+      bigPool(),
+      index,
+      CONFIG,
+    );
+    expect(built.explanation.nearest?.requested).toBe('lifegain');
+    // With a secondary style the classic builder runs, and the old scan decides.
+    const classic = { ...req, primary: 'lifegain', secondary: 'flyers' };
+    const none = planOptions(classic, bigPool(), index, CONFIG);
     expect(none.plans).toHaveLength(0);
     expect(none.primaryUnavailable).toBe(true);
   });
@@ -78,15 +92,18 @@ describe('planOptions with a primary the theme rules find short', () => {
     expect(result.explanation.nearest).toEqual({ requested: 'tokens', lacks: rules.lacks });
   });
 
-  it('leaves out a primary below short', () => {
+  it('plans a primary below short too, and the build answers with the nearest deck', () => {
     const pool = fewMakers(1);
     const rules = scanPool(pool, index, CONFIG, SETTINGS, 60, ['W']).archetypes.find(
       (a) => a.archetype === 'tokens',
     )!.rules!;
     expect(rules.margin).toBeLessThan(CONFIG.builderWeights.grow.nearMargin);
     const plan = planOptions(req, pool, index, CONFIG);
-    expect(plan.plans).toEqual([]);
-    expect(plan.primaryUnavailable).toBe(true);
+    expect(tokens(pool)).toEqual(['WU:tokens', 'W:tokens']);
+    expect(plan.primaryUnavailable).toBe(false);
+    const result = buildOption(plan.plans[0]!, req, pool, index, CONFIG);
+    expect(result.deck.archetype).not.toBe('tokens');
+    expect(result.explanation.nearest).toEqual({ requested: 'tokens', lacks: rules.lacks });
   });
 
   it('plans by the old scan where the classic builder takes the request', () => {
@@ -173,8 +190,14 @@ describe('deckOptionSearch', () => {
   });
 
   it('says when no subset can build the picked primary style', () => {
+    // A secondary keeps the classic builder, where an unviable primary plans nothing.
     const { state } = runAll(
-      deckOptionSearch({ ...req, primary: 'lifegain' }, bigPool(), index, CONFIG),
+      deckOptionSearch(
+        { ...req, primary: 'lifegain', secondary: 'flyers' },
+        bigPool(),
+        index,
+        CONFIG,
+      ),
     );
     expect(state.primaryUnavailable).toBe(true);
     expect(state.planned).toBe(0);
