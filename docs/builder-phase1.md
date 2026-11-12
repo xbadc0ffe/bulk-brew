@@ -2,7 +2,13 @@
 
 ## Status
 
-Not started. The session that runs this brief keeps this section current: what is done, what is running, what it found, and where each result lives.
+Started 2026-11-11 (overnight session). The session that runs this brief keeps this section current: what is done, what is running, what it found, and where each result lives.
+
+- **Findings before coding.** Sphinx's Tutelage counts as weight-2 Graveyard setup because its `repeatable-loot` tag meets the "looter on a permanent" rule, though its loot costs six mana; the fix is a cost check on that rule. Ruin Crab is not a Graveyard job at all (the rules read it as Mill setup); it entered through the early-creature role, so the fix is a rule flag, `setupNeedsPayoff`, on Mill, Group hug, and Energy, which the builder's gate applies to off-plan setup.
+- **Done: the rules as config** (commits 7da6416 and 6b3b382, reviewed). `config/theme-rules.json` is rules version 3 with three new style keys: `kin` (the nearest styles that share the resource), `setupNeedsPayoff` (Mill, Group hug, Energy), and `lacks` (a plain phrase per floor). The core loads and validates it (`packages/core/src/theme-rules.ts`); it is in the config version as `h3`. `npm run theme:bulk` writes `config/theme-bulk.json`, the bulk baseline (version `1w1e1xl`, pack 2026-11-03, 2.2 s), in the config version as `q`. The looter fix: a loot activation costing four mana or more no longer counts as a weight-2 looter; nine cards move to 0.5 (Sphinx's Tutelage among them), all 708 guide examples unchanged.
+- **Done: review tooling** (commit be6b71a, merged as e36fb67, review pending). `review:pools --seed-prefix`, `review:requests --prefix`, the `v26.0.35` runner version (today's builder from a worktree at `../bulk-brew-26.0.35`, identical to `head` before this phase on three builds), packets that tell the judge the requested style, the `decent_of_style` answer and its collation columns, paired-singles sampling (`sameAs`, `poolPrefix`, `substituted`, `--also`).
+- **Running.** The builder port into the core (`packages/core/src/grow.ts`; requested themed styles and the three shapes at 60, 100, and 40 when the player asked for the style; note and nearest; rules viability on the scan).
+- **Next.** The apps (style list from the rules, the note in both apps), docs, eval, push and smoke, then the panel: new `h1-` pools, requests for `head` and `v26.0.35` at 60, 100, and 40, about 370 packets.
 
 ## How to start
 

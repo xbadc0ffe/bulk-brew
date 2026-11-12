@@ -1,12 +1,12 @@
 {
-  "version": "3",
+  "version": "4",
   "styles": {
     "tokens": {
       "resource": "creature tokens that stay on the battlefield, counted in bodies",
       "kin": ["aristocrats"],
       "lacks": {
         "setup": "few cards that make creature tokens",
-        "repeatable": "no token engine that keeps making tokens",
+        "repeatable": "few token engines that keep making tokens",
         "payoff": "few cards that reward a wide board"
       },
       "setup": [
@@ -308,7 +308,7 @@
       "kin": ["tokens", "graveyard"],
       "lacks": {
         "setup": "few creatures to sacrifice and ways to sacrifice them",
-        "repeatable": "no repeatable way to sacrifice creatures",
+        "repeatable": "few repeatable ways to sacrifice creatures",
         "payoff": "few cards that reward creatures dying"
       },
       "setup": [
@@ -445,7 +445,7 @@
       "kin": ["aristocrats"],
       "lacks": {
         "setupWeight": "few cards that fill your graveyard",
-        "repeatable": "no repeatable way to fill the graveyard",
+        "repeatable": "few repeatable ways to fill the graveyard",
         "payoffWeight": "few cards that use a full graveyard"
       },
       "setup": [
@@ -1961,7 +1961,7 @@
       "setupNeedsPayoff": true,
       "lacks": {
         "setup": "few cards that mill the opponent",
-        "repeatable": "no repeatable way to mill the opponent",
+        "repeatable": "few repeatable ways to mill the opponent",
         "payoff": "few cards that reward a milled opponent"
       },
       "setup": [
@@ -2388,7 +2388,7 @@
       "resource": "opposing creatures tapped when it matters",
       "lacks": {
         "setup": "few cards that tap opposing creatures",
-        "repeatable": "no repeatable way to tap opposing creatures",
+        "repeatable": "few repeatable ways to tap opposing creatures",
         "payoff": "few cards that reward tapped opposing creatures"
       },
       "setup": [
@@ -2501,7 +2501,7 @@
       "setupNeedsPayoff": true,
       "lacks": {
         "setup": "few cards that give the opponent extra cards",
-        "repeatable": "no card that gives extra cards every turn",
+        "repeatable": "few cards that give extra cards every turn",
         "payoff": "few cards that punish the opponent for drawing",
         "payoffWeight": "few cards that punish the opponent again and again"
       },
@@ -2585,7 +2585,7 @@
       "resource": "forced attacks by opposing creatures",
       "lacks": {
         "setup": "few cards that force opposing creatures to attack",
-        "repeatable": "no lasting way to force opposing creatures to attack",
+        "repeatable": "few lasting ways to force opposing creatures to attack",
         "payoff": "few cards that reward forced attacks"
       },
       "setup": [
