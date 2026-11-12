@@ -4,6 +4,7 @@ import {
   bestColorFor,
   colorsInComment,
   expandJobs,
+  hasPrefix,
   hasTwoColor,
   isPartner,
   jobFileName,
@@ -79,6 +80,18 @@ describe('pool colors', () => {
     expect(themeStyleOf('theme-bigCreatures-02')).toBe('bigCreatures');
     expect(themeStyleOf('plain-01')).toBeUndefined();
     expect(themeStyleOf('public-bulk-black')).toBeUndefined();
+  });
+
+  it('reads a seed prefix out of pool ids', () => {
+    expect(themeStyleOf('h1-theme-graveyard-03')).toBe('graveyard');
+    expect(themeStyleOf('H2b-theme-bigCreatures-01')).toBe('bigCreatures');
+    expect(themeStyleOf('h1-plain-01')).toBeUndefined();
+    expect(hasPrefix('h1-plain-01', 'h1')).toBe(true);
+    expect(hasPrefix('h1-theme-tokens-02', 'h1')).toBe(true);
+    expect(hasPrefix('h12-plain-01', 'h1')).toBe(false);
+    expect(hasPrefix('plain-01', 'h1')).toBe(false);
+    expect(hasPrefix('public-bulk-black', 'h1')).toBe(false);
+    expect(hasPrefix('public-bulk-black')).toBe(true);
   });
 });
 

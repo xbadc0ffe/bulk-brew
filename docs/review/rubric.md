@@ -1,6 +1,6 @@
 # Judging rubric: decent bulk decks
 
-Each packet holds one deck, or two labeled A and B for a pair: size, colors, commander if any, and every card with its copies, cost, type line, power and toughness or loyalty, and oracle text (every face of a two-faced card), lands included. The deck's name and requested style are removed. Judge whether each is a decent bulk deck, not whether it is a good deck.
+Each packet holds one deck, or two labeled A and B for a pair: size, colors, the requested style, commander if any, and every card with its copies, cost, type line, power and toughness or loyalty, and oracle text (every face of a two-faced card), lands included. The deck's name is removed. Judge whether each is a decent bulk deck, not whether it is a good deck.
 
 ## The bar
 
@@ -84,6 +84,12 @@ Count the cards, copies included, that do nothing for the plan or the game, and 
 
 Give the score and a two-sentence reason: what the deck does, and what most helps or hurts it.
 
+## The requested style
+
+The packet says what style was asked for, such as "Requested style: Graveyard." with a line on what that style does, or "Requested style: none (the builder picked)". It is what someone asked for, not a claim about the deck: infer the plan from the cards as above, and give `decent`, the score, and the failures exactly as you would without it.
+
+After judging the deck by the bar, answer one more question: is this a decent deck of the requested style? That means a decent deck whose plan is that style, played with real setup and payoff for it, judged by the same honest counting as question 2. For Aggro, Midrange, or Control, it means a decent deck whose plan is that shape. A decent plain deck asked for as Graveyard is not a decent Graveyard deck, and neither is a deck with a few graveyard cards that plays as Midrange. A deck that is not decent is never a decent deck of its style. Give `decent_of_style` and a one-sentence `style_reason`. When the packet shows no requested style, `decent_of_style` is null and `style_reason` is an empty string.
+
 ## Size notes
 
 - **100 (Commander).** One copy of each card except basics. The plan should work with the commander. Games are multiplayer and slower, so judge by turn 6 or 7. About 38 lands is normal (35 to 40), plus some ramp. Expect more interaction and card advantage than at 60, since threats come from three opponents, and a way to win against three opponents at 40 life.
@@ -104,7 +110,7 @@ Decks in a batch come from many sources, good and bad. Judge every deck by the b
 - Read every card's oracle text in the packet. Never recall a card from memory or assume what it does from its name.
 - If a card's text is missing from the packet, say so in `reason` and do not guess at it.
 - Do not look up the deck or its cards anywhere.
-- Do not guess which builder made the deck or what style it was asked for.
+- Do not guess which builder made the deck.
 - Judge each deck on its own; compare decks only in pairs.
 - Write plainly.
 - Answer with one JSON object in exactly the shape below: valid JSON, no extra keys, nothing before or after it.
@@ -128,11 +134,13 @@ One deck:
   "decent": boolean,
   "score": 1 | 2 | 3 | 4 | 5,
   "reason": string,
+  "decent_of_style": boolean | null,
+  "style_reason": string,
   "failures": [failure]
 }
 ```
 
-A pair packet gets only this answer:
+A pair packet gets only this answer, with no style question, whatever style line it shows:
 
 ```text
 { "better": "A" | "B" | "tie", "reason": string }
@@ -154,7 +162,7 @@ Name each distinct card at most once across `setup`, `payoff`, and `dead`, spell
 - `dead-cards`: dead copies are more than about one spell in ten: 4 or more at 60, 3 or more at 40, 2 or more at 20, 7 or more at 100.
 - `none`: nothing above applies; use it alone.
 
-Keep the fields consistent. `no-plan` goes with the plan "no clear plan" and both `enough_` fields false. Otherwise a false `enough_setup` goes with `no-setup` or `thin-setup`, and a false `enough_payoff` with `no-payoff` or `thin-payoff`. `interaction` "none" goes with `no-interaction`, and `win` "none" with `no-win`. A deck with `no-plan` or any setup or payoff failure misses its plan in most games, so it scores 2 or less.
+Keep the fields consistent. `no-plan` goes with the plan "no clear plan" and both `enough_` fields false. Otherwise a false `enough_setup` goes with `no-setup` or `thin-setup`, and a false `enough_payoff` with `no-payoff` or `thin-payoff`. `interaction` "none" goes with `no-interaction`, and `win` "none" with `no-win`. A deck with `no-plan` or any setup or payoff failure misses its plan in most games, so it scores 2 or less. `decent_of_style` is true only when `decent` is true, a boolean whenever the packet shows a requested style, and null when it shows none; `style_reason` is empty exactly when `decent_of_style` is null.
 
 ## Worked examples
 
@@ -162,4 +170,4 @@ Keep the fields consistent. `no-plan` goes with the plan "no clear plan" and bot
 
 **A themed deck that fails on setup.** A 60-card deck where every card mentions the graveyard. Its payoffs are creatures that grow with cards in your graveyard, a reanimation spell, and spells with flashback. Its "setup" is a removal spell with surveil 1, a big creature that surveils two when it enters, and payoff creatures that mill one card when they enter. There is no looter, no discard outlet, and no repeatable mill. Counted honestly, it has almost no setup, so the growing creatures stay small and the reanimation spell has nothing to return until late. Score 2 with `no-setup`: the theme is in the text, not in the games.
 
-**A plain aggro deck that is decent.** A 40-card two-color deck with 17 lands split 9 and 8. Sixteen creatures, most at two or three mana, several with flying or first strike; four burn spells that hit creatures or players; two combat tricks; and one spell that pumps the team for a turn. Nothing builds a resource, so setup and payoff are empty and both `enough_` fields are true. The curve starts on turn two, the mana fits, the burn is removal and reach, and the flyers close games. Score 3: no theme, but it does its thing.
+**A plain aggro deck that is decent.** A 40-card two-color deck with 17 lands split 9 and 8. Sixteen creatures, most at two or three mana, several with flying or first strike; four burn spells that hit creatures or players; two combat tricks; and one spell that pumps the team for a turn. Nothing builds a resource, so setup and payoff are empty and both `enough_` fields are true. The curve starts on turn two, the mana fits, the burn is removal and reach, and the flyers close games. Score 3: no theme, but it does its thing. Asked for as Aggro, it is a decent deck of its style; asked for as Tokens, it is not.

@@ -15,6 +15,7 @@ The code is `packages/pipeline/src/review/requests.ts`; the pure parts are teste
 | ---------------------- | ------------------------------- | ------------------------------------------------------------------------------------ |
 | `--pools <kinds>`      | `plain,theme,public`            | Pool kinds, from `plain`, `theme`, `public`, `owner`. Owner pools only when asked.   |
 | `--plain <n>`          | all 30                          | Only the first n plain pools, by id.                                                 |
+| `--prefix <p>`         | none                            | Only pools of one seed prefix (below).                                               |
 | `--sizes <list>`       | `60,100,40,20`                  | Deck sizes.                                                                          |
 | `--versions <ids>`     | `head,head-web,v26.0.30,random` | One pair of job files per version. Prototypes are added here by name.                |
 | `--bestfit-only <ids>` | `head-web,random`               | Versions that get only the best-fit requests. `none` turns it off.                   |
@@ -23,6 +24,8 @@ The code is `packages/pipeline/src/review/requests.ts`; the pure parts are teste
 | `--force`              | off                             | Replace job files that exist with other jobs.                                        |
 
 The command needs no network and reads no clock. The data pack, the config, and the pools decide the requests, so a new pack or config can change them; `index.json` records the data and config versions.
+
+**One set of pools.** `--prefix h1` keeps only pools whose id starts with `h1-`: the plain and theme pools `review:pools -- --seed-prefix h1` made (`docs/review/pools.md`). Public and owner pools have no prefix, so they drop out. `--plain <n>` then counts that set's plain pools, a prefixed theme pool's enriched style is read from its id as usual (`h1-theme-graveyard-01` is Graveyard), and `index.json` records the prefix in its scope. Without `--prefix`, every pool on disk is used, prefixed sets included, so give `--prefix` or `--out` to keep a new round's job files apart from the first round's. A check on 2026-11-11: `--prefix public --sizes 60` (public pool ids happen to start with `public-`) gave the 104 public jobs at 60 in the table below, and a run with no new flags matched every file in `data/review/jobs/` byte for byte.
 
 ## The rules
 

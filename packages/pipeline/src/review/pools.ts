@@ -4,7 +4,7 @@
 // request generator reads. Recipes and seeds: docs/review/pools.md.
 //
 // Usage: npm run review:pools -- [--only plain|theme|public|owner] [--plain 30]
-//   [--copies 3000] [--extra 120] [--out data/review/pools] [--force]
+//   [--copies 3000] [--extra 120] [--seed-prefix <p>] [--out data/review/pools] [--force]
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -95,8 +95,32 @@ export const EDHREC_PAGES: Record<string, readonly string[]> = {
 };
 
 export const twoDigits = (n: number): string => String(n).padStart(2, '0');
-export const plainSeed = (n: number): number => hash32(`review:plain:${n}`);
-export const themeSeed = (style: string, n: number): number => hash32(`review:theme:${style}:${n}`);
+export const plainSeed = (n: number): number => hash32(poolNames().plainSeedText(n));
+export const themeSeed = (style: string, n: number): number =>
+  hash32(poolNames().themeSeedText(style, n));
+
+/** A seed prefix: letters and digits only, so ids, file names, and seed text stay unambiguous. */
+export const SEED_PREFIX = /^[A-Za-z0-9]+$/;
+
+/**
+ * Ids, files, and seed text of plain and theme pools. A seed prefix gives a new
+ * set of pools ("h1-plain-01" from "review:h1:plain:1"); without one the names
+ * and seeds are the original ones.
+ */
+export function poolNames(prefix?: string) {
+  const p = prefix ? `${prefix}-` : '';
+  const seed = prefix ? `review:${prefix}:` : 'review:';
+  return {
+    plainId: (n: number) => `${p}plain-${twoDigits(n)}`,
+    plainFile: (n: number) => `plain/${p}plain-${twoDigits(n)}.json`,
+    plainSeedText: (n: number) => `${seed}plain:${n}`,
+    themeId: (style: string, n: number) => `${p}theme-${style}-${twoDigits(n)}`,
+    themeFile: (style: string, n: number) => `theme/${p}${style}-${twoDigits(n)}.json`,
+    themeSeedText: (style: string, n: number) => `${seed}theme:${style}:${n}`,
+    /** Theme candidate counts, one file per prefix so a new set never overwrites the first. */
+    themesFile: prefix ? `themes-${prefix}.json` : 'themes.json',
+  };
+}
 
 /** A rarity source cut down to the given card ids. */
 export function restrictSource(
@@ -288,6 +312,8 @@ interface Options {
   copies: number;
   extra: number;
   force: boolean;
+  /** Plain and theme pools only; public and owner pools have no seed. */
+  prefix?: string;
 }
 
 function count(name: string, fallback: number): number {
@@ -311,6 +337,14 @@ function readOptions(): Options {
     force: flag('force'),
   };
   if (only) opts.only = only as PoolKind;
+  const prefix = arg('seed-prefix');
+  if (prefix !== undefined) {
+    if (!SEED_PREFIX.test(prefix))
+      throw new Error(`--seed-prefix takes letters and digits only, got "${prefix}"`);
+    if (only === 'public' || only === 'owner')
+      throw new Error('--seed-prefix applies to plain and theme pools only');
+    opts.prefix = prefix;
+  }
   return opts;
 }
 
@@ -367,7 +401,10 @@ function main(): number {
   const config = loadConfigDir(path.join(ROOT, 'config'));
   const source = noiseSource(index);
   const versions = { dataVersion: index.dataVersion, configVersion: configVersion(config) };
-  const wants = (k: PoolKind) => !opts.only || opts.only === k;
+  // A prefix makes new seeded pools; the fixed public and owner lists have nothing to vary.
+  const wants = (k: PoolKind) =>
+    (!opts.only || opts.only === k) && !(opts.prefix && (k === 'public' || k === 'owner'));
+  const names = poolNames(opts.prefix);
   let written = 0;
   let kept = 0;
   const save = (rel: string, pool: PoolFile) => {
@@ -380,23 +417,26 @@ function main(): number {
     writeFileSync(file, formatPool(pool));
     written++;
   };
-  const plainOf = (n: number) => noisePool(source, plainSeed(n), opts.copies);
+  const plainSeedOf = (n: number) => hash32(names.plainSeedText(n));
+  const plainOf = (n: number) => noisePool(source, plainSeedOf(n), opts.copies);
   const plainRecipe = (n: number) =>
-    `noisePool(noiseSource(index), hash32('review:plain:${n}'), ${opts.copies})`;
+    `noisePool(noiseSource(index), hash32('${names.plainSeedText(n)}'), ${opts.copies})`;
 
   if (wants('plain')) {
     for (let n = 1; n <= opts.plain; n++) {
-      const id = `plain-${twoDigits(n)}`;
-      save(`plain/${id}.json`, {
-        id,
+      save(names.plainFile(n), {
+        id: names.plainId(n),
         kind: 'plain',
         recipe: plainRecipe(n),
-        seed: plainSeed(n),
+        seed: plainSeedOf(n),
         ...versions,
         cards: plainOf(n),
       });
     }
-    console.log(`plain: ${opts.plain} pools of ${opts.copies} copies`);
+    console.log(
+      `plain: ${opts.plain} pools of ${opts.copies} copies` +
+        (opts.prefix ? `, seed prefix ${opts.prefix}` : ''),
+    );
   }
 
   if (wants('theme')) {
@@ -416,16 +456,16 @@ function main(): number {
         theme.stats.baseCopies.push(
           base.reduce((a, [id, q]) => a + (theme.ids.has(id) ? q : 0), 0),
         );
-        const added = drawExtras(themeSource, themeSeed(style, n), opts.extra);
-        const id = `theme-${style}-${twoDigits(n)}`;
-        save(`theme/${style}-${twoDigits(n)}.json`, {
-          id,
+        const seed = hash32(names.themeSeedText(style, n));
+        const added = drawExtras(themeSource, seed, opts.extra);
+        save(names.themeFile(style, n), {
+          id: names.themeId(style, n),
           kind: 'theme',
           recipe:
-            `plain-${twoDigits(n)} [${plainRecipe(n)}] plus ${opts.extra} copies from ` +
+            `${names.plainId(n)} [${plainRecipe(n)}] plus ${opts.extra} copies from ` +
             `${theme.stats.candidates} ${style} cards (${from}), drawn by noisePool with ` +
-            `hash32('review:theme:${style}:${n}')`,
-          seed: themeSeed(style, n),
+            `hash32('${names.themeSeedText(style, n)}')`,
+          seed,
           ...versions,
           cards: mergeLists(base, added),
           added,
@@ -433,8 +473,11 @@ function main(): number {
       }
     }
     mkdirSync(opts.out, { recursive: true });
-    writeFileSync(path.join(opts.out, 'themes.json'), JSON.stringify(stats, null, 2) + '\n');
-    console.log(`theme: ${styles.length * THEME_SAMPLES} pools, ${styles.length} styles`);
+    writeFileSync(path.join(opts.out, names.themesFile), JSON.stringify(stats, null, 2) + '\n');
+    console.log(
+      `theme: ${styles.length * THEME_SAMPLES} pools, ${styles.length} styles` +
+        (opts.prefix ? `, seed prefix ${opts.prefix} (counts in ${names.themesFile})` : ''),
+    );
     console.log(
       '  style          matchers  edhrec  +edhrec  cands   c    u    r    m  base copies  pages',
     );

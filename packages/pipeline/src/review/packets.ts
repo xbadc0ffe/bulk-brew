@@ -71,6 +71,15 @@ export interface PlanEntry {
   kinds?: string[];
   /** Requested style ids, "bestfit" for none. Absent means any. */
   styles?: string[];
+  /** The pool id must start with this, such as "h1-" for one seed prefix's pools. */
+  poolPrefix?: string;
+  /** True: only decks built in another style than requested; false: only decks that kept it. */
+  substituted?: boolean;
+  /**
+   * 1-based index of an earlier entry: draw first the decks built for the same
+   * requests (pool and request, seed aside) that entry drew, then top up at random.
+   */
+  sameAs?: number;
   count: number;
 }
 
@@ -90,6 +99,12 @@ export interface SingleKey extends DeckRef {
   kind: 'single';
   /** Set on the second copy of a packet, so two judges score one deck blind. */
   duplicateOf?: string;
+  /**
+   * The requested style the packet showed, or null for "none"; the answer's
+   * `decent_of_style` must then be null. Keys made before it have none, and
+   * their answers have no style fields.
+   */
+  styleShown?: string | null;
 }
 
 export type PairMatch = 'same-request' | 'same-pool' | 'same-colors';
@@ -97,6 +112,8 @@ export type PairMatch = 'same-request' | 'same-pool' | 'same-colors';
 export interface PairKey {
   kind: 'pair';
   pair: { A: DeckRef; B: DeckRef; match: PairMatch };
+  /** The requested style the packet showed (same-request pairs only), or null. */
+  styleShown?: string | null;
 }
 
 export type KeyEntry = SingleKey | PairKey;
@@ -116,6 +133,8 @@ export interface InventoryRow {
 
 export interface BatchOptions {
   decks: string;
+  /** More deck specs (--also), for anchors and hand-built decks outside the --decks glob. */
+  also?: string[];
   seed: number;
   quota?: number;
   plan?: PlanEntry[];
@@ -203,7 +222,8 @@ function colorKey(colors: readonly Color[]): string {
   return colors.join('');
 }
 
-function requestKey(d: ReviewDeck): string {
+/** The pool and request without the seed, so a one-seed version matches either seed of another. */
+function requestKeyNoSeed(d: ReviewDeck): string {
   const r = d.request;
   return [
     d.pool.id,
@@ -213,8 +233,11 @@ function requestKey(d: ReviewDeck): string {
     r.style ?? '',
     r.secondary ?? '',
     r.commander ?? '',
-    r.seed,
   ].join('|');
+}
+
+function requestKey(d: ReviewDeck): string {
+  return `${requestKeyNoSeed(d)}|${d.request.seed}`;
 }
 
 /** "Black and Green (BG)", or "Colorless". */
@@ -227,6 +250,36 @@ export function colorsText(colors: readonly Color[]): string {
       ? labels.join(' and ')
       : `${labels.slice(0, -1).join(', ')}, and ${labels[labels.length - 1]}`;
   return `${words} (${ordered.join('')})`;
+}
+
+/** Labels and descriptions from config/archetypes.json, for the requested style line. */
+export type StyleTexts = ReadonlyMap<string, { label: string; description: string }>;
+
+export function styleTexts(
+  archetypes: readonly { id: string; label: string; description: string }[],
+): StyleTexts {
+  return new Map(archetypes.map((a) => [a.id, { label: a.label, description: a.description }]));
+}
+
+/**
+ * What the judge is told was asked for. Only the request's style shows, in
+ * the config's words, never what the builder made of it.
+ */
+export function requestedStyleLine(style: string | undefined, styles?: StyleTexts): string {
+  if (style === undefined) return '- Requested style: none (the builder picked)';
+  const tribe = /^tribal:(.+)$/.exec(style)?.[1];
+  if (tribe)
+    return `- Requested style: ${tribe} tribe. ${tribe} creatures and the cards that reward them.`;
+  const s = styles?.get(style);
+  return s ? `- Requested style: ${s.label}. ${s.description}` : `- Requested style: ${style}.`;
+}
+
+/** A pair shows a requested style only when both decks answer the same request. */
+export function pairStyleShown(
+  match: PairMatch | undefined,
+  a: Pick<ReviewDeck, 'request'>,
+): string | undefined {
+  return match === 'same-request' ? a.request.style : undefined;
 }
 
 function pad(n: number, width: number): string {
@@ -514,12 +567,16 @@ function commanderName(d: ReviewDeck, cards: readonly ListedCard[]): string | un
 const CARDS_INTRO =
   'One block per distinct card, sorted by name: copies, cost, type, stats, keywords, and the oracle text of every face.';
 
-/** A packet with one deck: size, colors, commander, the list, and the cards. Nothing from the builder. */
+/**
+ * A packet with one deck: size, colors, the requested style, commander, the
+ * list, and the cards. Nothing from the builder.
+ */
 export function renderSinglePacket(
   id: string,
   d: ReviewDeck,
   index: Pick<CardIndex, 'get' | 'find'>,
   basicNames?: Record<Color, string>,
+  styles?: StyleTexts,
 ): string {
   const cards = listDeck(d, index, basicNames);
   const cmd = commanderName(d, cards);
@@ -530,6 +587,7 @@ export function renderSinglePacket(
     '',
     `- Size: ${d.request.size} cards`,
     `- Colors: ${colorsText(deckColorsOf(d))}`,
+    requestedStyleLine(d.request.style, styles),
   ];
   if (cmd) lines.push(`- Commander: ${cmd}`);
   lines.push('', `## Deck list (${total(cards)} cards)`, '', ...deckListLines(cards, '###'));
@@ -546,6 +604,7 @@ export function renderPairPacket(
   b: ReviewDeck,
   index: Pick<CardIndex, 'get' | 'find'>,
   basicNames?: Record<Color, string>,
+  opts: { match?: PairMatch; styles?: StyleTexts } = {},
 ): string {
   const ca = listDeck(a, index, basicNames);
   const cb = listDeck(b, index, basicNames);
@@ -559,6 +618,7 @@ export function renderPairPacket(
     '',
     `- Size: ${a.request.size} cards`,
     same ? `- Colors: ${colorsA}` : `- Colors: Deck A ${colorsA}; Deck B ${colorsB}`,
+    requestedStyleLine(pairStyleShown(opts.match, a), opts.styles),
     '',
   ];
   // Each list opens with its own Commander group when it has one.
@@ -615,6 +675,12 @@ function matchesPlan(s: StoredDeck, e: PlanEntry): boolean {
   if (e.size !== undefined && d.request.size !== e.size) return false;
   if (e.kinds && !e.kinds.includes(poolKindOf(d.pool.source))) return false;
   if (e.styles && !e.styles.includes(styleOf(d.request))) return false;
+  if (e.poolPrefix !== undefined && !d.pool.id.startsWith(e.poolPrefix)) return false;
+  if (
+    e.substituted !== undefined &&
+    builtAnotherStyle(d.request, d.deck.archetype) !== e.substituted
+  )
+    return false;
   return true;
 }
 
@@ -661,10 +727,40 @@ export function selectDecks(
     scope = built.filter(
       (s) => !isAnchor(s.deck.version) && opts.plan!.some((e) => matchesPlan(s, e)),
     );
+    const drawnBy: StoredDeck[][] = [];
     opts.plan.forEach((e, i) => {
       const pool = built.filter((s) => matchesPlan(s, e) && !taken.has(s.file));
-      const drawn = shuffled(pool, `review:packets:${opts.seed}:plan:${i}`).slice(0, e.count);
+      const drawn: StoredDeck[] = [];
+      if (e.sameAs !== undefined) {
+        const earlier = Number.isInteger(e.sameAs) ? drawnBy[e.sameAs - 1] : undefined;
+        if (!earlier)
+          throw new Error(`plan entry ${i + 1}: "sameAs" must name an earlier entry (1 to ${i})`);
+        // The decks for the earlier entry's requests, in the order it drew them.
+        const byRequest = new Map<string, StoredDeck[]>();
+        for (const s of pool) {
+          const k = requestKeyNoSeed(s.deck);
+          const list = byRequest.get(k);
+          if (list) list.push(s);
+          else byRequest.set(k, [s]);
+        }
+        for (const ref of earlier) {
+          if (drawn.length >= e.count) break;
+          const match = byRequest.get(requestKeyNoSeed(ref.deck))?.shift();
+          if (match) drawn.push(match);
+        }
+        notes.push(
+          `plan entry ${i + 1} (${e.version}): ${drawn.length} decks on the requests of entry ${e.sameAs}`,
+        );
+      }
+      const matched = new Set(drawn.map((s) => s.file));
+      drawn.push(
+        ...shuffled(
+          pool.filter((s) => !matched.has(s.file)),
+          `review:packets:${opts.seed}:plan:${i}`,
+        ).slice(0, e.count - drawn.length),
+      );
       drawn.forEach(take);
+      drawnBy.push(drawn);
       if (drawn.length < e.count)
         notes.push(`plan entry ${i + 1} (${e.version}): ${drawn.length} of ${e.count} decks found`);
     });
@@ -808,6 +904,8 @@ export interface MakeBatchInput extends Omit<BatchOptions, 'decks'> {
   decksSpec: string;
   index: Pick<CardIndex, 'get' | 'find'>;
   basicNames?: Record<Color, string>;
+  /** The config's style labels and descriptions; without them a requested style shows as its id. */
+  styles?: StyleTexts;
   dataVersion?: string;
   rubric?: string;
 }
@@ -847,11 +945,12 @@ export function makeBatch(input: MakeBatchInput): Batch {
     const id = `p-${pad(i + 1, width)}`;
     const entry: SingleKey = { kind: 'single', ...deckRef(x.s, listFor(x.s)) };
     if (x.dup) entry.duplicateOf = primaryId.get(x.s.file)!;
+    entry.styleShown = x.s.deck.request.style ?? null;
     keyed[id] = entry;
     packets.push({
       id,
       kind: 'single',
-      text: renderSinglePacket(id, x.s.deck, input.index, input.basicNames),
+      text: renderSinglePacket(id, x.s.deck, input.index, input.basicNames, input.styles),
     });
   });
 
@@ -866,16 +965,21 @@ export function makeBatch(input: MakeBatchInput): Batch {
     keyed[id] = {
       kind: 'pair',
       pair: { A: deckRef(p.A, listFor(p.A)), B: deckRef(p.B, listFor(p.B)), match: p.match },
+      styleShown: pairStyleShown(p.match, p.A.deck) ?? null,
     };
     packets.push({
       id,
       kind: 'pair',
-      text: renderPairPacket(id, p.A.deck, p.B.deck, input.index, input.basicNames),
+      text: renderPairPacket(id, p.A.deck, p.B.deck, input.index, input.basicNames, {
+        match: p.match,
+        ...(input.styles ? { styles: input.styles } : {}),
+      }),
     });
   });
 
   const options: BatchOptions = {
     decks: input.decksSpec,
+    ...(input.also?.length ? { also: input.also } : {}),
     seed,
     ...(input.quota !== undefined ? { quota: input.quota } : {}),
     ...(input.plan ? { plan: input.plan } : {}),
@@ -925,8 +1029,8 @@ export function writeBatch(
 // ---------------------------------------------------------------- command line
 
 const USAGE = `Usage: npm run review:packets -- --batch <name> (--quota <n> | --plan <plan.json>)
-  [--decks data/review/decks] [--seed 1] [--pairs 0] [--two-judges 0.25]
-  [--anchors 25 | --no-anchors] [--out data/review/packets] [--force]`;
+  [--decks data/review/decks] [--also <folder or glob>]... [--seed 1] [--pairs 0]
+  [--two-judges 0.25] [--anchors 25 | --no-anchors] [--out data/review/packets] [--force]`;
 
 function readPlan(file: string): PlanEntry[] {
   const raw = JSON.parse(readFileSync(path.resolve(ROOT, file), 'utf8')) as unknown;
@@ -935,8 +1039,29 @@ function readPlan(file: string): PlanEntry[] {
     const x = e as Partial<PlanEntry>;
     if (typeof x.version !== 'string' || typeof x.count !== 'number' || x.count < 0)
       throw new Error(`${file}: entry ${i + 1} needs "version" and a "count" of 0 or more`);
+    if (x.poolPrefix !== undefined && typeof x.poolPrefix !== 'string')
+      throw new Error(`${file}: entry ${i + 1}: "poolPrefix" must be a string`);
+    if (x.substituted !== undefined && typeof x.substituted !== 'boolean')
+      throw new Error(`${file}: entry ${i + 1}: "substituted" must be true or false`);
+    if (x.sameAs !== undefined && !(Number.isInteger(x.sameAs) && x.sameAs >= 1 && x.sameAs <= i))
+      throw new Error(`${file}: entry ${i + 1}: "sameAs" must name an earlier entry (1 to ${i})`);
     return x as PlanEntry;
   });
+}
+
+/** Every value of a flag that may repeat, such as --also. */
+export function argAll(name: string): string[] {
+  const out: string[] = [];
+  process.argv.forEach((a, i) => {
+    const v = process.argv[i + 1];
+    if (a === `--${name}` && v !== undefined) out.push(v);
+  });
+  return out;
+}
+
+/** Deck files from several specs, each file once, sorted. */
+export function findAllDeckFiles(specs: readonly string[], root: string = ROOT): string[] {
+  return [...new Set(specs.flatMap((s) => findDeckFiles(s, root)))].sort();
 }
 
 function wholeNumber(name: string, fallback: number): number {
@@ -973,7 +1098,14 @@ function main(): number {
     return 2;
   }
   const decksSpec = arg('decks') ?? 'data/review/decks';
-  const files = findDeckFiles(decksSpec);
+  const also = argAll('also');
+  const found = [decksSpec, ...also].map((s) => findDeckFiles(s));
+  const empty = also.find((_, i) => !found[i + 1]!.length);
+  if (empty !== undefined) {
+    console.error(`no deck files match --also ${empty}`);
+    return 1;
+  }
+  const files = [...new Set(found.flat())].sort();
   if (!files.length) {
     console.error(`no deck files match ${decksSpec}`);
     return 1;
@@ -985,8 +1117,10 @@ function main(): number {
     batch,
     decks,
     decksSpec,
+    ...(also.length ? { also } : {}),
     index: ctx.index,
     basicNames: ctx.config.landRules.basics.names,
+    styles: styleTexts(ctx.config.archetypes.archetypes),
     dataVersion: ctx.pack.version,
     rubric,
     seed,

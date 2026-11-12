@@ -7,7 +7,7 @@ npm run review:pools                     # writes only pools that are missing
 npm run review:pools -- --force          # rewrites every pool
 ```
 
-Flags: `--out <dir>` (default `data/review/pools`), `--only plain|theme|public|owner`, `--plain <n>` (plain pools, default 30), `--copies <n>` (copies per plain pool, default 3000), `--extra <n>` (theme copies per theme pool, default 120), `--force`. Everything below uses the defaults.
+Flags: `--out <dir>` (default `data/review/pools`), `--only plain|theme|public|owner`, `--plain <n>` (plain pools, default 30), `--copies <n>` (copies per plain pool, default 3000), `--extra <n>` (theme copies per theme pool, default 120), `--seed-prefix <p>` (a new set of seeds, below), `--force`. Everything below uses the defaults.
 
 The output is gitignored. Running the command twice gives byte-identical files (checked with sha256 over all 105 files after a `--force` rerun and after a plain rerun). The data pack, the config, and the EDHREC pages in `data/edhrec/` decide the cards, so a new pack, config, or page fetch can change the pools; the seeds never change. Each pool records the data pack and config versions that made it, and the command warns when pools on disk came from another pack or config: rerun with `--force` then, so the index and `themes.json` match the pools.
 
@@ -114,6 +114,23 @@ What this means for testing:
 - For the six narrow styles (landfall, mill, tappers, group hug, goad, energy) the extras multiply the theme's copies by about 2.4 to 7, so these pools test whether a builder finishes a plan it could not reach in plain bulk.
 - Extras follow the theme's own color mix across all colors, so a one- or two-color request sees only part of the 120.
 - Goad takes about half its candidates from EDHREC (185 of 361) and energy about two in five (86 of 223), so their extras lean on EDHREC's view of the theme.
+
+## Seed prefixes: new pools for a new round
+
+`plain-01` to `plain-30` and the theme pools on them were development pools for the prototypes, so a later round needs pools no one has built on. A seed prefix (letters and digits) makes a new set the same way:
+
+```sh
+npm run review:pools -- --seed-prefix h1
+```
+
+- Plain pools `h1-plain-01` to `h1-plain-30`, in `plain/h1-plain-NN.json`, from `hash32('review:h1:plain:' + n)`.
+- Theme pools `h1-theme-<style>-01` to `-03`, in `theme/h1-<style>-NN.json`, each on `h1-plain-NN` (n = 1 to 3) with extras from `hash32('review:h1:theme:' + style + ':' + n)`.
+- The recipes name the prefix, such as `noisePool(noiseSource(index), hash32('review:h1:plain:1'), 3000)`.
+- `--only plain|theme` and `--plain <n>` work as without a prefix. Public and owner pools have no seed, so a prefixed run leaves them alone, and `--only public` or `--only owner` with a prefix is an error.
+- The theme candidate counts go to `themes-h1.json`, so `themes.json` stays the first set's.
+- The index lists every pool on disk, prefixed or not. `npm run review:requests -- --prefix h1` picks one set (`docs/review/requests.md`).
+
+Without the flag, the files are byte-identical to the ones before it existed: on 2026-11-11 a rerun into another folder matched all 30 plain, 54 theme, and 11 public files and `themes.json`.
 
 ## Public fixed pools
 
