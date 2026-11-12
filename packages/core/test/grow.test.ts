@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { BuildError, buildDeck } from '../src/builder.ts';
 import { factsFor, listCandidates } from '../src/candidates.ts';
+import { validateConfig, type BulkBrewConfig } from '../src/config.ts';
 import { commitDeck } from '../src/decks.ts';
 import { deckToDecklist } from '../src/export.ts';
 import { growBuilds, growViability } from '../src/grow.ts';
@@ -85,6 +86,8 @@ interface FakeOptions {
   /** Opponent mill: a Ruin Crab, tap millers, one-shots, and with `millPayoffs` a payoff. */
   millOpponent?: boolean;
   millPayoffs?: boolean;
+  /** A popular removal creature that also mills the opponent. */
+  millRemoval?: boolean;
   /** Vanilla creatures per mana value 1 to 6. */
   creatures?: number;
   /** Copies of every other card. */
@@ -144,6 +147,19 @@ function fakePool(o: FakeOptions = {}) {
         }),
       );
   }
+  // A popular creature that removes a creature and mills the opponent every turn.
+  const millRemoval = o.millRemoval
+    ? put(
+        card({
+          name: 'Grinding Warden',
+          mv: 3,
+          manaCost: '{2}{U}',
+          tags: ['mill-opponent', 'removal-creature', 'removal', 'spot-removal'],
+          text: 'When this creature enters, destroy target creature an opponent controls.\n{T}: Each opponent mills two cards.',
+          rank: 10,
+        }),
+      )
+    : undefined;
   let crab: CardRecord | undefined;
   if (o.millOpponent) {
     // Ruin Crab: cheap, popular, and useless without a reason to mill the opponent.
@@ -212,7 +228,55 @@ function fakePool(o: FakeOptions = {}) {
       text: '({T}: Add {U}.)',
     }),
   );
-  return pack(cards, { looters, mills, payoffs, rider, dual, crab });
+  return pack(cards, { looters, mills, payoffs, rider, dual, crab, millRemoval });
+}
+
+/**
+ * 33 spells, most of them cheap, and Graveyard one looter short: too few spells for
+ * the grow fill's land slack, enough for today's builder, whose best fit reads the
+ * pool as Graveyard. Two big threats make today's Midrange buildable; one does not.
+ */
+function thinPool(giants: number) {
+  const cards: { card: CardRecord; qty: number }[] = [];
+  const put = (c: CardRecord, qty: number) => cards.push({ card: c, qty });
+  put(card({ name: 'Thin Looter', tags: ['repeatable-loot', 'loot'], text: LOOT }), 1);
+  for (let i = 0; i < 2; i++) {
+    put(spell(`Thin Mill ${i}`, 2, ['mill-self'], 'Mill three cards.'), 4);
+    put(spell(`Thin Reanimate ${i}`, 3, ['reanimate-creature'], REANIMATE, 'Sorcery', 100), 4);
+    put(
+      spell(
+        `Thin Removal ${i}`,
+        2,
+        ['removal-creature', 'removal', 'spot-removal'],
+        'Destroy target creature.',
+        'Instant',
+      ),
+      4,
+    );
+  }
+  put(spell('Thin Draw', 3, ['pure-draw', 'draw'], 'Draw two cards.'), 2);
+  put(card({ name: 'Thin Bear', mv: 1, manaCost: '{U}', power: '1', toughness: '1' }), 4);
+  if (giants < 2)
+    put(card({ name: 'Thin Single', mv: 1, manaCost: '{U}', power: '1', toughness: '2' }), 1);
+  for (let i = 0; i < giants; i++)
+    put(
+      card({ name: `Thin Giant ${i}`, mv: 6, manaCost: '{5}{U}', power: '6', toughness: '6' }),
+      1,
+    );
+  put(
+    card({
+      name: 'Island',
+      mv: 0,
+      manaCost: '',
+      typeLine: 'Basic Land — Island',
+      types: ['land'],
+      colors: [],
+      noStats: true,
+      text: '({T}: Add {U}.)',
+    }),
+    4,
+  );
+  return pack(cards, {});
 }
 
 function pack<T>(cards: { card: CardRecord; qty: number }[], extra: T) {
@@ -343,6 +407,19 @@ describe('grow builder: a requested theme', () => {
     expect(copiesOf(mill.deck, f.crab!.id)).toBeGreaterThan(0);
   });
 
+  it('lets opponent mill in when the card also fills a spell role', () => {
+    const f = fakePool({ millOpponent: true, millRemoval: true });
+    // Mill setup by the rules, and removal, which does something in any game.
+    expect(matchCard(f.millRemoval!, RULES.styles.get('mill')!, 60)).toMatchObject({
+      as: 'setup',
+    });
+    for (const style of ['graveyard', 'midrange']) {
+      const deck = build(f, style).deck;
+      expect(copiesOf(deck, f.millRemoval!.id)).toBeGreaterThan(0);
+      expect(copiesOf(deck, f.crab!.id)).toBe(0);
+    }
+  });
+
   it('builds the same deck twice, with no clock or random values in it', () => {
     const f = fakePool({ aristocrats: true });
     const a = build(f, 'graveyard');
@@ -382,10 +459,10 @@ describe('grow builder: the nearest rule', () => {
     expect(r.deck.name).toBe('Blue Aristocrats 60');
     expect(r.explanation.nearest).toEqual({
       requested: 'graveyard',
-      lacks: 'no repeatable way to fill the graveyard (1 of 2)',
+      lacks: 'few repeatable ways to fill the graveyard (1 of 2)',
     });
     expect(r.explanation.notes[0]).toBe(
-      'Asked for Graveyard: your bulk list has no repeatable way to fill the graveyard (1 of 2). Built Aristocrats instead.',
+      'Asked for Graveyard: your bulk list has few repeatable ways to fill the graveyard (1 of 2). Built Aristocrats instead.',
     );
     expect(r.explanation.notes[1]).toMatch(/^Aristocrats minimums met: /);
     expect(total(r.deck)).toBe(60);
@@ -418,9 +495,34 @@ describe('grow builder: the nearest rule', () => {
     const r = build(f, 'graveyard');
     expect(r.explanation.builder).toBe('grow');
     expect(['midrange', 'aggro', 'control']).toContain(r.deck.archetype);
-    expect(r.explanation.nearest?.lacks).toBe('no repeatable way to fill the graveyard (1 of 2)');
+    expect(r.explanation.nearest?.lacks).toBe('few repeatable ways to fill the graveyard (1 of 2)');
     expect(r.explanation.notes[0]).toMatch(
       /^Asked for Graveyard: .* Built (Midrange|Aggro|Control) instead\.$/,
+    );
+  });
+
+  it('answers with a shape of the classic builder when this one cannot fill a shape either', () => {
+    const f = thinPool(2);
+    expect(build(f, undefined).deck.archetype).toBe('graveyard');
+    const r = build(f, 'graveyard');
+    expect(r.explanation.builder).toBe('classic');
+    expect(r.deck.archetype).toBe('midrange');
+    expect(r.deck.name).toBe('Blue Midrange 60');
+    expect(r.explanation.nearest).toEqual({
+      requested: 'graveyard',
+      lacks: 'few repeatable ways to fill the graveyard (1 of 2)',
+    });
+    expect(r.explanation.notes[0]).toBe(
+      'Asked for Graveyard: your bulk list has few repeatable ways to fill the graveyard (1 of 2). Built Midrange instead.',
+    );
+    expect(r.deck.explanation).toBe(r.explanation);
+    expect(total(r.deck)).toBe(60);
+    // With no shape either builder can fill, a refusal that says what the pool lacks.
+    const thinner = thinPool(1);
+    expect(build(thinner, undefined).deck.archetype).toBe('graveyard');
+    expect(() => build(thinner, 'graveyard')).toThrow(BuildError);
+    expect(() => build(thinner, 'graveyard')).toThrow(
+      'Not enough cards to build Graveyard: your bulk list has few repeatable ways to fill the graveyard (1 of 2).',
     );
   });
 });
@@ -531,6 +633,23 @@ describe('grow builder: routing', () => {
   });
 });
 
+describe('grow config', () => {
+  it('rejects constants outside the ranges their meaning allows', () => {
+    const c = JSON.parse(JSON.stringify(CONFIG)) as BulkBrewConfig;
+    c.builderWeights.grow.nearMargin = 1.5;
+    c.builderWeights.grow.setupTarget = 1;
+    (c.builderWeights.grow as unknown as Record<string, unknown>)['fullSlot'] = 'half';
+    const problems = validateConfig(c);
+    expect(problems).toContain('builderWeights.grow.nearMargin: must be a number from 0 to 1');
+    expect(problems).toContain('builderWeights.grow.setupTarget: must be above 1');
+    expect(problems).toContain('builderWeights.grow.fullSlot: must be a number from 0 to 1');
+    const { grow: _grow, ...rest } = c.builderWeights;
+    const missing = { ...c, builderWeights: rest as BulkBrewConfig['builderWeights'] };
+    expect(validateConfig(missing)).toContain('builderWeights.grow: missing');
+    expect(validateConfig(CONFIG)).toEqual([]);
+  });
+});
+
 describe('growViability and the scan', () => {
   const at = (o: FakeOptions, size: DeckSize = 60) => {
     const f = fakePool(o);
@@ -548,7 +667,7 @@ describe('growViability and the scan', () => {
     expect(short.margin).toBeGreaterThanOrEqual(near);
     expect(short.margin).toBeLessThan(1);
     expect(short.short).toEqual([{ floor: 'repeatable', have: 1, need: 2 }]);
-    expect(short.lacks).toBe('no repeatable way to fill the graveyard (1 of 2)');
+    expect(short.lacks).toBe('few repeatable ways to fill the graveyard (1 of 2)');
 
     const out = growViability(at({ looters: 0, mill: 0, dual: false }), CONFIG, 60).graveyard!;
     expect(out.viable).toBe(false);

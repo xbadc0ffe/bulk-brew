@@ -1315,7 +1315,10 @@ function buildPlan(
     );
     return { d, lands, mana, colorPlan, relaxed: [...relaxed] };
   } catch (err) {
-    if (err instanceof ManaBaseError) return { lacks: `too few lands (${err.message})` };
+    if (err instanceof ManaBaseError)
+      return {
+        lacks: `too few lands (${err.message.replace(/^Not enough lands: /, '').replace(/\.$/, '')})`,
+      };
     throw err;
   }
 }
@@ -1474,7 +1477,8 @@ function tryTheme(ctx: GrowContext, style: string): ThemeTry {
  * The grow builder for a request growBuilds accepts. A theme the pool
  * supports is built to its floors. One it cannot support gets the nearest
  * deck: the first style of its `kin` list in the rules that the pool can
- * build, else the classic best fit, with a note saying what the pool lacks.
+ * build, else the classic best fit, or a plain shape when that best fit
+ * would carry the asked-for name, with a note saying what the pool lacks.
  * A plain shape is built as its curve, roles, and type mix; on a pool too
  * thin for this builder's fill it goes to the classic builder, as before.
  */
@@ -1529,15 +1533,41 @@ export function buildGrowDeck(
       if (!('lacks' in shape))
         return finish(ctx, plan, shape, [`${why} Built ${plan.archetype.label} instead.`], nearest);
     }
+    // Too thin for this builder's fill: the classic builder's shapes, as for a shape asked
+    // for by name. Never the classic deck under the asked-for name.
+    for (const shape of PLAIN_SHAPES) {
+      let classic: BuildResult;
+      try {
+        classic = buildClassic({ ...rest, style: shape, requireStyle: true }, pool, index, config);
+      } catch (err) {
+        if (err instanceof BuildError) continue;
+        throw err;
+      }
+      return withNote(
+        classic,
+        nearest,
+        `${why} Built ${archetypeOf(config, shape)!.label} instead.`,
+      );
+    }
+    throw new BuildError(`Not enough cards to build ${label}: your bulk list has ${asked.lacks}.`);
   }
-  const built = secondaryLabel(config, fit.deck.archetype);
-  const explanation: BuildExplanation = {
-    ...fit.explanation,
+  return withNote(
+    fit,
     nearest,
-    notes: [
-      `${why} Built ${built} instead, the best fit for this bulk list.`,
-      ...fit.explanation.notes,
-    ],
+    `${why} Built ${secondaryLabel(config, fit.deck.archetype)} instead, the best fit for this bulk list.`,
+  );
+}
+
+/** A classic deck answering a request for another style: the note first, and what was asked. */
+function withNote(
+  r: BuildResult,
+  nearest: NonNullable<BuildExplanation['nearest']>,
+  note: string,
+): BuildResult {
+  const explanation: BuildExplanation = {
+    ...r.explanation,
+    nearest,
+    notes: [note, ...r.explanation.notes],
   };
-  return { deck: { ...fit.deck, explanation }, explanation };
+  return { deck: { ...r.deck, explanation }, explanation };
 }
