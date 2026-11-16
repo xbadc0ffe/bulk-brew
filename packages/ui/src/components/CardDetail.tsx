@@ -21,6 +21,8 @@ export interface CardDetailProps {
   onEscape?: (() => void) | undefined;
   onQtyChange?: ((qty: number) => void) | undefined;
   onRemove?: (() => void) | undefined;
+  /** Shows a Replace button, for a card in a deck that can still change. */
+  onReplace?: (() => void) | undefined;
   /** Names of saved decks that use this card. */
   inDecks?: string[] | undefined;
   variant?: Variant;
@@ -171,6 +173,15 @@ export function CardDetail(props: CardDetailProps) {
             </button>
           )}
         </div>
+      )}
+      {props.onReplace && (
+        <button
+          type="button"
+          className={phone ? phoneStyles.primary : `${ui.primary} w-full`}
+          onClick={props.onReplace}
+        >
+          Replace this card
+        </button>
       )}
       {qty !== undefined && !props.onQtyChange && (
         <p className={small}>{qty > 0 ? `${qty} in your bulk list` : 'Not in your bulk list'}</p>

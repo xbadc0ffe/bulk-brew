@@ -89,6 +89,8 @@ Ranked. The current phase is at the top. Finished phases are removed, not struck
 - Hook tests with a DOM test environment (needs a jsdom dev dependency; ask first). useBuildFlow's accept and reject paths and the packet merge are the first candidates.
 - Service worker: show a "new version available" prompt instead of waiting for the next load.
 - Card detail: show rulings fetched from Scryfall on demand.
+- Replace on saved decks: a kept deck could change in place; an accepted one would also have to move cards between the pool and the deck.
+- Mobile parity for Replace on a built deck (the deck view's card sheet).
 
 ## Later
 

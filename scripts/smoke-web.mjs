@@ -282,6 +282,50 @@ try {
   await waitForText(/Accept/, 5000);
   log('navigation', 'opened deck survived a trip to the Bulk List');
 
+  // A card opens below the deck header, so Accept, Back, and Export stay in view.
+  const opened = await evaluate(`(() => {
+    const group = [...document.querySelectorAll('section[aria-label]')].find(
+      (s) => !['Lands', 'Commander'].includes(s.getAttribute('aria-label')) && s.querySelector('li button'),
+    );
+    const b = group?.querySelector('li button');
+    if (!b) return '';
+    b.click();
+    return b.textContent.trim();
+  })()`);
+  if (!opened) throw new Error('no card to open in the deck list');
+  await sleep(300);
+  const layout = await evaluate(`(() => {
+    const pane = document.querySelector('aside[aria-label="Card detail"]');
+    const accept = [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Accept');
+    if (!pane || !accept) return undefined;
+    const a = accept.getBoundingClientRect();
+    const hit = document.elementFromPoint(a.left + a.width / 2, a.top + a.height / 2);
+    return { paneTop: pane.getBoundingClientRect().top, acceptBottom: a.bottom, onTop: accept.contains(hit) };
+  })()`);
+  if (!layout) throw new Error(`opening ${opened} showed no card detail`);
+  if (layout.paneTop < layout.acceptBottom || !layout.onTop)
+    throw new Error('the card detail covers the deck actions');
+  await shot('3-card-detail');
+  // Replace offers cards from the bulk list; picking one swaps it in.
+  await click('^Replace this card$');
+  await waitForText(/Pick a card to swap in\./, 5000);
+  await evaluate(`document.querySelector('[role="dialog"] li button').click()`);
+  await sleep(300);
+  await shot('3-replace');
+  await click('^Replace$');
+  log(
+    'replace',
+    (await waitForText(/Replaced [^\n]+ with [^\n]+\./, 5000)).match(/Replaced[^\n]*/)[0],
+  );
+  // Back asks before it drops the change, and a header button closes the card detail.
+  await click('^Back$');
+  await waitForText(/Discard your changes\?/, 5000);
+  if (await evaluate(`!!document.querySelector('aside[aria-label="Card detail"]')`))
+    throw new Error('the card detail stayed open after Back');
+  await click('^Keep editing$');
+  if (!/Accept/.test(await pageText())) throw new Error('Keep editing left the deck');
+  log('replace', 'Back asked first; the deck and its change stayed');
+
   await click('^Accept$');
   // The dialog stacks Confirm (remove), Confirm (keep), and Decline.
   await waitForText(/Remove cards from bulk list/);

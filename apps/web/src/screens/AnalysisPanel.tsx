@@ -31,6 +31,7 @@ import {
   type HeatRow,
 } from './AnalysisCharts.tsx';
 import { COLOR_KEY_LABELS, fmt } from './analysisLabels.ts';
+import { DiscardSwapsDialog } from './DeckLayout.tsx';
 
 const SIZE_TITLES: Record<DeckSize, string> = {
   100: 'Commander',
@@ -381,8 +382,13 @@ function Empty({ children }: { children: ReactNode }) {
 function DeckRow({ rank, option }: { rank: number; option: DeckOption }) {
   const { build } = useAppState();
   const nav = useNav();
+  const [discard, setDiscard] = useState(false);
   const { deck } = option.result;
   const colors = normalizeColors(deck.colors ?? [deck.color]);
+  const open = () => {
+    build.openBuilt(option.result);
+    nav.go('build');
+  };
   // Deck names end in the size, which the column already says.
   const title = deck.name.replace(/\s+\d+$/, '');
   return (
@@ -390,8 +396,9 @@ function DeckRow({ rank, option }: { rank: number; option: DeckOption }) {
       <button
         type="button"
         onClick={() => {
-          build.openBuilt(option.result);
-          nav.go('build');
+          // A fresh build with swapped cards is open on the Build page; ask before replacing it.
+          if (build.result && build.edits > 0) setDiscard(true);
+          else open();
         }}
         className="grid min-h-14 w-full grid-cols-[1.1rem_1fr] items-center gap-x-2 px-3.5 py-2 text-left hover:bg-surface-2"
       >
@@ -405,6 +412,17 @@ function DeckRow({ rank, option }: { rank: number; option: DeckOption }) {
           <span className="text-[13px] font-semibold">{title}</span>
         </span>
       </button>
+      <DiscardSwapsDialog
+        open={discard}
+        edits={build.edits}
+        leaving="Opening this deck"
+        confirmLabel="Discard and open"
+        onDiscard={() => {
+          setDiscard(false);
+          open();
+        }}
+        onCancel={() => setDiscard(false)}
+      />
     </li>
   );
 }

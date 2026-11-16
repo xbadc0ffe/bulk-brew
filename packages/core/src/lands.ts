@@ -120,7 +120,8 @@ function producesOnlyColorless(card: CardRecord): boolean {
   return p.length === 0 || p.every((m) => m === 'C');
 }
 
-function isFetch(card: CardRecord): boolean {
+/** A land that fetches a basic rather than tapping for mana itself. */
+export function isFetch(card: CardRecord): boolean {
   return (
     (card.produces ?? []).length === 0 &&
     (card.tags.includes('fetchland') || card.tags.includes('tutor-land-basic'))

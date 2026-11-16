@@ -1,6 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import {
-  CardDetail,
   EMPTY_FILTERS,
   ErrorBoundary,
   openKv,
@@ -16,6 +15,7 @@ import { NavContext, type Nav, type ScreenId } from './nav.ts';
 import { ImportScreen, PoolScreen } from './screens.tsx';
 import { AboutScreen } from './screens/AboutScreen.tsx';
 import { BuildScreen } from './screens/BuildScreen.tsx';
+import { DiscardSwapsDialog } from './screens/DeckLayout.tsx';
 import { DecksScreen } from './screens/DecksScreen.tsx';
 import { SettingsScreen } from './screens/SettingsScreen.tsx';
 
@@ -40,35 +40,9 @@ const NAV: { screen: ScreenId; label: string; Icon: (p: { size?: number }) => Re
   { screen: 'about', label: 'About', Icon: InfoIcon },
 ];
 
-/** Card detail over the right edge, for cards opened outside the Bulk List. */
-function DetailOverlay() {
-  const { detail, index, config, settings, decks, pool } = useAppState();
-  const open = detail.current;
-  const card = open && index ? index.get(open.cardId) : undefined;
-  if (!card || !index) return null;
-  const inDecks = decks.decks.filter((d) => d.cards.some((c) => c.cardId === card.id));
-  return (
-    <aside
-      className="fixed inset-y-0 right-0 z-40 w-[320px] max-w-full overflow-y-auto border-l border-line bg-surface p-[22px]"
-      aria-label="Card detail"
-    >
-      <CardDetail
-        card={card}
-        printing={open?.printing}
-        index={index}
-        config={config}
-        showArt={settings.settings.showArt}
-        qty={pool.pool.entries[card.id]?.qty ?? 0}
-        inDecks={inDecks.map((d) => d.name)}
-        onClose={detail.close}
-      />
-    </aside>
-  );
-}
-
 /**
- * Desktop shell: a left sidebar, a main pane, and the card detail on the
- * right. Below 768px the sidebar folds into a top bar.
+ * Desktop shell: a left sidebar and a main pane. Below 768px the sidebar
+ * folds into a top bar. Screens show the card detail themselves.
  */
 function Shell() {
   const [screen, setScreen] = useState<ScreenId>('pool');
@@ -79,6 +53,7 @@ function Shell() {
   const [analyze, setAnalyze] = useState(false);
   // Two colors by default: the deck score can favor decks of more colors than build well.
   const [analysisColors, setAnalysisColors] = useState(2);
+  const [discard, setDiscard] = useState(false);
   const { detail, pool, index, decks, build } = useAppState();
   const closeDetail = detail.close;
   const nav: Nav = useMemo(
@@ -127,9 +102,15 @@ function Shell() {
               : AboutScreen;
 
   const choose = (next: ScreenId) => {
+    // Build while a deck is open goes back to the options, like the Back button,
+    // and asks first when cards of the deck were swapped.
+    const back = next === 'build' && screen === 'build' && build.result !== undefined;
+    if (back && build.edits > 0) {
+      setDiscard(true);
+      return;
+    }
     detail.close();
-    // Build while a deck is open goes back to the options, like the Back button.
-    if (next === 'build' && screen === 'build' && build.result) build.reject();
+    if (back) build.reject();
     nav.go(next);
   };
 
@@ -221,8 +202,18 @@ function Shell() {
         <main className="min-h-0 min-w-0 flex-1 overflow-hidden">
           <Screen key={visit} />
         </main>
-        {screen !== 'pool' && <DetailOverlay />}
       </div>
+      <DiscardSwapsDialog
+        open={discard}
+        edits={build.edits}
+        onDiscard={() => {
+          setDiscard(false);
+          detail.dismiss();
+          build.reject();
+          nav.go('build');
+        }}
+        onCancel={() => setDiscard(false)}
+      />
     </NavContext.Provider>
   );
 }

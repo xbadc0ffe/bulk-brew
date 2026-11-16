@@ -141,6 +141,12 @@ export function deckColors(deck: Deck, _index?: CardIndex): Color[] {
   return COLORS.filter((c) => set.has(c));
 }
 
+/** "Lightning Bolt" for one copy, "2 Lightning Bolt" for more, "1 of the 3 Lightning Bolt" for some of `of`. */
+export function copiesOf(qty: number, name: string, of = qty): string {
+  if (qty < of) return `${qty} of the ${of} ${name}`;
+  return qty === 1 ? name : `${qty} ${name}`;
+}
+
 /** A file name from a deck name: "White Tokens 60" becomes "white-tokens-60.txt". */
 export function deckFilename(name: string): string {
   const slug = name

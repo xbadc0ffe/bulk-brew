@@ -16,6 +16,7 @@ import {
 import {
   archetypeInfo,
   ChoiceDialog,
+  copiesOf,
   Dropdown,
   Pip,
   RarityPicker,
@@ -31,7 +32,7 @@ import {
 import { useAppState } from '../app-context.ts';
 import { PackGate } from '../screens.tsx';
 import { OptionsPanel } from './BuildOptions.tsx';
-import { DeckLayout, ExportButton } from './DeckLayout.tsx';
+import { DeckLayout, DiscardSwapsDialog, ExportButton } from './DeckLayout.tsx';
 
 const SIZES: { id: DeckSize; label: string }[] = [
   { id: 100, label: '100' },
@@ -568,11 +569,16 @@ function BuildResultView() {
   const { build: flow, index } = useAppState();
   const [status, setStatus] = useStatus();
   const [confirm, setConfirm] = useState(false);
+  const [discard, setDiscard] = useState(false);
   const result = flow.result;
   if (!result || !index) return null;
   const deck = result.deck;
   const lands = result.explanation.lands.count;
   const copies = flow.resultMaxCopies ?? flow.maxCopies;
+  const back = () => {
+    flow.reject();
+    focusForm();
+  };
 
   return (
     <>
@@ -580,6 +586,17 @@ function BuildResultView() {
         deck={deck}
         meta={`${deck.size} cards · ${lands} lands · ${deck.commander ? 'one copy of each' : `max ${copies} ${copies === 1 ? 'copy' : 'copies'}`}`}
         status={flow.error ?? status}
+        replace={{
+          options: flow.replacementsFor,
+          apply: (cardId, option) => {
+            const out = index.get(cardId)?.name ?? 'the card';
+            const had = deck.cards.find((c) => c.cardId === cardId)?.qty ?? option.qty;
+            flow.replace(cardId, option);
+            setStatus(
+              `Replaced ${copiesOf(option.qty, out, had)} with ${copiesOf(option.qty, option.card.name)}.`,
+            );
+          },
+        }}
         actions={
           <>
             <button
@@ -594,10 +611,7 @@ function BuildResultView() {
               type="button"
               className={ui.stop}
               disabled={flow.building}
-              onClick={() => {
-                flow.reject();
-                focusForm();
-              }}
+              onClick={() => (flow.edits > 0 ? setDiscard(true) : back())}
             >
               Back
             </button>
@@ -631,6 +645,15 @@ function BuildResultView() {
           { label: 'Decline', tone: 'stop', onSelect: () => setConfirm(false) },
         ]}
         onCancel={() => setConfirm(false)}
+      />
+      <DiscardSwapsDialog
+        open={discard}
+        edits={flow.edits}
+        onDiscard={() => {
+          setDiscard(false);
+          back();
+        }}
+        onCancel={() => setDiscard(false)}
       />
     </>
   );

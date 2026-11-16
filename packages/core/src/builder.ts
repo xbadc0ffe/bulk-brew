@@ -1568,6 +1568,16 @@ function synergyLines(t: Tally, config: BulkBrewConfig): string[] {
     .map((s) => `${s.rule.note.replace(/\.$/, '')}: ${s.e} enablers, ${s.p} payoffs`);
 }
 
+/** The explanation's synergy lines for a spell list, as both builders write them. */
+export function spellSynergyLines(
+  spells: readonly { facts: CardFacts; qty: number }[],
+  config: BulkBrewConfig,
+): string[] {
+  const t = emptyTally();
+  for (const s of spells) addToTally(t, s.facts, s.qty, 0, 0, 0);
+  return synergyLines(t, config);
+}
+
 function roleCounts(t: Tally, ctx: Ctx): BuildExplanation['roles'] {
   const roles: BuildExplanation['roles'] = {};
   for (const roleId of Object.keys(ctx.quotas)) {
@@ -1620,7 +1630,17 @@ export function copyNotes(
 /** The land line every explanation ends its notes with. */
 export function landLine(lands: number, plan: LandPlan, mana: ManaBase): string {
   const nonbasicCount = mana.nonbasics.reduce((n, p) => n + p.qty, 0);
-  return `${lands} lands: average cost ${plan.averageMv.toFixed(1)}, ${plan.cheapManaSources} cheap mana source${plan.cheapManaSources === 1 ? '' : 's'}, ${nonbasicCount} nonbasic.`;
+  return landNote(lands, plan.averageMv, plan.cheapManaSources, nonbasicCount);
+}
+
+/** "24 lands: average cost 2.9, 3 cheap mana sources, 2 nonbasic." */
+export function landNote(
+  lands: number,
+  averageMv: number,
+  cheap: number,
+  nonbasics: number,
+): string {
+  return `${lands} lands: average cost ${averageMv.toFixed(1)}, ${cheap} cheap mana source${cheap === 1 ? '' : 's'}, ${nonbasics} nonbasic.`;
 }
 
 /**
@@ -2017,6 +2037,58 @@ export interface StyleCount {
   payoffs: { have: number; want: number };
 }
 
+/** One theme a deck counts cards for: its primary style's, or a secondary theme or tribe. */
+export interface DeckTheme {
+  /** Archetype id, or "tribal:<type>" for a tribe. */
+  id: string;
+  label: string;
+  tribal: boolean;
+  isEnabler(c: Candidate): boolean;
+  isPayoff(c: Candidate): boolean;
+  want: { enablers: number; payoffs: number };
+}
+
+/**
+ * The themes of a deck's primary archetype and of its secondary one (a theme
+ * or a tribe), with the tests the builder counts their cards by. Shapes such
+ * as Aggro have none.
+ */
+export function deckThemes(
+  deck: { archetype: string; secondary?: string; size: DeckSize },
+  config: BulkBrewConfig,
+): DeckTheme[] {
+  // Merged packets record "a+b"; neither part's minimums fit 40 cards.
+  const tribe = tribeOf(deck.archetype);
+  const primary =
+    config.archetypes.archetypes.find((a) => a.id === deck.archetype) ??
+    (tribe ? tribalArchetype(tribe, config) : undefined);
+  if (!primary) return [];
+  const out: DeckTheme[] = [];
+  const theme = themeOf(primary, config, deck.size);
+  if (theme) {
+    out.push({
+      id: primary.id,
+      label: primary.label,
+      tribal: tribe !== undefined,
+      isEnabler: theme.isEnabler,
+      isPayoff: theme.isPayoff,
+      want: theme.want,
+    });
+  }
+  const sec = resolveSecondary(deck.secondary, primary, config, deck.size).theme;
+  if (sec && sec.kind !== 'composition') {
+    out.push({
+      id: sec.id,
+      label: sec.label,
+      tribal: sec.kind === 'tribal',
+      isEnabler: sec.isEnabler,
+      isPayoff: sec.isPayoff,
+      want: sec.want,
+    });
+  }
+  return out;
+}
+
 /**
  * Enablers and payoffs of the deck's primary archetype and of its secondary
  * one (a theme or a tribe), counted the way the builder counts them: spells
@@ -2024,12 +2096,8 @@ export interface StyleCount {
  * such as Aggro have no theme cards and give nothing.
  */
 export function styleCounts(deck: Deck, index: CardIndex, config: BulkBrewConfig): StyleCount[] {
-  // Merged packets record "a+b"; neither part's minimums fit 40 cards.
-  const tribe = tribeOf(deck.archetype);
-  const primary =
-    config.archetypes.archetypes.find((a) => a.id === deck.archetype) ??
-    (tribe ? tribalArchetype(tribe, config) : undefined);
-  if (!primary) return [];
+  const themes = deckThemes(deck, config);
+  if (themes.length === 0) return [];
   const cands: { cand: Candidate; qty: number }[] = [];
   for (const dc of deck.cards) {
     const card = index.get(dc.cardId);
@@ -2038,47 +2106,19 @@ export function styleCounts(deck: Deck, index: CardIndex, config: BulkBrewConfig
     if (facts.spell)
       cands.push({ cand: { facts, available: dc.qty, preferred: dc.qty }, qty: dc.qty });
   }
-  const count = (
-    id: string,
-    label: string,
-    tribal: boolean,
-    isEnabler: (c: Candidate) => boolean,
-    isPayoff: (c: Candidate) => boolean,
-    want: { enablers: number; payoffs: number },
-  ): StyleCount => {
+  return themes.map((t) => {
     let e = 0;
     let p = 0;
     for (const { cand, qty } of cands) {
-      if (isEnabler(cand)) e += qty;
-      if (isPayoff(cand)) p += qty;
+      if (t.isEnabler(cand)) e += qty;
+      if (t.isPayoff(cand)) p += qty;
     }
     return {
-      id,
-      label,
-      tribal,
-      enablers: { have: e, want: want.enablers },
-      payoffs: { have: p, want: want.payoffs },
+      id: t.id,
+      label: t.label,
+      tribal: t.tribal,
+      enablers: { have: e, want: t.want.enablers },
+      payoffs: { have: p, want: t.want.payoffs },
     };
-  };
-  const out: StyleCount[] = [];
-  const theme = themeOf(primary, config, deck.size);
-  if (theme) {
-    out.push(
-      count(
-        primary.id,
-        primary.label,
-        tribe !== undefined,
-        theme.isEnabler,
-        theme.isPayoff,
-        theme.want,
-      ),
-    );
-  }
-  const sec = resolveSecondary(deck.secondary, primary, config, deck.size).theme;
-  if (sec && sec.kind !== 'composition') {
-    out.push(
-      count(sec.id, sec.label, sec.kind === 'tribal', sec.isEnabler, sec.isPayoff, sec.want),
-    );
-  }
-  return out;
+  });
 }

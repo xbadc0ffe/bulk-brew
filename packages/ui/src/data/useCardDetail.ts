@@ -8,8 +8,12 @@ export interface OpenCard {
 
 export interface CardDetailState {
   current: OpenCard | undefined;
-  open(cardId: string, printing?: PrintingHint | undefined): void;
+  /** `opener` takes focus on close; by default the element that has focus now. */
+  open(cardId: string, printing?: PrintingHint | undefined, opener?: HTMLElement | null): void;
+  /** Close and return focus to the element that opened the card. */
   close(): void;
+  /** Close and leave focus where it is, for another control that was just used. */
+  dismiss(): void;
 }
 
 /**
@@ -21,11 +25,14 @@ export function useCardDetail(): CardDetailState {
   const [current, setCurrent] = useState<OpenCard>();
   const opener = useRef<HTMLElement | null>(null);
 
-  const open = useCallback((cardId: string, printing?: PrintingHint | undefined) => {
-    const active = document.activeElement;
-    opener.current = active instanceof HTMLElement ? active : null;
-    setCurrent(printing ? { cardId, printing } : { cardId });
-  }, []);
+  const open = useCallback(
+    (cardId: string, printing?: PrintingHint | undefined, from?: HTMLElement | null) => {
+      const active = document.activeElement;
+      opener.current = from !== undefined ? from : active instanceof HTMLElement ? active : null;
+      setCurrent(printing ? { cardId, printing } : { cardId });
+    },
+    [],
+  );
 
   const close = useCallback(() => {
     setCurrent(undefined);
@@ -34,5 +41,10 @@ export function useCardDetail(): CardDetailState {
     if (el && el.isConnected) el.focus();
   }, []);
 
-  return { current, open, close };
+  const dismiss = useCallback(() => {
+    setCurrent(undefined);
+    opener.current = null;
+  }, []);
+
+  return { current, open, close, dismiss };
 }

@@ -19,7 +19,7 @@ import {
 import { useAppState } from '../app-context.ts';
 import { useNav } from '../nav.ts';
 import { BackButton, PackGate } from '../screens.tsx';
-import { DeckLayout, ExportButton } from './DeckLayout.tsx';
+import { DeckCardPanel, DeckLayout, ExportButton } from './DeckLayout.tsx';
 
 export function DecksScreen() {
   return (
@@ -572,14 +572,23 @@ function PairPackets(props: { packet: Deck; onBack(): void; onMerged(id: string)
 
   return (
     <div className="flex h-full flex-col">
-      <header className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line bg-surface px-6 py-3.5">
+      <header
+        // Any action in the header closes the card detail.
+        onClickCapture={(e) => {
+          if ((e.target as Element).closest('button')) detail.dismiss();
+        }}
+        className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line bg-surface px-6 py-3.5"
+      >
         <BackButton label={packet.name} onClick={onBack} />
         <h1 className="text-[17px] font-semibold">Pair packets</h1>
         <label className="flex items-center gap-2 text-[13px] text-fg-1">
           with
           <select
             value={otherId}
-            onChange={(e) => setOtherId(e.target.value)}
+            onChange={(e) => {
+              detail.dismiss();
+              setOtherId(e.target.value);
+            }}
             className={`${ui.field} min-w-56`}
           >
             {others.map((p) => (
@@ -598,33 +607,36 @@ function PairPackets(props: { packet: Deck; onBack(): void; onMerged(id: string)
           Merge into one deck
         </button>
       </header>
-      <div className="min-h-0 flex-1 overflow-y-auto px-7 py-5">
-        <p className="mb-4 max-w-2xl text-[13px] leading-[1.5] text-fg-1">
-          This is a preview of the two packets played together as a 40-card deck. Nothing changes
-          until you merge them. Merging replaces both packets with one deck.
-        </p>
-        {error && <p className={`${ui.error} mb-4`}>{error}</p>}
-        {pair && !pair.ok && <p className={ui.error}>{pair.error}</p>}
-        {pair?.ok && index && (
-          <>
-            <p className="mb-3 flex items-center gap-2 text-[13px]">
-              <span className="flex gap-1">
-                {deckColors(pair.deck, index).map((c) => (
-                  <Pip key={c} symbol={c} size={18} label={COLOR_LABELS[c]} />
-                ))}
-              </span>
-              <span className="font-semibold">{pair.deck.name}</span>
-              <span className="text-fg-1">· 40 cards</span>
-            </p>
-            <DeckList
-              deck={pair.deck}
-              index={index}
-              config={config}
-              showArt={settings.settings.showArt}
-              onOpenCard={detail.open}
-            />
-          </>
-        )}
+      <div className="relative min-h-0 flex-1">
+        <div className="h-full overflow-y-auto px-7 py-5">
+          <p className="mb-4 max-w-2xl text-[13px] leading-[1.5] text-fg-1">
+            This is a preview of the two packets played together as a 40-card deck. Nothing changes
+            until you merge them. Merging replaces both packets with one deck.
+          </p>
+          {error && <p className={`${ui.error} mb-4`}>{error}</p>}
+          {pair && !pair.ok && <p className={ui.error}>{pair.error}</p>}
+          {pair?.ok && index && (
+            <>
+              <p className="mb-3 flex items-center gap-2 text-[13px]">
+                <span className="flex gap-1">
+                  {deckColors(pair.deck, index).map((c) => (
+                    <Pip key={c} symbol={c} size={18} label={COLOR_LABELS[c]} />
+                  ))}
+                </span>
+                <span className="font-semibold">{pair.deck.name}</span>
+                <span className="text-fg-1">· 40 cards</span>
+              </p>
+              <DeckList
+                deck={pair.deck}
+                index={index}
+                config={config}
+                showArt={settings.settings.showArt}
+                onOpenCard={detail.open}
+              />
+            </>
+          )}
+        </div>
+        <DeckCardPanel />
       </div>
       <ConfirmDialog
         open={confirm}

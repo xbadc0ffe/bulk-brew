@@ -5,6 +5,8 @@ import {
   commitDeck,
   newDeckId,
   normalizeColors,
+  replaceCard,
+  replacementOptions,
   scanAll,
   scanPool,
   type BuildResult,
@@ -13,6 +15,8 @@ import {
   type Color,
   type Deck,
   type DeckSize,
+  type ReplacementOption,
+  type Replacements,
   type ScanReport,
   type Settings,
 } from '@bulk-brew/core';
@@ -98,6 +102,12 @@ export interface BuildFlow {
   accept(removeCards?: boolean): Deck | undefined;
   /** Drop the result and return to the form with every choice kept. */
   reject(): void;
+  /** Cards swapped in the open result since it opened; Accept saves them, Back loses them. */
+  edits: number;
+  /** Cards from the pool that can take the place of one card of the open result. */
+  replacementsFor(cardId: string): Replacements | undefined;
+  /** Swap one card of the open result for an option from replacementsFor. */
+  replace(cardId: string, option: ReplacementOption): void;
   /** Forget the result, the last confirmation, and the copy override. For pool resets. */
   reset(): void;
   /** The deck most recently accepted, for a confirmation line. */
@@ -126,6 +136,7 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
   const [error, setError] = useState<string>();
   const [building, setBuilding] = useState(false);
   const [accepted, setAccepted] = useState<Deck>();
+  const [edits, setEdits] = useState(0);
 
   // A commander that left the pool (its kept deck was accepted from Decks, or
   // a backup replaced the pool) is no longer picked; the commander list returns.
@@ -160,6 +171,7 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
   const reject = useCallback(() => {
     setResult(undefined);
     setError(undefined);
+    setEdits(0);
   }, []);
 
   const setSize = useCallback(
@@ -227,6 +239,7 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
       setResultMaxCopies(maxCopies);
       setError(undefined);
       setAccepted(undefined);
+      setEdits(0);
     },
     [maxCopies],
   );
@@ -243,6 +256,7 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
       setResultMaxCopies(settings.maxCopies[d.size]);
       setError(undefined);
       setAccepted(undefined);
+      setEdits(0);
     },
     [settings],
   );
@@ -280,6 +294,7 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
           : { size, colors, settings: buildSettings, ...(commander ? { commander } : {}) };
         setResult(buildDeck(request, pool.pool, index, config));
         setResultMaxCopies(maxCopies);
+        setEdits(0);
         setError(undefined);
       } catch (err) {
         setResult(undefined);
@@ -349,6 +364,33 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
     [result, index, decks, pool.pool, pool.actions, settings, config, reject],
   );
 
+  const replacementsFor = useCallback(
+    (cardId: string) =>
+      result && index
+        ? replacementOptions(result.deck, cardId, pool.pool, index, config, buildSettings)
+        : undefined,
+    [result, index, pool.pool, config, buildSettings],
+  );
+
+  const replace = useCallback(
+    (cardId: string, option: ReplacementOption) => {
+      if (!result || !index) return;
+      const deck = replaceCard(
+        result.deck,
+        cardId,
+        option.card.id,
+        option.qty,
+        index,
+        config,
+        option.printing,
+      );
+      setResult({ deck, explanation: deck.explanation ?? result.explanation });
+      setEdits((n) => n + 1);
+      setError(undefined);
+    },
+    [result, index, config],
+  );
+
   const reset = useCallback(() => {
     reject();
     setAccepted(undefined);
@@ -386,6 +428,9 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
     build,
     accept,
     reject,
+    edits,
+    replacementsFor,
+    replace,
     reset,
     accepted,
   };

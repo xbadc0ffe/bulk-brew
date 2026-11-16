@@ -1,5 +1,11 @@
 import { useMemo, useState } from 'react';
-import type { BulkBrewConfig, CardIndex, Deck, PrintingHint } from '@bulk-brew/core';
+import {
+  SWAP_WHY_PREFIX,
+  type BulkBrewConfig,
+  type CardIndex,
+  type Deck,
+  type PrintingHint,
+} from '@bulk-brew/core';
 import { CardImage } from './CardImage.tsx';
 import { CurveChart, RoleBar, RoleBars, type Variant } from './controls.tsx';
 import { ColorBreakdown, TypeBreakdown } from './DeckStats.tsx';
@@ -45,6 +51,7 @@ export function DeckList(props: DeckListProps) {
                   >
                     <button
                       type="button"
+                      data-card-id={r.card?.id}
                       disabled={!open}
                       onClick={open}
                       className="flex min-h-10 w-full items-center gap-3 px-4 py-1.5 text-left"
@@ -113,6 +120,7 @@ export function DeckList(props: DeckListProps) {
                     {r.card && onOpenCard ? (
                       <button
                         type="button"
+                        data-card-id={r.card!.id}
                         className="truncate text-left hover:underline"
                         onClick={() => onOpenCard(r.card!.id, r.printing)}
                       >
@@ -146,7 +154,11 @@ function roleLabel(config: BulkBrewConfig, id: string): string {
 function reasons(deck: Deck): { why: string; qty: number }[] {
   const m = new Map<string, number>();
   for (const c of deck.cards) {
-    const why = c.why ? c.why.replace(/^Curve: .*/, 'Curve') : 'Other';
+    const why = !c.why
+      ? 'Other'
+      : c.why.startsWith(SWAP_WHY_PREFIX)
+        ? 'Swapped in'
+        : c.why.replace(/^Curve: .*/, 'Curve');
     m.set(why, (m.get(why) ?? 0) + c.qty);
   }
   return [...m]

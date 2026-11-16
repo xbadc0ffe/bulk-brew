@@ -28,3 +28,4 @@ export * from './display-tags.ts';
 export * from './learned.ts';
 export * from './plan.ts';
 export * from './theme-rules.ts';
+export * from './replace.ts';

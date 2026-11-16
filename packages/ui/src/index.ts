@@ -153,6 +153,7 @@ export {
   landCount,
   nearestNote,
   savedLabel,
+  copiesOf,
   type DeckGroup,
   type DeckRow,
 } from './data/deckGroups.ts';
@@ -160,5 +161,6 @@ export { CardImage, type CardImageProps } from './components/CardImage.tsx';
 export { CardArt } from './components/CardArt.tsx';
 export { TextCard } from './components/TextCard.tsx';
 export { CardDetail, type CardDetailProps } from './components/CardDetail.tsx';
+export { ReplaceDialog } from './components/ReplaceDialog.tsx';
 export { ErrorBoundary } from './components/ErrorBoundary.tsx';
 export { STORAGE_KEYS } from './storage/keys.ts';
