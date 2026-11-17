@@ -7,7 +7,7 @@ npm run review:pools                     # writes only pools that are missing
 npm run review:pools -- --force          # rewrites every pool
 ```
 
-Flags: `--out <dir>` (default `data/review/pools`), `--only plain|theme|public|owner`, `--plain <n>` (plain pools, default 30), `--copies <n>` (copies per plain pool, default 3000), `--extra <n>` (theme copies per theme pool, default 120), `--themes <n>` (theme pools per style, default 3), `--rotate-themes` (spread the theme pools over the plain bases, below), `--seed-prefix <p>` (a new set of seeds, below), `--force`. Everything below uses the defaults.
+Flags: `--out <dir>` (default `data/review/pools`), `--only plain|theme|tribe|public|owner`, `--plain <n>` (plain pools, default 30), `--copies <n>` (copies per plain pool, default 3000), `--extra <n>` (theme or tribe copies per pool, default 120), `--themes <n>` (theme pools per style, default 3; 0 makes none and leaves the theme counts alone), `--rotate-themes` (spread the theme pools over the plain bases, below), `--tribes <n>` (tribe pools, default 0, below), `--seed-prefix <p>` (a new set of seeds, below), `--force`. Everything below uses the defaults.
 
 The output is gitignored. Running the command twice gives byte-identical files (checked with sha256 over all 105 files after a `--force` rerun and after a plain rerun). The data pack, the config, and the EDHREC pages in `data/edhrec/` decide the cards, so a new pack, config, or page fetch can change the pools; the seeds never change. Each pool records the data pack and config versions that made it, and the command warns when pools on disk came from another pack or config: rerun with `--force` then, so the index and `themes.json` match the pools.
 
@@ -18,6 +18,7 @@ The code is `packages/pipeline/src/review/pools.ts`; the pure parts are tested i
 - `data/review/pools/<kind>/<name>.json`: one pool.
 - `data/review/pools/index.json`: one line per pool on disk.
 - `data/review/pools/themes.json`: the theme candidate counts in the table below.
+- `data/review/pools/tribes.json` (or `tribes-<prefix>.json`): the tribe table, from the pack (below).
 
 A pool file:
 
@@ -34,9 +35,10 @@ A pool file:
 }
 ```
 
-- `kind` is `plain`, `theme`, `public`, or `owner`.
+- `kind` is `plain`, `theme`, `tribe`, `public`, or `owner`.
+- `tribe`, on tribe pools only: the creature type, as the core names it in `tribal:<Type>`.
 - `cards` is every copy in the pool as `[oracle id, copies]`, sorted by id.
-- `added` appears on theme pools only: the theme copies drawn on top of the plain base, also sorted by id. They are already counted in `cards`.
+- `added` appears on theme and tribe pools only: the copies drawn or added on top of the plain base, also sorted by id. They are already counted in `cards`.
 - `seed` is the seed of the draw that made the pool (the theme draw for theme pools), and 0 for fixed lists.
 - `dataVersion` and `configVersion` are the data pack and config the pool was made with.
 
@@ -48,10 +50,11 @@ An index entry has `id`, `kind`, `path` (relative to the index), `copies`, `dist
 | ------ | ----: | --------- |
 | plain  |    30 | `plain/`  |
 | theme  |    54 | `theme/`  |
+| tribe  |     0 | `tribe/`  |
 | public |    11 | `public/` |
 | owner  |     8 | `owner/`  |
 
-The seed prefix sets (below) add `h1` (12 plain, 54 theme) and `h2` (12 plain, 18 theme).
+The seed prefix sets (below) add `h1` (12 plain, 54 theme), `h2` (12 plain, 18 theme), and `h3` (12 plain, 6 tribe).
 
 ## Plain bulk: the main test
 
@@ -117,6 +120,42 @@ What this means for testing:
 - Extras follow the theme's own color mix across all colors, so a one- or two-color request sees only part of the 120.
 - Goad takes about half its candidates from EDHREC (185 of 361) and energy about two in five (86 of 223), so their extras lean on EDHREC's view of the theme.
 
+## Tribe-rich bulk
+
+`--tribes <n>` makes n tribe pools, one per creature type, so tribe requests at 100 cards have real candidates. None exist without a prefix; the `h3` set has six (below).
+
+**Which types.** Over the cards a bulk box can hold (`noiseSource`), the tool counts for every creature type a spell has (`tribeTable` in `pools.ts`):
+
+- **commanders** that name it: cards that can be a commander, have a color, are not partners (the request rules drop those, `docs/review/requests.md` rule 3), and carry the type's Tagger tag `typal-<type>`, the tag the core's `commanderTribes` reads;
+- **members**: spells of the type (`creatureTypes` from the core, changelings aside);
+- **named by**: spells with the tag, members or not.
+
+Types rank by commanders times members, then by name, and the first n are picked. A two-word type stays whole: the Comprehensive Rules (205.3m) name one, Time Lord, so "Time Lord Doctor" is a Time Lord and a Doctor, and `typal-time-lord` is its tag. When the first n hold no two-word type and a commander names one, it takes the last place. With the current pack none does: five cards carry `typal-time-lord`, none of them a commander, and The Sixth Doctor's "Time Lord's Prerogative" is an ability word without the tag. A tag that is no creature type, such as `typal-goblin-orc`, names nothing.
+
+From `npm run review:pools` on pack `2026-11-03.s2` (also in `tribes-h3.json`, which holds pack counts only):
+
+| Type    | Commanders | Members | Named by | Picked |
+| ------- | ---------: | ------: | -------: | ------ |
+| Human   |         26 |    4482 |      102 | yes    |
+| Warrior |         18 |    1243 |       99 | yes    |
+| Wizard  |         18 |    1187 |      114 | yes    |
+| Spirit  |         23 |     671 |      127 | yes    |
+| Elf     |         22 |     678 |      117 | yes    |
+| Dragon  |         34 |     420 |      120 | yes    |
+| Zombie  |         17 |     604 |      118 |        |
+| Rogue   |         17 |     577 |       91 |        |
+| Goblin  |         16 |     523 |      122 |        |
+| Hero    |         27 |     297 |       42 |        |
+| Soldier |          7 |    1078 |       48 |        |
+| Cleric  |         11 |     655 |       75 |        |
+
+**The pool.** The k-th picked type (k from 1) sits on plain base `--plain` + k, a base no plain pool uses, so each tribe pool has a base of its own. On top of it:
+
+- `--extra` copies (120) drawn by `noisePool` with seed `hash32('review:tribe:<Type>:<base>')` (with a prefix, `review:<prefix>:tribe:...`) over the type's candidates: spells of the type, changelings (every creature type, CR 702.73a), and spells whose tags name the type, lords among them. The naming commanders are left out of the draw. An empty rarity borrows as theme pools do;
+- one copy of each commander that names the type.
+
+Files `tribe/<type>-NN.json`, ids `tribe-<type>-NN` (with a prefix, `tribe/h3-elf-17.json` and `h3-tribe-elf-17`), the type in lower case with dashes, kind `tribe`, the type in the `tribe` field. The recipe names the base, the candidate counts, the seed text, and how many commanders were added.
+
 ## Seed prefixes: new pools for a new round
 
 `plain-01` to `plain-30` and the theme pools on them were development pools for the prototypes, so a later round needs pools no one has built on. A seed prefix (letters and digits, and not a pool kind: `plain`, `theme`, `public`, and `owner` are refused in any case, since the first round's ids start with them) makes a new set the same way:
@@ -127,8 +166,9 @@ npm run review:pools -- --seed-prefix h1
 
 - Plain pools `h1-plain-01` to `h1-plain-30`, in `plain/h1-plain-NN.json`, from `hash32('review:h1:plain:' + n)`.
 - Theme pools `h1-theme-<style>-01` to `-03`, in `theme/h1-<style>-NN.json`, each on `h1-plain-NN` (n = 1 to 3) with extras from `hash32('review:h1:theme:' + style + ':' + n)`.
+- Tribe pools, with `--tribes`, `h1-tribe-<type>-NN` in `tribe/h1-<type>-NN.json`, with extras from `hash32('review:h1:tribe:' + type + ':' + n)`, and their counts in `tribes-h1.json`.
 - The recipes name the prefix, such as `noisePool(noiseSource(index), hash32('review:h1:plain:1'), 3000)`.
-- `--only plain|theme` and `--plain <n>` work as without a prefix. Public and owner pools have no seed, so a prefixed run leaves them alone, and `--only public` or `--only owner` with a prefix is an error.
+- `--only plain|theme|tribe` and `--plain <n>` work as without a prefix. Public and owner pools have no seed, so a prefixed run leaves them alone, and `--only public` or `--only owner` with a prefix is an error.
 - The theme candidate counts go to `themes-h1.json`, so `themes.json` stays the first set's.
 - The index lists every pool on disk, prefixed or not. `npm run review:requests -- --prefix h1` picks one set (`docs/review/requests.md`).
 
@@ -152,6 +192,20 @@ npm run review:pools -- --seed-prefix h2 --plain 12 --themes 1 --rotate-themes
 - 12 plain pools, `plain/h2-plain-01.json` to `h2-plain-12.json`, 3,000 copies each.
 - 18 theme pools, one per themed style (the 18 synergy styles of `config/archetypes.json`, the same styles `config/theme-rules.json` describes), 3,120 copies each, on rotated bases: `theme/h2-tokens-01`, `counters-02`, `aristocrats-03`, `graveyard-04`, `spells-05`, `lifegain-06`, `artifacts-07`, `auras-08`, `flyers-09`, `burn-10`, `landfall-11`, `mill-12`, `enchantments-01`, `bigCreatures-02`, `tappers-03`, `groupHug-04`, `goad-05`, `energy-06` (each `.json`).
 - 30 pools in all, 92,160 copies.
+
+### h3: builder phase 2, step 5
+
+Held out for the panel of step 5 (`docs/builder-phase2.md`: 20-card packets and Commander, tribes included). The same rule as h2: nobody may open, print, or summarize these pools beyond their file names and card counts while building, and `tribes-h3.json` and the command's tribe table hold pack counts only. Made on 2026-11-17 with data pack `2026-11-03.s2` and config `t5.c4.r2.a10.s8.l4.w13.k2.h6.n3.qpscuep.p1wyug0e.g1hono2u` (26.0.41):
+
+```sh
+npm run review:pools -- --seed-prefix h3 --plain 12 --themes 0 --tribes 6
+```
+
+- Seed prefix `h3`: plain pools from `hash32('review:h3:plain:' + n)`, tribe extras from `hash32('review:h3:tribe:' + type + ':' + base)`.
+- 12 plain pools, `plain/h3-plain-01.json` to `h3-plain-12.json`, 3,000 copies each.
+- No theme pools.
+- 6 tribe pools on bases 13 to 18, each 3,000 base copies plus 120 extras plus one copy of each naming commander: `tribe/h3-human-13` (3,146 copies), `warrior-14` (3,138), `wizard-15` (3,138), `spirit-16` (3,143), `elf-17` (3,142), `dragon-18` (3,154) (each `.json`).
+- 18 pools in all, 54,861 copies. A second run into another folder gave byte-identical files.
 
 ## Public fixed pools
 

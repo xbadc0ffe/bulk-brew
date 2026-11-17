@@ -3,6 +3,7 @@ import type { ArchetypeReport } from '@bulk-brew/core';
 import {
   bestColorFor,
   colorsInComment,
+  eligibleCommanders,
   expandJobs,
   hasPrefix,
   hasTwoColor,
@@ -17,6 +18,7 @@ import {
   styleRequests,
   stylesFor,
   themeStyleOf,
+  tribeCommanders,
   twoColorSets,
   type CommanderPick,
   type PoolRequest,
@@ -49,6 +51,7 @@ describe('pool colors', () => {
     expect(poolColorSets('plain', NO_COUNTS)).toEqual(mono);
     expect(poolColorSets('theme', NO_COUNTS, '// Blue pool')).toEqual(mono);
     expect(poolColorSets('owner', NO_COUNTS)).toEqual(mono);
+    expect(poolColorSets('tribe', NO_COUNTS)).toEqual(mono);
     expect(poolColorSets('public', NO_COUNTS, '// Thin red pool: 40 cards')).toEqual([['R']]);
     expect(poolColorSets('public', { ...NO_COUNTS, G: 3 }, '// Smoke pool')).toEqual([['G']]);
     expect(poolColorSets('public', { ...NO_COUNTS, B: 3 })).toEqual([['B']]);
@@ -75,6 +78,10 @@ describe('pool colors', () => {
     expect(hasTwoColor('public', 60)).toBe(false);
     expect(hasTwoColor('owner', 60)).toBe(false);
     expect(hasTwoColor('plain', 60, false)).toBe(false);
+    // --two-color-sizes moves the slice, still on plain pools only.
+    expect(hasTwoColor('plain', 20, true, [20])).toBe(true);
+    expect(hasTwoColor('plain', 60, true, [20])).toBe(false);
+    expect(hasTwoColor('tribe', 20, true, [20])).toBe(false);
   });
 
   it('finds the enriched style in a theme pool id', () => {
@@ -214,6 +221,26 @@ describe('commanders', () => {
     // Outside the window: no change.
     expect(names(pickCommanders(list, 'B', 2, 3))).toEqual(['A', 'B']);
     expect(names(pickCommanders(list, 'G'))).toEqual(['A', 'B']);
+    // With three places the swap takes the third.
+    expect(names(pickCommanders(list, 'B', 3))).toEqual(['A', 'B', 'D']);
+  });
+
+  it("gives a tribe pool's tribe to the first commanders that can build it, in the core's order", () => {
+    const elf = { primaryTribes: ['tribal:Elf'] };
+    const list = [
+      c('Zed', { score: 3, ...elf }),
+      c('Amy', { score: 3, primaryTribes: ['tribal:Elf', 'tribal:Druid'] }),
+      c('Top', { score: 9 }),
+      c('Low', { score: 1, tier: 'good', ...elf }),
+      c('Pal', { score: 8, partner: true, ...elf }),
+      c('Few', { score: 7, enough: false, ...elf }),
+      c('Gob', { score: 6, primaryTribes: ['tribal:Goblin'] }),
+    ];
+    expect(names(eligibleCommanders(list))).toEqual(['Top', 'Gob', 'Amy', 'Zed', 'Low']);
+    expect(names(tribeCommanders(list, 'Elf'))).toEqual(['Amy', 'Zed', 'Low']);
+    expect(names(tribeCommanders(list, 'Elf', 2))).toEqual(['Amy', 'Zed']);
+    expect(names(tribeCommanders(list, 'Druid'))).toEqual(['Amy']);
+    expect(tribeCommanders(list, 'Dragon')).toEqual([]);
   });
 
   it("takes the enriched style's best color from the scan counts", () => {
@@ -333,5 +360,34 @@ describe('job files', () => {
       'head-web/plain-01-B-60-bestfit-s1.json',
     ]);
     expect(files.get('small-head-web.json')).toBeUndefined();
+  });
+
+  it('gives tribe requests to full versions, and to best-fit-only versions named for them', () => {
+    const tribe: PoolRequest = {
+      pool: 'data/review/pools/tribe/h3-elf-17.json',
+      poolId: 'h3-tribe-elf-17',
+      kind: 'tribe',
+      size: 100,
+      colors: ['G'],
+      style: 'tribal:Elf',
+      reason: 'tribe',
+      commander: { id: 'id-2', name: 'Some Elf' },
+    };
+    const all = [...requests, tribe];
+    const only = new Set(['head', 'random']);
+    expect(requestsFor(all, 'head', only)).toEqual([requests[0]]);
+    expect(requestsFor(all, 'head', only, new Set(['head']))).toEqual([requests[0], tribe]);
+    expect(requestsFor(all, 'random', only, new Set(['head']))).toEqual([requests[0]]);
+    expect(requestsFor(all, 'v26.0.30', only)).toEqual(all);
+    const files = expandJobs(all, ['head', 'random'], only, new Set(['head']));
+    expect(files.get('main-head.json')!.map((j) => j.deck)).toEqual([
+      'head/plain-01-B-60-bestfit-s1.json',
+      'head/h3-tribe-elf-17-G-100-tribal-Elf-some-elf-s1.json',
+    ]);
+    expect(files.get('main-head.json')![1]).toMatchObject({ reason: 'tribe', style: 'tribal:Elf' });
+    expect(files.get('main-random.json')!.map((j) => j.deck)).toEqual([
+      'random/plain-01-B-60-bestfit-s1.json',
+      'random/plain-01-B-60-bestfit-s2.json',
+    ]);
   });
 });

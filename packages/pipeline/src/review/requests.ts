@@ -2,9 +2,11 @@
 // builder version, made the same way every time so each version gets exactly
 // the same requests. Rules and counts: docs/review/requests.md.
 //
-// Usage: npm run review:requests -- [--pools plain,theme,public,owner] [--plain 30]
+// Usage: npm run review:requests -- [--pools plain,theme,tribe,public,owner] [--plain 30]
 //   [--prefix <p>] [--sizes 60,100,40,20] [--versions head,head-web,v26.0.30,random]
-//   [--bestfit-only head-web,random] [--bestfit] [--no-two-color] [--out data/review/jobs] [--force]
+//   [--bestfit-only head-web,random] [--bestfit] [--tribe-versions <ids>] [--commanders 2]
+//   [--tribe-commanders 4] [--no-two-color] [--two-color-sizes 60,40]
+//   [--out data/review/jobs] [--force]
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -16,21 +18,29 @@ import {
   normalizeColors,
   scanCandidates,
   scanPool,
-  type CardRecord,
   type Color,
   type CommanderTier,
   type ScanReport,
 } from '@bulk-brew/core';
 import { arg, flag, ROOT } from '../corpus.ts';
 import { createContext, deckFileName, loadPool, type ReviewJob } from './build.ts';
-import { seedPrefixProblem, type ColorCounts, type IndexEntry, type PoolKind } from './pools.ts';
+import {
+  isPartner,
+  seedPrefixProblem,
+  type ColorCounts,
+  type IndexEntry,
+  type PoolFile,
+  type PoolKind,
+} from './pools.ts';
 import type { ReviewSize } from './version.ts';
 import { listVersions } from './versions.ts';
 
+export { isPartner };
+
 export const DEFAULT_OUT = path.join(ROOT, 'data', 'review', 'jobs');
 const POOLS_DIR = path.join(ROOT, 'data', 'review', 'pools');
-const KIND_ORDER: readonly PoolKind[] = ['plain', 'theme', 'public', 'owner'];
-export const DEFAULT_KINDS: readonly PoolKind[] = ['plain', 'theme', 'public'];
+const KIND_ORDER: readonly PoolKind[] = ['plain', 'theme', 'tribe', 'public', 'owner'];
+export const DEFAULT_KINDS: readonly PoolKind[] = ['plain', 'theme', 'tribe', 'public'];
 export const DEFAULT_VERSIONS: readonly string[] = ['head', 'head-web', 'v26.0.30', 'random'];
 /** head-web differs from head only in best fit, and a random pile ignores the style. */
 export const DEFAULT_BESTFIT_ONLY: readonly string[] = ['head-web', 'random'];
@@ -40,10 +50,13 @@ export const SECONDS: Record<ReviewSize, number> = { 60: 0.1, 40: 0.07, 20: 0.05
 /** Commanders per pool at 100, and how far down the list a theme pool looks for its color. */
 export const COMMANDERS = 2;
 export const COLOR_WINDOW = 10;
-/** Sizes that get the two-color slice on plain pools. */
+/** Commanders per tribe pool that get its tribe request at 100. */
+export const TRIBE_COMMANDERS = 4;
+/** Sizes that get the two-color slice on plain pools, unless --two-color-sizes says otherwise. */
 export const TWO_COLOR_SIZES: readonly ReviewSize[] = [60, 40];
 
-export type Reason = 'bestfit' | 'shape' | 'viable' | 'enriched';
+/** "tribe": a tribe pool's own tribe under a commander that names it (rule 3). */
+export type Reason = 'bestfit' | 'shape' | 'viable' | 'enriched' | 'tribe';
 /** A request outside the mono-color set; absent on every other request. */
 export type Slice = 'two-color';
 export type JobSet = 'main' | 'small';
@@ -130,9 +143,14 @@ export function twoColorSets(): Color[][] {
   return COLORS.flatMap((a, i) => COLORS.slice(i + 1).map((b) => [a, b]));
 }
 
-/** Plain pools get the two-color slice at 60 and 40 cards, unless it is turned off. */
-export function hasTwoColor(kind: PoolKind, size: ReviewSize, on = true): boolean {
-  return on && kind === 'plain' && TWO_COLOR_SIZES.includes(size);
+/** Plain pools get the two-color slice at 60 and 40 cards (or the given sizes), unless it is turned off. */
+export function hasTwoColor(
+  kind: PoolKind,
+  size: ReviewSize,
+  on = true,
+  sizes: readonly ReviewSize[] = TWO_COLOR_SIZES,
+): boolean {
+  return on && kind === 'plain' && sizes.includes(size);
 }
 
 /**
@@ -187,13 +205,6 @@ export function stylesFor(
   return styleRequests(scan, enriched, extraViable);
 }
 
-/** Partner, Partner with, Friends forever, Choose a Background, Doctor's companion. */
-export function isPartner(card: Pick<CardRecord, 'keywords'>): boolean {
-  return card.keywords.some((k) =>
-    /^(partner|friends|choose a background|doctor's companion)/i.test(k),
-  );
-}
-
 export interface CommanderPick {
   id: string;
   name: string;
@@ -207,6 +218,33 @@ export interface CommanderPick {
 
 const TIER_ORDER: Record<CommanderTier, number> = { top: 0, good: 1, possible: 2 };
 
+/** Commanders the request rules may pick (no partners, enough cards for the 99), in the core's order. */
+export function eligibleCommanders(list: readonly CommanderPick[]): CommanderPick[] {
+  return list
+    .filter((c) => c.enough && !c.partner)
+    .sort(
+      (a, b) =>
+        TIER_ORDER[a.tier] - TIER_ORDER[b.tier] ||
+        b.score - a.score ||
+        (a.name < b.name ? -1 : a.name > b.name ? 1 : 0),
+    );
+}
+
+/**
+ * A tribe pool's tribe requests: the first `count` eligible commanders, in the
+ * core's order, whose text names the type and whose colors can build it as
+ * the primary style (the core's primaryTribes).
+ */
+export function tribeCommanders(
+  list: readonly CommanderPick[],
+  type: string,
+  count = TRIBE_COMMANDERS,
+): CommanderPick[] {
+  return eligibleCommanders(list)
+    .filter((c) => c.primaryTribes.includes(`tribal:${type}`))
+    .slice(0, count);
+}
+
 /**
  * The commanders to request: drop partners and those the core finds short
  * of cards for the 99, order as the core does (tier, then score, then name),
@@ -219,14 +257,7 @@ export function pickCommanders(
   count = COMMANDERS,
   window = COLOR_WINDOW,
 ): CommanderPick[] {
-  const eligible = list
-    .filter((c) => c.enough && !c.partner)
-    .sort(
-      (a, b) =>
-        TIER_ORDER[a.tier] - TIER_ORDER[b.tier] ||
-        b.score - a.score ||
-        (a.name < b.name ? -1 : a.name > b.name ? 1 : 0),
-    );
+  const eligible = eligibleCommanders(list);
   const picks = eligible.slice(0, count);
   if (prefer && picks.length === count && !picks.some((c) => c.colors.includes(prefer))) {
     const alt = eligible.slice(count, window).find((c) => c.colors.includes(prefer));
@@ -253,13 +284,20 @@ export function bestColorFor(
   return best;
 }
 
-/** The requests a version gets: all of them, or only best fit for a best-fit-only version. */
+/**
+ * The requests a version gets: all of them, or for a best-fit-only version
+ * only best fit, plus the tribe pools' tribe requests when it is one of the
+ * tribe versions (--tribe-versions).
+ */
 export function requestsFor<T extends { reason: Reason }>(
   requests: readonly T[],
   version: string,
   bestfitOnly: ReadonlySet<string>,
+  tribeVersions: ReadonlySet<string> = new Set(),
 ): readonly T[] {
-  return bestfitOnly.has(version) ? requests.filter((r) => r.reason === 'bestfit') : requests;
+  if (!bestfitOnly.has(version)) return requests;
+  const tribes = tribeVersions.has(version);
+  return requests.filter((r) => r.reason === 'bestfit' || (tribes && r.reason === 'tribe'));
 }
 
 /** Copy each request per version and seed into its job set, in request order. */
@@ -267,10 +305,11 @@ export function expandJobs(
   requests: readonly PoolRequest[],
   versions: readonly string[],
   bestfitOnly: ReadonlySet<string> = new Set(),
+  tribeVersions: ReadonlySet<string> = new Set(),
 ): Map<string, RequestJob[]> {
   const files = new Map<string, RequestJob[]>();
   for (const version of versions) {
-    for (const r of requestsFor(requests, version, bestfitOnly)) {
+    for (const r of requestsFor(requests, version, bestfitOnly, tribeVersions)) {
       const name = jobFileName(setOf(r.size), version);
       let jobs = files.get(name);
       if (!jobs) files.set(name, (jobs = []));
@@ -342,11 +381,19 @@ function main(): number {
       ? versions
       : list(arg('bestfit-only'), DEFAULT_BESTFIT_ONLY).filter((v) => v !== 'none'),
   );
+  const tribeVersions = new Set(
+    list<string>(arg('tribe-versions'), []).filter((v) => v !== 'none'),
+  );
   const plainArg = arg('plain');
   const plainCount = plainArg === undefined ? Infinity : Number(plainArg);
   const outDir = path.resolve(ROOT, arg('out') ?? DEFAULT_OUT);
   const force = flag('force');
   const twoColor = !flag('no-two-color');
+  const twoColorSizes = list(arg('two-color-sizes'), TWO_COLOR_SIZES.map(String)).map(
+    Number,
+  ) as ReviewSize[];
+  const commanderCount = Number(arg('commanders') ?? COMMANDERS);
+  const tribeCount = Number(arg('tribe-commanders') ?? TRIBE_COMMANDERS);
   const prefix = arg('prefix');
   const prefixProblem = prefix === undefined ? undefined : seedPrefixProblem(prefix);
   if (prefixProblem) {
@@ -361,6 +408,18 @@ function main(): number {
     console.error(`--sizes takes 60, 100, 40, 20; got ${sizes.join(',')}`);
     return 2;
   }
+  if (twoColorSizes.some((s) => s === 100 || !ALL_SIZES.includes(s))) {
+    console.error(`--two-color-sizes takes 60, 40, 20; got ${twoColorSizes.join(',')}`);
+    return 2;
+  }
+  for (const [name, n] of [
+    ['commanders', commanderCount],
+    ['tribe-commanders', tribeCount],
+  ] as const)
+    if (!Number.isInteger(n) || n < 0) {
+      console.error(`--${name} takes a whole number; got ${arg(name)}`);
+      return 2;
+    }
   if (!Number.isInteger(plainCount) && plainCount !== Infinity) {
     console.error(`--plain takes a whole number; got ${plainArg}`);
     return 2;
@@ -396,6 +455,8 @@ function main(): number {
   const perPool = new Map<string, PoolRequest[]>();
   const noCommander: string[] = [];
   const preferred: string[] = [];
+  /** Tribe requests per tribe pool, to report pools with fewer than --tribe-commanders. */
+  const tribeRequests: [string, number][] = [];
   /** Color sets and commanders --bestfit leaves out because the scan cannot build the size. */
   let impossible = 0;
   for (const entry of entries) {
@@ -408,6 +469,14 @@ function main(): number {
     if (entry.kind === 'theme' && !styleColors.has(enriched ?? '')) {
       console.error(`${entry.id}: no style "${enriched}" in config/archetypes.json`);
       return 1;
+    }
+    let tribe: string | undefined;
+    if (entry.kind === 'tribe') {
+      tribe = (JSON.parse(readFileSync(file, 'utf8')) as Pick<PoolFile, 'tribe'>).tribe;
+      if (!tribe) {
+        console.error(`${entry.id}: a tribe pool without a "tribe" type`);
+        return 1;
+      }
     }
     let comment: string | undefined;
     if (entry.kind === 'public') {
@@ -425,7 +494,7 @@ function main(): number {
           if (!styles.length) impossible++;
           for (const s of styles) out.push({ ...base, size, colors, ...s });
         }
-        if (hasTwoColor(entry.kind, size, twoColor))
+        if (hasTwoColor(entry.kind, size, twoColor, twoColorSizes))
           for (const colors of twoColorSets()) {
             const scan = scanPool(pool, index, config, settings, size, colors);
             const styles = stylesFor(scan, bestfit);
@@ -448,9 +517,12 @@ function main(): number {
         prefer = bestColorFor(counts, styleColors.get(enriched));
       }
       const candidates = listed.map((c) => ({ ...c, partner: isPartner(index.get(c.id)!) }));
-      const picks = pickCommanders(candidates, prefer);
+      const picks = pickCommanders(candidates, prefer, commanderCount);
       if (picks.length === 0) noCommander.push(entry.id);
-      if (prefer && pickCommanders(candidates).some((c, i) => picks[i]?.id !== c.id))
+      if (
+        prefer &&
+        pickCommanders(candidates, undefined, commanderCount).some((c, i) => picks[i]?.id !== c.id)
+      )
         preferred.push(`${entry.id} (${prefer})`);
       for (const pick of picks) {
         // The builder scans without the commander among the candidates, so the requests do too.
@@ -469,6 +541,26 @@ function main(): number {
             ...s,
           });
       }
+      // A tribe pool's own tribe, under commanders that name it and can build it.
+      if (tribe) {
+        const style = `tribal:${tribe}`;
+        let n = 0;
+        for (const pick of tribeCommanders(candidates, tribe, tribeCount)) {
+          n++;
+          // Without --bestfit a picked commander already asks for its viable tribes.
+          if (out.some((r) => r.size === size && r.commander?.id === pick.id && r.style === style))
+            continue;
+          out.push({
+            ...base,
+            size,
+            colors: pick.colors,
+            commander: { id: pick.id, name: pick.name },
+            style,
+            reason: 'tribe',
+          });
+        }
+        tribeRequests.push([entry.id, n]);
+      }
     }
     perPool.set(entry.id, out);
   }
@@ -478,11 +570,13 @@ function main(): number {
   for (const size of ordered)
     for (const entry of entries)
       requests.push(...perPool.get(entry.id)!.filter((r) => r.size === size));
-  const files = expandJobs(requests, versions, bestfitOnly);
+  const files = expandJobs(requests, versions, bestfitOnly, tribeVersions);
+  const anyTribe = entries.some((e) => e.kind === 'tribe');
 
   // A changed job set must be asked for: decks already built from the old one stay keyed to it.
   const contents = new Map<string, string>();
   for (const [name, jobs] of files) contents.set(path.join(outDir, name), formatJobs(jobs));
+  // Scope fields beyond the first ones appear only when set, so older runs write the same index.
   const indexOut = {
     dataVersion: index.dataVersion,
     configVersion: configVersion(config),
@@ -495,6 +589,14 @@ function main(): number {
       bestfitOnly: versions.filter((v) => bestfitOnly.has(v)),
       ...(bestfit ? { bestfit } : {}),
       twoColor,
+      ...(twoColorSizes.join() !== TWO_COLOR_SIZES.join() ? { twoColorSizes } : {}),
+      ...(commanderCount !== COMMANDERS ? { commanders: commanderCount } : {}),
+      ...(anyTribe
+        ? {
+            tribeCommanders: tribeCount,
+            tribeVersions: versions.filter((v) => !bestfitOnly.has(v) || tribeVersions.has(v)),
+          }
+        : {}),
     },
     files: versions.flatMap((version) =>
       (['main', 'small'] as const)
@@ -558,7 +660,7 @@ function main(): number {
     let vShape = 0;
     let vTwo = 0;
     const seeds = seedsFor(version).length;
-    const mine = requestsFor(requests, version, bestfitOnly);
+    const mine = requestsFor(requests, version, bestfitOnly, tribeVersions);
     for (const size of ordered) {
       const sized = mine.filter((r) => r.size === size);
       const cells = shown.map((k) => sized.filter((r) => r.kind === k).length * seeds);
@@ -607,14 +709,22 @@ function main(): number {
   const sliced = requests.filter((r) => r.slice === 'two-color').length;
   console.log(
     `\n${requests.length} requests per version (bestfit ${reasons.bestfit ?? 0}, shape ${reasons.shape ?? 0}, ` +
-      `viable ${reasons.viable ?? 0}, enriched ${reasons.enriched ?? 0}; two-color slice ${sliced}` +
-      `${twoColor ? '' : ', turned off'}); ${entries.length} pools` +
+      `viable ${reasons.viable ?? 0}, enriched ${reasons.enriched ?? 0}, tribe ${reasons.tribe ?? 0}; ` +
+      `two-color slice ${sliced}${twoColor ? '' : ', turned off'}); ${entries.length} pools` +
       `${prefix !== undefined ? ` with prefix ${prefix}` : ''}; data ${index.dataVersion}`,
   );
   if (bestfit)
     console.log(
       `best fit only; ${impossible} color sets or commanders left out because the scan cannot build the size`,
     );
+  if (tribeRequests.length) {
+    const short = tribeRequests.filter(([, n]) => n < tribeCount);
+    console.log(
+      `tribe requests on ${tribeRequests.length} tribe pools: ` +
+        tribeRequests.map(([id, n]) => `${id} ${n}`).join(', ') +
+        (short.length ? ` (${short.length} with fewer than ${tribeCount})` : ''),
+    );
+  }
   if (noCommander.length) console.log(`no commander at 100 for: ${noCommander.join(', ')}`);
   if (preferred.length)
     console.log(`commander swapped for the theme's color: ${preferred.join(', ')}`);

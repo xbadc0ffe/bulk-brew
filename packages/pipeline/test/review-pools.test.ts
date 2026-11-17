@@ -7,6 +7,8 @@ import {
   formatPool,
   indexEntry,
   mergeLists,
+  namingCommander,
+  pickTribes,
   plainSeed,
   poolNames,
   restrictSource,
@@ -15,9 +17,14 @@ import {
   THEME_SAMPLES,
   themeBases,
   themeSeed,
+  tribeCandidates,
+  tribeTable,
   twoDigits,
+  typalTag,
+  typesOf,
   withFallback,
   type PoolFile,
+  type TribeRow,
 } from '../src/review/pools.ts';
 
 const RARITIES: Rarity[] = ['common', 'uncommon', 'rare', 'mythic'];
@@ -73,8 +80,21 @@ describe('seeds', () => {
     expect(seedPrefixProblem('h-1')).toMatch(/letters and digits/);
     expect(seedPrefixProblem('')).toMatch(/letters and digits/);
     // "plain-01" starts with "plain-", so the set "plain" would take in the first round's pools.
-    for (const kind of ['plain', 'theme', 'public', 'owner', 'Public'])
+    for (const kind of ['plain', 'theme', 'tribe', 'public', 'owner', 'Public'])
       expect(seedPrefixProblem(kind), kind).toMatch(/pool kind/);
+  });
+
+  it('name tribe pools by type and base, with or without a prefix', () => {
+    const h3 = poolNames('h3');
+    expect(h3.tribeId('Elf', 17)).toBe('h3-tribe-elf-17');
+    expect(h3.tribeFile('Elf', 17)).toBe('tribe/h3-elf-17.json');
+    expect(h3.tribeSeedText('Elf', 17)).toBe('review:h3:tribe:Elf:17');
+    expect(h3.tribesFile).toBe('tribes-h3.json');
+    const plain = poolNames();
+    expect(plain.tribeId('Time Lord', 31)).toBe('tribe-time-lord-31');
+    expect(plain.tribeFile('Time Lord', 31)).toBe('tribe/time-lord-31.json');
+    expect(plain.tribeSeedText('Time Lord', 31)).toBe('review:tribe:Time Lord:31');
+    expect(plain.tribesFile).toBe('tribes.json');
   });
 
   it('put theme pools on bases 1 to n, or rotate them over the plain bases', () => {
@@ -84,6 +104,87 @@ describe('seeds', () => {
     const one = Array.from({ length: 18 }, (_, k) => themeBases(k, 1, 12, true)[0]);
     expect(one).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6]);
     expect(themeBases(11, 2, 12, true)).toEqual([12, 1]);
+  });
+});
+
+describe('tribes', () => {
+  const card = (id: string, typeLine: string, over: Partial<CardRecord> = {}): CardRecord =>
+    ({
+      id,
+      name: id,
+      typeLine,
+      types: /Creature/.test(typeLine) ? ['creature'] : typeLine.includes('Land') ? ['land'] : [],
+      text: '',
+      keywords: [],
+      tags: [],
+      identity: ['G'],
+      ...over,
+    }) as unknown as CardRecord;
+  const isSpell = (c: CardRecord) => !c.types.includes('land');
+  const lord = (id: string, typeLine: string, tag: string, over: Partial<CardRecord> = {}) =>
+    card(id, typeLine, { tags: [tag], ...over });
+
+  it('keep the two-word type whole and slug it as Tagger does', () => {
+    expect(typesOf(card('d', 'Legendary Creature — Time Lord Doctor'))).toEqual([
+      'Time Lord',
+      'Doctor',
+    ]);
+    expect(typesOf(card('e', 'Creature — Elf Warrior'))).toEqual(['Elf', 'Warrior']);
+    expect(typesOf(card('i', 'Instant'))).toEqual([]);
+    expect(typalTag('Elf')).toBe('typal-elf');
+    expect(typalTag('Time Lord')).toBe('typal-time-lord');
+  });
+
+  it('count the commanders the request rules can pick', () => {
+    const legend = 'Legendary Creature — Elf Druid';
+    expect(namingCommander(card('a', legend))).toBe(true);
+    expect(namingCommander(card('b', 'Creature — Elf Druid'))).toBe(false);
+    expect(namingCommander(card('c', legend, { identity: [] }))).toBe(false);
+    expect(namingCommander(card('d', legend, { keywords: ['Partner'] }))).toBe(false);
+    expect(namingCommander(card('e', legend, { unset: true }))).toBe(false);
+  });
+
+  const cards = [
+    card('elf1', 'Creature — Elf'),
+    card('elf2', 'Creature — Elf Warrior'),
+    card('elf3', 'Creature — Elf Druid'),
+    lord('elfcmd', 'Legendary Creature — Elf Noble', 'typal-elf'),
+    lord('elflord', 'Enchantment', 'typal-elf'),
+    lord('elfland', 'Land', 'typal-elf'),
+    card('shift', 'Creature — Shapeshifter', { keywords: ['Changeling'] }),
+    card('gob1', 'Creature — Goblin'),
+    lord('gobcmd', 'Legendary Creature — Goblin', 'typal-goblin', { identity: ['R'] }),
+    lord('gobcmd2', 'Legendary Creature — Goblin', 'typal-goblin', { identity: ['R'] }),
+    card('tl1', 'Legendary Creature — Time Lord Doctor'),
+    lord('tlcmd', 'Legendary Creature — Human', 'typal-time-lord', { identity: ['U'] }),
+    // A tag that is no creature type ("goblin-orc") names nothing.
+    lord('combo', 'Legendary Creature — Orc', 'typal-goblin-orc', { identity: ['R'] }),
+    lord('partner', 'Legendary Creature — Bird', 'typal-bird', { keywords: ['Partner'] }),
+    card('bird', 'Creature — Bird'),
+  ];
+
+  it('rank the types commanders name by commanders times members, then name', () => {
+    const rows = tribeTable(cards, isSpell);
+    // Goblin 2 x 3 beats Elf 1 x 4 (the commander is a member); the changeling counts for neither.
+    expect(rows).toEqual([
+      { type: 'Goblin', commanders: 2, members: 3, lords: 2 },
+      { type: 'Elf', commanders: 1, members: 4, lords: 2 },
+      { type: 'Time Lord', commanders: 1, members: 1, lords: 1 },
+    ]);
+    expect(pickTribes(rows, 2).map((r) => r.type)).toEqual(['Goblin', 'Time Lord']);
+    expect(pickTribes(rows, 3).map((r) => r.type)).toEqual(['Goblin', 'Elf', 'Time Lord']);
+    const single: TribeRow[] = rows.filter((r) => !r.type.includes(' '));
+    expect(pickTribes(single, 1).map((r) => r.type)).toEqual(['Goblin']);
+    expect(pickTribes(rows, 0)).toEqual([]);
+  });
+
+  it('draw extras from members, changelings, and spells that name the type, never commanders', () => {
+    const elf = tribeCandidates(cards, 'Elf', isSpell);
+    expect([...elf.ids].sort()).toEqual(['elf1', 'elf2', 'elf3', 'elflord', 'shift']);
+    expect(elf).toMatchObject({ members: 4, others: 1, commanders: ['elfcmd'] });
+    const tl = tribeCandidates(cards, 'Time Lord', isSpell);
+    expect([...tl.ids].sort()).toEqual(['shift', 'tl1']);
+    expect(tl.commanders).toEqual(['tlcmd']);
   });
 });
 
@@ -170,6 +271,14 @@ describe('pool lists', () => {
       cards: [],
     };
     expect(JSON.parse(formatPool(plain))).toEqual(plain);
+    const tribe: PoolFile = {
+      ...plain,
+      id: 'h3-tribe-elf-17',
+      kind: 'tribe',
+      tribe: 'Elf',
+      added: [],
+    };
+    expect(JSON.parse(formatPool(tribe))).toEqual(tribe);
   });
 });
 

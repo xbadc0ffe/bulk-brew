@@ -1,17 +1,19 @@
 // Test pools for the builder review (docs/algo-review.md, Phase 3): plain bulk
-// samples, theme-rich samples, the public eval pools, and the owner's local
-// bulk, each written as JSON under data/review/pools/ with an index the
-// request generator reads. Recipes and seeds: docs/review/pools.md.
+// samples, theme-rich and tribe-rich samples, the public eval pools, and the
+// owner's local bulk, each written as JSON under data/review/pools/ with an
+// index the request generator reads. Recipes and seeds: docs/review/pools.md.
 //
-// Usage: npm run review:pools -- [--only plain|theme|public|owner] [--plain 30]
-//   [--copies 3000] [--extra 120] [--themes 3] [--rotate-themes] [--seed-prefix <p>]
-//   [--out data/review/pools] [--force]
+// Usage: npm run review:pools -- [--only plain|theme|tribe|public|owner] [--plain 30]
+//   [--copies 3000] [--extra 120] [--themes 3] [--rotate-themes] [--tribes 0]
+//   [--seed-prefix <p>] [--out data/review/pools] [--force]
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import {
+  canBeCommander,
   CardIndex,
   configVersion,
+  creatureTypes,
   factsFor,
   parseDecklist,
   parsePack,
@@ -26,8 +28,8 @@ import { loadConfigDir } from '../check-config.ts';
 import { arg, flag, hash32, median, noisePool, noiseSource, ROOT } from '../corpus.ts';
 import { readPage, type EdhrecPage } from '../edhrec.ts';
 
-export type PoolKind = 'plain' | 'theme' | 'public' | 'owner';
-export const KINDS: readonly PoolKind[] = ['plain', 'theme', 'public', 'owner'];
+export type PoolKind = 'plain' | 'theme' | 'tribe' | 'public' | 'owner';
+export const KINDS: readonly PoolKind[] = ['plain', 'theme', 'tribe', 'public', 'owner'];
 /** [oracle id, copies] pairs. */
 export type CardList = [string, number][];
 
@@ -41,7 +43,9 @@ export interface PoolFile {
   configVersion: string;
   /** Every copy in the pool, sorted by id. */
   cards: CardList;
-  /** Theme pools only: the theme copies added on top of the plain base, sorted by id. */
+  /** Tribe pools only: the creature type, as in "tribal:<type>". */
+  tribe?: string;
+  /** Theme and tribe pools: the copies added on top of the plain base, sorted by id. */
   added?: CardList;
 }
 
@@ -142,7 +146,140 @@ export function poolNames(prefix?: string) {
     themeSeedText: (style: string, n: number) => `${seed}theme:${style}:${n}`,
     /** Theme candidate counts, one file per prefix so a new set never overwrites the first. */
     themesFile: prefix ? `themes-${prefix}.json` : 'themes.json',
+    tribeId: (type: string, n: number) => `${p}tribe-${typeSlug(type)}-${twoDigits(n)}`,
+    tribeFile: (type: string, n: number) => `tribe/${p}${typeSlug(type)}-${twoDigits(n)}.json`,
+    tribeSeedText: (type: string, n: number) => `${seed}tribe:${type}:${n}`,
+    tribesFile: prefix ? `tribes-${prefix}.json` : 'tribes.json',
   };
+}
+
+// ---- Tribes ----
+
+/** Two-word creature types: CR 205.3m, "One creature type is two words long: Time Lord." */
+export const MULTI_WORD_TYPES: readonly string[] = ['Time Lord'];
+
+/** "Elf" is "elf", "Time Lord" is "time-lord": the form of Tagger tags, ids, and file names. */
+export function typeSlug(type: string): string {
+  return type.toLowerCase().replace(/\s+/g, '-');
+}
+
+/** The Tagger tag of cards whose text cares about a creature type, such as "typal-elf". */
+export function typalTag(type: string): string {
+  return `typal-${typeSlug(type)}`;
+}
+
+/** A card's creature types, with a two-word type kept whole ("Time Lord", not "Time" and "Lord"). */
+export function typesOf(card: CardRecord): string[] {
+  const words = creatureTypes(card);
+  const out: string[] = [];
+  for (let i = 0; i < words.length; i++) {
+    const two = `${words[i]} ${words[i + 1]}`;
+    if (i + 1 < words.length && MULTI_WORD_TYPES.includes(two)) {
+      out.push(two);
+      i++;
+    } else out.push(words[i]!);
+  }
+  return out;
+}
+
+/** Partner, Partner with, Friends forever, Choose a Background, Doctor's companion. */
+export function isPartner(card: Pick<CardRecord, 'keywords'>): boolean {
+  return card.keywords.some((k) =>
+    /^(partner|friends|choose a background|doctor's companion)/i.test(k),
+  );
+}
+
+/** A commander the request rules can pick: legal, not colorless, and not a partner. */
+export function namingCommander(card: CardRecord): boolean {
+  return canBeCommander(card) && card.identity.length > 0 && !isPartner(card);
+}
+
+export interface TribeRow {
+  type: string;
+  /** Commanders (namingCommander) whose Tagger tags name the type. */
+  commanders: number;
+  /** Spells of the type, changelings aside. */
+  members: number;
+  /** Spells whose tags name the type: the core's tribe payoffs, lords among them. */
+  lords: number;
+}
+
+/**
+ * Creature types that commanders name, from a bulk box's cards: every type a
+ * spell has, with its naming commanders, members, and lords. Most named and
+ * most common first: commanders times members, then the type's name.
+ */
+export function tribeTable(
+  cards: readonly CardRecord[],
+  isSpell: (c: CardRecord) => boolean,
+  isCommander: (c: CardRecord) => boolean = namingCommander,
+): TribeRow[] {
+  const members = new Map<string, number>();
+  for (const c of cards)
+    if (isSpell(c)) for (const t of typesOf(c)) members.set(t, (members.get(t) ?? 0) + 1);
+  const byTag = new Map([...members.keys()].map((t) => [typalTag(t), t]));
+  const commanders = new Map<string, number>();
+  const lords = new Map<string, number>();
+  for (const c of cards)
+    for (const tag of c.tags) {
+      const t = byTag.get(tag);
+      if (!t) continue;
+      if (isCommander(c)) commanders.set(t, (commanders.get(t) ?? 0) + 1);
+      if (isSpell(c)) lords.set(t, (lords.get(t) ?? 0) + 1);
+    }
+  return [...commanders.keys()]
+    .map((type) => ({
+      type,
+      commanders: commanders.get(type)!,
+      members: members.get(type)!,
+      lords: lords.get(type) ?? 0,
+    }))
+    .sort(
+      (a, b) =>
+        b.commanders * b.members - a.commanders * a.members ||
+        (a.type < b.type ? -1 : a.type > b.type ? 1 : 0),
+    );
+}
+
+/** The first n rows; a two-word type with a commander takes the last place when none made it. */
+export function pickTribes(rows: readonly TribeRow[], n: number): TribeRow[] {
+  const picks = rows.slice(0, n);
+  const multi = (r: TribeRow) => r.type.includes(' ');
+  const extra = rows.find(multi);
+  if (n > 0 && extra && !picks.some(multi)) picks[picks.length - 1] = extra;
+  return picks;
+}
+
+/**
+ * What a tribe pool adds to its base: spells of the type (changelings are every
+ * type, CR 702.73a) and spells that name it, drawn as extras, and the
+ * commanders that name it, one copy each and never among the extras.
+ */
+export function tribeCandidates(
+  cards: readonly CardRecord[],
+  type: string,
+  isSpell: (c: CardRecord) => boolean,
+  isCommander: (c: CardRecord) => boolean = namingCommander,
+): { ids: Set<string>; members: number; others: number; commanders: string[] } {
+  const tag = typalTag(type);
+  const ids = new Set<string>();
+  const commanders: string[] = [];
+  let members = 0;
+  // Spells that name the type without being of it.
+  let others = 0;
+  for (const c of cards) {
+    const names = c.tags.includes(tag);
+    if (names && isCommander(c)) {
+      commanders.push(c.id);
+      continue;
+    }
+    if (!isSpell(c)) continue;
+    const member = c.keywords.includes('Changeling') || typesOf(c).includes(type);
+    if (member) members++;
+    else if (names) others++;
+    if (member || names) ids.add(c.id);
+  }
+  return { ids, members, others, commanders: commanders.sort() };
 }
 
 /** A rarity source cut down to the given card ids. */
@@ -229,8 +366,9 @@ export function formatPool(pool: PoolFile): string {
     `  "seed": ${pool.seed}`,
     `  "dataVersion": ${JSON.stringify(pool.dataVersion)}`,
     `  "configVersion": ${JSON.stringify(pool.configVersion)}`,
-    `  "cards": ${list(pool.cards)}`,
   ];
+  if (pool.tribe !== undefined) fields.push(`  "tribe": ${JSON.stringify(pool.tribe)}`);
+  fields.push(`  "cards": ${list(pool.cards)}`);
   if (pool.added) fields.push(`  "added": ${list(pool.added)}`);
   return `{\n${fields.join(',\n')}\n}\n`;
 }
@@ -338,6 +476,8 @@ interface Options {
   themes: number;
   /** Spread each style's theme pools over the plain bases (themeBases). */
   rotate: boolean;
+  /** Tribe pools, one per type (pickTribes), on the plain bases after the plain pools. */
+  tribes: number;
   force: boolean;
   /** Plain and theme pools only; public and owner pools have no seed. */
   prefix?: string;
@@ -363,6 +503,7 @@ function readOptions(): Options {
     extra: count('extra', 120),
     themes: count('themes', THEME_SAMPLES),
     rotate: flag('rotate-themes'),
+    tribes: count('tribes', 0),
     force: flag('force'),
   };
   // Two pools of one style on one base would share an id.
@@ -471,7 +612,8 @@ function main(): number {
     );
   }
 
-  if (wants('theme')) {
+  // --themes 0 makes no theme pools and leaves the theme counts alone.
+  if (wants('theme') && opts.themes > 0) {
     const stats: Record<string, ThemeStats> = {};
     const styles = config.archetypes.archetypes
       .filter((a) => a.kind === 'synergy')
@@ -525,6 +667,74 @@ function main(): number {
           `${s.baseCopies.join('/').padEnd(11)}  ${s.pages.join(', ') || '(none)'}`,
       );
     }
+  }
+
+  if (wants('tribe') && opts.tribes > 0) {
+    const cards = [...source.values()].flat();
+    const isSpell = (c: CardRecord) => factsFor(index, config, c).spell;
+    const table = tribeTable(cards, isSpell);
+    const picked = pickTribes(table, opts.tribes);
+    const made: Record<string, unknown>[] = [];
+    picked.forEach((row, j) => {
+      // Each tribe gets a base of its own, after the plain pools' bases.
+      const n = opts.plain + j + 1;
+      const cand = tribeCandidates(cards, row.type, isSpell);
+      const seedText = names.tribeSeedText(row.type, n);
+      const seed = hash32(seedText);
+      const themeSource = restrictSource(source, cand.ids);
+      const extras = drawExtras(themeSource, seed, opts.extra);
+      const added = mergeLists(
+        extras,
+        cand.commanders.map((id): [string, number] => [id, 1]),
+      );
+      save(names.tribeFile(row.type, n), {
+        id: names.tribeId(row.type, n),
+        kind: 'tribe',
+        recipe:
+          `${names.plainId(n)} [${plainRecipe(n)}] plus ${opts.extra} copies from ` +
+          `${cand.ids.size} ${row.type} cards (${cand.members} of the type, changelings included, ` +
+          `and ${cand.others} more whose tags name it), drawn by noisePool with ` +
+          `hash32('${seedText}'), plus one copy of each of the ${cand.commanders.length} ` +
+          `commanders whose tags name ${row.type}`,
+        seed,
+        ...versions,
+        tribe: row.type,
+        cards: mergeLists(plainOf(n), added),
+        added,
+      });
+      made.push({
+        ...row,
+        id: names.tribeId(row.type, n),
+        base: names.plainId(n),
+        candidates: cand.ids.size,
+        byRarity: Object.fromEntries(
+          RARITIES.map((r) => [r, themeSource.get(r)!.length]),
+        ) as Record<Rarity, number>,
+        commandersAdded: cand.commanders.length,
+      });
+    });
+    mkdirSync(opts.out, { recursive: true });
+    // Pack counts only, never what a pool holds: held-out pools stay unread.
+    writeFileSync(
+      path.join(opts.out, names.tribesFile),
+      JSON.stringify({ picked: made, ranking: table.slice(0, 20) }, null, 2) + '\n',
+    );
+    console.log(
+      `tribe: ${picked.length} pools on bases ${opts.plain + 1} to ${opts.plain + picked.length}` +
+        (opts.prefix ? `, seed prefix ${opts.prefix} (counts in ${names.tribesFile})` : ''),
+    );
+    console.log('  type            commanders  members  named by  picked');
+    for (const r of table.slice(0, 12))
+      console.log(
+        `  ${r.type.padEnd(15)} ${String(r.commanders).padStart(10)} ${String(r.members).padStart(8)} ` +
+          `${String(r.lords).padStart(9)}  ${picked.includes(r) ? 'yes' : ''}`,
+      );
+    const multi = table.filter((r) => r.type.includes(' '));
+    console.log(
+      multi.length
+        ? `  two-word types with a commander: ${multi.map((r) => r.type).join(', ')}`
+        : '  no commander names a two-word type',
+    );
   }
 
   if (wants('public')) {

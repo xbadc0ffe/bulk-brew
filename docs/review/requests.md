@@ -11,24 +11,30 @@ The code is `packages/pipeline/src/review/requests.ts`; the pure parts are teste
 
 ## Flags
 
-| Flag                   | Default                         | Meaning                                                                              |
-| ---------------------- | ------------------------------- | ------------------------------------------------------------------------------------ |
-| `--pools <kinds>`      | `plain,theme,public`            | Pool kinds, from `plain`, `theme`, `public`, `owner`. Owner pools only when asked.   |
-| `--plain <n>`          | all 30                          | Only the first n plain pools, by id.                                                 |
-| `--prefix <p>`         | none                            | Only pools of one seed prefix (below).                                               |
-| `--sizes <list>`       | `60,100,40,20`                  | Deck sizes.                                                                          |
-| `--versions <ids>`     | `head,head-web,v26.0.30,random` | One pair of job files per version. Prototypes are added here by name.                |
-| `--bestfit-only <ids>` | `head-web,random`               | Versions that get only the best-fit requests. `none` turns it off.                   |
-| `--bestfit`            | off                             | Best fit only, for every version, where the scan can build the size (below).         |
-| `--two-color`          | on                              | The two-color slice on plain pools at 60 and 40 (rule 1). `--no-two-color` drops it. |
-| `--out <dir>`          | `data/review/jobs`              | Output folder.                                                                       |
-| `--force`              | off                             | Replace job files that exist with other jobs.                                        |
+| Flag                     | Default                         | Meaning                                                                                                 |
+| ------------------------ | ------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `--pools <kinds>`        | `plain,theme,tribe,public`      | Pool kinds, from `plain`, `theme`, `tribe`, `public`, `owner`. Owner pools only when asked.             |
+| `--plain <n>`            | all 30                          | Only the first n plain pools, by id.                                                                    |
+| `--prefix <p>`           | none                            | Only pools of one seed prefix (below).                                                                  |
+| `--sizes <list>`         | `60,100,40,20`                  | Deck sizes.                                                                                             |
+| `--versions <ids>`       | `head,head-web,v26.0.30,random` | One pair of job files per version. Prototypes are added here by name.                                   |
+| `--bestfit-only <ids>`   | `head-web,random`               | Versions that get only the best-fit requests. `none` turns it off.                                      |
+| `--bestfit`              | off                             | Best fit only, for every version, where the scan can build the size (below).                            |
+| `--tribe-versions <ids>` | none                            | Best-fit-only versions that also get the tribe pools' tribe requests (rule 3). Full versions always do. |
+| `--commanders <n>`       | 2                               | Commanders per pool at 100 (rule 3).                                                                    |
+| `--tribe-commanders <n>` | 4                               | Commanders per tribe pool that get its tribe request (rule 3).                                          |
+| `--two-color`            | on                              | The two-color slice on plain pools at 60 and 40 (rule 1). `--no-two-color` drops it.                    |
+| `--two-color-sizes <l>`  | `60,40`                         | The sizes that get the slice, from 60, 40, 20.                                                          |
+| `--out <dir>`            | `data/review/jobs`              | Output folder.                                                                                          |
+| `--force`                | off                             | Replace job files that exist with other jobs.                                                           |
 
 The command needs no network and reads no clock. The data pack, the config, and the pools decide the requests, so a new pack or config can change them; `index.json` records the data and config versions.
 
-**One set of pools.** `--prefix h1` keeps only pools whose id starts with `h1-`: the plain and theme pools `review:pools -- --seed-prefix h1` made (`docs/review/pools.md`). Public and owner pools have no prefix, so they drop out. `--plain <n>` then counts that set's plain pools, a prefixed theme pool's enriched style is read from its id as usual (`h1-theme-graveyard-01` is Graveyard), and `index.json` records the prefix in its scope. Without `--prefix`, every pool on disk is used, prefixed sets included, so give `--prefix` or `--out` to keep a new round's job files apart from the first round's. A pool kind is refused as a prefix, as `review:pools` refuses it: `--prefix plain` would also pick `plain-01` to `plain-30`, and `--prefix public` every public pool. A run with no new flags matched every file in `data/review/jobs/` byte for byte on 2026-11-11.
+**One set of pools.** `--prefix h1` keeps only pools whose id starts with `h1-`: the plain, theme, and tribe pools `review:pools -- --seed-prefix h1` made (`docs/review/pools.md`). Public and owner pools have no prefix, so they drop out. `--plain <n>` then counts that set's plain pools, a prefixed theme pool's enriched style is read from its id as usual (`h1-theme-graveyard-01` is Graveyard), and `index.json` records the prefix in its scope. Without `--prefix`, every pool on disk is used, prefixed sets included, so give `--prefix` or `--out` to keep a new round's job files apart from the first round's. A pool kind is refused as a prefix, as `review:pools` refuses it: `--prefix plain` would also pick `plain-01` to `plain-30`, and `--prefix public` every public pool. A run with no new flags matched every file in `data/review/jobs/` byte for byte on 2026-11-11.
 
-**Best fit only.** `--bestfit` asks every version for best fit alone (it overrides `--bestfit-only`), with the colors and commanders the rules below pick, and leaves out a color set whose scan says the size cannot be built in it (`possible` false on `scanPool`, or on the commander's `scanCandidates` at 100), since every version would decline it. The command prints how many it left out, and `index.json` records `"bestfit": true` in its scope. The styles each scan finds viable are not requested. Without the flag nothing changes.
+**Best fit only.** `--bestfit` asks every version for best fit alone (it overrides `--bestfit-only`), with the colors and commanders the rules below pick, and leaves out a color set whose scan says the size cannot be built in it (`possible` false on `scanPool`, or on the commander's `scanCandidates` at 100), since every version would decline it. The command prints how many it left out, and `index.json` records `"bestfit": true` in its scope. The styles each scan finds viable are not requested. The one exception is a tribe pool's tribe requests (rule 3), which go to the versions `--tribe-versions` names. Without the flag nothing changes.
+
+**Scope fields.** `index.json` records `twoColorSizes`, `commanders`, `tribeCommanders`, and `tribeVersions` (every version that gets the tribe requests) only when they differ from the defaults or tribe pools are in scope, so earlier runs write the same index.
 
 ## The rules
 
@@ -36,7 +42,7 @@ The command needs no network and reads no clock. The data pack, the config, and 
 
 Below 100 cards:
 
-- **Plain, theme, and owner pools:** every mono color, W, U, B, R, and G, one request set each.
+- **Plain, theme, tribe, and owner pools:** every mono color, W, U, B, R, and G, one request set each.
 - **Public pools:** the colors named in the first comment line of the pool's source file in `eval/pools/` (the pool's `recipe`), read up to its first colon or full stop: the words white, blue, black, red, green, whole words, so "mono-white" counts. All colors named there form one color set. When it names none, the pool's largest mono color by copies (from `data/review/pools/index.json`, ties in WUBRG order). `eval/README.md` names no colors per pool, so the comments decide.
 
 | Public pool          | Colors | From                                              |
@@ -53,7 +59,7 @@ Below 100 cards:
 | tiny-blue            | U      | "Tiny blue pool"                                  |
 | white-bulk           | W      | "Mono-white bulk pool used as a builder fixture"  |
 
-**The two-color slice.** Plain pools at 60 and 40 cards also get every two-color pair, each in WUBRG order: WU, WB, WR, WG, UB, UR, UG, BR, BG, RG. Each pair gets the same styles as a mono color (rule 2), and every job from it carries `"slice": "two-color"`. The jobs go in the same main and small files as the rest, so one batch builds them. Every other request is mono-color below 100 cards, so without the slice a version that handles two colors well or badly would never show it. `--no-two-color` leaves the slice out.
+**The two-color slice.** Plain pools at 60 and 40 cards also get every two-color pair, each in WUBRG order: WU, WB, WR, WG, UB, UR, UG, BR, BG, RG. Each pair gets the same styles as a mono color (rule 2), and every job from it carries `"slice": "two-color"`. The jobs go in the same main and small files as the rest, so one batch builds them. Every other request is mono-color below 100 cards, so without the slice a version that handles two colors well or badly would never show it. `--no-two-color` leaves the slice out, and `--two-color-sizes` gives it to other sizes below 100 (the `h3` run gives it to 20 cards).
 
 At 100 cards the colors are the commander's color identity (rule 3).
 
@@ -79,10 +85,12 @@ Notes:
 2. Drop partners: any card with the keyword Partner, Partner with, Friends forever, Choose a background, or Doctor's companion. The core builds with one commander only.
 3. Drop commanders the core marks as short of cards for the 99 (`enough` false), as the Build page's deck options do.
 4. Sort what is left by tier, then score, then name (code-unit order). This is the core's own order; the sort only makes the tie break explicit.
-5. Take the first two.
+5. Take the first two (`--commanders <n>`: the first n).
 6. **Theme pools:** find the enriched style's best color. Scan the pool at 100 in each mono color; the best color is the one whose scan counts the most enabler plus payoff copies for the enriched style, among the style's own colors when the config limits them, ties in WUBRG order. If neither of the two picks has that color in its identity, the first commander in places 3 to 10 of the sorted list that has it takes the second place. If none of the first ten has it, the two picks stand.
 
 For each picked commander, request best fit, every viable shape and themed style, the commander's viable tribes (`tribal:<Type>`, the core's `primaryTribes`), and for theme pools the enriched style as in rule 2. The viable styles come from the scan the builder itself makes: `scanCandidates` over the commander's colors at 100 with the commander removed from the candidates.
+
+**Tribe pools** (`docs/review/pools.md`, "Tribe-rich bulk"): after the picked commanders' requests, request the pool's tribe (`tribal:<Type>`, the type in the pool file's `tribe` field) under the first four commanders (`--tribe-commanders`) of the sorted list from step 4 whose `primaryTribes` hold it: commanders whose text names the type and whose colors the core can build it in as the primary style. Reason `tribe`. A picked commander that already asked for the tribe (as `viable`, without `--bestfit`) is not asked twice. The command prints how many tribe requests each tribe pool got.
 
 Notes:
 
@@ -98,11 +106,12 @@ Notes:
   - `head-web` (the web Build page's first option) differs from `head` only for best-fit requests and equals it for requested styles.
   - `random` ignores the style, so a styled request would only repeat the same draw. Two seeds of best-fit piles per pool and color (4,158 piles with the two-color slice) are enough for the panel's calibration.
   - Both get the two-color slice's best-fit requests, so `head-web` is tested on choosing a plan in two colors too.
+- A best-fit-only version gets a tribe pool's tribe requests (rule 3) only when `--tribe-versions` names it; a full version always gets them. A random pile ignores the style, and a web first option for a requested style is the core's deck, so neither needs them.
 - A version not yet registered in `versions.ts` still gets its files; the command says so, and the runner reports those jobs as bad until the version exists.
 
 ### 5. Order
 
-Jobs run size by size (60, then 100 in the main set; 40, then 20 in the second set), so a run cut short covers whole sizes first. Within a size: pool kind (plain, theme, public, owner), pool id, color set (the mono colors in WUBRG order, then on plain pools at 60 and 40 the two-color pairs in the order of rule 1; at 100: the commanders in pick order), then the styles in the order of rule 2, then seed.
+Jobs run size by size (60, then 100 in the main set; 40, then 20 in the second set), so a run cut short covers whole sizes first. Within a size: pool kind (plain, theme, tribe, public, owner), pool id, color set (the mono colors in WUBRG order, then on plain pools at the slice's sizes the two-color pairs in the order of rule 1; at 100: the commanders in pick order, then a tribe pool's tribe requests in their order), then the styles in the order of rule 2, then seed.
 
 ## Files
 
@@ -128,7 +137,7 @@ A job is the runner's format plus fields the runner ignores:
 }
 ```
 
-- `reason`: `bestfit`, `shape`, `viable`, or `enriched`, as in rule 2.
+- `reason`: `bestfit`, `shape`, `viable`, or `enriched`, as in rule 2, or `tribe`, as in rule 3.
 - `slice`: `two-color` on the two-color slice's jobs (rule 1), absent on every other job. For example `{"version":"head","pool":"data/review/pools/plain/plain-01.json","colors":"WU","size":60,"seed":1,"reason":"bestfit","slice":"two-color","deck":"head/plain-01-WU-60-bestfit-s1.json"}`.
 - `commanderName`: for people reading the file; the runner uses the oracle id.
 - `deck`: the deck file the runner writes for this job, relative to its output folder, from the runner's own `deckFileName` and `loadPool` (pool ids are the pool files' own ids, such as `public-bulk-black`). Phase 3 scripts join decks to reasons through it.
@@ -212,3 +221,20 @@ npm run review:requests -- --prefix h2 --sizes 60,100,40 --versions head,shipped
 - Files in `data/review/jobs-h2/`: `main-<version>.json` (60 and 100) and `small-<version>.json` (40) for each of the four versions, and `index.json`.
 
 The commanders at 100 come from the current core's `commanderCandidates`, so a later config or builder change could pick others: keep these files as they are rather than writing them again during step 3.
+
+## h3: best fit and tribes for builder phase 2, step 5
+
+The requests for step 5's panel (`docs/builder-phase2.md`): best fit at 20 and 100 and tribe requests at 100, on the held-out `h3-` pools (`docs/review/pools.md`), for the new first option (`head`), the shipped core best fit and web first option (`shipped`, `shipped-web`), and random piles. Written on 2026-11-17 with data `2026-11-03.s2` and config `t5.c4.r2.a10.s8.l4.w13.k2.h6.n3.qpscuep.p1wyug0e.g1hono2u`, by the 26.0.41 core (the version step 5 starts from); not built yet.
+
+```sh
+npm run review:requests -- --prefix h3 --sizes 100,20 --versions head,shipped,shipped-web,random --bestfit --tribe-versions head,shipped --two-color-sizes 20 --commanders 3 --out data/review/jobs-h3
+```
+
+- At 20: every mono color on all 18 pools (90), and the two-color slice (all ten pairs) on the 12 plain pools (120). The scan could build every one, so none was left out.
+- At 100: best fit under the first three commanders the rules pick on each of the 18 pools (54); every pool had three. Three, not the usual two: two would give 36 requests, short of the 40 per version the panel judges.
+- At 100, tribe requests: on each of the 6 tribe pools, its tribe under the first four commanders that name the type and can build it (24): Human, Warrior, Wizard, Spirit, Elf, and Dragon, four each. `head` and `shipped` get them; `shipped-web` and `random` do not.
+- Per version: `head` and `shipped` 288 requests (210 at 20, 78 at 100), `shipped-web` 264 (210, 54), `random` 264 requests with seeds 1 and 2, so 528 piles.
+- Files in `data/review/jobs-h3/`: `main-<version>.json` (100) and `small-<version>.json` (20) for each of the four versions, and `index.json`. A second run into another folder gave byte-identical files.
+- A check build of every `random` job into a scratch folder built all 528 piles (420 at 20, 108 at 100), none declined.
+
+As for h2, keep these files as they are during step 5: the commanders and the scans come from the 26.0.41 core, and a later core could pick others.
