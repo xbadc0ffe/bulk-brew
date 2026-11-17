@@ -395,6 +395,13 @@ export interface ScanReport {
   archetypes: ArchetypeReport[];
   /** Creature types with at least a few members: members (changelings included) and type payoffs. */
   tribes?: TribeReport[];
+  /**
+   * At 100 under a commander: each tribe its text names ("tribal:Elf",
+   * grow.ts `namedTribes`), the pool against the tribe rules' floors as the
+   * builder counts it, the commander credited once; the same shape as
+   * `ArchetypeReport.rules`.
+   */
+  leadTribes?: { style: string; label: string; rules: NonNullable<ArchetypeReport['rules']> }[];
   notes: string[];
 }
 

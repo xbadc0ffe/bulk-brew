@@ -1,5 +1,5 @@
 {
-  "version": "7",
+  "version": "8",
   "styles": {
     "tokens": {
       "resource": "creature tokens that stay on the battlefield, counted in bodies",
@@ -73,6 +73,13 @@
           "notTags": ["typal"],
           "text": "(^|\\. |• )(other )?creatures you control have",
           "notText": "nontoken|until end of turn"
+        },
+        {
+          "job": "lasting keyword anthem for tokens",
+          "weight": 1,
+          "notTags": ["typal"],
+          "text": "(^|\\. |, |• )creature tokens you control have",
+          "notText": "until end of turn"
         },
         {
           "job": "team pump",
@@ -1433,6 +1440,12 @@
           "weight": 2,
           "notTypes": ["instant", "sorcery"],
           "text": "whenever you cast an? (aura|equipment)|whenever an? (aura|equipment) (you control )?(enters|becomes attached)"
+        },
+        {
+          "job": "cost reducer for Auras or Equipment",
+          "weight": 0.5,
+          "notTypes": ["instant", "sorcery", "land"],
+          "text": "^(aura|equipment)( and (aura|equipment|vehicle))? spells you cast cost \\{"
         },
         {
           "job": "heroic or valiant",
@@ -2860,6 +2873,55 @@
           "payoff": 10
         }
       }
+    }
+  },
+  "tribes": {
+    "resource": "creatures of one type",
+    "setup": [
+      {
+        "job": "{type} creature",
+        "weight": 1,
+        "types": ["creature"],
+        "typeLine": "^[^/]*—[^/]*\\b{type}\\b"
+      },
+      {
+        "job": "changeling creature",
+        "weight": 1,
+        "types": ["creature"],
+        "keywords": ["Changeling"]
+      },
+      {
+        "job": "makes {type} creature tokens",
+        "weight": 1,
+        "text": "\\bcreates? [^.\\n]*\\b{type}\\b[^.\\n]*\\bcreature tokens?\\b"
+      }
+    ],
+    "payoff": [
+      {
+        "job": "{type} lord",
+        "weight": 2,
+        "priority": 1,
+        "anyTags": ["typal-{slug}"],
+        "text": "(?<!non-)\\b(other )?{types}( creatures)? you control (gets?|have|has)\\b"
+      },
+      {
+        "job": "rewards {plural}",
+        "weight": 1,
+        "priority": 1,
+        "anyTags": ["typal-{slug}"],
+        "text": "(?<!non-)\\b{types}\\b(?![\\w ]*\\bcreature tokens?\\b)"
+      }
+    ],
+    "minimums": {
+      "100": {
+        "setup": 20,
+        "payoff": 10
+      }
+    },
+    "payoffSupplies": true,
+    "lacks": {
+      "setup": "few {type} creatures",
+      "payoff": "few cards that reward {plural}"
     }
   }
 }

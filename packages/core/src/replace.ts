@@ -146,7 +146,9 @@ function jobsOf(
   const card = cand.facts.card;
   if (ctx.rules) {
     const { style, size } = ctx.rules;
-    const side = cardThemeSides(config, cand.facts, size).find((s) => s.style === style);
+    // A tribe's jobs come from the tribe rules for its type.
+    const tribes = style.startsWith('tribal:') ? [style] : [];
+    const side = cardThemeSides(config, cand.facts, size, tribes).find((s) => s.style === style);
     if (side && credits().earned(card, themeCredit(style, side.as)))
       out.push({ id: `${style}:${side.as}`, label: themeJobLabel(side.as, side.job) });
   }

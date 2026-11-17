@@ -318,17 +318,29 @@ describe('Commander builds', () => {
   });
 
   it('builds a tribe its commander names as the primary style', () => {
-    // Every white creature is a Human; ten of them reward Humans.
-    const tribal = cards.map((c, i) => (i % 9 === 6 ? { ...c, tags: ['typal-human'] } : c));
-    const humanLead = { ...lead, tags: ['typal-human'] };
+    // Every white creature is a Human; ten of them are Human lords, and the commander names Humans.
+    const lord = 'Other Humans you control get +1/+1.';
+    const tribal = cards.map((c, i) =>
+      i % 9 === 6 ? { ...c, tags: ['typal-human'], text: lord } : c,
+    );
+    const humanLead = {
+      ...lead,
+      tags: ['typal-human'],
+      text: 'Humans you control have vigilance.',
+    };
     const hIndex = new CardIndex({ ...pack, cards: [...tribal, humanLead, blue, plains, banned] });
+    const asked = { ...request, commander: 'lead', style: 'tribal:Human', requireStyle: true };
+    const built = buildDeck(asked, pool, hIndex, CONFIG);
+    expect(built.deck.archetype).toBe('tribal:Human');
+    expect(built.deck.name).toBe('Lead Human tribe 100');
+    expect(built.explanation.builder).toBe('grow');
+    // The tribe rules count it: each floor met, the commander once.
+    const theme = built.explanation.theme!;
+    expect(theme.style).toBe('tribal:Human');
+    for (const f of theme.floors) expect(f.have).toBeGreaterThanOrEqual(f.need);
+    // Best fit compares it with the other plans by the one score.
     const best = buildDeck({ ...request, commander: 'lead' }, pool, hIndex, CONFIG);
-    expect(best.deck.archetype).toBe('tribal:Human');
-    expect(best.deck.name).toBe('Lead Human tribe 100');
-    const [counts] = styleCounts(best.deck, hIndex, CONFIG);
-    expect(counts).toMatchObject({ id: 'tribal:Human', label: 'Human tribe', tribal: true });
-    expect(counts!.enablers.have).toBeGreaterThanOrEqual(counts!.enablers.want);
-    expect(counts!.payoffs.have).toBeGreaterThanOrEqual(counts!.payoffs.want);
+    expect(best.explanation.pick?.ranked?.map((r) => r.style)).toContain('tribal:Human');
 
     const [listed] = commanderCandidates(pool, hIndex, CONFIG, SETTINGS);
     expect(listed!.primaryTribes).toEqual(['tribal:Human']);
@@ -347,9 +359,14 @@ describe('Commander builds', () => {
       ),
     ).toThrow(/does not reward the Elf tribe/);
     const plainIndex = new CardIndex({ ...pack, cards: [...tribal, lead, blue, plains, banned] });
-    expect(
-      buildDeck({ ...request, commander: 'lead' }, pool, plainIndex, CONFIG).deck.archetype,
-    ).not.toBe('tribal:Human');
+    const plain = buildDeck({ ...request, commander: 'lead' }, pool, plainIndex, CONFIG);
+    expect(plain.explanation.pick?.ranked?.map((r) => r.style)).not.toContain('tribal:Human');
+    // A Human tag on a text that names no Human names no tribe.
+    const taggedIndex = new CardIndex({
+      ...pack,
+      cards: [...tribal, { ...lead, tags: ['typal-human'] }, blue, plains, banned],
+    });
+    expect(commanderCandidates(pool, taggedIndex, CONFIG, SETTINGS)[0]!.primaryTribes).toEqual([]);
   });
 });
 

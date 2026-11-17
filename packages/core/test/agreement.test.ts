@@ -104,7 +104,7 @@ function commanderFixture(): { pool: Pool; idx: CardIndex } {
     mv: 3,
     manaCost: '{2}{W}',
     typeLine: 'Legendary Creature — Human',
-    text: 'Other creatures you control get +1/+1.',
+    text: 'Other creatures you control get +1/+1.\nHumans you control have vigilance.',
     power: '2',
     toughness: '2',
     tags: ['anthem', 'typal-human'],
@@ -243,11 +243,11 @@ describe('learned plan data on grow paths', () => {
     expect(cardsOf(buildDeck(req, pool, idx, CONFIG))).toEqual(
       cardsOf(buildDeck(req, pool, idx, HAND_CONFIG)),
     );
-    // The tribe is one of best fit's plans; the classic builder builds it without the learned data.
+    // The tribe is one of best fit's plans, and the grow builder builds it.
     const tribe = { ...req, style: 'tribal:Human' };
     const a = buildDeck(tribe, pool, idx, CONFIG);
     expect(a.deck.archetype).toBe('tribal:Human');
-    expect(a.explanation.builder).toBe('classic');
+    expect(a.explanation.builder).toBe('grow');
     expect(cardsOf(a)).toEqual(cardsOf(buildDeck(tribe, pool, idx, HAND_CONFIG)));
     expect(a.deck.learnedVersion).toBeUndefined();
   });

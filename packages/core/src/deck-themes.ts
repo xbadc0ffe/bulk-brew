@@ -1,9 +1,10 @@
 // A deck's themes as the apps show them, counted the way the builder that made
 // the deck counts them. A grow deck reads the theme rules (config/theme-rules.json):
 // each card's job once, earned in the deck by the card needs reader, the
-// commander at `grow.commanderCredit`, against the floors the build recorded.
-// A classic deck (20-card packets, tribes, secondary styles) keeps the old
-// matchers and minimums its builder counted (styleCounts), until it leaves.
+// commander at `grow.commanderCredit`, against the floors the build recorded;
+// a commander's tribes are read from the tribe rules the same way. A classic
+// deck (20-card packets, secondary styles, tribes saved before step 5) keeps
+// the old matchers and minimums its builder counted (styleCounts), until it leaves.
 
 import { styleCounts } from './builder.ts';
 import { factsFor, type CardFacts } from './candidates.ts';
@@ -16,12 +17,14 @@ import {
   emptyThemeTally,
   FLOOR_WORDS,
   floorCounts,
+  namedTribes,
   themeFloorsOf,
   themeJobsOf,
   themeStyles,
   type Job,
 } from './grow.ts';
 import type { CardIndex } from './pack.ts';
+import { secondaryLabel } from './scan.ts';
 import type { ThemeFloor, ThemeTally } from './theme-rules.ts';
 import type { Deck, DeckSize, FloorCount } from './types.ts';
 
@@ -31,21 +34,34 @@ export function rulesCounted(deck: Deck): boolean {
 }
 
 function labelOf(config: BulkBrewConfig, style: string): string {
-  return config.archetypes.archetypes.find((a) => a.id === style)?.label ?? style;
+  return secondaryLabel(config, style);
 }
 
 /**
- * Each rules style's tally in a deck: every spell's job once, counted when
- * the deck earns it (its needs met by the deck's cards, lands, colors, and
- * commander), the commander at `grow.commanderCredit`, as the grow builder
- * counts its finished deck.
+ * The tribes a deck's themes include, as the grow builder planned them: those
+ * its commander names, and its own when it is a tribe.
+ */
+export function deckTribes(deck: Deck, index: CardIndex, config: BulkBrewConfig): string[] {
+  const lead = deck.commander ? index.get(deck.commander) : undefined;
+  const out = lead ? namedTribes(config, lead) : [];
+  if (deck.archetype.startsWith('tribal:') && !out.includes(deck.archetype))
+    out.push(deck.archetype);
+  return out;
+}
+
+/**
+ * Each rules style's tally in a deck, and each of its tribes' (deckTribes):
+ * every spell's job once, counted when the deck earns it (its needs met by
+ * the deck's cards, lands, colors, and commander), the commander at
+ * `grow.commanderCredit`, as the grow builder counts its finished deck.
  */
 export function deckThemeTallies(
   deck: Deck,
   index: CardIndex,
   config: BulkBrewConfig,
 ): Map<string, ThemeTally> {
-  const styles = themeStyles(config);
+  const tribes = deckTribes(deck, index, config);
+  const styles = themeStyles(config, tribes);
   const tallies = styles.map(emptyThemeTally);
   const credits = deckCredits(deck, index, config);
   const credit = config.builderWeights.grow.commanderCredit;
@@ -55,7 +71,7 @@ export function deckThemeTallies(
     const facts = factsFor(index, config, card);
     if (!facts.spell) continue;
     const copies = dc.cardId === deck.commander ? credit : dc.qty;
-    themeJobsOf(config, facts, deck.size).forEach((j, i) => {
+    themeJobsOf(config, facts, deck.size, tribes).forEach((j, i) => {
       if (j && credits.earned(card, themeCredit(styles[i]!, j.as)))
         addThemeJob(tallies[i]!, j, copies);
     });
@@ -175,17 +191,19 @@ export interface CardThemeSide {
 
 /**
  * Every theme job the rules give a card at a deck size (60 outside a deck),
- * in the rules' style order: what the card can do for a theme, before any
- * deck's needs are checked.
+ * in the rules' style order, then for each tribe given (a deck's tribes,
+ * deckTribes): what the card can do for a theme, before any deck's needs are
+ * checked.
  */
 export function cardThemeSides(
   config: BulkBrewConfig,
   facts: CardFacts,
   size: DeckSize = 60,
+  tribes: readonly string[] = [],
 ): CardThemeSide[] {
-  const styles = themeStyles(config);
+  const styles = themeStyles(config, tribes);
   const out: CardThemeSide[] = [];
-  themeJobsOf(config, facts, size).forEach((j, i) => {
+  themeJobsOf(config, facts, size, tribes).forEach((j, i) => {
     if (j) out.push({ style: styles[i]!, as: j.as, job: j.job });
   });
   return out;

@@ -4,12 +4,11 @@
 // built from the full pool; options are ideas, not commitments.
 
 import { BuildError, buildDeck } from './builder.ts';
-import { listCandidates } from './candidates.ts';
 import { normalizeColors } from './colors.ts';
 import type { BulkBrewConfig } from './config.ts';
 import { growBuilds, PLAIN_SHAPES, planOrder } from './grow.ts';
 import type { CardIndex } from './pack.ts';
-import { commanderTribes, scanPool } from './scan.ts';
+import { scanPool } from './scan.ts';
 import {
   COLORS,
   type ArchetypeReport,
@@ -149,16 +148,14 @@ export function planOptions(
           .filter((a) => (req.primary ? a.archetype === req.primary && plannable(a) : a.viable))
           .sort(byStylePromise)
           .map((a) => a.archetype);
-    // A tribe the commander's text names leads its options, ahead of the other themes.
-    if (lead) {
-      const cands = listCandidates(pool, index, config, req.settings, subset, req.size).filter(
-        (c) => c.facts.card.id !== lead.id,
-      );
-      const tribes = commanderTribes(lead, cands, config, req.size)
-        .filter((t) => t.viable && (!req.primary || t.archetype.id === req.primary))
-        .map((t) => t.archetype.id);
-      styles.unshift(...tribes);
-    }
+    // A tribe the commander's text names leads its options, ahead of the other themes, where
+    // the tribe rules call it viable; picked as the primary, wherever the grow builder takes it.
+    const tribes = (scan.leadTribes ?? [])
+      .filter((t) =>
+        req.primary ? t.style === req.primary && (grows || t.rules.viable) : t.rules.viable,
+      )
+      .map((t) => t.style);
+    styles.unshift(...tribes);
     if (styles.length === 0) continue;
     if (subset.length === picked.length) fullFirst = bestFitList;
     perSubset.push(

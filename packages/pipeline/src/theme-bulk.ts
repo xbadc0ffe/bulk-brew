@@ -3,26 +3,33 @@
 // colors without computing it on the device. Per style and color class, the
 // mean setup and payoff tally of one card, over every common and uncommon in
 // the pack (Un-sets left out), nonlands plus modal double-faced land cards,
-// read at 60 cards with the theme rules, each card once. Tribes are not part
-// of it. Rerun after any edit to config/theme-rules.json or a new data pack.
+// read at 60 cards with the theme rules, each card once; and the same for the
+// tribe of every creature type a commander in the pack names, under `tribes`.
+// Rerun after any edit to config/theme-rules.json or a new data pack.
 //
 // Usage: npm run theme:bulk      (writes config/theme-bulk.json)
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import {
+  canBeCommander,
   colorClassOf,
   COLOR_CLASSES,
   isLand,
   matchCard,
+  namedTribes,
   parsePack,
+  pluralOf,
+  ruleText,
   THEME_BULK_FILE,
   THEME_TALLY_KEYS,
   themeRulesFor,
+  themeStyleOf,
   validateConfig,
   type BulkBrewConfig,
   type CardRecord,
   type ColorClass,
+  type CompiledStyle,
   type DataPack,
   type ThemeBulkConfig,
   type ThemeTally,
@@ -50,6 +57,59 @@ export function isBulkCard(card: CardRecord): boolean {
 
 const round6 = (n: number) => Math.round(n * 1e6) / 1e6;
 
+/** Add one bulk card's job for a style to its color class's sum. */
+function addMatch(sum: Map<ColorClass, ThemeTally>, card: CardRecord, style: CompiledStyle): void {
+  const m = matchCard(card, style, 60);
+  // A rider weighs 0: it is not setup.
+  if (!m || m.as === 'excluded' || m.weight <= 0) return;
+  const k = colorClassOf(card);
+  let t = sum.get(k);
+  if (!t) sum.set(k, (t = emptyTally()));
+  const units = Math.min(m.weight, 1);
+  if (m.as === 'setup') {
+    t.setupUnits += units;
+    t.setupWeight += m.weight;
+    if (m.repeatable) t.repeatable += 1;
+  } else {
+    t.payoffUnits += units;
+    t.payoffWeight += m.weight;
+  }
+}
+
+/**
+ * The tribes of every creature type a commander in the pack names
+ * (`namedTribes`), summed over the bulk cards as the styles are. Every tribe
+ * rule reads the type's word in the type line or text, or the Changeling
+ * keyword, so a card that names neither is skipped without reading it.
+ */
+function tribeSums(
+  pack: DataPack,
+  config: BulkBrewConfig,
+): Map<string, Map<ColorClass, ThemeTally>> {
+  const ids = new Set<string>();
+  for (const card of pack.cards)
+    if (canBeCommander(card) && card.identity.length > 0)
+      for (const id of namedTribes(config, card)) ids.add(id);
+  const plurals = config.cardNeeds.vocabulary.plurals ?? {};
+  const tribes = [...ids].sort().map((id) => {
+    const type = id.slice('tribal:'.length);
+    return {
+      type,
+      style: themeStyleOf(config, id)!,
+      words: [type, pluralOf(type, plurals)].map((w) => w.toLowerCase()),
+      sum: new Map<ColorClass, ThemeTally>(),
+    };
+  });
+  for (const card of pack.cards) {
+    if (!isBulkCard(card)) continue;
+    const every = card.keywords.includes('Changeling');
+    const hay = `${card.typeLine}\n${ruleText(card)}`.toLowerCase();
+    for (const t of tribes)
+      if (every || t.words.some((w) => hay.includes(w))) addMatch(t.sum, card, t.style);
+  }
+  return new Map(tribes.map((t) => [t.type, t.sum]));
+}
+
 /** The baseline for a pack and the config's theme rules; the version is a hash of the rest. */
 export function computeThemeBulk(pack: DataPack, config: BulkBrewConfig): ThemeBulkConfig {
   const rules = themeRulesFor(config);
@@ -60,22 +120,7 @@ export function computeThemeBulk(pack: DataPack, config: BulkBrewConfig): ThemeB
     if (!isBulkCard(card)) continue;
     const k = colorClassOf(card);
     counts.set(k, (counts.get(k) ?? 0) + 1);
-    styles.forEach((style, i) => {
-      const m = matchCard(card, style, 60);
-      // A rider weighs 0: it is not setup.
-      if (!m || m.as === 'excluded' || m.weight <= 0) return;
-      let t = sums[i]!.get(k);
-      if (!t) sums[i]!.set(k, (t = emptyTally()));
-      const units = Math.min(m.weight, 1);
-      if (m.as === 'setup') {
-        t.setupUnits += units;
-        t.setupWeight += m.weight;
-        if (m.repeatable) t.repeatable += 1;
-      } else {
-        t.payoffUnits += units;
-        t.payoffWeight += m.weight;
-      }
-    });
+    styles.forEach((style, i) => addMatch(sums[i]!, card, style));
   }
   const out: ThemeBulkConfig = {
     version: '',
@@ -83,17 +128,30 @@ export function computeThemeBulk(pack: DataPack, config: BulkBrewConfig): ThemeB
     rulesVersion: rules.version,
     styles: {},
   };
+  const meanOf = (sum: Map<ColorClass, ThemeTally>, k: ColorClass): ThemeTally => {
+    const n = counts.get(k) ?? 0;
+    const t = sum.get(k);
+    const mean = emptyTally();
+    for (const key of THEME_TALLY_KEYS) mean[key] = n && t ? round6(t[key] / n) : 0;
+    return mean;
+  };
   styles.forEach((style, i) => {
     const per = {} as Record<ColorClass, ThemeTally>;
-    for (const k of COLOR_CLASSES) {
-      const n = counts.get(k) ?? 0;
-      const t = sums[i]!.get(k);
-      const mean = emptyTally();
-      for (const key of THEME_TALLY_KEYS) mean[key] = n && t ? round6(t[key] / n) : 0;
-      per[k] = mean;
-    }
+    for (const k of COLOR_CLASSES) per[k] = meanOf(sums[i]!, k);
     out.styles[style.id] = per;
   });
+  const tribes = tribeSums(pack, config);
+  if (tribes.size > 0) {
+    out.tribes = {};
+    for (const [type, sum] of [...tribes].sort((a, b) => (a[0] < b[0] ? -1 : 1))) {
+      const per: Partial<Record<ColorClass, number[]>> = {};
+      for (const k of COLOR_CLASSES) {
+        const v = THEME_TALLY_KEYS.map((key) => meanOf(sum, k)[key]);
+        if (v.some((x) => x > 0)) per[k] = v;
+      }
+      out.tribes[type] = per;
+    }
+  }
   const { version: _, ...rest } = out;
   out.version = hash32(JSON.stringify(rest)).toString(36);
   return out;
@@ -114,7 +172,12 @@ function main(): number {
   const bulk = computeThemeBulk(pack, config);
   const ms = Date.now() - t1;
   const file = path.join(CONFIG_DIR, THEME_BULK_FILE);
-  writeFileSync(file, `${JSON.stringify(bulk, null, 2)}\n`);
+  // A tribe's numbers on one line, as Prettier lays out a short array.
+  const text = JSON.stringify(bulk, null, 2).replace(
+    /\[\s+([\d.e-]+(?:,\s+[\d.e-]+)*)\s+\]/g,
+    (_, nums: string) => `[${nums.split(/,\s+/).join(', ')}]`,
+  );
+  writeFileSync(file, `${text}\n`);
 
   const counts = new Map<ColorClass, number>();
   for (const c of pack.cards)
@@ -136,6 +199,7 @@ function main(): number {
     );
     console.log(`  ${id.padEnd(13)}${cells.join('')}`);
   }
+  console.log(`\ntribes: ${Object.keys(bulk.tribes ?? {}).length} creature types commanders name`);
   return 0;
 }
 

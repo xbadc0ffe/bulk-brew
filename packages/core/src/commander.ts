@@ -12,13 +12,7 @@ import { factsFor, listCandidates, type Candidate } from './candidates.ts';
 import { cardThemeSides } from './deck-themes.ts';
 import { poolSupply, poolThemeJobs, themeStyles } from './grow.ts';
 import type { CardIndex } from './pack.ts';
-import {
-  commanderTribes,
-  scanCandidates,
-  scanUnderCommander,
-  secondaryLabel,
-  tribeOf,
-} from './scan.ts';
+import { scanCandidates, scanUnderCommander, tribeOf } from './scan.ts';
 import type { Color, Pool, ScanReport, Settings } from './types.ts';
 import { normalizeColors } from './colors.ts';
 import { draftOnly, landColors } from './lands.ts';
@@ -136,18 +130,14 @@ export function commanderCandidates(
       if (side === 'payoff') leads.push({ id: r.archetype, label: r.label });
       else if (side === 'setup') feeds.push({ id: r.archetype, label: r.label });
     }
-    for (const t of scan.tribes ?? []) {
-      if (card.tags.includes(`typal-${t.type.toLowerCase()}`))
-        leads.push({ id: `tribal:${t.type}`, label: secondaryLabel(config, `tribal:${t.type}`) });
+    // The tribes its text names lead too, as the builder plans them: viable ones as the
+    // primary style, short ones offered down to grow.nearMargin of the tribe rules' floors.
+    const near = config.builderWeights.grow.nearMargin;
+    const primaryTribes: string[] = [];
+    for (const t of scan.leadTribes ?? []) {
+      if (t.rules.viable) primaryTribes.push(t.style);
+      if (t.rules.viable || t.rules.margin >= near) leads.push({ id: t.style, label: t.label });
     }
-    // A tribe the pool can build as the primary style leads even when it is not among the largest.
-    const named = card.tags.some((t) => t.startsWith('typal-'));
-    const others = named ? cands.filter((c) => c.facts.card.id !== card.id) : [];
-    const primaryTribes = commanderTribes(card, others, config, 100)
-      .filter((t) => t.viable)
-      .map((t) => t.archetype.id);
-    for (const id of primaryTribes)
-      if (!leads.some((l) => l.id === id)) leads.push({ id, label: secondaryLabel(config, id) });
     const styles = [...leads, ...feeds];
     const supports = sides.map((s) => s.style);
     // Nonland cards in its colors, the commander among them.
@@ -252,9 +242,10 @@ export function filterCommanders(
 
 /**
  * Whether the pool can build the style under this commander: the deck the
- * options would build keeps the style, and a classic deck (a tribe) reaches
- * its enabler and payoff minimums. This builds a whole deck, so callers
- * check one commander at a time.
+ * options would build keeps the style (the grow builder answers a theme or
+ * tribe the pool falls short of with another style), and a classic deck
+ * reaches its enabler and payoff minimums. This builds a whole deck, so
+ * callers check one commander at a time.
  */
 export function commanderCanBuild(
   commander: string,

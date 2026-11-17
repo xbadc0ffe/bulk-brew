@@ -136,6 +136,26 @@ describe('the bulk baseline', () => {
     expect(at('spells', 'G').setupUnits).toBe(0.5);
   });
 
+  it('measures the tribe of each type a commander names, the same way, per color class', () => {
+    expect(bulk.tribes).toBeUndefined();
+    const elf = { colors: ['G' as const], identity: ['G' as const], typeLine: 'Creature — Elf' };
+    const lead = card({
+      ...elf,
+      name: 'Elf Lead',
+      rarity: 'rare',
+      typeLine: 'Legendary Creature — Elf',
+      tags: ['typal-elf'],
+      text: 'Other Elves you control get +1/+1.',
+    });
+    const cards = [...CARDS, lead, card({ ...elf, name: 'Common Elf' })];
+    const tribes = computeThemeBulk({ ...PACK, cards }, CONFIG).tribes!;
+    expect(Object.keys(tribes)).toEqual(['Elf']);
+    // Three green bulk cards, the Common Elf, the Plain Bear, and the modal land card; the rare
+    // lead is no bulk card.
+    expect(tribes.Elf!.G).toEqual([0.333333, 0.333333, 0, 0, 0]);
+    expect(tribes.Elf!.U).toBeUndefined();
+  });
+
   it('records the data and rules it came from, and versions the content', () => {
     expect(bulk).toMatchObject({
       dataVersion: 'test-pack',

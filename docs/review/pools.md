@@ -54,7 +54,7 @@ An index entry has `id`, `kind`, `path` (relative to the index), `copies`, `dist
 | public |    11 | `public/` |
 | owner  |     8 | `owner/`  |
 
-The seed prefix sets (below) add `h1` (12 plain, 54 theme), `h2` (12 plain, 18 theme), and `h3` (12 plain, 6 tribe).
+The seed prefix sets (below) add `h1` (12 plain, 54 theme), `h2` (12 plain, 18 theme), `h3` (12 plain, 6 tribe), and the development set `d5b` (12 plain, 6 tribe).
 
 ## Plain bulk: the main test
 
@@ -122,7 +122,7 @@ What this means for testing:
 
 ## Tribe-rich bulk
 
-`--tribes <n>` makes n tribe pools, one per creature type, so tribe requests at 100 cards have real candidates. None exist without a prefix; the `h3` set has six (below).
+`--tribes <n>` makes n tribe pools, one per creature type, so tribe requests at 100 cards have real candidates. None exist without a prefix; the `h3` and `d5b` sets have six each (below).
 
 **Which types.** Over the cards a bulk box can hold (`noiseSource`), the tool counts for every creature type a spell has (`tribeTable` in `pools.ts`):
 
@@ -206,6 +206,18 @@ npm run review:pools -- --seed-prefix h3 --plain 12 --themes 0 --tribes 6
 - No theme pools.
 - 6 tribe pools on bases 13 to 18, each 3,000 base copies plus 120 extras plus one copy of each naming commander: `tribe/h3-human-13` (3,146 copies), `warrior-14` (3,138), `wizard-15` (3,138), `spirit-16` (3,143), `elf-17` (3,142), `dragon-18` (3,154) (each `.json`).
 - 18 pools in all, 54,861 copies. A second run into another folder gave byte-identical files.
+
+### d5b: development tribe pools for step 5
+
+Development data for tribes on the grow builder (step 5), not held out: built on, measured, and read while building. Made on 2026-11-17 with data pack `2026-11-03.s2` and the theme rules version 8 work:
+
+```sh
+npm run review:pools -- --seed-prefix d5b --plain 12 --themes 0 --tribes 6
+npm run review:requests -- --prefix d5b --sizes 100 --versions head,head-web --bestfit --tribe-versions head,head-web --commanders 2 --out data/review/jobs-d5b
+```
+
+- 12 plain pools `plain/d5b-plain-01.json` to `d5b-plain-12.json`, and 6 tribe pools on bases 13 to 18, the same types as h3 on other seeds: `tribe/d5b-human-13`, `warrior-14`, `wizard-15`, `spirit-16`, `elf-17`, `dragon-18` (each `.json`).
+- Jobs in `data/review/jobs-d5b/`: per version 60 at 100 cards, best fit under each pool's first two commanders (36) and each tribe pool's tribe under the first four commanders that name it and can build it (24).
 
 ## Public fixed pools
 

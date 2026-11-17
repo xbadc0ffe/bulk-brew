@@ -121,17 +121,32 @@ const NOT_CREATURE_TYPES = new Set([
   'Vehicle',
 ]);
 
-/** Creature types on the front face of a creature or kindred card. */
+/** CR 205.3m: "One creature type is two words long: Time Lord." All others are one word. */
+const TWO_WORD_TYPES: readonly [string, string][] = [['Time', 'Lord']];
+
+/** Creature types on the front face of a creature or kindred card; "Time Lord" stays one type. */
 export function creatureTypes(card: CardRecord): string[] {
   if (!card.types.includes('creature') && !card.types.includes('kindred')) return [];
   const front = card.typeLine.split('//')[0] ?? '';
   const sub = front.split('—')[1];
-  return sub
-    ? sub
-        .trim()
-        .split(/\s+/)
-        .filter((t) => !NOT_CREATURE_TYPES.has(t))
-    : [];
+  if (!sub) return [];
+  const words = sub
+    .trim()
+    .split(/\s+/)
+    .filter((t) => !NOT_CREATURE_TYPES.has(t));
+  const out: string[] = [];
+  for (let i = 0; i < words.length; i++) {
+    if (TWO_WORD_TYPES.some(([a, b]) => words[i] === a && words[i + 1] === b)) {
+      out.push(`${words[i]} ${words[i + 1]}`);
+      i++;
+    } else out.push(words[i]!);
+  }
+  return out;
+}
+
+/** The Tagger tag of cards whose text cares about a creature type: "typal-elf", "typal-time-lord". */
+export function typalTag(type: string): string {
+  return `typal-${type.toLowerCase().replace(/\s+/g, '-')}`;
 }
 
 /** A card counts toward a tribe when it has the type, or is a changeling (every type). */

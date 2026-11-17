@@ -112,6 +112,12 @@ export interface ThemeStyleRules {
    * to opponents, energy makers), so another theme's deck should not take it as setup.
    */
   setupNeedsPayoff?: boolean;
+  /**
+   * A payoff that also meets a setup job (a lord of the type is a creature of
+   * the type) supplies the other payoffs: it counts toward the setup that
+   * covers them, in setup units. A tribe's payoffs are mostly its members.
+   */
+  payoffSupplies?: boolean;
   /** A phrase for every floor the minimums use at any size. */
   lacks?: ThemeLacks;
 }
@@ -120,6 +126,24 @@ export interface ThemeStyleRules {
 export interface ThemeRulesFile {
   version: string;
   styles: Record<string, ThemeStyleRules>;
+  /**
+   * One theme per creature type, written once (`tribal:<Type>`): rules,
+   * floors, and phrases with placeholders that each type fills in (see
+   * TRIBE_PLACEHOLDERS). Tribes have no `kin`.
+   */
+  tribes?: ThemeStyleRules;
+}
+
+/**
+ * What a tribe's rules can name: `{type}` the type as printed ("Elf", "Time
+ * Lord"), `{plural}` its plural, `{types}` either one as a regular expression,
+ * and `{slug}` its Tagger form ("elf", "time-lord", as in `typal-{slug}`).
+ */
+export const TRIBE_PLACEHOLDERS = ['{type}', '{plural}', '{types}', '{slug}'] as const;
+
+/** The style id of a creature type's tribe. */
+export function tribeStyleId(type: string): string {
+  return `tribal:${type}`;
 }
 
 export interface CompiledRule<R extends ExcludeRule = ThemeRule> {
@@ -138,12 +162,15 @@ export interface CompiledStyle {
   minimums?: ThemeMinimums;
   kin: string[];
   setupNeedsPayoff: boolean;
+  payoffSupplies: boolean;
   lacks: ThemeLacks;
 }
 
 export interface ThemeRules {
   version: string;
   styles: Map<string, CompiledStyle>;
+  /** The tribe template as written, filled in per type by tribeStyle. */
+  tribes?: ThemeStyleRules;
 }
 
 const RULE_KEYS = new Set([
@@ -175,9 +202,10 @@ const STYLE_KEYS = new Set([
   'minimums',
   'kin',
   'setupNeedsPayoff',
+  'payoffSupplies',
   'lacks',
 ]);
-const FILE_KEYS = new Set(['version', 'styles']);
+const FILE_KEYS = new Set(['version', 'styles', 'tribes']);
 const FLOOR_KEYS = new Set<string>([
   'setup',
   'setupWeight',
@@ -374,46 +402,154 @@ function compile(data: unknown): { problems: string[]; rules: ThemeRules } {
   } else {
     const ids = Object.keys(d.styles).sort();
     for (const id of ids) {
-      const s = d.styles[id];
-      const at = `styles.${id}`;
-      if (!isObject(s)) {
-        problems.push(`${at}: must be an object`);
-        continue;
-      }
-      for (const key of Object.keys(s))
-        if (!STYLE_KEYS.has(key)) problems.push(`${at}: unknown key "${key}"`);
-      if (typeof s.resource !== 'string' || s.resource === '')
-        problems.push(`${at}: "resource" must be a non-empty string`);
-      // Setup and payoff rules were checked for a weight above.
-      const compiled: CompiledStyle = {
-        id,
-        resource: typeof s.resource === 'string' ? s.resource : '',
-        setup: compileList(s.setup, `${at}.setup`, true, true, problems) as CompiledRule[],
-        payoff: compileList(s.payoff, `${at}.payoff`, true, true, problems) as CompiledRule[],
-        exclude: compileList(s.exclude, `${at}.exclude`, false, false, problems),
-        kin: [],
-        setupNeedsPayoff: s.setupNeedsPayoff === true,
-        lacks: {},
-      };
-      const { minimums, used } = compileMinimums(s.minimums, `${at}.minimums`, problems);
-      if (minimums) compiled.minimums = minimums;
-      if (s.kin !== undefined) {
-        if (!isStringList(s.kin)) problems.push(`${at}.kin: must be a non-empty list of style ids`);
-        else {
-          for (const k of s.kin)
-            if (k === id || !ids.includes(k))
-              problems.push(`${at}.kin: "${k}" must be another style in the file`);
-          if (new Set(s.kin).size !== s.kin.length) problems.push(`${at}.kin: lists a style twice`);
-          compiled.kin = [...s.kin];
-        }
-      }
-      if (s.setupNeedsPayoff !== undefined && typeof s.setupNeedsPayoff !== 'boolean')
-        problems.push(`${at}: "setupNeedsPayoff" must be true or false`);
-      compiled.lacks = compileLacks(s.lacks, used, `${at}.lacks`, problems);
-      styles.set(id, compiled);
+      const compiled = compileStyle(id, d.styles[id], `styles.${id}`, ids, problems);
+      if (compiled) styles.set(id, compiled);
     }
   }
-  return { problems, rules: { version: d.version as string, styles } };
+  const rules: ThemeRules = { version: d.version as string, styles };
+  if (d.tribes !== undefined) {
+    if (!isObject(d.tribes)) problems.push('"tribes" must be an object');
+    else {
+      const before = problems.length;
+      if (d.tribes.kin !== undefined) problems.push('tribes: a tribe has no "kin"');
+      checkTribePlaceholders(d.tribes, 'tribes', problems);
+      // Filled in for a one-word type and for the two-word one, every rule must compile.
+      for (const [type, plural] of [
+        ['Elf', 'Elves'],
+        ['Time Lord', 'Time Lords'],
+      ] as const)
+        if (problems.length === before)
+          compileStyle(
+            tribeStyleId(type),
+            fillTribe(d.tribes, type, plural),
+            `tribes (as ${type})`,
+            [],
+            problems,
+          );
+      if (problems.length === before) rules.tribes = d.tribes as unknown as ThemeStyleRules;
+    }
+  }
+  return { problems, rules };
+}
+
+/** One style's rules checked and compiled; undefined when it is not an object. */
+function compileStyle(
+  id: string,
+  s: unknown,
+  at: string,
+  ids: readonly string[],
+  problems: string[],
+): CompiledStyle | undefined {
+  if (!isObject(s)) {
+    problems.push(`${at}: must be an object`);
+    return undefined;
+  }
+  for (const key of Object.keys(s))
+    if (!STYLE_KEYS.has(key)) problems.push(`${at}: unknown key "${key}"`);
+  if (typeof s.resource !== 'string' || s.resource === '')
+    problems.push(`${at}: "resource" must be a non-empty string`);
+  // Setup and payoff rules were checked for a weight above.
+  const compiled: CompiledStyle = {
+    id,
+    resource: typeof s.resource === 'string' ? s.resource : '',
+    setup: compileList(s.setup, `${at}.setup`, true, true, problems) as CompiledRule[],
+    payoff: compileList(s.payoff, `${at}.payoff`, true, true, problems) as CompiledRule[],
+    exclude: compileList(s.exclude, `${at}.exclude`, false, false, problems),
+    kin: [],
+    setupNeedsPayoff: s.setupNeedsPayoff === true,
+    payoffSupplies: s.payoffSupplies === true,
+    lacks: {},
+  };
+  const { minimums, used } = compileMinimums(s.minimums, `${at}.minimums`, problems);
+  if (minimums) compiled.minimums = minimums;
+  if (s.kin !== undefined) {
+    if (!isStringList(s.kin)) problems.push(`${at}.kin: must be a non-empty list of style ids`);
+    else {
+      for (const k of s.kin)
+        if (k === id || !ids.includes(k))
+          problems.push(`${at}.kin: "${k}" must be another style in the file`);
+      if (new Set(s.kin).size !== s.kin.length) problems.push(`${at}.kin: lists a style twice`);
+      compiled.kin = [...s.kin];
+    }
+  }
+  for (const key of ['setupNeedsPayoff', 'payoffSupplies'] as const)
+    if (s[key] !== undefined && typeof s[key] !== 'boolean')
+      problems.push(`${at}: "${key}" must be true or false`);
+  compiled.lacks = compileLacks(s.lacks, used, `${at}.lacks`, problems);
+  return compiled;
+}
+
+/** Placeholders a tribe's rules use that TRIBE_PLACEHOLDERS does not name. */
+function checkTribePlaceholders(v: unknown, where: string, problems: string[]): void {
+  if (typeof v === 'string') {
+    for (const m of v.matchAll(/\{[a-z]+\}/g))
+      if (!(TRIBE_PLACEHOLDERS as readonly string[]).includes(m[0]))
+        problems.push(`${where}: unknown placeholder ${m[0]}`);
+  } else if (Array.isArray(v))
+    v.forEach((x, i) => checkTribePlaceholders(x, `${where}[${i}]`, problems));
+  else if (isObject(v))
+    for (const [k, x] of Object.entries(v)) checkTribePlaceholders(x, `${where}.${k}`, problems);
+}
+
+const REGEX_KEYS = new Set(['text', 'notText', 'typeLine']);
+
+function escapeRe(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * The tribe template with a type's words in place of its placeholders: in
+ * regular expressions escaped, `{types}` as either form; elsewhere as words.
+ */
+function fillTribe(v: unknown, type: string, plural: string, key = ''): unknown {
+  if (typeof v === 'string') {
+    const re = REGEX_KEYS.has(key);
+    const t = re ? escapeRe(type) : type;
+    const p = re ? escapeRe(plural) : plural;
+    return v
+      .replaceAll('{types}', re ? `(?:${t}|${p})` : t)
+      .replaceAll('{type}', t)
+      .replaceAll('{plural}', p)
+      .replaceAll('{slug}', type.toLowerCase().replace(/\s+/g, '-'));
+  }
+  if (Array.isArray(v)) return v.map((x) => fillTribe(x, type, plural, key));
+  if (isObject(v))
+    return Object.fromEntries(
+      Object.entries(v).map(([k, x]) => [k, fillTribe(x, type, plural, k)]),
+    );
+  return v;
+}
+
+const tribeCache = new WeakMap<ThemeRules, Map<string, CompiledStyle>>();
+
+/**
+ * A creature type's tribe (`tribal:<Type>`): the rules' tribe template filled
+ * in with the type and its plural, compiled once per rules and type.
+ * Undefined when the rules have no tribes.
+ */
+export function tribeStyle(
+  rules: ThemeRules,
+  type: string,
+  plural: string,
+): CompiledStyle | undefined {
+  if (!rules.tribes) return undefined;
+  let byType = tribeCache.get(rules);
+  if (!byType) tribeCache.set(rules, (byType = new Map()));
+  let out = byType.get(type);
+  if (!out) {
+    const problems: string[] = [];
+    const id = tribeStyleId(type);
+    out = compileStyle(
+      id,
+      fillTribe(rules.tribes, type, plural),
+      `tribes (as ${type})`,
+      [],
+      problems,
+    );
+    if (!out || problems.length) throw new Error(`theme rules: ${problems.join('; ')}`);
+    byType.set(type, out);
+  }
+  return out;
 }
 
 /** Every problem in a parsed theme-rules file; empty when it is valid. */
@@ -739,6 +875,37 @@ export interface ThemeBulkConfig {
   /** The theme rules version it was computed with; must equal the bundled rules' version. */
   rulesVersion: string;
   styles: Record<string, Record<ColorClass, ThemeTally>>;
+  /**
+   * The same for the tribe of each creature type a commander in the pack
+   * names, by type ("Elf"): per color class the mean tally as numbers in
+   * THEME_TALLY_KEYS order; a class whose cards hold none of it is left out.
+   */
+  tribes?: Record<string, Partial<Record<ColorClass, number[]>>>;
+}
+
+const tribeBulkCache = new WeakMap<ThemeBulkConfig, Map<string, Record<ColorClass, ThemeTally>>>();
+
+/** A creature type's tribe baseline as tallies per color class; undefined when the baseline has none. */
+export function tribeBulkOf(
+  bulk: ThemeBulkConfig | undefined,
+  type: string,
+): Record<ColorClass, ThemeTally> | undefined {
+  const per = bulk?.tribes?.[type];
+  if (!bulk || !per) return undefined;
+  let byType = tribeBulkCache.get(bulk);
+  if (!byType) tribeBulkCache.set(bulk, (byType = new Map()));
+  let out = byType.get(type);
+  if (!out) {
+    out = {} as Record<ColorClass, ThemeTally>;
+    for (const k of COLOR_CLASSES) {
+      const v = per[k] ?? [];
+      out[k] = Object.fromEntries(
+        THEME_TALLY_KEYS.map((key, i) => [key, v[i] ?? 0]),
+      ) as unknown as ThemeTally;
+    }
+    byType.set(type, out);
+  }
+  return out;
 }
 
 /** Problems in a bulk baseline read against the rules it must match; empty when valid. */
@@ -778,6 +945,28 @@ export function checkThemeBulk(bulk: unknown, rules: ThemeRulesFile): string[] {
           problems.push(`styles.${id}.${k}.${key}: must be a number of 0 or more`);
       }
     }
+  }
+  if (bulk.tribes !== undefined) {
+    if (!isObject(bulk.tribes)) problems.push('"tribes" must be an object keyed by creature type');
+    else
+      for (const [type, per] of Object.entries(bulk.tribes)) {
+        if (!isObject(per)) {
+          problems.push(`tribes.${type}: must be an object keyed by color class`);
+          continue;
+        }
+        for (const [k, v] of Object.entries(per)) {
+          if (!(COLOR_CLASSES as readonly string[]).includes(k))
+            problems.push(`tribes.${type}.${k}: not a color class`);
+          else if (
+            !Array.isArray(v) ||
+            v.length !== THEME_TALLY_KEYS.length ||
+            v.some((x) => typeof x !== 'number' || !Number.isFinite(x) || x < 0)
+          )
+            problems.push(
+              `tribes.${type}.${k}: must be ${THEME_TALLY_KEYS.length} numbers of 0 or more`,
+            );
+        }
+      }
   }
   return problems;
 }

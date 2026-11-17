@@ -6,13 +6,15 @@
 // meaning: config/README.md.
 
 import type { BulkBrewConfig } from './config.ts';
-import { cardMatches, creatureTypes, isCreature } from './matchers.ts';
+import { cardMatches, creatureTypes, isCreature, typalTag } from './matchers.ts';
 import {
   matchCard,
   ruleMatches,
   ruleText,
   themeRulesFor,
+  tribeStyle,
   type CompiledRule,
+  type CompiledStyle,
   type ThemeSize,
 } from './theme-rules.ts';
 import type { CardRecord, CardType, Color, DeckSize } from './types.ts';
@@ -298,10 +300,12 @@ const NUM_WORDS =
   'an?|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|twenty|x|\\d+';
 
 const PLACEHOLDERS: [string, string][] = [
-  // A list of one-word kinds ("a Kraken, Leviathan, Octopus, or Serpent") is one object; else up to a comma.
+  // A list of one-word kinds ("a Kraken, Leviathan, Octopus, or Serpent") is one object; so is a
+  // set of bare kinds joined by "and" ("Cleric, Rogue, Warrior, and Wizard spells"), any of which
+  // counts; else up to a comma.
   [
     '{obj}',
-    String.raw`(?<obj>(?:(?:an? |another )?[\w'-]+, )+(?:or|and\/or) [^,.;:"¤•]+?|[^,.;:"¤•]+?)`,
+    String.raw`(?<obj>(?:(?:an? |another )?[\w'-]+, )+(?:or|and\/or) [^,.;:"¤•]+?|(?:[\w'-]+, )+and [^,.;:"¤•]+?|[^,.;:"¤•]+?)`,
   ],
   ['{tok}', '(?<obj>[^.;:"¤•]*?)'],
   ['{n}', `(?<n>${NUM_WORDS})`],
@@ -2219,7 +2223,8 @@ const ownCache = new WeakMap<CardNeedsConfig, Map<string, ReadonlySet<string>>>(
 
 /**
  * A theme's own resources: those its supply rules point at and its
- * `themeResources`. Its floors count them, so the theme rules' viability and
+ * `themeResources`; a tribe's are its creature type, as members and as
+ * spells cast. Its floors count them, so the theme rules' viability and
  * the grow builder's theme core take them as met.
  */
 export function themeOwnResources(config: BulkBrewConfig, style: string): ReadonlySet<string> {
@@ -2230,9 +2235,60 @@ export function themeOwnResources(config: BulkBrewConfig, style: string): Readon
   if (!out) {
     const set = new Set<string>(cfg.themeResources?.[style] ?? []);
     for (const [r, rule] of Object.entries(cfg.supply ?? {})) if (rule.theme === style) set.add(r);
+    const type = tribeTypeOf(style);
+    if (type) set.add(`tribe:${type}`).add(`cast:tribe:${type}`);
     byStyle.set(style, (out = set));
   }
   return out;
+}
+
+/** The creature type a tribe's style id names ("tribal:Elf" is Elf). */
+function tribeTypeOf(style: string): string | undefined {
+  return /^tribal:(.+)$/.exec(style)?.[1];
+}
+
+const typesCache = new WeakMap<CardNeedsConfig, Map<string, string>>();
+
+/** The vocabulary's creature types by Tagger slug: "elf" is Elf, "time-lord" is Time Lord. */
+function typesBySlug(config: BulkBrewConfig): Map<string, string> {
+  const cfg = config.cardNeeds;
+  let out = typesCache.get(cfg);
+  if (!out) {
+    out = new Map(cfg.vocabulary.creatureTypes.map((t) => [typalTag(t).slice('typal-'.length), t]));
+    typesCache.set(cfg, out);
+  }
+  return out;
+}
+
+/**
+ * The creature types whose Tagger tag (`typal-<type>`) a card carries, among
+ * those the vocabulary names (CR 205.3m), in tag order: the tribes its text may
+ * reward. A tag for no creature type ("typal-goblin-orc") names nothing.
+ */
+export function typalTypes(card: CardRecord, config: BulkBrewConfig): string[] {
+  const bySlug = typesBySlug(config);
+  const out: string[] = [];
+  for (const tag of card.tags) {
+    const type = tag.startsWith('typal-') ? bySlug.get(tag.slice('typal-'.length)) : undefined;
+    if (type) out.push(type);
+  }
+  return out;
+}
+
+/**
+ * The compiled rules of a theme style id: a style of the theme rules, or the
+ * tribe (`tribal:<Type>`) of a creature type the vocabulary names, filled in
+ * from the rules' tribe template. Undefined for any other id.
+ */
+export function themeStyleOf(config: BulkBrewConfig, id: string): CompiledStyle | undefined {
+  const rules = themeRulesFor(config);
+  const style = rules.styles.get(id);
+  if (style) return style;
+  const type = tribeTypeOf(id);
+  const v = config.cardNeeds.vocabulary;
+  if (!type || typesBySlug(config).get(typalTag(type).slice('typal-'.length)) !== type)
+    return undefined;
+  return tribeStyle(rules, type, pluralOf(type, v.plurals ?? {}));
 }
 
 /** Credit ids: a role id, `theme:<style>:<setup|payoff>`, or `strength:<effect label>`. */
@@ -2367,6 +2423,36 @@ function themeClauses(
   return [];
 }
 
+/**
+ * Where a card's text does a theme's work: the abilities (indices in
+ * `cardNeeds(card).abilities`) whose clauses any setup or payoff rule of the
+ * style it meets is read from, whatever side it counts as, and whether a rule
+ * it meets reads its body (types, keywords, stats) or no clause at all.
+ */
+export function themeAbilities(
+  card: CardRecord,
+  style: string,
+  config: BulkBrewConfig,
+  size: DeckSize,
+): { abilities: number[]; body: boolean } {
+  const s = themeStyleOf(config, style);
+  if (!s) return { abilities: [], body: false };
+  const c = compiledFor(config);
+  const needs = cardNeeds(card, config);
+  const text = ruleText(card);
+  const out = new Set<number>();
+  let body = false;
+  for (const r of [...s.setup, ...s.payoff]) {
+    if (r.rule.weight <= 0 || !ruleMatches(card, r, text, size as ThemeSize)) continue;
+    const clauses = themeClauses(card, needs, r, c);
+    if (clauses.length === 0) body = true;
+    for (const cl of clauses)
+      if (cl.ability >= 0) out.add(cl.ability);
+      else body = true;
+  }
+  return { abilities: [...out].sort((a, b) => a - b), body };
+}
+
 function dedupe(list: CreditClause[]): CreditClause[] {
   const seen = new Set<string>();
   return list.filter((c) => {
@@ -2405,6 +2491,9 @@ export function creditNeeds(
   return out;
 }
 
+/** A theme credit's style id (which may hold a colon, as "tribal:Elf" does) and side. */
+const THEME_CREDIT = /^theme:(.+):(setup|payoff)$/;
+
 /** Whether the config gives the card a credit at all. */
 function creditGiven(
   card: CardRecord,
@@ -2412,9 +2501,9 @@ function creditGiven(
   config: BulkBrewConfig,
   size: DeckSize | undefined,
 ): boolean {
-  const theme = /^theme:([^:]+):(setup|payoff)$/.exec(credit);
+  const theme = THEME_CREDIT.exec(credit);
   if (theme) {
-    const style = themeRulesFor(config).styles.get(theme[1]!);
+    const style = themeStyleOf(config, theme[1]!);
     const m = style && matchCard(card, style, (size ?? 60) as ThemeSize);
     return !!m && m.as !== 'excluded' && m.as === theme[2] && m.weight > 0;
   }
@@ -2441,9 +2530,9 @@ function readCredit(
   const c = compiledFor(config);
   const needs = cardNeeds(card, config);
   let clauses: CreditClause[] | 'always';
-  const theme = /^theme:([^:]+):(setup|payoff)$/.exec(credit);
+  const theme = THEME_CREDIT.exec(credit);
   if (theme) {
-    const style = themeRulesFor(config).styles.get(theme[1]!);
+    const style = themeStyleOf(config, theme[1]!);
     const rules = style ? (theme[2] === 'setup' ? style.setup : style.payoff) : [];
     const list: CreditClause[] = [];
     for (const r of rules) {
@@ -2795,6 +2884,32 @@ export function refSupplies(ref: NeedRef): string[] {
     else out.add(r);
   }
   return [...out];
+}
+
+/**
+ * The resources a builder feeds to meet a ref with several alternatives: one
+ * of them, since any one meets the ref alone and copies split between two
+ * (five Auras and five Equipment for "each Aura and Equipment attached")
+ * meet neither. It is the alternative the pool can meet that the deck already
+ * holds most of; every alternative's resources when the pool meets none.
+ */
+export function feedResources(
+  ref: NeedRef,
+  deck: DeckSupply,
+  pool: DeckSupply,
+  card: CardRecord,
+  config: BulkBrewConfig,
+): string[] {
+  const { selfVia: _via, ...plain } = ref;
+  let pick: { res: string[]; have: number } | undefined;
+  for (const alt of ref.anyOf) {
+    const one: NeedRef = { ...plain, anyOf: [alt], self: false };
+    const res = refSupplies(one);
+    if (res.length === 0 || !needMet(one, pool, card, config)) continue;
+    const have = Math.max(...res.map((r) => supplyCount(deck, r)));
+    if (!pick || have > pick.have) pick = { res, have };
+  }
+  return pick ? pick.res : refSupplies(ref);
 }
 
 /**
