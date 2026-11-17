@@ -232,6 +232,11 @@ export function DeckLayout(props: {
       </div>
       <ReplaceDialog
         replacements={replacing}
+        printing={
+          replacing && detail.current?.cardId === replacing.card.id
+            ? detail.current.printing
+            : undefined
+        }
         showArt={settings.settings.showArt}
         onPick={(option) => {
           if (!replace || !replacing) return;

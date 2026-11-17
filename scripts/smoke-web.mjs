@@ -310,8 +310,35 @@ try {
   await click('^Replace this card$');
   await waitForText(/Pick a card to swap in\./, 5000);
   await evaluate(`document.querySelector('[role="dialog"] li button').click()`);
-  await sleep(300);
+  await sleep(600);
+  // The picked card shows large: beside the list, or over it on a narrow window.
+  const preview = await evaluate(`(() => {
+    const s = document.querySelector('[role="dialog"] section[aria-label^="Coming in: "]');
+    const card = s?.querySelector('img, div[title]');
+    return s ? { label: s.getAttribute('aria-label'), width: card?.getBoundingClientRect().width ?? 0 } : undefined;
+  })()`);
+  if (!preview || preview.width < 300)
+    throw new Error(`picking a card showed no large view of it (${JSON.stringify(preview)})`);
+  log('replace', `${preview.label}, ${Math.round(preview.width)}px wide`);
   await shot('3-replace');
+  // On a narrow window the large card covers the list until Back to the list.
+  const narrow = await evaluate(`(() => {
+    const b = [...document.querySelectorAll('[role="dialog"] section button')].find(
+      (x) => x.textContent.trim() === 'Back to the list',
+    );
+    b?.click();
+    return !!b;
+  })()`);
+  if (narrow) {
+    await sleep(300);
+    if (
+      await evaluate(
+        `!!document.querySelector('[role="dialog"] section[aria-label^="Coming in: "]')`,
+      )
+    )
+      throw new Error('Back to the list left the large card up');
+    log('replace', 'Back to the list returned to the options');
+  }
   await click('^Replace$');
   log(
     'replace',
