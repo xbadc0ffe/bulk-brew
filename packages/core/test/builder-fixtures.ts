@@ -150,6 +150,8 @@ cards.push(
     types: ['land'],
     produces: ['W'],
     tags: ['utility-land'],
+    // A utility the reader can read: the tag alone earns nothing.
+    text: '{T}: Add {W}.\n{3}{W}, {T}: You gain 2 life.',
   }),
 );
 

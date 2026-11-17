@@ -22,7 +22,29 @@ import {
   landLine,
   spellReport,
 } from './builder.ts';
-import { factsFor, listCandidates, type Candidate, type CardFacts } from './candidates.ts';
+import {
+  addSupply,
+  cardNeeds,
+  cardSupport,
+  creditEarned,
+  deckSupply,
+  effectiveManaValue,
+  positiveCredits,
+  strengthCredit,
+  themeCredit,
+  themeOwnResources,
+  unmetDrawback,
+  type DeckSupply,
+} from './card-needs.ts';
+import {
+  bucketOf,
+  factsFor,
+  listCandidates,
+  type Candidate,
+  type CardFacts,
+} from './candidates.ts';
+import { creditsFor } from './deck-credits.ts';
+import { cardStrength } from './strength.ts';
 import {
   castChance,
   colorClassOf,
@@ -51,7 +73,7 @@ import {
   type ManaBase,
 } from './lands.ts';
 import type { CardIndex } from './pack.ts';
-import { scanCandidates, secondaryLabel, tribeOf } from './scan.ts';
+import { scanPossible, secondaryLabel, tribeOf } from './scan.ts';
 import {
   matchCard,
   themeRulesFor,
@@ -336,24 +358,83 @@ export interface StyleViability {
 }
 
 /**
+ * What a pool could supply a deck: every copy the builder may use of each
+ * candidate, lands included, and the commander. A credit whose needs this
+ * cannot meet holds in no deck the pool builds.
+ */
+export function poolSupply(
+  cands: readonly Candidate[],
+  config: BulkBrewConfig,
+  size: DeckSize,
+  colors: readonly Color[],
+  commander?: CardRecord,
+): DeckSupply {
+  const supply: DeckSupply = {
+    size,
+    colors: [...colors],
+    // A Commander deck always has one, named or not.
+    commander: !!commander || isCommanderSize(size),
+    counts: new Map(),
+    devotion: new Map(),
+  };
+  for (const c of cands)
+    if (c.facts.card.id !== commander?.id) addSupply(supply, c.facts.card, c.preferred, config);
+  if (commander) addSupply(supply, commander, 1, config);
+  return supply;
+}
+
+/**
+ * A card's jobs that the pool could pay for: a theme job counts only when the
+ * pool's supply meets its credit's needs and its drawbacks. The pool is the
+ * bound: nothing is taken as met here, so Lo and Li's Noble and Lesson
+ * payoffs count in no pool without Nobles or Lessons, and an Equipment
+ * payoff in none without Equipment.
+ */
+function poolJobs(
+  config: BulkBrewConfig,
+  card: CardRecord,
+  jobs: readonly (Job | undefined)[],
+  supply: DeckSupply,
+): (Job | undefined)[] {
+  const styles = defsFor(config).styles;
+  if (jobs.some((j) => j) && unmetDrawback(card, supply, config)) return jobs.map(() => undefined);
+  return jobs.map((j, i) =>
+    j && creditEarned(card, themeCredit(styles[i]!, j.as), supply, config) ? j : undefined,
+  );
+}
+
+/**
  * Each themed style the rules describe at this size, the pool against its
  * floors: every copy the builder may use of each spell candidate, plus the
- * commander's job when given. Cheap enough for the scan: no deck is built.
+ * commander's job when given and its needs met. A theme card counts only when
+ * the pool could meet its needs (`colors` are the deck's, for needs such as
+ * "you control a Forest"; `supply` is the pool's when the caller has it).
+ * Cheap enough for the scan: no deck is built.
  */
 export function growViability(
   cands: readonly Candidate[],
   config: BulkBrewConfig,
   size: DeckSize,
   commander?: CardFacts,
+  colors?: readonly Color[],
+  supply?: DeckSupply,
 ): Record<string, StyleViability> {
   const defs = defsFor(config);
   const credit = config.builderWeights.grow.commanderCredit;
   const tallies = defs.styles.map(emptyTally);
+  const deckColors =
+    colors ?? normalizeColors([...new Set(cands.flatMap((c) => c.facts.card.identity))]);
+  const pool = supply ?? poolSupply(cands, config, size, deckColors, commander?.card);
   for (const c of cands) {
-    if (!c.facts.spell) continue;
-    jobsOf(config, c.facts, size).forEach((j, i) => addJob(tallies[i]!, j, c.preferred));
+    if (!c.facts.spell || c.facts.card.id === commander?.card.id) continue;
+    poolJobs(config, c.facts.card, jobsOf(config, c.facts, size), pool).forEach((j, i) =>
+      addJob(tallies[i]!, j, c.preferred),
+    );
   }
-  if (commander) jobsOf(config, commander, size).forEach((j, i) => addJob(tallies[i]!, j, credit));
+  if (commander)
+    poolJobs(config, commander.card, jobsOf(config, commander, size), pool).forEach((j, i) =>
+      addJob(tallies[i]!, j, credit),
+    );
   const out: Record<string, StyleViability> = {};
   defs.styles.forEach((style, i) => {
     const floors = floorsFor(defs, i, size);
@@ -383,16 +464,127 @@ interface GrowCard {
   max: number;
   /** The copy limit, used only when the deck cannot be filled otherwise. */
   avail: number;
-  /** Curve slot 1 to 7; zero-drops sit in slot 1. */
+  /** Curve slot 1 to 7 at its mana value in this pool (an "or pay" cost paid in mana without the resource); zero-drops sit in slot 1. */
   slot: number;
   /** Chance to cast it on curve in these colors (1 in one color). */
   cast: number;
-  /** Strength times cast chance: quality within a slot. */
+  /** Strength the pool can pay for, times cast chance: quality within a slot. */
   value: number;
   /** Value over the pool's best cards of the same slot and kind: quality among its peers. */
   q: number;
-  /** Job per style, aligned with the defs' styles. */
+  /** Job per style the pool could pay for (poolJobs), aligned with the defs' styles. */
   jobs: readonly (Job | undefined)[];
+  gate: CardGate;
+}
+
+/**
+ * What the card needs reader says about a card for this request, read once:
+ * which credits hold in every deck the request can build, and whether its
+ * roles, jobs, or place in a deck can follow the deck.
+ */
+interface CardGate {
+  /** Roles and strength credits earned in every deck. */
+  always: ReadonlySet<string>;
+  /** Per style: its job holds in every deck, the theme's own resources taken as met. */
+  jobsAlways: readonly boolean[];
+  /** A drawback, or credits that may all go unearned: check the card against the deck. */
+  check: boolean;
+  /** Roles and jobs hold in every deck. */
+  fixed: boolean;
+  /** Strength effect labels the card earns only in some decks. */
+  effects: string[];
+  /** An additional cost payable with mana instead ("behold a Dragon or pay {1}"). */
+  orPay: boolean;
+}
+
+/** The deck's supply with one more copy of a card, for a check before it goes in. */
+function withCopy<T>(
+  supply: DeckSupply,
+  card: CardRecord,
+  extra: number,
+  config: BulkBrewConfig,
+  f: () => T,
+): T {
+  if (extra === 0) return f();
+  addSupply(supply, card, extra, config);
+  try {
+    return f();
+  } finally {
+    addSupply(supply, card, -extra, config);
+  }
+}
+
+const gateCache = new WeakMap<CardRecord, WeakMap<BulkBrewConfig, Map<string, CardGate>>>();
+
+/**
+ * Read a card's gate against the supply every deck of the request holds (the
+ * commander's, else only its colors and size). Without a commander it is
+ * cached by size, colors, and which jobs the pool leaves the card.
+ */
+function readGate(
+  config: BulkBrewConfig,
+  card: CardRecord,
+  roles: readonly string[],
+  jobs: readonly (Job | undefined)[],
+  base: DeckSupply,
+): CardGate {
+  let byKey: Map<string, CardGate> | undefined;
+  let key = '';
+  if (base.counts.size === 0) {
+    let byConfig = gateCache.get(card);
+    if (!byConfig) gateCache.set(card, (byConfig = new WeakMap()));
+    byKey = byConfig.get(config);
+    if (!byKey) byConfig.set(config, (byKey = new Map()));
+    key = `${base.size}|${base.colors.join('')}|${base.commander}|${jobs.map((j) => (j ? j.as[0] : '-')).join('')}`;
+    const hit = byKey.get(key);
+    if (hit) return hit;
+  }
+  // Needs are monotone in the supply: met with only the commander and this card, met always.
+  const gate = withCopy(base, card, 1, config, () => gateWith(config, card, roles, jobs, base));
+  byKey?.set(key, gate);
+  return gate;
+}
+
+function gateWith(
+  config: BulkBrewConfig,
+  card: CardRecord,
+  roles: readonly string[],
+  jobs: readonly (Job | undefined)[],
+  base: DeckSupply,
+): CardGate {
+  const styles = defsFor(config).styles;
+  const always = new Set<string>();
+  const earns = (credit: string) => {
+    const ok = creditEarned(card, credit, base, config);
+    if (ok) always.add(credit);
+    return ok;
+  };
+  let fixed = true;
+  for (const r of roles) if (!earns(r)) fixed = false;
+  const jobsAlways = jobs.map((j, i) => {
+    const ok =
+      !!j &&
+      creditEarned(
+        card,
+        themeCredit(styles[i]!, j.as),
+        base,
+        config,
+        themeOwnResources(config, styles[i]!),
+      );
+    if (j && !ok) fixed = false;
+    return ok;
+  });
+  const effects: string[] = [];
+  for (const e of config.cardStrength.effects) {
+    const credit = strengthCredit(e.label);
+    if (positiveCredits(card, config, base.size).includes(credit) && !earns(credit))
+      effects.push(e.label);
+  }
+  const orPay = cardNeeds(card, config).abilities.some(
+    (a) => a.shape === 'additionalCost' && a.refs.some((r) => r.orPay),
+  );
+  const check = cardSupport(card, base, config) !== undefined;
+  return { always, jobsAlways, check, fixed, effects, orPay };
 }
 
 type Plan =
@@ -422,7 +614,18 @@ export interface GrowContext {
   defs: Defs;
   k: GrowWeights;
   template: DeckTemplate;
-  commander?: { card: CardRecord; facts: CardFacts; jobs: readonly (Job | undefined)[] };
+  commander?: {
+    card: CardRecord;
+    facts: CardFacts;
+    jobs: readonly (Job | undefined)[];
+    gate: CardGate;
+  };
+  /** The supply every deck of the request holds: its colors, size, and commander. */
+  base: DeckSupply;
+  /** What the pool could supply: every candidate's usable copies and the commander. */
+  poolSupply: DeckSupply;
+  /** Each style's own resources, which its floors count (themeOwnResources). */
+  own: ReadonlySet<string>[];
   cards: GrowCard[];
   byId: Map<string, GrowCard>;
   /** Every candidate but the commander, lands included, for the mana base and the report. */
@@ -432,6 +635,8 @@ export interface GrowContext {
   /** Spell slots before the land formula adjusts them. */
   slots0: number;
   roleLabels: Map<string, string>;
+  /** Role ids by label, to read the reasons cards were picked for. */
+  roleIds: Map<string, string>;
 }
 
 function planJob(plan: Plan, jobs: readonly (Job | undefined)[]): Job | undefined {
@@ -505,22 +710,47 @@ export function growContext(
   // The commander's pips weigh in the color split: it is cast every game.
   const cast = castModel(listed, colors, size, template.baseLands);
   const candidates = listed.filter((c) => c.facts.card.id !== lead?.id);
+  const defs = defsFor(config);
+  const base: DeckSupply = {
+    size,
+    colors: [...colors],
+    commander: !!lead,
+    counts: new Map(),
+    devotion: new Map(),
+  };
+  if (lead) addSupply(base, lead, 1, config);
+  const supply = poolSupply(candidates, config, size, colors, lead);
   const cards: GrowCard[] = [];
   for (const cand of candidates) {
     const f = cand.facts;
     if (!f.spell) continue;
-    const p = cast(f.card);
+    const jobs = poolJobs(config, f.card, jobsOf(config, f, size), supply);
+    const gate = readGate(config, f.card, f.roles, jobs, base);
+    // Picks are scored on what the pool can pay for; the finished-deck check
+    // holds the deck to the rest. An "or pay" cost is paid in mana where the
+    // pool lacks the resource, for the curve, the cast chance, and strength.
+    const mv = gate.orPay ? effectiveManaValue(f.card, supply, config) : f.card.mv;
+    const priced = mv === f.card.mv ? f.card : { ...f.card, mv };
+    const unearned = gate.effects.filter(
+      (l) => !creditEarned(f.card, strengthCredit(l), supply, config),
+    );
+    const strength =
+      unearned.length || priced !== f.card
+        ? cardStrength(priced, config.cardStrength, new Set(unearned)).score
+        : f.strength;
+    const p = cast(priced);
     cards.push({
       cand,
       facts: f,
       id: f.card.id,
       max: cand.preferred,
       avail: cand.available,
-      slot: Math.max(1, Math.min(7, f.bucket)),
+      slot: Math.max(1, Math.min(7, bucketOf(mv))),
       cast: p,
-      value: Math.max(0, f.strength) * p,
+      value: Math.max(0, strength) * p,
       q: 0,
-      jobs: jobsOf(config, f, size),
+      jobs,
+      gate,
     });
   }
   const slots0 = size - template.baseLands - (lead ? 1 : 0);
@@ -545,21 +775,117 @@ export function growContext(
     settings,
     index,
     pool,
-    defs: defsFor(config),
+    defs,
     k: config.builderWeights.grow,
     template,
+    base,
+    poolSupply: supply,
+    own: defs.styles.map((s) => themeOwnResources(config, s)),
     cards,
     byId: new Map(cards.map((c) => [c.id, c])),
     candidates,
     levels,
     slots0,
     roleLabels: new Map(config.roles.roles.map((r) => [r.id, r.label])),
+    roleIds: new Map(config.roles.roles.map((r) => [r.label, r.id])),
   };
   if (lead) {
     const facts = factsFor(index, config, lead);
-    ctx.commander = { card: lead, facts, jobs: jobsOf(config, facts, size) };
+    // The commander's jobs count only when the deck meets its needs (see cur).
+    const jobs = poolJobs(config, lead, jobsOf(config, facts, size), supply);
+    const empty: DeckSupply = { ...base, counts: new Map(), devotion: new Map() };
+    ctx.commander = {
+      card: lead,
+      facts,
+      jobs,
+      gate: readGate(config, lead, facts.roles, jobs, empty),
+    };
   }
   return ctx;
+}
+
+// ---------------------------------------------------------------- what the deck earns
+
+/**
+ * Whether a card earns a credit in the deck with `extra` more copies of it;
+ * `assumed` resources count as met (a theme's own, for its floors). Memoized
+ * until the deck next changes.
+ */
+function earns(
+  ctx: GrowContext,
+  d: GrowDeck,
+  card: CardRecord,
+  gate: CardGate,
+  credit: string,
+  extra: number,
+  assumed?: ReadonlySet<string>,
+): boolean {
+  if (gate.always.has(credit)) return true;
+  const key = `e|${card.id}|${credit}|${extra}|${assumed ? 'a' : ''}`;
+  let v = d.memo.get(key);
+  if (v === undefined) {
+    v = withCopy(d.supply, card, extra, ctx.config, () =>
+      creditEarned(card, credit, d.supply, ctx.config, assumed),
+    );
+    d.memo.set(key, v);
+  }
+  return v;
+}
+
+/** Whether a candidate earns a role in the deck once it is in. */
+function earnsRole(ctx: GrowContext, d: GrowDeck, c: GrowCard, role: string, extra = 1): boolean {
+  return earns(ctx, d, c.facts.card, c.gate, role, extra);
+}
+
+/**
+ * Whether a card's job for a style holds in the deck: its theme credit's
+ * needs met, the style's own resources taken as met (its floors count them).
+ * A loose deck takes every job the pool could pay for (see themeCore).
+ */
+function jobOpen(ctx: GrowContext, d: GrowDeck, c: GrowCard, i: number, extra = 1): boolean {
+  const j = c.jobs[i];
+  if (!j) return false;
+  if (d.loose || c.gate.jobsAlways[i]) return true;
+  const credit = themeCredit(ctx.defs.styles[i]!, j.as);
+  return earns(ctx, d, c.facts.card, c.gate, credit, extra, ctx.own[i]);
+}
+
+/** The plan job a card holds in the deck: undefined when the deck does not pay for it. */
+function openPlanJob(ctx: GrowContext, plan: Plan, d: GrowDeck, c: GrowCard): Job | undefined {
+  if (plan.kind !== 'theme') return undefined;
+  return jobOpen(ctx, d, c, plan.index) ? c.jobs[plan.index] : undefined;
+}
+
+/**
+ * Whether the deck can hold the card at all: its drawbacks met (Tragedy
+ * Feaster sacrifices without lifegain) and, when the config gives it credits,
+ * at least one of them earned. A card that is neither has no place. While the
+ * deck is built the plan's own resources count as met, as its floors promise
+ * them (payoffs go in before their setup); `honest` checks the finished deck.
+ */
+function supported(ctx: GrowContext, d: GrowDeck, c: GrowCard, extra = 1, honest = false): boolean {
+  if (!c.gate.check) return true;
+  const key = `s|${c.id}|${extra}|${honest ? 'h' : ''}`;
+  const hit = d.memo.get(key);
+  if (hit !== undefined) return hit;
+  const card = c.facts.card;
+  const own = !honest && d.planIndex >= 0 ? ctx.own[d.planIndex] : undefined;
+  const planCredit = own ? `theme:${ctx.defs.styles[d.planIndex]}:` : undefined;
+  const earned = (credit: string) => {
+    if (planCredit && credit.startsWith(planCredit))
+      return (
+        (d.loose && c.jobs[d.planIndex] !== undefined) ||
+        creditEarned(card, credit, d.supply, ctx.config, own)
+      );
+    if (c.gate.always.has(credit)) return true;
+    return creditEarned(card, credit, d.supply, ctx.config);
+  };
+  const v =
+    withCopy(d.supply, card, extra, ctx.config, () =>
+      cardSupport(card, d.supply, ctx.config, earned, own),
+    ) === undefined;
+  d.memo.set(key, v);
+  return v;
 }
 
 function archetypeOf(config: BulkBrewConfig, id: string): Archetype | undefined {
@@ -600,7 +926,33 @@ interface GrowDeck {
   /** Copies added by the seed step, so payoffs the setup cannot cover can go again. */
   seedCopies: string[];
   spells: number;
-  /** Per style, aligned with the defs' styles. */
+  /** The plan's index in the defs' styles; -1 for a plain shape. */
+  planIndex: number;
+  /** What the deck supplies so far: its spells and the commander (and its lands once chosen). */
+  supply: DeckSupply;
+  /** Contributions of cards whose roles, jobs, and slot hold in every deck, kept as they go in and out. */
+  fixed: Derived;
+  /** Cards whose contributions follow the deck's supply, by id. */
+  cond: Set<string>;
+  /** Everything counted, recomputed after a change (see cur). */
+  derived?: Derived | undefined;
+  /**
+   * Theme jobs count as the pool could pay for them rather than as the deck
+   * so far does: the theme core's second try, when the first is short because
+   * a payoff's needs (ten creatures for a reanimation trigger) come from cards
+   * the fill adds later. The finished-deck check holds the deck to them.
+   */
+  loose: boolean;
+  /** Credits and support checked against the supply, until the deck next changes. */
+  memo: Map<string, boolean>;
+  creatures: number;
+  noncreaturePermanents: number;
+  instantsAndSorceries: number;
+}
+
+/** What the deck counts: only the credits it earns. */
+interface Derived {
+  /** Per style, aligned with the defs' styles; each style's own resources taken as met. */
   tallies: Tally[];
   /** The plan's own tally, the commander credited. */
   plan: Tally;
@@ -608,9 +960,28 @@ interface GrowDeck {
   roles: Map<string, number>;
   /** Copies per curve slot, index 1 to 7. */
   slots: number[];
-  creatures: number;
-  noncreaturePermanents: number;
-  instantsAndSorceries: number;
+}
+
+function emptyDerived(ctx: GrowContext): Derived {
+  return {
+    tallies: ctx.defs.styles.map(emptyTally),
+    plan: emptyTally(),
+    roles: new Map(),
+    slots: [0, 0, 0, 0, 0, 0, 0, 0],
+  };
+}
+
+function cloneDerived(x: Derived): Derived {
+  return {
+    tallies: x.tallies.map((t) => ({ ...t })),
+    plan: { ...x.plan },
+    roles: new Map(x.roles),
+    slots: [...x.slots],
+  };
+}
+
+function cloneSupply(s: DeckSupply): DeckSupply {
+  return { ...s, colors: [...s.colors], counts: new Map(s.counts), devotion: new Map(s.devotion) };
 }
 
 function cloneDeck(d: GrowDeck): GrowDeck {
@@ -620,71 +991,155 @@ function cloneDeck(d: GrowDeck): GrowDeck {
     curveCopies: [...d.curveCopies],
     seedCopies: [...d.seedCopies],
     spells: d.spells,
-    tallies: d.tallies.map((t) => ({ ...t })),
-    plan: { ...d.plan },
-    roles: new Map(d.roles),
-    slots: [...d.slots],
+    planIndex: d.planIndex,
+    supply: cloneSupply(d.supply),
+    fixed: cloneDerived(d.fixed),
+    cond: new Set(d.cond),
+    loose: d.loose,
+    memo: new Map(),
     creatures: d.creatures,
     noncreaturePermanents: d.noncreaturePermanents,
     instantsAndSorceries: d.instantsAndSorceries,
   };
 }
 
-function newDeck(ctx: GrowContext, plan: Plan): GrowDeck {
+/** One card's contribution: its jobs (scaled by `jobCopies`), roles, and slot, as `ok` says they hold. */
+function contribute(
+  ctx: GrowContext,
+  x: Derived,
+  planIndex: number,
+  jobs: readonly (Job | undefined)[],
+  roles: readonly string[],
+  copies: number,
+  jobCopies: number,
+  slot: number | undefined,
+  ok: (credit: string, i?: number) => boolean,
+): void {
+  jobs.forEach((j, i) => {
+    if (!j || !ok(themeCredit(ctx.defs.styles[i]!, j.as), i)) return;
+    addJob(x.tallies[i]!, j, jobCopies);
+    if (i === planIndex) addJob(x.plan, j, jobCopies);
+  });
+  for (const r of roles) if (ok(r)) x.roles.set(r, (x.roles.get(r) ?? 0) + copies);
+  if (slot !== undefined) x.slots[slot]! += copies;
+}
+
+/**
+ * What the deck counts now: the fixed cards' share, plus each card whose
+ * credits follow the supply, counted for the credits it earns in this
+ * deck. The commander's jobs and roles count only when the deck meets its needs.
+ */
+function cur(ctx: GrowContext, d: GrowDeck): Derived {
+  if (d.derived) return d.derived;
+  const x = cloneDerived(d.fixed);
+  const earnedBy =
+    (card: CardRecord, gate: CardGate, loose: boolean) => (credit: string, i?: number) =>
+      i === undefined
+        ? earns(ctx, d, card, gate, credit, 0)
+        : loose || gate.jobsAlways[i] || earns(ctx, d, card, gate, credit, 0, ctx.own[i]);
+  for (const id of d.cond) {
+    const c = ctx.byId.get(id)!;
+    const q = have(d, c);
+    contribute(
+      ctx,
+      x,
+      d.planIndex,
+      c.jobs,
+      c.facts.roles,
+      q,
+      q,
+      c.slot,
+      earnedBy(c.facts.card, c.gate, d.loose),
+    );
+  }
+  const cmd = ctx.commander;
+  if (cmd && !cmd.gate.fixed)
+    contribute(
+      ctx,
+      x,
+      d.planIndex,
+      cmd.jobs,
+      cmd.facts.roles,
+      1,
+      ctx.k.commanderCredit,
+      undefined,
+      earnedBy(cmd.card, cmd.gate, false),
+    );
+  d.derived = x;
+  return x;
+}
+
+function newDeck(ctx: GrowContext, plan: Plan, loose = false): GrowDeck {
   const d: GrowDeck = {
+    loose,
+    memo: new Map(),
     qty: new Map(),
     why: new Map(),
     curveCopies: [],
     seedCopies: [],
     spells: 0,
-    tallies: ctx.defs.styles.map(emptyTally),
-    plan: emptyTally(),
-    roles: new Map(),
-    slots: [0, 0, 0, 0, 0, 0, 0, 0],
+    planIndex: plan.kind === 'theme' ? plan.index : -1,
+    supply: cloneSupply(ctx.base),
+    fixed: emptyDerived(ctx),
+    cond: new Set(),
     creatures: 0,
     noncreaturePermanents: 0,
     instantsAndSorceries: 0,
   };
   const cmd = ctx.commander;
-  if (cmd) {
-    // The commander is there every game; the rules count it as one card.
-    const credit = ctx.k.commanderCredit;
-    cmd.jobs.forEach((j, i) => addJob(d.tallies[i]!, j, credit));
-    addJob(d.plan, planJob(plan, cmd.jobs), credit);
-    for (const r of cmd.facts.roles) d.roles.set(r, (d.roles.get(r) ?? 0) + 1);
-  }
+  // The commander is there every game; the rules count it as one card.
+  if (cmd?.gate.fixed)
+    contribute(
+      ctx,
+      d.fixed,
+      d.planIndex,
+      cmd.jobs,
+      cmd.facts.roles,
+      1,
+      ctx.k.commanderCredit,
+      undefined,
+      () => true,
+    );
   return d;
+}
+
+/** The deck's supply changed: what was counted from it is stale. */
+function changed(d: GrowDeck): void {
+  d.derived = undefined;
+  d.memo.clear();
 }
 
 function have(d: GrowDeck, c: GrowCard): number {
   return d.qty.get(c.id) ?? 0;
 }
 
-function add(plan: Plan, d: GrowDeck, c: GrowCard, why: string): void {
+function add(ctx: GrowContext, d: GrowDeck, c: GrowCard, why: string): void {
   d.qty.set(c.id, have(d, c) + 1);
   if (!d.why.has(c.id)) d.why.set(c.id, why);
   d.spells += 1;
-  c.jobs.forEach((j, i) => addJob(d.tallies[i]!, j, 1));
-  addJob(d.plan, planJob(plan, c.jobs), 1);
-  for (const r of c.facts.roles) d.roles.set(r, (d.roles.get(r) ?? 0) + 1);
-  d.slots[c.slot]! += 1;
+  addSupply(d.supply, c.facts.card, 1, ctx.config);
+  changed(d);
+  if (c.gate.fixed)
+    contribute(ctx, d.fixed, d.planIndex, c.jobs, c.facts.roles, 1, 1, c.slot, () => true);
+  else d.cond.add(c.id);
   if (c.facts.creature) d.creatures += 1;
   else if (c.facts.instantOrSorcery) d.instantsAndSorceries += 1;
   else if (c.facts.noncreaturePermanent) d.noncreaturePermanents += 1;
 }
 
-function remove(plan: Plan, d: GrowDeck, c: GrowCard): void {
+function remove(ctx: GrowContext, d: GrowDeck, c: GrowCard): void {
   const n = have(d, c) - 1;
   if (n < 0) return;
   if (n === 0) {
     d.qty.delete(c.id);
     d.why.delete(c.id);
+    d.cond.delete(c.id);
   } else d.qty.set(c.id, n);
   d.spells -= 1;
-  c.jobs.forEach((j, i) => addJob(d.tallies[i]!, j, -1));
-  addJob(d.plan, planJob(plan, c.jobs), -1);
-  for (const r of c.facts.roles) d.roles.set(r, (d.roles.get(r) ?? 0) - 1);
-  d.slots[c.slot]! -= 1;
+  addSupply(d.supply, c.facts.card, -1, ctx.config);
+  changed(d);
+  if (c.gate.fixed)
+    contribute(ctx, d.fixed, d.planIndex, c.jobs, c.facts.roles, -1, -1, c.slot, () => true);
   if (c.facts.creature) d.creatures -= 1;
   else if (c.facts.instantOrSorcery) d.instantsAndSorceries -= 1;
   else if (c.facts.noncreaturePermanent) d.noncreaturePermanents -= 1;
@@ -705,41 +1160,48 @@ function offPlanFloor(ctx: GrowContext, i: number): ThemeFloor | undefined {
  * of that style in the deck and no more setup than the floors' ratio.
  */
 function gateOpen(ctx: GrowContext, plan: Plan, d: GrowDeck, c: GrowCard): boolean {
+  const x = cur(ctx, d);
   const own = planJob(plan, c.jobs);
-  if (plan.kind === 'theme' && own?.as === 'payoff' && !covered(d.plan, plan.floor, own))
+  if (plan.kind === 'theme' && own?.as === 'payoff' && !covered(x.plan, plan.floor, own))
     return false;
-  if (own?.as === 'setup') return true;
-  if (c.facts.roles.some((r) => SPELL_JOBS.includes(r))) return true;
+  // Setup and spell roles open the gate only when the deck pays for them.
+  if (own?.as === 'setup' && openPlanJob(ctx, plan, d, c)) return true;
+  if (c.facts.roles.some((r) => SPELL_JOBS.includes(r) && earnsRole(ctx, d, c, r))) return true;
   for (let i = 0; i < c.jobs.length; i++) {
     const j = c.jobs[i];
     if (!j || (plan.kind === 'theme' && i === plan.index)) continue;
     if (j.as === 'payoff') {
       if (j.weight < ctx.k.offPlanGateWeight) continue;
       const floor = offPlanFloor(ctx, i);
-      if (floor && !covered(d.tallies[i]!, floor, j)) return false;
+      if (floor && !covered(x.tallies[i]!, floor, j)) return false;
     } else if (ctx.defs.compiled[i]!.setupNeedsPayoff) {
-      if (!fed(d.tallies[i]!, offPlanFloor(ctx, i), j)) return false;
+      if (!fed(x.tallies[i]!, offPlanFloor(ctx, i), j)) return false;
     }
   }
   return true;
 }
 
 /** The last relaxation keeps only the plan's own payoff gate. */
-function planGateOnly(plan: Plan, d: GrowDeck, c: GrowCard): boolean {
+function planGateOnly(ctx: GrowContext, plan: Plan, d: GrowDeck, c: GrowCard): boolean {
   const own = planJob(plan, c.jobs);
-  return !(plan.kind === 'theme' && own?.as === 'payoff' && !covered(d.plan, plan.floor, own));
+  return !(
+    plan.kind === 'theme' &&
+    own?.as === 'payoff' &&
+    !covered(cur(ctx, d).plan, plan.floor, own)
+  );
 }
 
 /** Extra value for the plan's setup in the role and curve fills, fading out above the floor. */
 function setupPull(ctx: GrowContext, plan: Plan, d: GrowDeck, c: GrowCard): number {
   if (plan.kind !== 'theme') return 1;
   const job = planJob(plan, c.jobs);
-  if (job?.as !== 'setup') return 1;
+  if (job?.as !== 'setup' || !openPlanJob(ctx, plan, d, c)) return 1;
   const b = balance(plan.floor);
   const floor = plan.floor[b.setup] ?? 0;
   if (floor <= 0) return 1;
   const target = floor * ctx.k.setupTarget;
-  const fade = Math.min(1, Math.max(0, (target - floorValue(d.plan, b.setup)) / (target - floor)));
+  const have = floorValue(cur(ctx, d).plan, b.setup);
+  const fade = Math.min(1, Math.max(0, (target - have) / (target - floor)));
   return 1 + ctx.k.setupPull * Math.min(1, job.weight) * fade;
 }
 
@@ -796,61 +1258,82 @@ interface CoreResult {
  * the demand they create in the ratio the floors imply, re-scoring every
  * candidate after each add (demand met, quality with cast chance, room on the
  * curve). Payoffs the setup cannot cover go again, never below the floor.
+ * A theme card goes in only on a job the deck so far pays for, its theme's
+ * own resources aside; when that leaves the floors short, a second try takes
+ * each job the pool could pay for (the scan's view), and the finished-deck
+ * check holds the deck to the rest.
  */
 function themeCore(ctx: GrowContext, plan: ThemePlan): CoreResult {
-  const d = newDeck(ctx, plan);
+  const strict = themeCoreOnce(ctx, plan, false);
+  if (strict.ok) return strict;
+  const loose = themeCoreOnce(ctx, plan, true);
+  return loose.ok ? loose : strict;
+}
+
+function themeCoreOnce(ctx: GrowContext, plan: ThemePlan, loose: boolean): CoreResult {
+  const d = newDeck(ctx, plan, loose);
   const jobOf = (c: GrowCard) => c.jobs[plan.index];
   // Theme cards go where the curve has room, as a person would pick a cheap looter over a dear one.
   const targets = curveTargets(shapeFor(ctx, plan).shape, ctx.slots0);
-  const room = (c: GrowCard) => (d.slots[c.slot]! < (targets[c.slot] ?? 0) ? 1 : ctx.k.fullSlot);
+  const room = (c: GrowCard) => {
+    const slot = c.slot;
+    return cur(ctx, d).slots[slot]! < (targets[slot] ?? 0) ? 1 : ctx.k.fullSlot;
+  };
+  // A theme card enters on its job only when the deck pays for it, the theme's own resources aside.
+  const open = (c: GrowCard, as: Job['as']) =>
+    have(d, c) < c.max &&
+    jobOf(c)?.as === as &&
+    jobOpen(ctx, d, c, plan.index) &&
+    supported(ctx, d, c);
   const rich = plan.poolMargin.setup >= 2 && plan.poolMargin.payoff >= 2;
   const payoffTargets = sideTargets(plan.floor, PAYOFF_KEYS, rich ? ctx.k.richSeed : 1);
   for (;;) {
-    if (met(d.plan, payoffTargets)) break;
+    if (met(cur(ctx, d).plan, payoffTargets)) break;
     const pick = best(
       ctx.cards,
-      (c) => have(d, c) < c.max && jobOf(c)?.as === 'payoff',
-      (c) => gain(d.plan, jobOf(c), payoffTargets) * (c.q + EPS) * room(c),
+      (c) => open(c, 'payoff'),
+      (c) => gain(cur(ctx, d).plan, jobOf(c), payoffTargets) * (c.q + EPS) * room(c),
     );
     if (!pick) break;
-    add(plan, d, pick, `Payoff: ${jobOf(pick)!.job}`);
+    add(ctx, d, pick, `Payoff: ${jobOf(pick)!.job}`);
     d.seedCopies.push(pick.id);
   }
 
   const b = balance(plan.floor);
   const payoffNeed = plan.floor[b.payoff] ?? 0;
-  const scale = payoffNeed > 0 ? Math.max(1, floorValue(d.plan, b.payoff) / payoffNeed) : 1;
+  const scale =
+    payoffNeed > 0 ? Math.max(1, floorValue(cur(ctx, d).plan, b.payoff) / payoffNeed) : 1;
   const setupTargets = sideTargets(plan.floor, SETUP_KEYS, scale);
   for (;;) {
-    if (met(d.plan, setupTargets)) break;
+    if (met(cur(ctx, d).plan, setupTargets)) break;
     const pick = best(
       ctx.cards,
-      (c) => have(d, c) < c.max && jobOf(c)?.as === 'setup',
-      (c) => gain(d.plan, jobOf(c), setupTargets) * (c.q + EPS) * room(c),
+      (c) => open(c, 'setup'),
+      (c) => gain(cur(ctx, d).plan, jobOf(c), setupTargets) * (c.q + EPS) * room(c),
     );
     if (!pick) break;
-    add(plan, d, pick, `Setup: ${jobOf(pick)!.job}`);
+    add(ctx, d, pick, `Setup: ${jobOf(pick)!.job}`);
   }
 
   // Setup ran out: drop the weakest seeded payoffs while above the floor and uncovered.
   const floorTargets = sideTargets(plan.floor, PAYOFF_KEYS, 1);
-  while (!covered(d.plan, plan.floor, undefined)) {
+  while (!covered(cur(ctx, d).plan, plan.floor, undefined)) {
     const seeded = [...new Set(d.seedCopies)]
       .map((id) => ctx.byId.get(id)!)
       .sort((x, y) => x.value - y.value || (x.id < y.id ? -1 : 1));
     const drop = seeded.find((c) => {
-      const after = { ...d.plan };
+      const after = { ...cur(ctx, d).plan };
       addJob(after, jobOf(c), -1);
       return met(after, floorTargets);
     });
     if (!drop) break;
-    remove(plan, d, drop);
+    remove(ctx, d, drop);
     d.seedCopies.splice(d.seedCopies.lastIndexOf(drop.id), 1);
   }
 
   const minimum = sideTargets(plan.floor, FLOOR_KEYS, 1);
-  const ok = met(d.plan, minimum);
-  return { deck: d, ok, short: ok ? [] : shortOf(d.plan, minimum) };
+  const ok = met(cur(ctx, d).plan, minimum);
+  return { deck: d, ok, short: ok ? [] : shortOf(cur(ctx, d).plan, minimum) };
 }
 
 // ---------------------------------------------------------------- steps 4 and 5
@@ -878,14 +1361,20 @@ function shapeFor(ctx: GrowContext, plan: Plan): Shape {
  */
 function fillRoles(ctx: GrowContext, plan: Plan, d: GrowDeck, shape: Shape, slots: number): void {
   for (const [role, q] of Object.entries(shape.quotas)) {
-    while ((d.roles.get(role) ?? 0) < q.min && d.spells < slots) {
+    while ((cur(ctx, d).roles.get(role) ?? 0) < q.min && d.spells < slots) {
+      // A card fills a role slot only on a role it earns in this deck.
       const pick = best(
         ctx.cards,
-        (c) => have(d, c) < c.max && c.facts.roles.includes(role) && gateOpen(ctx, plan, d, c),
+        (c) =>
+          c.facts.roles.includes(role) &&
+          have(d, c) < c.max &&
+          earnsRole(ctx, d, c, role) &&
+          supported(ctx, d, c) &&
+          gateOpen(ctx, plan, d, c),
         (c) => c.value * setupPull(ctx, plan, d, c),
       );
       if (!pick) break;
-      add(plan, d, pick, ctx.roleLabels.get(role) ?? role);
+      add(ctx, d, pick, ctx.roleLabels.get(role) ?? role);
     }
   }
 }
@@ -897,6 +1386,7 @@ const RELAXATIONS = [
   'the card type mix',
   'the usual copy counts',
   "the rule that keeps other themes' cards out",
+  'the rule that keeps out cards this deck cannot use',
 ];
 
 /**
@@ -919,7 +1409,8 @@ function fillCurve(
   const permanentMax = Math.floor(mix.noncreaturePermanentMax * slots);
   const spellMin = Math.ceil(mix.instantSorceryMin * slots);
   const empty = new Set<number>();
-  // 0 slot rules, 1 any slot, 2 type mix caps off, 3 copy guideline off, 4 off-plan gate off.
+  // 0 slot rules, 1 any slot, 2 type mix caps off, 3 copy guideline off, 4 off-plan gate off,
+  // 5 cards the deck does not support (the finished-deck check swaps them out where it can).
   let level = 0;
   const copies = (c: GrowCard) => (level >= 3 ? c.avail : c.max);
   while (d.spells < slots) {
@@ -936,12 +1427,13 @@ function fillCurve(
     const base = (c: GrowCard) =>
       have(d, c) < copies(c) &&
       typeOk(c) &&
-      (level >= 4 ? planGateOnly(plan, d, c) : gateOpen(ctx, plan, d, c));
+      (level >= 5 || supported(ctx, d, c)) &&
+      (level >= 4 ? planGateOnly(ctx, plan, d, c) : gateOpen(ctx, plan, d, c));
     let slot = -1;
     let gap = 0;
     if (level === 0) {
       for (let s = 1; s <= 7; s++) {
-        const g = (targets[s] ?? 0) - d.slots[s]!;
+        const g = (targets[s] ?? 0) - cur(ctx, d).slots[s]!;
         if (g > gap && !empty.has(s)) {
           slot = s;
           gap = g;
@@ -961,13 +1453,13 @@ function fillCurve(
         : undefined) ?? best(ctx.cards, (c) => base(c) && inSlot(c), score);
     if (!pick) {
       if (slot >= 0) empty.add(slot);
-      else if (level < 4) {
+      else if (level < RELAXATIONS.length - 1) {
         const name = RELAXATIONS[++level]!;
         if (name) relaxed.add(name);
       } else break;
       continue;
     }
-    add(plan, d, pick, slot >= 0 ? curveWhy(slot) : FILLER_WHY);
+    add(ctx, d, pick, slot >= 0 ? curveWhy(slot) : FILLER_WHY);
     d.curveCopies.push(pick.id);
   }
 }
@@ -998,15 +1490,16 @@ function spellCopies(ctx: GrowContext, d: GrowDeck): { facts: CardFacts; qty: nu
 function templateFit(ctx: GrowContext, d: GrowDeck, shape: Shape, slots: number): number {
   let got = 0;
   let want = 0;
+  const x = cur(ctx, d);
   for (const [role, q] of Object.entries(shape.quotas)) {
-    got += Math.min(d.roles.get(role) ?? 0, q.min);
+    got += Math.min(x.roles.get(role) ?? 0, q.min);
     want += q.min;
   }
   // A slot within the template's curve tolerance counts as on target.
   const targets = curveTargets(shape.shape, slots);
   const tol = ctx.template.tolerances.curve;
   for (let s = 1; s <= 7; s++) {
-    got += Math.min(d.slots[s]! + tol, targets[s] ?? 0);
+    got += Math.min(x.slots[s]! + tol, targets[s] ?? 0);
     want += targets[s] ?? 0;
   }
   const creatures = Math.ceil(shape.typeMix.creatureMin * slots);
@@ -1025,6 +1518,7 @@ function meanQuality(ctx: GrowContext, d: GrowDeck): number {
   let n = 0;
   for (const c of ctx.cards) {
     const k = have(d, c);
+    if (k === 0) continue;
     total += Math.min(1, c.q) * k;
     n += k;
   }
@@ -1239,7 +1733,7 @@ function fitSpells(
     if (plan.kind !== 'theme') return true;
     const job = planJob(plan, c.jobs);
     if (job?.as !== 'setup') return true;
-    const after = { ...d.plan };
+    const after = { ...cur(ctx, d).plan };
     addJob(after, job, -1);
     return covered(after, plan.floor, undefined);
   };
@@ -1258,7 +1752,7 @@ function fitSpells(
     });
     if (at < 0) break;
     const id = d.curveCopies.splice(at, 1)[0]!;
-    remove(plan, d, ctx.byId.get(id)!);
+    remove(ctx, d, ctx.byId.get(id)!);
   }
   if (d.spells < slots) fillCurve(ctx, plan, d, shapeFor(ctx, plan), slots, relaxed);
 }
@@ -1269,6 +1763,8 @@ interface Built {
   mana: ManaBase;
   colorPlan: ColorPlan;
   relaxed: string[];
+  /** The plan's tally as the finished deck earns it (settle). */
+  floors?: Tally;
 }
 
 /** Steps 4 to 7 for one plan, or what the pool lacks to fill it. */
@@ -1304,22 +1800,9 @@ function buildPlan(
       lacks: `more theme and role cards than a ${ctx.size}-card deck has room for (${d.spells} spells)`,
     };
 
-  const colorPlan = deckColorPlan(ctx, d);
-  const spells = spellCopies(ctx, d);
-  if (ctx.commander) spells.push({ facts: ctx.commander.facts, qty: 1 });
   try {
-    const mana = chooseManaBase(
-      lands,
-      ctx.candidates,
-      colorPlan,
-      spells,
-      ctx.config,
-      ctx.settings,
-      ctx.size,
-      ctx.index,
-      [plan.style],
-    );
-    return { d, lands, mana, colorPlan, relaxed: [...relaxed] };
+    const { mana, colorPlan } = manaFor(ctx, plan, d, lands);
+    return settle(ctx, plan, { d, lands, mana, colorPlan, relaxed: [...relaxed] });
   } catch (err) {
     if (err instanceof ManaBaseError)
       return {
@@ -1327,6 +1810,196 @@ function buildPlan(
       };
     throw err;
   }
+}
+
+/** The mana base for the deck's spells and commander. */
+function manaFor(
+  ctx: GrowContext,
+  plan: Plan,
+  d: GrowDeck,
+  lands: number,
+): { mana: ManaBase; colorPlan: ColorPlan } {
+  const colorPlan = deckColorPlan(ctx, d);
+  const spells = spellCopies(ctx, d);
+  if (ctx.commander) spells.push({ facts: ctx.commander.facts, qty: 1 });
+  const mana = chooseManaBase(
+    lands,
+    ctx.candidates,
+    colorPlan,
+    spells,
+    ctx.config,
+    ctx.settings,
+    ctx.size,
+    ctx.index,
+    [plan.style],
+  );
+  return { mana, colorPlan };
+}
+
+/** Whether the reason recorded for a card holds in the deck, as deck views check it (reasonEarned). */
+function whyEarned(ctx: GrowContext, plan: Plan, d: GrowDeck, c: GrowCard, why: string): boolean {
+  const role = ctx.roleIds.get(why);
+  if (role) return earnsRole(ctx, d, c, role, 0);
+  const side = THEME_WHY.exec(why);
+  if (side && plan.kind === 'theme')
+    return earns(ctx, d, c.facts.card, c.gate, themeCredit(plan.style, sideOf(side[1]!)), 0);
+  return true;
+}
+
+const THEME_WHY = /^(Setup|Payoff): /;
+/** The finished-deck check repeats while it changes something, this many rounds at most. */
+const SETTLE_ROUNDS = 3;
+const sideOf = (word: string): Job['as'] => (word === 'Setup' ? 'setup' : 'payoff');
+
+/**
+ * The plan's tally as the finished deck earns it: each card's plan job counts
+ * only when its needs are met by the deck as it stands, the theme's own
+ * resources included and nothing taken as met. The floors are held to this.
+ */
+function honestPlan(ctx: GrowContext, plan: Plan, d: GrowDeck): Tally {
+  const t = emptyTally();
+  if (plan.kind !== 'theme') return t;
+  for (const c of ctx.cards) {
+    const j = c.jobs[plan.index];
+    const n = have(d, c);
+    if (j && n > 0 && earns(ctx, d, c.facts.card, c.gate, themeCredit(plan.style, j.as), 0))
+      addJob(t, j, n);
+  }
+  const cmd = ctx.commander;
+  const j = cmd?.jobs[plan.index];
+  if (cmd && j && earns(ctx, d, cmd.card, cmd.gate, themeCredit(plan.style, j.as), 0))
+    addJob(t, j, ctx.k.commanderCredit);
+  return t;
+}
+
+/**
+ * The best card for the slot a copy held, never the copy's own card: the role
+ * or theme side its reason names, else (for a card the deck does not support,
+ * or a theme card whose job it does not earn) its curve slot, else any slot. A
+ * replacement earns what it is picked for in the finished deck and passes the
+ * same gates as any pick.
+ */
+function replacementFor(
+  ctx: GrowContext,
+  plan: Plan,
+  d: GrowDeck,
+  out: GrowCard,
+  why: string,
+  anySlot: boolean,
+): { c: GrowCard; why: string } | undefined {
+  const ok = (c: GrowCard) =>
+    c !== out && have(d, c) < c.max && supported(ctx, d, c, 1, true) && gateOpen(ctx, plan, d, c);
+  const role = ctx.roleIds.get(why);
+  if (role) {
+    const pick = best(
+      ctx.cards,
+      (c) => c.facts.roles.includes(role) && ok(c) && earnsRole(ctx, d, c, role),
+      (c) => c.value * setupPull(ctx, plan, d, c),
+    );
+    if (pick) return { c: pick, why };
+  }
+  const side = THEME_WHY.exec(why);
+  if (side && plan.kind === 'theme') {
+    const as = sideOf(side[1]!);
+    const credit = themeCredit(plan.style, as);
+    const pick = best(
+      ctx.cards,
+      (c) =>
+        c.jobs[plan.index]?.as === as && ok(c) && earns(ctx, d, c.facts.card, c.gate, credit, 1),
+      (c) => c.jobs[plan.index]!.weight * c.q,
+    );
+    if (pick) return { c: pick, why: `${side[1]}: ${pick.jobs[plan.index]!.job}` };
+  }
+  if (!anySlot) return undefined;
+  const inSlot = best(
+    ctx.cards,
+    (c) => ok(c) && c.slot === out.slot,
+    (c) => c.value * setupPull(ctx, plan, d, c),
+  );
+  if (inSlot) return { c: inSlot, why: curveWhy(out.slot) };
+  const any = best(ctx.cards, ok, (c) => c.q * setupPull(ctx, plan, d, c));
+  return any ? { c: any, why: curveWhy(any.slot) } : undefined;
+}
+
+/** The floor alternative's counts no worse after a swap than before it. */
+function noWorse(before: Tally, after: Tally, targets: Targets): boolean {
+  return (Object.keys(targets) as FloorKey[]).every(
+    (k) => floorValue(after, k) + EPS >= Math.min(floorValue(before, k), targets[k] ?? 0),
+  );
+}
+
+/**
+ * The finished-deck check: the deck's supply, lands included, can differ
+ * from the running one the picks saw, so every spell is checked once more.
+ * A copy the deck does not support (an unmet drawback, no credit earned) or
+ * whose recorded reason it does not earn goes for the best card for its slot,
+ * keeping the deck's size and land count, a few rounds at most, choosing the
+ * mana base again after each. A role card the deck still supports whose role
+ * nothing else can fill stays as a curve card; any other copy with no
+ * replacement stays as it is, and the deck reports it as unsupported. Last,
+ * the plan's floors are counted as the finished deck earns them: a theme the
+ * deck cannot pay for is short, and the request gets the nearest deck.
+ */
+function settle(ctx: GrowContext, plan: Plan, built: Built): Built | { lacks: string } {
+  const { d, lands } = built;
+  let { mana, colorPlan } = built;
+  const minimum = plan.kind === 'theme' ? sideTargets(plan.floor, FLOOR_KEYS, 1) : undefined;
+  const withLands = (sign: 1 | -1) => {
+    for (const p of mana.nonbasics)
+      addSupply(d.supply, p.candidate.facts.card, sign * p.qty, ctx.config);
+    changed(d);
+  };
+  for (let round = 0; round < SETTLE_ROUNDS; round++) {
+    withLands(1);
+    const bad = ctx.cards.filter(
+      (c) =>
+        have(d, c) > 0 &&
+        (!supported(ctx, d, c, 0, true) || !whyEarned(ctx, plan, d, c, d.why.get(c.id)!)),
+    );
+    let swapped = false;
+    for (const c of bad) {
+      while (have(d, c) > 0) {
+        // Checked again per copy: an earlier swap can have changed the supply.
+        const why = d.why.get(c.id)!;
+        const holds = supported(ctx, d, c, 0, true);
+        if (holds && whyEarned(ctx, plan, d, c, why)) break;
+        const roleCard = holds && ctx.roleIds.has(why);
+        const before = honestPlan(ctx, plan, d);
+        remove(ctx, d, c);
+        const pick = replacementFor(ctx, plan, d, c, why, !roleCard);
+        if (pick) add(ctx, d, pick.c, pick.why);
+        if (pick && (!minimum || noWorse(before, honestPlan(ctx, plan, d), minimum))) {
+          for (const list of [d.curveCopies, d.seedCopies]) {
+            const i = list.lastIndexOf(c.id);
+            if (i >= 0) list.splice(i, 1, pick.c.id);
+          }
+          swapped = true;
+          continue;
+        }
+        if (pick) remove(ctx, d, pick.c);
+        add(ctx, d, c, why);
+        // A role card the deck supports stays for its curve slot; nothing else is relabelled.
+        if (roleCard) d.why.set(c.id, curveWhy(c.slot));
+        break;
+      }
+    }
+    withLands(-1);
+    if (!swapped) break;
+    // New spells can ask for other colors or other lands.
+    try {
+      ({ mana, colorPlan } = manaFor(ctx, plan, d, lands));
+    } catch (err) {
+      if (!(err instanceof ManaBaseError)) throw err;
+    }
+  }
+  withLands(1);
+  const floors = honestPlan(ctx, plan, d);
+  withLands(-1);
+  if (minimum && plan.kind === 'theme' && !met(floors, minimum))
+    return {
+      lacks: lacksSentence(ctx.defs.compiled[plan.index]!.lacks, shortOf(floors, minimum)),
+    };
+  return { ...built, mana, colorPlan, floors };
 }
 
 function joinWords(list: readonly string[]): string {
@@ -1362,15 +2035,47 @@ function finish(
     commander,
   );
 
+  // Roles as the finished deck earns them, the commander left out as the deck views count it.
+  const supply = deckSupply(
+    {
+      cards: [
+        ...chosen.map((x) => ({ card: x.cand.facts.card, qty: x.qty })),
+        ...mana.nonbasics.map((p) => ({ card: p.candidate.facts.card, qty: p.qty })),
+      ],
+      ...(commander ? { commander } : {}),
+      colors: ctx.colors,
+      size,
+    },
+    config,
+  );
+  const credits = creditsFor(supply, config);
+  const roles: BuildExplanation['roles'] = {};
+  for (const [id, r] of Object.entries(report.roles)) {
+    let have = 0;
+    for (const x of chosen)
+      if (x.cand.facts.roles.includes(id) && credits.earned(x.cand.facts.card, id)) have += x.qty;
+    roles[id] = { have, want: r.want };
+  }
+  const roleNotes: string[] = [];
+  for (const [id, q] of Object.entries(shapeFor(ctx, plan).quotas)) {
+    if ((roles[id]?.have ?? 0) >= q.min) continue;
+    let inPool = 0;
+    for (const c of ctx.cards)
+      if (c.facts.roles.includes(id) && credits.earned(c.facts.card, id)) inPool += c.avail;
+    const label = (ctx.roleLabels.get(id) ?? id).toLowerCase();
+    roleNotes.push(`Wanted ${q.min} ${label}, the bulk list had ${inPool}.`);
+  }
+
   const notes = [...lead];
   if (plan.kind === 'theme') {
     const counts = FLOOR_KEYS.filter((k) => (plan.floor[k] ?? 0) > 0).map(
-      (k) => `${FLOOR_WORDS[k]} ${round2(floorValue(d.plan, k))} of ${plan.floor[k]}`,
+      (k) =>
+        `${FLOOR_WORDS[k]} ${round2(floorValue(built.floors ?? cur(ctx, d).plan, k))} of ${plan.floor[k]}`,
     );
     notes.push(`${plan.archetype.label} minimums met: ${counts.join(', ')}.`);
   }
   if (built.relaxed.length) notes.push(`To fill every slot, relaxed ${joinWords(built.relaxed)}.`);
-  notes.push(...mana.notes, ...copyNotes(chosen, mana.nonbasics), ...report.roleNotes);
+  notes.push(...mana.notes, ...copyNotes(chosen, mana.nonbasics), ...roleNotes);
   notes.push(landLine(lands, landPlan, mana));
 
   const byName = (a: CardFacts, b: CardFacts) =>
@@ -1400,7 +2105,7 @@ function finish(
     builder: 'grow',
     ...(nearest ? { nearest } : {}),
     curve: report.curve,
-    roles: report.roles,
+    roles,
     lands: {
       count: lands,
       averageMv: landPlan.averageMv,
@@ -1495,7 +2200,7 @@ export function buildGrowDeck(
   config: BulkBrewConfig,
 ): BuildResult {
   const ctx = growContext(request, pool, index, config);
-  const scan = scanCandidates(ctx.candidates, config, ctx.settings, ctx.size, ctx.colors);
+  const scan = scanPossible(ctx.candidates, config, ctx.settings, ctx.size, ctx.colors);
   if (!scan.possible)
     throw new BuildError(
       `Not enough ${colorsLabel(ctx.colors)} cards for a ${ctx.size}-card deck: ${scan.notes.join('; ')}.`,

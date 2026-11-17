@@ -1,5 +1,5 @@
 {
-  "version": "2",
+  "version": "3",
   "vocabulary": {
     "creatureTypes": [
       "Advisor",
@@ -756,7 +756,7 @@
     "\\bexile (?:a|an|one|two|\\w+) cards? from your hand\\b",
     "\\bdeals? (?:\\w+ )?damage to you\\b",
     "\\bdiscards?\\b",
-    "\\bcan't\\b",
+    "\\bcan't\\b(?! be (?:blocked|countered|the target))",
     "\\b(?:doesn't|don't) untap\\b",
     "\\benters? (?:the battlefield )?tapped\\b",
     "\\bisn't a creature\\b",
@@ -975,6 +975,11 @@
       }
     ],
     "condition": [
+      {
+        "re": "~ entered this turn or if you control a basic land",
+        "ignore": true,
+        "note": "the basic-land duals (Hidden Lair): every deck plays a basic land, so the mana asks for nothing"
+      },
       {
         "re": "able|you do|you don't|you can't|you did|you didn't|it's (?:not )?your turn|it isn't your turn|it's an opponent's turn|it's (?:day|night)|it's the [^,]+",
         "ignore": true
@@ -1972,10 +1977,10 @@
         "role": "cardAdvantage"
       },
       "repeatable creature tokens": {
-        "clause": "\\bcreates? [^.]*\\btokens?\\b|\\bpopulate\\b|\\bamass\\b"
+        "clause": "\\bcreates? [^.]*\\btokens?\\b|\\bpopulate\\b|\\bamass\\b|\\b(?:offspring|mobilize|squad|myriad|afterlife|fabricate|incubate|living weapon|encore|embalm|eternalize)\\b|\\bfor mirrodin!"
       },
       "several bodies": {
-        "clause": "\\bcreates? [^.]*\\btokens?\\b|\\bamass\\b|\\bfabricate\\b|\\bpopulate\\b"
+        "clause": "\\bcreates? [^.]*\\btokens?\\b|\\bamass\\b|\\bpopulate\\b|\\b(?:offspring|mobilize|squad|myriad|afterlife|fabricate|incubate|living weapon|encore|embalm|eternalize)\\b|\\bfor mirrodin!"
       },
       "mana source": {
         "role": "ramp"
@@ -2104,6 +2109,17 @@
     "energy": {
       "theme": "energy"
     }
+  },
+  "themeResources": {
+    "tokens": ["tokens"],
+    "counters": ["counters:any", "counters:+1/+1"],
+    "aristocrats": ["death", "sacrifice"],
+    "graveyard": ["graveyard:any", "graveyard:land"],
+    "spells": ["spells", "type:instant-sorcery", "cast:noncreature"],
+    "lifegain": ["lifegain"],
+    "artifacts": ["type:artifact", "cast:artifact"],
+    "enchantments": ["type:enchantment", "cast:enchantment"],
+    "energy": ["energy"]
   },
   "thresholds": {
     "base": {

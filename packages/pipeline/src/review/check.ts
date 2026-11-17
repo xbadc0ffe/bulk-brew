@@ -476,12 +476,12 @@ export function checkMana(d: ReviewDeck, ctx: CheckContext, list: Entry[]): Mana
   }
   for (const e of landCards) {
     if (!isBasicLand(e.card)) continue;
-    for (const c of landColors(e.card, colors, size))
+    for (const c of landColors(e.card, colors, size, ctx.config))
       basicFor.set(c, (basicFor.get(c) ?? 0) + e.qty);
   }
   for (const e of landCards) {
     const fetch = isFetchLand(e.card);
-    for (const c of landColors(e.card, colors, size)) {
+    for (const c of landColors(e.card, colors, size, ctx.config)) {
       if (fetch && multi && !(basicFor.get(c) ?? 0)) continue;
       sources[c]! += e.qty;
     }

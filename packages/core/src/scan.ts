@@ -14,9 +14,10 @@ import {
   type SynergyArchetype,
   type TypeMix,
 } from './config.ts';
+import { creditEarned, type DeckSupply } from './card-needs.ts';
 import { listCandidates, type Candidate } from './candidates.ts';
 import { colorsLabel, isCommanderSize, normalizeColors } from './colors.ts';
-import { growViability } from './grow.ts';
+import { growViability, poolSupply } from './grow.ts';
 import { creatureTypes, inTribe } from './matchers.ts';
 import type { CardIndex } from './pack.ts';
 import {
@@ -130,13 +131,18 @@ function reportComposition(
   spells: number,
   spellSlots: number,
   possible: boolean,
+  supply: DeckSupply,
 ): ArchetypeReport {
   const quotas = effectiveQuotas(template, a);
   const notes: string[] = [];
   let margin = ratio(spells, spellSlots) - 1;
   for (const [roleId, q] of Object.entries(quotas)) {
     if (q.min <= 0) continue;
-    const have = countCopies(cands, (c) => c.facts.roles.includes(roleId));
+    // A role counts only on cards that could earn it with what the pool supplies.
+    const have = countCopies(
+      cands,
+      (c) => c.facts.roles.includes(roleId) && creditEarned(c.facts.card, roleId, supply, config),
+    );
     const role = config.roles.roles.find((r) => r.id === roleId);
     const label = (role?.label ?? roleId).toLowerCase();
     if (have < q.min) notes.push(`needs ${q.min - have} more ${label}`);
@@ -154,16 +160,25 @@ function reportComposition(
   };
 }
 
-/** Scan an already computed candidate list. */
-export function scanCandidates(
-  cands: Candidate[],
+/** Whether a deck of this size and these colors can be built at all, and what the pool lacks. */
+export function scanPossible(
+  cands: readonly Candidate[],
   config: BulkBrewConfig,
   settings: Settings,
   size: DeckSize,
-  colorsIn: Color | readonly Color[],
-): ScanReport {
-  const colors = normalizeColors(typeof colorsIn === 'string' ? [colorsIn] : colorsIn);
-  const color = colors[0]!;
+  colors: readonly Color[],
+): { possible: boolean; notes: string[] } {
+  const { possible, notes } = poolCounts(cands, config, settings, size, colors);
+  return { possible, notes };
+}
+
+function poolCounts(
+  cands: readonly Candidate[],
+  config: BulkBrewConfig,
+  settings: Settings,
+  size: DeckSize,
+  colors: readonly Color[],
+) {
   const label = colorsLabel(colors);
   const template = templateFor(config, size);
   const commander = isCommanderSize(size);
@@ -207,7 +222,7 @@ export function scanCandidates(
     // Each color must bring a card of its own; one below minCardsPerColor is a splash,
     // and the builder fills its minimum as far as the pool allows.
     for (const c of colors) {
-      if (countCopies(cands, (x) => x.facts.card.colors.includes(c)) === 0)
+      if (countCopies([...cands], (x) => x.facts.card.colors.includes(c)) === 0)
         notes.push(`needs 1 more ${COLOR_LABELS[c]} card for a ${label} deck`);
     }
   } else if (creatures === spells && creatures >= spellSlots) {
@@ -219,12 +234,30 @@ export function scanCandidates(
     notes.push(`needs ${plural(landsNeeded - lands, 'more land')} (basics are tracked)`);
   }
   const possible = !notes.some((n) => n.startsWith('needs '));
+  return { template, spells, colored, distinct, lands, spellSlots, minSpells, notes, possible };
+}
+
+/** Scan an already computed candidate list. */
+export function scanCandidates(
+  cands: Candidate[],
+  config: BulkBrewConfig,
+  settings: Settings,
+  size: DeckSize,
+  colorsIn: Color | readonly Color[],
+): ScanReport {
+  const colors = normalizeColors(typeof colorsIn === 'string' ? [colorsIn] : colorsIn);
+  const color = colors[0]!;
+  const { template, spells, colored, distinct, lands, spellSlots, minSpells, notes, possible } =
+    poolCounts(cands, config, settings, size, colors);
   const tribes = tribesOf(cands);
+  // What the pool could supply, read once for the theme rules' view and the shapes' role counts.
+  const supply = poolSupply(cands, config, size, colors);
   // The theme rules' view, for the sizes the grow builder builds; the old fields stay as they were.
-  const rules = size === 20 ? undefined : growViability(cands, config, size);
+  const rules =
+    size === 20 ? undefined : growViability(cands, config, size, undefined, colors, supply);
   const archetypes = config.archetypes.archetypes.map((a) => {
     if (a.kind !== 'synergy')
-      return reportComposition(a, cands, config, template, spells, spellSlots, possible);
+      return reportComposition(a, cands, config, template, spells, spellSlots, possible, supply);
     const report = reportSynergy(a, config, cands, template, colors, possible);
     const r = rules?.[a.id];
     if (r) report.rules = { viable: r.viable, margin: r.margin, lacks: r.lacks };

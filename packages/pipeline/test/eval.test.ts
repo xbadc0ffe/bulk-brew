@@ -18,7 +18,8 @@ import cardStrength from '../../../config/card-strength.json';
 import themeRules from '../../../config/theme-rules.json';
 import cardNeeds from '../../../config/card-needs.json';
 import settingsDefaults from '../../../config/settings.defaults.json';
-import { castableIn, deckMetrics } from '../src/metrics.ts';
+import { deltaLine, summarize, type DeckRun } from '../src/eval.ts';
+import { castableIn, deckMetrics, type DeckMetrics } from '../src/metrics.ts';
 
 const CONFIG = {
   deckTemplates,
@@ -263,5 +264,42 @@ describe('deckMetrics', () => {
     expect(asAggro.roles['cardAdvantage']).toEqual({ have: 0, min: 0, target: 0 });
     expect(asAggro.castable).toBe(true);
     expect(asAggro.colorLegal).toBe(true);
+  });
+});
+
+describe('eval summaries', () => {
+  const run = (unsupported?: number): DeckRun => ({
+    pool: 'p',
+    size: 60,
+    color: 'W',
+    style: 'best',
+    ok: true,
+    ms: 1,
+    metrics: {
+      ...deckMetrics(
+        deck({ cards: [{ cardId: 'one', qty: 12, why: 'Filler' }] }),
+        index,
+        CONFIG,
+        SETTINGS,
+      ),
+      ...(unsupported === undefined ? {} : { unsupported }),
+    },
+  });
+
+  it('averages unsupported cards per deck', () => {
+    expect(summarize([run(2), run(0)], []).unsupported).toBe(1);
+  });
+
+  it('leaves the field out for runs recorded before it existed', () => {
+    const old = run();
+    delete (old.metrics as Partial<DeckMetrics>).unsupported;
+    expect(summarize([old], []).unsupported).toBeUndefined();
+  });
+
+  it('shows a metric with no earlier value without a verdict', () => {
+    expect(deltaLine('unsupported', undefined, 1.5, 'lower')).toMatch(
+      /- +-> +1\.5 +\(no earlier value\)$/,
+    );
+    expect(deltaLine('unsupported', 2, 1, 'lower')).toMatch(/\(-1, better\)$/);
   });
 });

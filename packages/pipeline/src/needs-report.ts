@@ -242,7 +242,7 @@ function main(): number {
     }
   }
 
-  // Lands the pack marks tapped: the reader against landEntry (lands.ts), which a later step folds in.
+  // Lands the pack marks tapped: landEntry (lands.ts), which asks the reader, against the tapped line.
   const landTab = new Map<string, number>();
   for (const card of cards) {
     if (!card.entersTapped || card.unset) continue;

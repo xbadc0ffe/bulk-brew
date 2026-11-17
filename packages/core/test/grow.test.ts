@@ -4,6 +4,7 @@ import { factsFor, listCandidates } from '../src/candidates.ts';
 import { validateConfig, type BulkBrewConfig } from '../src/config.ts';
 import { commitDeck } from '../src/decks.ts';
 import { deckToDecklist } from '../src/export.ts';
+import { unsupportedCards } from '../src/deck-credits.ts';
 import { growBuilds, growViability } from '../src/grow.ts';
 import { CardIndex } from '../src/pack.ts';
 import { scanPool } from '../src/scan.ts';
@@ -362,6 +363,23 @@ describe('grow builder: a requested theme', () => {
     expect(r.deck.cards.some((c) => c.why?.startsWith('Setup: looter'))).toBe(true);
   });
 
+  it('seeds payoffs whose needs come from cards the fill adds later (the second try)', () => {
+    // "Return target creature card from your graveyard" needs creature cards to return: ten
+    // creatures at 60, none of them in the deck while its payoffs are seeded. The first
+    // try, holding each pick to the deck so far, cannot start; the second takes what the
+    // pool can pay for, and the finished deck must earn every payoff it counts.
+    const f = fakePool();
+    const r = build(f, 'graveyard');
+    const creatures = r.deck.cards
+      .filter((c) => f.index.get(c.cardId)!.types.includes('creature'))
+      .reduce((n, c) => n + c.qty, 0);
+    expect(creatures).toBeGreaterThanOrEqual(10);
+    expect(
+      r.deck.cards.filter((c) => c.why?.startsWith('Payoff: reanimation')).length,
+    ).toBeGreaterThan(0);
+    expect(unsupportedCards(r.deck, f.index, CONFIG)).toEqual([]);
+  });
+
   it('counts a card meeting both jobs once and never a rider as setup', () => {
     const f = fakePool();
     const style = RULES.styles.get('graveyard')!;
@@ -505,15 +523,16 @@ describe('grow builder: the nearest rule', () => {
     const f = thinPool(2);
     expect(build(f, undefined).deck.archetype).toBe('graveyard');
     const r = build(f, 'graveyard');
+    // Its reanimation spells need creature cards to return: seven or eight creatures in the pool pay for none.
     expect(r.explanation.builder).toBe('classic');
     expect(r.deck.archetype).toBe('midrange');
     expect(r.deck.name).toBe('Blue Midrange 60');
     expect(r.explanation.nearest).toEqual({
       requested: 'graveyard',
-      lacks: 'few repeatable ways to fill the graveyard (1 of 2)',
+      lacks: 'few cards that use a full graveyard (0 of 6)',
     });
     expect(r.explanation.notes[0]).toBe(
-      'Asked for Graveyard: your bulk list has few repeatable ways to fill the graveyard (1 of 2). Built Midrange instead.',
+      'Asked for Graveyard: your bulk list has few cards that use a full graveyard (0 of 6). Built Midrange instead.',
     );
     expect(r.deck.explanation).toBe(r.explanation);
     expect(total(r.deck)).toBe(60);
@@ -522,7 +541,7 @@ describe('grow builder: the nearest rule', () => {
     expect(build(thinner, undefined).deck.archetype).toBe('graveyard');
     expect(() => build(thinner, 'graveyard')).toThrow(BuildError);
     expect(() => build(thinner, 'graveyard')).toThrow(
-      'Not enough cards to build Graveyard: your bulk list has few repeatable ways to fill the graveyard (1 of 2).',
+      'Not enough cards to build Graveyard: your bulk list has few cards that use a full graveyard (0 of 6).',
     );
   });
 });

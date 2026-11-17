@@ -81,6 +81,8 @@ export interface Summary {
   /** Absent in results recorded before strength existed. */
   strength?: number;
   score?: number;
+  /** Unsupported spell copies per deck; absent in results recorded before the card needs reader. */
+  unsupported?: number;
   uncastable: number;
   sizeErrors: number;
   ms: number;
@@ -132,7 +134,7 @@ function hasSizeError(m: DeckMetrics): boolean {
   return !m.exactSize || !m.copyLimitOk || !m.colorLegal || !m.landsInClamp;
 }
 
-function summarize(runs: DeckRun[], skips: Skip[]): Summary {
+export function summarize(runs: DeckRun[], skips: Skip[]): Summary {
   const built = runs.filter((r) => r.ok && r.metrics);
   const n = built.length;
   const avg = (f: (m: DeckMetrics) => number) =>
@@ -149,6 +151,9 @@ function summarize(runs: DeckRun[], skips: Skip[]): Summary {
     filler: avg((m) => m.filler),
     ...(built.every((r) => r.metrics!.strength !== undefined)
       ? { strength: avg((m) => m.strength), score: avg((m) => m.score) }
+      : {}),
+    ...(n > 0 && built.every((r) => r.metrics!.unsupported !== undefined)
+      ? { unsupported: avg((m) => m.unsupported) }
       : {}),
     uncastable: built.filter((r) => !r.metrics!.castable).length,
     sizeErrors: built.filter((r) => hasSizeError(r.metrics!)).length,
@@ -170,12 +175,12 @@ function loadPool(files: string[], index: CardIndex): { pool: Pool; unresolved: 
 }
 
 function row(name: string, s: Summary): string {
-  return `| ${name} | ${s.decks} | ${s.failures} | ${s.skipped} | ${s.lands} | ${s.averageMv} | ${s.curveDeviation} | ${s.rolesBelowMin} | ${s.synergyDensity} | ${s.filler} | ${s.strength ?? '-'} | ${s.score ?? '-'} | ${s.uncastable} | ${s.sizeErrors} | ${s.ms} |`;
+  return `| ${name} | ${s.decks} | ${s.failures} | ${s.skipped} | ${s.lands} | ${s.averageMv} | ${s.curveDeviation} | ${s.rolesBelowMin} | ${s.synergyDensity} | ${s.filler} | ${s.strength ?? '-'} | ${s.score ?? '-'} | ${s.unsupported ?? '-'} | ${s.uncastable} | ${s.sizeErrors} | ${s.ms} |`;
 }
 
 const HEADER = [
-  '| rows | decks | fail | skip | lands | avg mv | curve dev | roles < min | synergy | filler | strength | score | uncastable | size errors | ms |',
-  '| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |',
+  '| rows | decks | fail | skip | lands | avg mv | curve dev | roles < min | synergy | filler | strength | score | unsupported | uncastable | size errors | ms |',
+  '| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |',
 ].join('\n');
 
 /** Latest earlier full run with the same styles flag, by runAt. */
@@ -212,9 +217,17 @@ function uniquePath(file: string): string {
   }
 }
 
-type Direction = 'lower' | 'higher' | 'none';
+export type Direction = 'lower' | 'higher' | 'none';
 
-function deltaLine(label: string, before: number, after: number, better: Direction): string {
+export function deltaLine(
+  label: string,
+  before: number | undefined,
+  after: number,
+  better: Direction,
+): string {
+  // A metric added after the earlier run has nothing to compare with.
+  if (before === undefined)
+    return `  ${label.padEnd(16)} ${'-'.padStart(8)} -> ${String(after).padStart(8)}  (no earlier value)`;
   const d = Math.round((after - before) * 100) / 100;
   const sign = d > 0 ? '+' : '';
   let verdict = '';
@@ -255,6 +268,8 @@ function printDeltas(previous: Results, current: Results): void {
       console.log(deltaLine('card strength', before.strength, after.strength, 'higher'));
       console.log(deltaLine('deck score', before.score ?? 0, after.score ?? 0, 'higher'));
     }
+    if (after.unsupported !== undefined)
+      console.log(deltaLine('unsupported', before.unsupported, after.unsupported, 'lower'));
     // Timings vary with the machine, so they are shown without a verdict.
     console.log(deltaLine('build ms', before.ms, after.ms, 'none'));
   }
@@ -513,4 +528,5 @@ function main(): number {
   return overall.failures > 0 || overall.sizeErrors > 0 ? 1 : 0;
 }
 
-process.exitCode = main();
+// Run only as a script, so tests can import the summary and delta helpers.
+if (process.argv[1]?.replace(/\\/g, '/').endsWith('/eval.ts')) process.exitCode = main();

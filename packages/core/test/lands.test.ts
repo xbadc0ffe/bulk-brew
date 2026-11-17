@@ -85,18 +85,18 @@ describe('landEntry', () => {
 
 describe('land mana', () => {
   it('counts conditional mana only when the deck meets the condition', () => {
-    expect(landColors(land('Gloomlake Verge'), ['U', 'B'], 60)).toEqual(['U', 'B']);
-    expect(landColors(land('Gloomlake Verge'), ['B'], 60)).toEqual(['B']);
-    expect(landColors(land('Tainted Field'), ['W'], 60)).toEqual([]);
-    expect(landColors(land('Tainted Field'), ['W', 'B'], 60)).toEqual(['W', 'B']);
+    expect(landColors(land('Gloomlake Verge'), ['U', 'B'], 60, CONFIG)).toEqual(['U', 'B']);
+    expect(landColors(land('Gloomlake Verge'), ['B'], 60, CONFIG)).toEqual(['B']);
+    expect(landColors(land('Tainted Field'), ['W'], 60, CONFIG)).toEqual([]);
+    expect(landColors(land('Tainted Field'), ['W', 'B'], 60, CONFIG)).toEqual(['W', 'B']);
     // Any color only on the turn it entered is no steady source.
-    expect(landColors(land('Mirrex'), ['B'], 60)).toEqual([]);
+    expect(landColors(land('Mirrex'), ['B'], 60, CONFIG)).toEqual([]);
   });
 
   it('finds the life a land costs each time it taps for a deck color', () => {
-    expect(lifePerTap(land('Eumidian Hatchery'), ['B'])).toBe(1);
-    expect(lifePerTap(land('Castle Locthwain'), ['B'])).toBe(0);
-    expect(lifePerTap(land('Blood Crypt'), ['B'])).toBe(0);
+    expect(lifePerTap(land('Eumidian Hatchery'), ['B'], CONFIG)).toBe(1);
+    expect(lifePerTap(land('Castle Locthwain'), ['B'], CONFIG)).toBe(0);
+    expect(lifePerTap(land('Blood Crypt'), ['B'], CONFIG)).toBe(0);
   });
 });
 

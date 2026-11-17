@@ -3,6 +3,15 @@
 // the lands come from the pool's nonbasics scored by the land rules, with
 // basics filling the rest.
 
+import {
+  addSupply,
+  landEntryReading,
+  landUtilityEarned,
+  lineConditions,
+  needMet,
+  type DeckSupply,
+  type NeedRef,
+} from './card-needs.ts';
 import { forSize, type BulkBrewConfig, type DeckTemplate, type LandRulesConfig } from './config.ts';
 import type { Candidate, CardFacts } from './candidates.ts';
 import type { CardIndex } from './pack.ts';
@@ -146,18 +155,48 @@ function basicTypeColors(card: CardRecord): Color[] {
 }
 
 /**
- * Whether an "Activate only if ..." mana condition holds in a deck of these
- * colors: one that asks for a basic land, or a basic land type of a deck
- * color. Any other condition does not.
+ * What a deck of these colors supplies when its spells are not known: its
+ * colors (and so its basic land types), its size, and a commander at 100.
  */
-function manaConditionMet(condition: string, colors: readonly Color[]): boolean {
-  if (/(?:^|or if )you control a basic land$/i.test(condition)) return colors.length > 0;
-  const m = /^you control (an? \w+(?: or an? \w+)*)$/i.exec(condition);
-  if (!m) return false;
-  return m[1]!.split(' or ').some((w) => {
-    const type = w.replace(/^an? /i, '').toLowerCase();
-    return Object.hasOwn(BASIC_TYPE_COLOR, type) && colors.includes(BASIC_TYPE_COLOR[type]!);
-  });
+export function colorsSupply(colors: readonly Color[], size: DeckSize): DeckSupply {
+  return {
+    size,
+    colors: [...colors],
+    commander: isCommanderSize(size),
+    counts: new Map(),
+    devotion: new Map(),
+  };
+}
+
+/** What a deck's spells (and commander, when listed among them) supply, for the land rules. */
+export function spellsSupply(
+  spells: readonly SpellCopies[],
+  colors: readonly Color[],
+  size: DeckSize,
+  config: BulkBrewConfig,
+): DeckSupply {
+  const supply = colorsSupply(colors, size);
+  for (const { facts, qty } of spells) if (qty > 0) addSupply(supply, facts.card, qty, config);
+  return supply;
+}
+
+/**
+ * Whether an "Activate only if ..." mana condition holds in the deck, as the
+ * card needs reader reads it: every resource it names met ("you control an
+ * Island or a Swamp" by a deck of either color, "a basic land" by any deck).
+ * With no resource named, a condition on game state (Mirrex's "this land
+ * entered this turn") is no steady source; otherwise nothing is asked.
+ */
+function manaConditionMet(
+  card: CardRecord,
+  line: string,
+  supply: DeckSupply,
+  config: BulkBrewConfig,
+): boolean {
+  const read = lineConditions(card, config, line);
+  if (!read) return false;
+  if (read.refs.length === 0) return !read.gameState;
+  return read.refs.every((r) => needMet(r, supply, card, config));
 }
 
 interface ManaLine {
@@ -176,7 +215,8 @@ interface ManaLine {
  */
 function manaLines(
   card: CardRecord,
-  colors: readonly Color[],
+  supply: DeckSupply,
+  config: BulkBrewConfig,
 ): { any: boolean; steady: ManaLine[] } {
   const steady: ManaLine[] = [];
   let any = false;
@@ -188,8 +228,7 @@ function manaLines(
     if (!m || /\{\d+\}|\{[WUBRG]\}|sacrifice/i.test(m[1]!)) continue;
     if (/spend this mana only/i.test(line)) continue;
     if (/\bamong\b|that an? (?!land\b)\w+ you control could produce/i.test(m[2]!)) continue;
-    const only = /Activate only if (.+?)\.?$/i.exec(line)?.[1];
-    if (only && !manaConditionMet(only, colors)) continue;
+    if (/Activate only if /i.test(line) && !manaConditionMet(card, line, supply, config)) continue;
     steady.push({ cost: m[1]!, what: m[2]! });
   }
   return { any, steady };
@@ -204,9 +243,13 @@ const ANY_COLOR = /any (one )?color|any type|chosen color/i;
  * "any color" counts as every color. Returns undefined when the text shows
  * no mana ability at all.
  */
-export function landMana(card: CardRecord, colors: readonly Color[] = []): Set<Color> | undefined {
+export function landMana(
+  card: CardRecord,
+  supply: DeckSupply,
+  config: BulkBrewConfig,
+): Set<Color> | undefined {
   const out = new Set<Color>(basicTypeColors(card));
-  const { any, steady } = manaLines(card, colors);
+  const { any, steady } = manaLines(card, supply, config);
   // Any mana ability means the text was read, even one this rule does not count.
   if (out.size === 0 && !any) return undefined;
   for (const { what } of steady) {
@@ -227,16 +270,24 @@ function fetchColors(card: CardRecord): Color[] {
 /**
  * Deck colors a land can make. A land that fetches basics makes the deck
  * colors it can find, but only counts in multi-color decks: in a mono deck it
- * is a slow basic. Without readable mana text, Scryfall's produced mana stands in.
+ * is a slow basic. Without readable mana text, Scryfall's produced mana stands
+ * in. `supply` is what the deck supplies, for "Activate only if" conditions;
+ * without it, the deck's colors alone.
  */
-export function landColors(card: CardRecord, colors: readonly Color[], size: DeckSize): Color[] {
+export function landColors(
+  card: CardRecord,
+  colors: readonly Color[],
+  size: DeckSize,
+  config: BulkBrewConfig,
+  supply: DeckSupply = colorsSupply(colors, size),
+): Color[] {
   if (!isCommanderSize(size) && needsCommander(card)) return [];
   if (isFetch(card)) {
     if (colors.length < 2) return [];
     const can = fetchColors(card);
     return colors.filter((c) => can.includes(c));
   }
-  const direct = landMana(card, colors);
+  const direct = landMana(card, supply, config);
   if (direct) return colors.filter((c) => direct.has(c));
   const p = card.produces ?? [];
   return colors.filter((c) => p.includes(c));
@@ -248,6 +299,8 @@ export interface LandDeck {
   size: DeckSize;
   /** The deck's style ids, such as "graveyard" or "tribal:Elf". */
   styles?: readonly string[] | undefined;
+  /** What the deck's spells supply, for conditions such as "a legendary creature"; colors alone without it. */
+  supply?: DeckSupply | undefined;
 }
 
 /** How a land enters in one deck. */
@@ -258,87 +311,72 @@ export interface LandEntry {
   life: number;
 }
 
-const COUNT_WORDS: Record<string, number> = {
-  one: 1,
-  two: 2,
-  three: 3,
-  four: 4,
-  five: 5,
-  six: 6,
-  seven: 7,
-  eight: 8,
-};
-
-const countOf = (word: string) => COUNT_WORDS[word.toLowerCase()] ?? Number(word);
-
-/** "Swamps" and "a Swamp" both read as the type "swamp"; "Plains" is its own plural. */
-const typeWord = (word: string) =>
-  word
-    .replace(/^an? /i, '')
-    .toLowerCase()
-    .replace(/(?<!plain)s$/, '');
-
-const PAY_LIFE = /you may pay (\d+) life\. If you don't, it enters (?:the battlefield )?tapped/i;
-const REVEAL = /you may reveal (.+?) cards? from your hand/i;
-const TAPPED_LINE = /\benters (?:the battlefield )?tapped\b/i;
-const TAPPED_IF_LANDS =
-  /^If you control (\w+) or more other lands, .+ enters (?:the battlefield )?tapped/i;
-const UNLESS = /enters (?:the battlefield )?tapped unless (.+?)\.?$/i;
-
 /**
- * How a land enters in this deck, read from its text. The pack marks every
- * land whose text says it enters tapped, conditions and all, so the
- * condition is read here against the deck: "unless you control a Swamp" and
- * "reveal a Swamp card" against the basics of its colors, "two or more other
- * lands" against the land drops of a typical game, "two or more opponents"
- * against Commander, "pay 2 life" as a life cost instead. A condition this
- * does not know reads as always tapped.
+ * How a land enters in this deck. The card needs reader reads the tapped line
+ * (landEntryReading); this turns it into a chance against the deck: a
+ * resource condition by what the deck supplies ("unless you control a Swamp"
+ * against its basics, "you may reveal a Dragon card" against its Dragons, "a
+ * legendary creature" against its legends or a commander, "two or more
+ * opponents" against Commander), land counts against the land drops of a
+ * typical game, "pay 2 life" as a life cost instead. The chance weights are
+ * the land rules'. A condition the reader does not read stays tapped.
  */
 export function landEntry(card: CardRecord, deck: LandDeck, config: BulkBrewConfig): LandEntry {
   if (!card.entersTapped) return { tapped: 0, life: 0 };
   const e = config.landRules.entering;
   const tapped = (chance: number): LandEntry => ({ tapped: chance, life: 0 });
-  const text = card.text.replace(/\([^)]*\)/g, '');
-  const runs = new Set<string>(
-    deck.colors.map((c) => config.landRules.basics.names[c].toLowerCase()),
-  );
-  // A tribe's style id ("tribal:Elf") means the deck runs that creature type.
-  for (const style of deck.styles ?? []) {
-    const tribe = /^tribal:(.+)$/.exec(style)?.[1];
-    if (tribe) runs.add(tribe.toLowerCase());
-  }
-  const anyRun = (list: string) => list.split(/,? or |, /).some((w) => runs.has(typeWord(w)));
   const played = forSize(e.landsPlayed, deck.size);
   // Of a typical game's land drops, the share this land would enter tapped on.
   const drops = (n: number) => Math.min(1, Math.max(0, n) / played);
   const commander = isCommanderSize(deck.size);
-
-  const pay = PAY_LIFE.exec(text);
-  if (pay) return { tapped: 0, life: Number(pay[1]) };
-  const reveal = REVEAL.exec(text);
-  if (reveal) return tapped(anyRun(reveal[1]!) ? e.revealFromHand : 1);
-  const line = (text.split('\n').find((l) => TAPPED_LINE.test(l)) ?? '').trim();
-  const late = TAPPED_IF_LANDS.exec(line);
-  if (late) return tapped(drops(played - countOf(late[1]!)));
-  const unless = UNLESS.exec(line)?.[1];
-  if (!unless) return tapped(1);
-  let m: RegExpExecArray | null;
-  if (/^you control a basic land$/i.test(unless)) return tapped(e.basicInPlay);
-  if (/^you control a legendary creature$/i.test(unless))
-    return tapped(commander ? e.legendInPlay : 1);
-  if (/^you have two or more opponents$/i.test(unless)) return tapped(commander ? 0 : 1);
-  if (/^a player has \d+ or less life$/i.test(unless)) return tapped(e.lowLife);
-  if ((m = /^you control (\w+) or more basic lands$/i.exec(unless)))
-    return tapped(drops(countOf(m[1]!)));
-  if ((m = /^you control (\w+) or more other lands$/i.exec(unless)))
-    return tapped(drops(countOf(m[1]!)));
-  if ((m = /^you control (\w+) or fewer other lands$/i.exec(unless)))
-    return tapped(drops(played - countOf(m[1]!) - 1));
-  if ((m = /^you control (\w+) or more other (\w+)$/i.exec(unless)))
-    return tapped(runs.has(typeWord(m[2]!)) ? drops(countOf(m[1]!)) : 1);
-  if ((m = /^you control (an? \w+(?: or (?:an? )?\w+)*)$/i.exec(unless)))
-    return tapped(anyRun(m[1]!) ? e.basicInPlay : 1);
-  return tapped(1);
+  const read = landEntryReading(card, config);
+  switch (read.shape) {
+    case 'life':
+      return { tapped: 0, life: read.life ?? 0 };
+    case 'lowLife':
+      return tapped(e.lowLife);
+    case 'lands': {
+      const l = read.lands ?? {};
+      if (l.atLeast !== undefined) return tapped(drops(l.atLeast));
+      if (l.atMost !== undefined) return tapped(drops(played - l.atMost - 1));
+      return tapped(drops(played - (l.tappedFrom ?? 0)));
+    }
+    case 'unless':
+    case 'reveal': {
+      const supply = deck.supply ?? colorsSupply(deck.colors, deck.size);
+      // A tribe's style id ("tribal:Elf") means the deck runs that creature type.
+      const tribes = new Set(
+        (deck.styles ?? []).flatMap((s) => {
+          const t = /^tribal:(.+)$/.exec(s)?.[1];
+          return t ? [`tribe:${t}`] : [];
+        }),
+      );
+      const reveal = read.shape === 'reveal';
+      const chance = (read: NeedRef): number => {
+        // A land entering cannot meet its own condition (Argoth is legendary but not a creature).
+        const r: NeedRef = { ...read, self: false };
+        delete r.selfVia;
+        if (r.anyOf.includes('format:multiplayer')) return commander ? 0 : 1;
+        // A legendary creature: the commander is one; else the deck's own legends.
+        if (r.anyOf.includes('type:legendary'))
+          return commander || needMet({ ...r, anyOf: ['type:legendary'] }, supply, card, config)
+            ? e.legendInPlay
+            : 1;
+        const met = r.anyOf.some((x) => tribes.has(x)) || needMet(r, supply, card, config);
+        if (!met) return 1;
+        if (reveal) return e.revealFromHand;
+        // "Two or more basic lands", "three or more other Mountains": that many land drops.
+        if (r.anyOf.every((x) => x.startsWith('land:')) && (r.count ?? 1) > 1)
+          return drops(r.count!);
+        return r.anyOf.every((x) => x.startsWith('land:') || x.startsWith('tribe:'))
+          ? e.basicInPlay
+          : e.legendInPlay;
+      };
+      return tapped(Math.min(...read.refs.map(chance)));
+    }
+    default:
+      return tapped(1);
+  }
 }
 
 /**
@@ -346,12 +384,17 @@ export function landEntry(card: CardRecord, deck: LandDeck, config: BulkBrewConf
  * makes one: "{T}, Pay 1 life: Add {B}", a painland's damage, or City of
  * Brass's. A basic land type of a deck color taps for it free.
  */
-export function lifePerTap(card: CardRecord, colors: readonly Color[]): number {
+export function lifePerTap(
+  card: CardRecord,
+  colors: readonly Color[],
+  config: BulkBrewConfig,
+  supply: DeckSupply = colorsSupply(colors, 60),
+): number {
   const text = card.text.replace(/\([^)]*\)/g, '');
   const always = Number(/becomes tapped, it deals (\d+) damage to you/i.exec(text)?.[1] ?? 0);
   if (basicTypeColors(card).some((c) => colors.includes(c))) return always;
   let least = Infinity;
-  for (const { cost, what } of manaLines(card, colors).steady) {
+  for (const { cost, what } of manaLines(card, supply, config).steady) {
     if (!ANY_COLOR.test(what) && !colors.some((c) => what.includes(`{${c}}`))) continue;
     const life =
       Number(/pay (\d+) life/i.exec(cost)?.[1] ?? 0) +
@@ -369,26 +412,6 @@ export function draftOnly(card: CardRecord): boolean {
 const isUtility = (card: CardRecord) =>
   card.tags.includes('utility-land') || card.tags.includes('manland');
 
-/**
- * Whether a land has an ability beyond its mana abilities, how it enters, and
- * what it does once as it enters: "When this land enters, surveil 1" is a
- * one-time rider, not a plan; Dakmor Salvage's dredge is.
- */
-function lastingAbility(card: CardRecord): boolean {
-  const text = card.text.replace(/\([^)]*\)/g, '').replaceAll(card.name, 'this land');
-  // Mode lines ("• Surveil 1.") belong to the ability above them.
-  return text.split('\n').some((raw) => {
-    const line = raw.trim();
-    return (
-      line !== '' &&
-      !line.startsWith('•') &&
-      !/^[^:]*: Add /i.test(line) &&
-      !TAPPED_LINE.test(line) &&
-      !/^(?:When |As )?this land enters\b/i.test(line)
-    );
-  });
-}
-
 /** The land note's words for a chance to enter tapped; none for a land that reads as untapped. */
 function tappedWords(chance: number, config: BulkBrewConfig): string | undefined {
   if (chance <= config.landRules.entering.readsUntapped) return undefined;
@@ -401,18 +424,26 @@ export interface NonbasicScore {
   colorlessOnly: boolean;
 }
 
+/**
+ * A nonbasic land's score in a deck of these colors. `supply` is what the
+ * deck's spells supply, for conditions on how the land enters or what its
+ * mana asks for, and in a one-color deck for whether its own abilities do
+ * anything (Trenzalore Clocktower's needs a Time Lord). Without it, the colors
+ * alone. Multi-color utility still reads the tag alone.
+ */
 export function scoreNonbasic(
   card: CardRecord,
   colors: readonly Color[],
   config: BulkBrewConfig,
   size: DeckSize,
   styles: readonly string[] = [],
+  supply: DeckSupply = colorsSupply(colors, size),
 ): NonbasicScore {
-  if (colors.length <= 1) return scoreMono(card, colors, config, size, styles);
+  if (colors.length <= 1) return scoreMono(card, colors, config, size, styles, supply);
   const r = config.landRules.nonbasic;
   const reasons: string[] = [];
   let score = 0;
-  const makes = landColors(card, colors, size);
+  const makes = landColors(card, colors, size, config, supply);
   const colorlessOnly =
     makes.length === 0 && ((card.produces ?? []).length > 0 || producesOnlyColorless(card));
   if (makes.length > 0) {
@@ -423,7 +454,9 @@ export function scoreNonbasic(
     score += r.colorlessOnly;
     reasons.push('colorless only');
   }
-  const tapped = isFetch(card) ? 1 : landEntry(card, { colors, size, styles }, config).tapped;
+  const tapped = isFetch(card)
+    ? 1
+    : landEntry(card, { colors, size, styles, supply }, config).tapped;
   score += tapped * config.landRules.colors.entersTappedMulticolor;
   const words = tappedWords(tapped, config);
   if (words) reasons.push(words);
@@ -447,12 +480,13 @@ function scoreMono(
   config: BulkBrewConfig,
   size: DeckSize,
   styles: readonly string[],
+  supply: DeckSupply,
 ): NonbasicScore {
   const r = config.landRules.nonbasic;
   const m = config.landRules.mono;
   const reasons: string[] = [];
   let cost = 0;
-  const makes = landColors(card, colors, size);
+  const makes = landColors(card, colors, size, config, supply);
   const colorlessOnly =
     makes.length === 0 && ((card.produces ?? []).length > 0 || producesOnlyColorless(card));
   if (makes.length > 0) reasons.push(`produces ${makes.join('')}`);
@@ -460,7 +494,7 @@ function scoreMono(
     cost += m.noDeckColor;
     reasons.push(colorlessOnly ? 'colorless only' : 'no deck color');
   }
-  const entry = landEntry(card, { colors, size, styles }, config);
+  const entry = landEntry(card, { colors, size, styles, supply }, config);
   if (entry.life > 0) {
     // Pay the life or enter tapped, whichever costs less.
     cost += Math.max(r.entersTapped, entry.life * m.lifeToEnter);
@@ -470,7 +504,7 @@ function scoreMono(
     const words = tappedWords(entry.tapped, config);
     if (words) reasons.push(words);
   }
-  const life = makes.length > 0 ? lifePerTap(card, colors) : 0;
+  const life = makes.length > 0 ? lifePerTap(card, colors, config, supply) : 0;
   if (life > 0) {
     cost += life * m.lifePerTap;
     reasons.push(`costs ${life} life to tap`);
@@ -486,13 +520,19 @@ function scoreMono(
     entry.tapped <= config.landRules.entering.readsUntapped &&
     life === 0 &&
     !drawback;
-  // An ability that asks for mana of another color does nothing in this deck.
+  // An ability that asks for mana of another color does nothing in this deck, nor
+  // one whose needs the deck does not meet (the reader reads the land's text).
   const fits = card.identity.every((c) => colors.includes(c));
   const plan =
     fits &&
-    lastingAbility(card) &&
-    styles.some((s) => (m.planTags[s] ?? []).some((t) => card.tags.includes(t)));
-  const gain = Math.max(plan ? m.planUtility : 0, fits && free && isUtility(card) ? r.utility : 0);
+    styles.some((s) => (m.planTags[s] ?? []).some((t) => card.tags.includes(t))) &&
+    landUtilityEarned(card, supply, config);
+  // The no-cost credit also counts what it does as it enters and beyond its mana.
+  const earned = fits && landUtilityEarned(card, supply, config, true);
+  const gain = Math.max(
+    plan ? m.planUtility : 0,
+    earned && free && isUtility(card) ? r.utility : 0,
+  );
   if (gain > 0) reasons.push(plan && gain === m.planUtility ? 'helps the plan' : 'utility');
   return { score: gain + cost, why: `Land: ${reasons.join(', ')}`, colorlessOnly };
 }
@@ -565,13 +605,15 @@ export function chooseManaBase(
   const maxColorless = forSize(rules.maxColorlessOnly, size);
   const minScore = multi ? rules.minScore : config.landRules.mono.minScore;
   const notes: string[] = [];
+  // What the spells (and a listed commander) supply, for the lands' own conditions.
+  const supply = spellsSupply(spells, colors, size, config);
 
   // Draft-only lands stay out of the fallback too: they make no mana.
   const scored = landCandidates
     .filter((c) => c.facts.land && !c.facts.mdfcLand && !c.facts.basic && !draftOnly(c.facts.card))
     .map((candidate) => ({
       candidate,
-      ...scoreNonbasic(candidate.facts.card, colors, config, size, styles),
+      ...scoreNonbasic(candidate.facts.card, colors, config, size, styles, supply),
     }))
     .sort(
       (a, b) =>
@@ -600,17 +642,23 @@ export function chooseManaBase(
   const maxTapped = multi && tappedShare !== undefined ? Math.floor(count * tappedShare) : Infinity;
   // Each copy counts its chance to enter tapped, so a check land of the deck colors adds little.
   const tappedChance = (card: CardRecord) =>
-    multi && isFetch(card) ? 1 : landEntry(card, { colors, size, styles }, config).tapped;
+    multi && isFetch(card) ? 1 : landEntry(card, { colors, size, styles, supply }, config).tapped;
   const take = (least: number, limit: number, copies: 'preferred' | 'available') => {
     for (const s of scored) {
       if (s.score < least) continue;
       // The fallback must still add mana: skip lands that make no usable mana.
       const card = s.candidate.facts.card;
-      if (landColors(card, colors, size).length === 0 && (card.produces ?? []).length === 0)
+      if (
+        landColors(card, colors, size, config, supply).length === 0 &&
+        (card.produces ?? []).length === 0
+      )
         continue;
       if (!isCommanderSize(size) && needsCommander(card)) continue;
       // A fetch land needs a basic of a color it can find.
-      if (isFetch(card) && !landColors(card, colors, size).some((c) => (cap.get(c) ?? 0) > 0))
+      if (
+        isFetch(card) &&
+        !landColors(card, colors, size, config, supply).some((c) => (cap.get(c) ?? 0) > 0)
+      )
         continue;
       const already = nonbasics.find((n) => n.candidate === s.candidate);
       const most = copies === 'preferred' ? s.candidate.preferred : s.candidate.available;
@@ -634,7 +682,7 @@ export function chooseManaBase(
 
   const sources: Partial<Record<Color, number>> = {};
   const addSources = (pick: LandPick) => {
-    for (const c of landColors(pick.candidate.facts.card, colors, size))
+    for (const c of landColors(pick.candidate.facts.card, colors, size, config, supply))
       sources[c] = (sources[c] ?? 0) + pick.qty;
   };
 
@@ -659,7 +707,7 @@ export function chooseManaBase(
   if (multi) {
     for (const pick of nonbasics) {
       if (!isFetch(pick.candidate.facts.card)) continue;
-      for (const c of landColors(pick.candidate.facts.card, colors, size))
+      for (const c of landColors(pick.candidate.facts.card, colors, size, config, supply))
         fetchFor[c] = (fetchFor[c] ?? 0) + pick.qty;
     }
   }

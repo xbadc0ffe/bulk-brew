@@ -193,24 +193,24 @@ describe('landColors', () => {
       produces: ['C', 'W', 'U', 'B', 'R', 'G'],
     });
     const deck: Color[] = ['W', 'U', 'B'];
-    expect(landColors(shock, deck, 60)).toEqual(['W', 'U']);
-    expect(landColors(gain, deck, 60)).toEqual(['W', 'B']);
-    expect(landColors(filter, deck, 60)).toEqual([]);
-    expect(landColors(dragon, deck, 60)).toEqual([]);
+    expect(landColors(shock, deck, 60, CONFIG)).toEqual(['W', 'U']);
+    expect(landColors(gain, deck, 60, CONFIG)).toEqual(['W', 'B']);
+    expect(landColors(filter, deck, 60, CONFIG)).toEqual([]);
+    expect(landColors(dragon, deck, 60, CONFIG)).toEqual([]);
     const pairedFilter = land({
       id: 'pf',
       name: 'PF',
       text: '{T}: Add {C}.\n{1}, {T}: Add {G}{W}.',
       produces: ['C', 'G', 'W'],
     });
-    expect(landColors(pairedFilter, ['G', 'W'], 60)).toEqual([]);
+    expect(landColors(pairedFilter, ['G', 'W'], 60, CONFIG)).toEqual([]);
     const lotus = land({
       id: 'lf',
       name: 'LF',
       text: 'This land enters tapped.\n{T}: Add three mana of any one color.',
       produces: ['W', 'U', 'B', 'R', 'G'],
     });
-    expect(landColors(lotus, ['W'], 60)).toEqual(['W']);
+    expect(landColors(lotus, ['W'], 60, CONFIG)).toEqual(['W']);
   });
 
   it('counts fetch lands for the basics they find, and only in multi-color decks', () => {
@@ -225,9 +225,9 @@ describe('landColors', () => {
       name: 'C',
       tags: ['tutor-land-basic', 'tutor-land-basic-plains', 'tutor-land-basic-forest'],
     });
-    expect(landColors(wilds, ['W', 'U'], 60)).toEqual(['W', 'U']);
-    expect(landColors(wilds, ['W'], 60)).toEqual([]);
-    expect(landColors(courtyard, ['W', 'U'], 60)).toEqual(['W']);
+    expect(landColors(wilds, ['W', 'U'], 60, CONFIG)).toEqual(['W', 'U']);
+    expect(landColors(wilds, ['W'], 60, CONFIG)).toEqual([]);
+    expect(landColors(courtyard, ['W', 'U'], 60, CONFIG)).toEqual(['W']);
   });
 
   it('gives Command Tower style lands nothing outside Commander', () => {
@@ -237,7 +237,7 @@ describe('landColors', () => {
       text: "{T}: Add one mana of any color in your commander's color identity.",
       produces: ['W', 'U', 'B', 'R', 'G'],
     });
-    expect(landColors(tower, ['W', 'U'], 60)).toEqual([]);
+    expect(landColors(tower, ['W', 'U'], 60, CONFIG)).toEqual([]);
   });
 });
 

@@ -50,7 +50,15 @@ function fixedStat(v: string | undefined): number | undefined {
   return Number.parseInt(v, 10);
 }
 
-export function cardStrength(card: CardRecord, cfg: CardStrengthConfig): CardStrength {
+/**
+ * `unearned`: effect labels the card does not earn in the deck at hand (the
+ * card needs reader's strength credits); they add nothing, as if unmatched.
+ */
+export function cardStrength(
+  card: CardRecord,
+  cfg: CardStrengthConfig,
+  unearned?: ReadonlySet<string>,
+): CardStrength {
   const parts: StrengthPart[] = [];
   const add = (label: string, value: number) => {
     if (Math.abs(value) >= 0.005) parts.push({ label, value: round2(value) });
@@ -83,7 +91,7 @@ export function cardStrength(card: CardRecord, cfg: CardStrengthConfig): CardStr
 
   let effects = 0;
   for (const e of cfg.effects) {
-    if (cardMatches(card, e.match)) {
+    if (cardMatches(card, e.match) && !unearned?.has(e.label)) {
       effects += e.value;
       add(e.label, e.value);
     }

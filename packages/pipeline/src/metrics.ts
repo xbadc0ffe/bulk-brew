@@ -16,6 +16,7 @@ import {
   manaCostsOf,
   maxCopiesFor,
   templateFor,
+  unsupportedCards,
   type BulkBrewConfig,
   type CardIndex,
   type CardRecord,
@@ -66,6 +67,8 @@ export interface DeckMetrics {
   strength: number;
   /** The builder's deck score, 0 to 100. */
   score: number;
+  /** Spell copies the deck does not support: a drawback it does not meet, no credit earned, or a reason not earned. */
+  unsupported: number;
   castable: boolean;
   /** Names of spells whose pips cannot be paid with basics of the deck color. */
   offenders: string[];
@@ -237,6 +240,7 @@ export function deckMetrics(
     filler,
     strength: round(spells > 0 ? strengthTotal / spells : 0, 2),
     score: deck.explanation?.score?.total ?? 0,
+    unsupported: unsupportedCards(deck, index, config).reduce((n, u) => n + u.qty, 0),
     castable: offenders.length === 0,
     offenders,
   };

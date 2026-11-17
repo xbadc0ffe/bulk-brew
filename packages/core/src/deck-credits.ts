@@ -7,6 +7,7 @@
 import { factsFor } from './candidates.ts';
 import {
   addSupply,
+  cardSupport,
   creditEarned,
   creditNeeds,
   deckSupply,
@@ -180,4 +181,45 @@ export function reasonEarned(
       return earnedTheme(card, style.id, theme[1] === 'enabler' ? 'setup' : 'payoff', credits);
   }
   return true;
+}
+
+/** Why a card in a deck is unsupported there. */
+export type UnsupportedKind = 'drawback' | 'dead' | 'reason';
+
+export interface UnsupportedCard {
+  cardId: string;
+  name: string;
+  qty: number;
+  /** The reason the builder recorded. */
+  why: string;
+  kind: UnsupportedKind;
+  detail: string;
+}
+
+/**
+ * The deck's spells that the deck does not support (docs/builder-phase2.md,
+ * step 2): a drawback the deck does not meet, credits the config gives the
+ * card of which it earns none (dead), or a recorded reason it does not earn.
+ * Lands and the commander are left out. The eval and the grow builder's
+ * finished-deck check count these.
+ */
+export function unsupportedCards(
+  deck: Deck,
+  index: CardIndex,
+  config: BulkBrewConfig,
+): UnsupportedCard[] {
+  const credits = deckCredits(deck, index, config);
+  const out: UnsupportedCard[] = [];
+  for (const dc of deck.cards) {
+    const card = index.get(dc.cardId);
+    if (!card || dc.cardId === deck.commander) continue;
+    if (!factsFor(index, config, card).spell) continue;
+    const why = dc.why ?? '';
+    const base = { cardId: card.id, name: card.name, qty: dc.qty, why };
+    const s = cardSupport(card, credits.supply, config, (c) => credits.earned(card, c));
+    if (s) out.push({ ...base, ...s });
+    else if (!reasonEarned(why, card, deck, credits, config))
+      out.push({ ...base, kind: 'reason', detail: `does not earn "${why}"` });
+  }
+  return out;
 }

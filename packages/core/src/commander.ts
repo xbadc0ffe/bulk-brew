@@ -58,7 +58,7 @@ function fixingLands(
     const card = index.get(entry.cardId);
     if (!card || !card.types.includes('land') || entry.qty <= 0) continue;
     if (!card.identity.every((c) => colors.includes(c)) || draftOnly(card)) continue;
-    if (landColors(card, colors, 100).length >= 2) n += Math.min(entry.qty, 1);
+    if (landColors(card, colors, 100, config).length >= 2) n += Math.min(entry.qty, 1);
   }
   return n;
 }

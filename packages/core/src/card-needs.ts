@@ -271,6 +271,13 @@ export interface CardNeedsConfig {
   };
   /** Supply rules by resource id, or by family (the part before the first colon). */
   supply: Record<string, SupplyRule>;
+  /**
+   * A theme's own resources by style id, beside those its supply rules point
+   * at: what the theme's setup makes, so its floors count them (the Spells
+   * theme's instants and sorceries). The theme rules' viability and the grow
+   * builder's theme core take these as met; the finished deck must supply them.
+   */
+  themeResources: Record<string, string[]>;
   thresholds: {
     /** Copies a deck needs to supply a resource. */
     base: SizeTable;
@@ -661,6 +668,13 @@ export function checkCardNeeds(data: unknown, config?: BulkBrewConfig): string[]
       problems.push(`supply.${r}.text: must be true or false`);
     if (rule.theme !== undefined && styles && !styles.includes(rule.theme))
       problems.push(`supply.${r}: "${rule.theme}" is not a style in the theme rules`);
+  }
+  if (!isObject(cfg.themeResources)) problems.push('"themeResources" must be an object');
+  for (const [style, list] of Object.entries(cfg.themeResources ?? {})) {
+    if (styles && !styles.includes(style))
+      problems.push(`themeResources: "${style}" is not a style in the theme rules`);
+    if (!Array.isArray(list) || list.some((r) => typeof r !== 'string' || !RESOURCE_RE.test(r)))
+      problems.push(`themeResources.${style}: must be a list of resource ids`);
   }
   if (config) {
     for (const id of Object.keys(cfg.credits?.roles ?? {}))
@@ -2192,6 +2206,26 @@ export interface CreditReading {
   resources: string[];
 }
 
+const ownCache = new WeakMap<CardNeedsConfig, Map<string, ReadonlySet<string>>>();
+
+/**
+ * A theme's own resources: those its supply rules point at and its
+ * `themeResources`. Its floors count them, so the theme rules' viability and
+ * the grow builder's theme core take them as met.
+ */
+export function themeOwnResources(config: BulkBrewConfig, style: string): ReadonlySet<string> {
+  const cfg = config.cardNeeds;
+  let byStyle = ownCache.get(cfg);
+  if (!byStyle) ownCache.set(cfg, (byStyle = new Map()));
+  let out = byStyle.get(style);
+  if (!out) {
+    const set = new Set<string>(cfg.themeResources?.[style] ?? []);
+    for (const [r, rule] of Object.entries(cfg.supply ?? {})) if (rule.theme === style) set.add(r);
+    byStyle.set(style, (out = set));
+  }
+  return out;
+}
+
 /** Credit ids: a role id, `theme:<style>:<setup|payoff>`, or `strength:<effect label>`. */
 export function themeCredit(style: string, side: 'setup' | 'payoff'): string {
   return `theme:${style}:${side}`;
@@ -2543,7 +2577,16 @@ function computeSupply(card: CardRecord, config: BulkBrewConfig, size: DeckSize)
   return [...set].sort();
 }
 
+const pipsCache = new WeakMap<CardRecord, Map<string, number>>();
+
+/** Colored pips on a permanent card, for devotion; cached, since builders add and remove cards often. */
 function pipsOf(card: CardRecord): Map<string, number> {
+  let out = pipsCache.get(card);
+  if (!out) pipsCache.set(card, (out = readPips(card)));
+  return out;
+}
+
+function readPips(card: CardRecord): Map<string, number> {
   const out = new Map<string, number>();
   if (
     !['creature', 'artifact', 'enchantment', 'planeswalker', 'battle'].some((t) =>
@@ -2733,6 +2776,115 @@ export function needMet(
   return ref.anyOf.some((r) => resourceMet(r, supply, card, config, how, scale));
 }
 
+// ---------------------------------------------------------------- lands
+
+/**
+ * How a land enters, read from its tapped line: the reader's resource
+ * conditions ("unless you control a Swamp", "you may reveal a Forest card",
+ * "unless you have two or more opponents") as refs, and the conditions on
+ * game state the vocabulary names no resource for (land counts, life). The
+ * mana base turns this into a chance against the deck (lands.ts).
+ */
+export interface LandEntryReading {
+  /**
+   * `untapped`: no tapped line; `tapped`: always, or a condition this does not
+   * read; `life`: pay life or enter tapped; `unless` and `reveal`: the refs;
+   * `lands`: a count of lands in play; `lowLife`: a player at low life.
+   */
+  shape: 'untapped' | 'tapped' | 'life' | 'unless' | 'reveal' | 'lands' | 'lowLife';
+  refs: NeedRef[];
+  /** Life paid to enter untapped. */
+  life?: number;
+  /** Untapped with at least (or at most) this many other lands; tapped from this many other lands. */
+  lands?: { atLeast?: number; atMost?: number; tappedFrom?: number };
+}
+
+const TAPPED_LINE = /\benters? (?:the battlefield )?tapped\b/i;
+
+/** The tapped line's reading; Un-set and odd shapes read as always tapped. */
+export function landEntryReading(card: CardRecord, config: BulkBrewConfig): LandEntryReading {
+  const c = compiledFor(config);
+  const a = cardNeeds(card, config).abilities.find((x) => TAPPED_LINE.test(x.text));
+  if (!a) return { shape: 'untapped', refs: [] };
+  const text = a.text;
+  const pay =
+    /you may pay (\d+) life\. (?:If you don't|Otherwise), (?:it|~|this land) enters (?:the battlefield )?tapped/i.exec(
+      text,
+    );
+  if (pay) return { shape: 'life', refs: [], life: Number(pay[1]) };
+  const refs = a.refs.filter((r) => r.kind === 'drawback' && TAPPED_LINE.test(r.harm ?? ''));
+  if (refs.length) return { shape: /\b(?:reveal|behold)/i.test(text) ? 'reveal' : 'unless', refs };
+  const n = (w: string) => numberOf(w, c) ?? 0;
+  let m: RegExpExecArray | null;
+  if (
+    (m = /^If you control (\w+) or more other lands, .+ enters (?:the battlefield )?tapped/i.exec(
+      text,
+    ))
+  )
+    return { shape: 'lands', refs: [], lands: { tappedFrom: n(m[1]!) } };
+  const unless = /enters (?:the battlefield )?tapped unless (.+?)\.?$/i.exec(text)?.[1] ?? '';
+  if ((m = /^you control (\w+) or more other lands$/i.exec(unless)))
+    return { shape: 'lands', refs: [], lands: { atLeast: n(m[1]!) } };
+  if ((m = /^you control (\w+) or fewer other lands$/i.exec(unless)))
+    return { shape: 'lands', refs: [], lands: { atMost: n(m[1]!) } };
+  if (/^a player has \d+ or less life$/i.test(unless)) return { shape: 'lowLife', refs: [] };
+  return { shape: 'tapped', refs: [] };
+}
+
+/**
+ * The conditions of the ability printed as `line` ("{T}: Add {B}. Activate
+ * only if you control an Island or a Swamp."): the resources they name as
+ * refs, and whether the reader also found a condition on game state ("this
+ * land entered this turn") or left one unread. Undefined when the reader has
+ * no ability with that text.
+ */
+export function lineConditions(
+  card: CardRecord,
+  config: BulkBrewConfig,
+  line: string,
+): { refs: NeedRef[]; gameState: boolean } | undefined {
+  const t = line.trim();
+  const a = cardNeeds(card, config).abilities.find((x) => x.text === t);
+  if (!a) return undefined;
+  return {
+    refs: a.refs.filter((r) => r.kind === 'need' && r.place === 'condition'),
+    gameState: (a.gameState?.length ?? 0) > 0 || a.unparsed !== undefined,
+  };
+}
+
+/** A sentence of a mana ability that only makes, limits, or keeps count of the mana. */
+const MANA_ONLY =
+  /^(?:Add |Activate only |Spend this mana only |Put (?:a|an|one|\w+) [\w+/-]+ counters? on this land\b)/i;
+
+/**
+ * Whether a land does something in this deck beyond making mana and how it
+ * enters: some such ability's needs are met (Trenzalore Clocktower's needs a
+ * Time Lord, Okina's a legendary creature). `riders` also counts what the land
+ * does once as it enters and what a mana ability does beyond its mana (Arena
+ * of Glory's haste), as the no-cost utility credit does; without it only a
+ * lasting ability counts, as the plan credit asks. False when it has none.
+ */
+export function landUtilityEarned(
+  card: CardRecord,
+  supply: DeckSupply,
+  config: BulkBrewConfig,
+  riders = false,
+): boolean {
+  return cardNeeds(card, config).abilities.some((a) => {
+    // Mode lines belong to the ability above them.
+    if (a.shape === 'mode') return false;
+    const text = a.text.replaceAll(card.name, 'this land');
+    if (TAPPED_LINE.test(text)) return false;
+    const mana = /^([^:]*): Add /i.exec(text);
+    if (mana) {
+      if (!riders) return false;
+      const rest = sentences(text.slice(mana[1]!.length + 2)).map((x) => x.text.trim());
+      if (rest.every((x) => MANA_ONLY.test(x))) return false;
+    } else if (!riders && /^(?:When |As )?this land enters\b/i.test(text)) return false;
+    return a.refs.every((r) => r.kind !== 'need' || needMet(r, supply, card, config));
+  });
+}
+
 /**
  * A card's mana value in this deck: an additional cost it can pay with a
  * resource or with mana ("behold a Dragon or pay {1}") costs the mana when the
@@ -2767,6 +2919,7 @@ export function creditEarned(
   credit: string,
   supply: DeckSupply,
   config: BulkBrewConfig,
+  assumed?: ReadonlySet<string>,
 ): boolean {
   const reading = creditNeeds(card, credit, config, supply.size);
   if (reading.kind === 'absent') return false;
@@ -2775,6 +2928,86 @@ export function creditEarned(
     const mv = effectiveManaValue(card, supply, config);
     if (mv !== card.mv && !cardMatches({ ...card, mv }, role.match)) return false;
   }
-  if (!reading.gates.every((g) => needMet(g, supply, card, config))) return false;
-  return reading.clauses.some((cl) => cl.needs.every((n) => needMet(n, supply, card, config)));
+  // `assumed`: resources a caller counts elsewhere (a theme's own floors), taken as met.
+  const ok = (r: NeedRef) =>
+    (assumed !== undefined && r.anyOf.some((x) => assumed.has(x))) ||
+    needMet(r, supply, card, config);
+  if (!reading.gates.every(ok)) return false;
+  return reading.clauses.some((cl) => cl.needs.every(ok));
+}
+
+/**
+ * The card's first drawback the deck does not meet: an "unless" or "if you
+ * don't" that harms its owner (Tragedy Feaster's sacrifice without lifegain).
+ * A builder leaves such a card out.
+ */
+export function unmetDrawback(
+  card: CardRecord,
+  supply: DeckSupply,
+  config: BulkBrewConfig,
+  assumed?: ReadonlySet<string>,
+): NeedRef | undefined {
+  for (const a of cardNeeds(card, config).abilities)
+    for (const r of a.refs)
+      if (
+        r.kind === 'drawback' &&
+        !r.anyOf.some((x) => assumed?.has(x)) &&
+        !needMet(r, supply, card, config)
+      )
+        return r;
+  return undefined;
+}
+
+const positiveCache = new WeakMap<CardRecord, WeakMap<BulkBrewConfig, Map<number, string[]>>>();
+
+/**
+ * The credits the config gives a card that count for something: its roles,
+ * theme sides, and strength effects worth more than nothing (a penalty such as
+ * "drawback" is not a credit). A card that earns none of them in a deck is dead there.
+ */
+export function positiveCredits(
+  card: CardRecord,
+  config: BulkBrewConfig,
+  size: DeckSize = 60,
+): string[] {
+  let byConfig = positiveCache.get(card);
+  if (!byConfig) positiveCache.set(card, (byConfig = new WeakMap()));
+  let bySize = byConfig.get(config);
+  if (!bySize) byConfig.set(config, (bySize = new Map()));
+  let out = bySize.get(size);
+  if (!out) {
+    const value = new Map(
+      config.cardStrength.effects.map((e) => [strengthCredit(e.label), e.value] as const),
+    );
+    out = cardCredits(card, config, size).filter((c) => (value.get(c) ?? 1) > 0);
+    bySize.set(size, out);
+  }
+  return out;
+}
+
+/** Why a card has no place in a deck by its needs: an unmet drawback, or every credit unearned. */
+export interface CardSupport {
+  kind: 'drawback' | 'dead';
+  detail: string;
+}
+
+/**
+ * Whether a card is unsupported in a deck, apart from the reason a builder
+ * recorded for it: a drawback the deck does not meet, or credits the config
+ * gives it of which it earns none. `earned` lets a caller memoize; `assumed`
+ * resources count as met for drawbacks (a builder's plan, still being built).
+ */
+export function cardSupport(
+  card: CardRecord,
+  supply: DeckSupply,
+  config: BulkBrewConfig,
+  earned: (credit: string) => boolean = (credit) => creditEarned(card, credit, supply, config),
+  assumed?: ReadonlySet<string>,
+): CardSupport | undefined {
+  const drawback = unmetDrawback(card, supply, config, assumed);
+  if (drawback) return { kind: 'drawback', detail: drawback.harm ?? drawback.text };
+  const credits = positiveCredits(card, config, supply.size);
+  if (credits.length > 0 && !credits.some(earned))
+    return { kind: 'dead', detail: `earns none of ${credits.join(', ')}` };
+  return undefined;
 }

@@ -188,7 +188,7 @@ export function replacementOptions(
 
   const ranked: { option: ReplacementOption; score: number }[] = [];
   if (!outFacts.spell && !outFacts.basic) {
-    const makes = landColors(outCard, colors, deck.size);
+    const makes = landColors(outCard, colors, deck.size, config, now.supply);
     for (const c of makes.length > 0 ? makes : colors) {
       const basic = index.find(config.landRules.basics.names[c]);
       if (!basic) continue;
@@ -198,7 +198,8 @@ export function replacementOptions(
         : (pool.entries[basic.id]?.qty ?? 0) - (deck.basics[c] ?? 0);
       if (spare <= 0) continue;
       const qty = Math.min(out.qty, spare);
-      const score = scoreNonbasic(basic, colors, config, deck.size, styles).score - short(qty);
+      const score =
+        scoreNonbasic(basic, colors, config, deck.size, styles, now.supply).score - short(qty);
       ranked.push({ option: { card: basic, qty, shared: [], added: [] }, score });
     }
   }
@@ -227,7 +228,7 @@ export function replacementOptions(
         WEIGHTS.mvStep * Math.min(WEIGHTS.mvCap, Math.abs(f.card.mv - outCard.mv)) +
         (f.creature === outFacts.creature ? WEIGHTS.sameKind : 0);
     } else {
-      score += scoreNonbasic(f.card, colors, config, deck.size, styles).score;
+      score += scoreNonbasic(f.card, colors, config, deck.size, styles, now.supply).score;
     }
     const option: ReplacementOption = { card: f.card, qty, shared, added };
     if (cand.printing) option.printing = cand.printing;
@@ -373,7 +374,7 @@ function followSwap(
   } else if (sources) {
     // A fetch land counts for the colors the deck runs basics of, as the mana base counts it.
     const move = (f: CardFacts, by: number, basics: Deck['basics']) => {
-      for (const c of landColors(f.card, colors, deck.size))
+      for (const c of landColors(f.card, colors, deck.size, config))
         if (!isFetch(f.card) || (basics[c] ?? 0) > 0) sources[c] = (sources[c] ?? 0) + by;
     };
     move(outFacts, -n, before.basics);
@@ -383,7 +384,7 @@ function followSwap(
       if ((before.basics[c] ?? 0) > 0 || (deck.basics[c] ?? 0) === 0) continue;
       for (const dc of deck.cards) {
         const card = index.get(dc.cardId);
-        if (card && isFetch(card) && landColors(card, colors, deck.size).includes(c))
+        if (card && isFetch(card) && landColors(card, colors, deck.size, config).includes(c))
           sources[c] = (sources[c] ?? 0) + dc.qty;
       }
     }
