@@ -75,9 +75,9 @@ export function byStylePromise(a: ArchetypeReport, b: ArchetypeReport): number {
 }
 
 /**
- * Whether the grow builder's plan picker ranks a request's options: 60, 40,
- * and 100 cards without a secondary style. Then every option carries the
- * picker's score (`explanation.pick`), the same score best fit ranks by.
+ * Whether the grow builder's plan picker ranks a request's options: any size
+ * without a secondary style. Then every option carries the picker's score
+ * (`explanation.pick`), the same score best fit ranks by.
  */
 export function pickerRanks(req: OptionsRequest, config: BulkBrewConfig): boolean {
   return growBuilds(
@@ -109,11 +109,11 @@ export function pickerStyles(scan: ScanReport): string[] {
 
 /**
  * Plan the builds for a request. Each color subset lists its styles, themes
- * first by how deep they run, then the plain shapes. With no style picked at
- * 60, 40, and 100 these are the plans best fit compares (pickerStyles): the
+ * first by how deep they run, then the plain shapes. With no style picked and
+ * no secondary style these are the plans best fit compares (pickerStyles): the
  * set of every picked color is planned in full first, so best fit is among
  * the options, and the smaller sets take turns with what is left of
- * `buildOptions.maxBuilds`. Otherwise (20 cards, a secondary style) the plan
+ * `buildOptions.maxBuilds`. With a secondary style the plan
  * takes one style from each subset in turn by the scan's old viability. A
  * picked primary that the grow builder takes is planned wherever the theme
  * rules describe it, whatever the pool holds: the build then answers with the

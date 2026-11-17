@@ -3,6 +3,7 @@ import { listCandidates, maxCopiesFor } from '../src/candidates.ts';
 import { templateFor } from '../src/config.ts';
 import {
   BuildError,
+  buildClassic,
   buildDeck,
   compareCandidates,
   curveTargets,
@@ -150,6 +151,12 @@ function build(size: DeckSize, style?: string, config = CONFIG) {
   return buildDeck(style ? { ...base, style } : base, bigPool(), index, config);
 }
 
+/** The classic builder alone, which buildDeck now sends only secondary styles and tribes. */
+function classic(size: DeckSize, style?: string, config = CONFIG) {
+  const base = { size, colors: ['W' as const], settings: SETTINGS, id: 'test', createdAt: 't' };
+  return buildClassic(style ? { ...base, style } : base, bigPool(), index, config);
+}
+
 function total(deck: Deck): number {
   return (
     deck.cards.reduce((n, c) => n + c.qty, 0) +
@@ -202,14 +209,17 @@ describe('buildDeck', () => {
     }
   });
 
-  it('falls back with a note when the style is not viable, or drops the plan at 60', () => {
-    // The classic builder (20 cards) builds the best fit instead.
-    const r = build(20, 'lifegain');
+  it('falls back with a note when the style is not viable, or drops the plan', () => {
+    // The classic builder builds the best fit instead.
+    const r = classic(20, 'lifegain');
     expect(r.deck.archetype).not.toBe('lifegain');
     expect(r.explanation.notes.join(' ')).toMatch(/not viable/);
-    // At 60 a style not asked for by name is one plan of a list: the grow builder refuses it.
+    // A style not asked for by name is one plan of a list: the grow builder refuses it.
     expect(() => build(60, 'lifegain')).toThrow(
       'Not enough cards to build Lifegain: your bulk list has few cards that gain life (0 of 10).',
+    );
+    expect(() => build(20, 'lifegain')).toThrow(
+      'Not enough cards to build Lifegain: your bulk list has few cards that gain life (0 of 5).',
     );
   });
 
@@ -333,8 +343,8 @@ describe('best fit', () => {
     expect(build(60).deck).toEqual(r.deck);
   });
 
-  it('without learned plans (20 cards), picks the highest score among the archetypes it tried', () => {
-    const build60 = (style?: string) => build(20, style, HAND_CONFIG);
+  it('without learned plans (classic, 20 cards), picks the highest score among the archetypes it tried', () => {
+    const build60 = (style?: string) => classic(20, style, HAND_CONFIG);
     const r = build60();
     const score = r.explanation.score;
     expect(score).toBeDefined();
@@ -356,13 +366,13 @@ describe('best fit', () => {
     }
   });
 
-  it('with learned plans (20 cards), picks the plan the pool leans to and fills its theme toward real decks', () => {
-    const r = build(20);
+  it('with learned plans (classic, 20 cards), picks the plan the pool leans to and fills its theme toward real decks', () => {
+    const r = classic(20);
     const note = r.explanation.notes.find((n) => n.startsWith('Compared '));
     expect(note).toMatch(/the plan this bulk list leans to most/);
     expect(note).not.toMatch(/\d+\.\d/);
     // Deterministic: the same pool and config give the same plan and deck.
-    expect(build(20).deck).toEqual(r.deck);
+    expect(classic(20).deck).toEqual(r.deck);
   });
 
   it('builds only the requested style when it is viable', () => {

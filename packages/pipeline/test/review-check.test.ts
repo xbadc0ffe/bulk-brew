@@ -384,6 +384,37 @@ describe('legality', () => {
   });
 });
 
+describe('dead cards', () => {
+  it("reads a theme job bound to sizes at the deck's size", () => {
+    const themes = compileThemeRules({
+      version: 't',
+      styles: {
+        undead: {
+          resource: 'r',
+          setup: [{ job: 'zombie', weight: 1, typeLine: 'Zombie', sizes: [60] }],
+          payoff: [{ job: 'p', weight: 1, anyTags: ['never'] }],
+        },
+      },
+    } satisfies ThemeRulesFile);
+    // A slow 1/1 fills no role, so only its theme job keeps it off the dead list.
+    const lump = card({ name: 'Lump', mv: 5, manaCost: '{4}{B}', power: '1', toughness: '1' });
+    const index = new CardIndex({
+      ...INDEX.pack,
+      cardCount: 12,
+      cards: [...INDEX.pack.cards, lump],
+    });
+    const ctx: CheckContext = { ...CTX, index, medianStrength: 99, themes };
+    const at = (size: ReviewSize) => {
+      const d = deck(size, ['B'], [[lump, 4]], { B: size - 4 });
+      const built = { ...d, deck: { ...d.deck, archetype: 'undead' } };
+      return checkDeck(built, ctx, { file: 'f', stamp: 's', determinism: null }).dead.copies;
+    };
+    // At 60 the Zombie has its job; at 40 the rule does not apply, so it counts as dead.
+    expect(at(60)).toBe(0);
+    expect(at(40)).toBe(4);
+  });
+});
+
 describe('flags', () => {
   const ok: FlagInputs = {
     size: 60,

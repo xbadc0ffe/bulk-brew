@@ -1,12 +1,12 @@
 // Entry point for `npm run review:agree`: the agreement check (builder phase 2,
 // step 4) over pool files. For each pool it checks best fit's requests (each
-// color at 60 and 40, the top commanders at 100): the scan, the Analyze pane's
+// color at 60, 40, and 20, the top commanders at 100): the scan, the Analyze pane's
 // plan, the Build page's plan, and the builder name the same viable styles,
 // every one of them can be built, and every deck built shows the setup and payoff counts its builder counted
 // (checkAgreement in the core). It prints counts and style ids only, never
 // card or commander names, so it can run on held-out judging pools.
 //
-// Usage: npm run review:agree -- [--dev] [--sizes 60,40,100] [--commanders 2] [pool files...]
+// Usage: npm run review:agree -- [--dev] [--sizes 60,40,20,100] [--commanders 2] [pool files...]
 // --dev adds the development pools: eval/pools, plain-01 to plain-10, and the
 // theme pools without an h1- or h2- prefix. Exits 1 on any disagreement.
 
@@ -58,10 +58,10 @@ function positional(): string[] {
 function main(): number {
   const files = [...(flag('dev') ? devPools() : []), ...positional()];
   if (files.length === 0) {
-    console.error('usage: npm run review:agree -- [--dev] [--sizes 60,40,100] [pool files...]');
+    console.error('usage: npm run review:agree -- [--dev] [--sizes 60,40,20,100] [pool files...]');
     return 2;
   }
-  const sizes = (arg('sizes') ?? '60,40,100').split(',').map(Number) as DeckSize[];
+  const sizes = (arg('sizes') ?? '60,40,20,100').split(',').map(Number) as DeckSize[];
   const commanders = Number(arg('commanders') ?? 2);
   const ctx = createContext();
   const { index, config, settings } = ctx;
@@ -76,7 +76,7 @@ function main(): number {
   for (const file of files) {
     const { pool, info } = loadPool(file, index);
     const jobs: { label: string; req: AgreementRequest }[] = [];
-    for (const size of sizes.filter((s) => s === 60 || s === 40) as (60 | 40)[])
+    for (const size of sizes.filter((s) => s !== 100) as (60 | 40 | 20)[])
       for (const c of COLORS)
         if (scanPool(pool, index, config, settings, size, [c]).possible)
           jobs.push({ label: `${size} ${c}`, req: { size, colors: [c] } });

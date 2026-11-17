@@ -153,6 +153,13 @@ export interface DeckTemplate {
    * (the legend rule) and cards costing expensiveMv or more (clunky draws).
    */
   copyCaps: { legendary: number; expensiveMv: number; expensive: number };
+  /**
+   * A half deck (a 20-card packet) is played as half of a deck of twice its
+   * size with twice its base lands, its own base lands its only sources of
+   * its colors. A spell is a candidate only when it has at least `minChance`
+   * to be castable by `turn` there (on the play, land drops not assumed).
+   */
+  halfCast?: { turn: number; minChance: number };
   tolerances: {
     /** Cards per curve bucket that count as "on target". */
     curve: number;
@@ -876,6 +883,16 @@ export function validateConfig(c: BulkBrewConfig): string[] {
       problems.push(`${w}.copyCaps: legendary, expensiveMv, and expensive must be numbers`);
     else if (cc.legendary < 1 || cc.expensive < 1)
       problems.push(`${w}.copyCaps: limits must be at least 1`);
+    const hc = t.halfCast;
+    if (
+      hc !== undefined &&
+      (!isNum(hc.turn) ||
+        hc.turn < 1 ||
+        !isNum(hc.minChance) ||
+        hc.minChance < 0 ||
+        hc.minChance > 1)
+    )
+      problems.push(`${w}.halfCast: turn must be at least 1 and minChance from 0 to 1`);
     if (!t.tolerances || !isNum(t.tolerances.curve) || !isNum(t.tolerances.typeMix)) {
       problems.push(`${w}.tolerances: curve and typeMix must be numbers`);
     }

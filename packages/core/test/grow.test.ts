@@ -642,21 +642,23 @@ describe('grow builder: routing', () => {
       CONFIG,
     );
 
-  it('takes best fit and every style at 60, 40, and 100 but secondary styles and tribes', () => {
+  it('takes best fit and every style at every size but secondary styles and tribes', () => {
     expect(run({ style: 'tokens', requireStyle: true }).explanation.builder).toBe('grow');
     expect(run({ style: 'tokens', requireStyle: true, size: 40 }).explanation.builder).toBe('grow');
     expect(run({}).explanation.builder).toBe('grow');
     expect(run({ size: 40 }).explanation.builder).toBe('grow');
     expect(run({}).explanation.pick?.ranked?.length).toBeGreaterThan(1);
     expect(run({ style: 'tokens' }).explanation.builder).toBe('grow');
-    // 20-card packets keep the classic builder, best fit included.
-    expect(run({ size: 20 }).explanation.builder).toBe('classic');
-    expect(run({ size: 20 }).explanation.pick).toBeUndefined();
-    expect(run({ style: 'tokens', requireStyle: true, size: 20 }).explanation.builder).toBe(
-      'classic',
-    );
+    // 20-card packets too, best fit ranked by the plan picker.
+    expect(run({ size: 20 }).explanation.builder).toBe('grow');
+    expect(run({ size: 20 }).explanation.pick?.ranked?.length).toBeGreaterThan(1);
+    expect(run({ style: 'tokens', requireStyle: true, size: 20 }).explanation.builder).toBe('grow');
     expect(
       run({ style: 'tokens', secondary: 'aggro', requireStyle: true }).explanation.builder,
+    ).toBe('classic');
+    expect(
+      run({ style: 'tokens', secondary: 'aggro', requireStyle: true, size: 20 }).explanation
+        .builder,
     ).toBe('classic');
     const tribe: Partial<BuildRequest> = { style: 'tribal:Human', requireStyle: true };
     expect(growBuilds({ size: 60, colors: ['W'], settings: SETTINGS, ...tribe }, CONFIG)).toBe(
@@ -664,6 +666,48 @@ describe('grow builder: routing', () => {
     );
     // The classic path declines a tribe outside Commander, as before.
     expect(() => run(tribe)).toThrow(BuildError);
+  });
+
+  it('pads a thin 20-card packet with lands rather than turning to the classic builder', () => {
+    // Eleven one-drop copies: the land formula asks for 7 lands, and the pool fills 11 spell slots.
+    const ids = [0, 1, 2, 3, 4, 5].map((i) => `w-creature-1-${i}`);
+    const pool: Pool = {
+      entries: Object.fromEntries(ids.map((id, i) => [id, { cardId: id, qty: i < 5 ? 2 : 1 }])),
+      updatedAt: 't',
+    };
+    expect(scanPool(pool, index, CONFIG, SETTINGS, 20, ['W']).possible).toBe(true);
+    for (const style of [undefined, 'aggro']) {
+      const r = buildDeck(
+        { size: 20, colors: ['W'], settings: SETTINGS, ...(style ? { style } : {}) },
+        pool,
+        index,
+        CONFIG,
+      );
+      expect(r.explanation.builder).toBe('grow');
+      expect(r.explanation.lands.count).toBe(9);
+    }
+  });
+
+  it('says what a 20-card packet lacks when no plan fills it', () => {
+    // Three- and four-drops ask for 8 lands, and with basics tracked the pool holds 7 Plains:
+    // enough for the scan, which pads a deck of 13 or more spells with 7 lands.
+    const ids = [3, 4].flatMap((mv) => [0, 1, 2, 3, 4, 5].map((i) => `w-creature-${mv}-${i}`));
+    const pool: Pool = {
+      entries: Object.fromEntries([
+        ...ids.map((id) => [id, { cardId: id, qty: 2 }]),
+        ['plains', { cardId: 'plains', qty: 7 }],
+      ]),
+      updatedAt: 't',
+    };
+    const tracked = { ...SETTINGS, unlimitedBasics: false };
+    expect(scanPool(pool, index, CONFIG, tracked, 20, ['W']).possible).toBe(true);
+    const req = { size: 20 as const, colors: ['W' as const], settings: tracked };
+    expect(() => buildDeck(req, pool, index, CONFIG)).toThrow(
+      /^Not enough cards for a 20-card White deck: too few lands \(.+\)\.$/,
+    );
+    expect(() => buildDeck({ ...req, style: 'aggro' }, pool, index, CONFIG)).toThrow(
+      /^Not enough cards for a 20-card Aggro deck: too few lands \(.+\)\.$/,
+    );
   });
 });
 
@@ -709,9 +753,9 @@ describe('growViability and the scan', () => {
     expect(out.lacks).toBe('few cards that fill your graveyard (0 of 8)');
   });
 
-  it('reports the rules at 60, 40, and 100 but not at 20, a plain shape viable wherever the size builds', () => {
+  it('reports the rules at every size, a plain shape viable wherever the size builds', () => {
     const f = fakePool();
-    for (const size of [60, 40] as const) {
+    for (const size of [60, 40, 20] as const) {
       const scan = scanPool(f.pool, f.index, CONFIG, SETTINGS, size, ['U']);
       const gy = scan.archetypes.find((a) => a.archetype === 'graveyard')!;
       expect(gy.rules).toMatchObject({ viable: true, lacks: '' });
@@ -722,7 +766,5 @@ describe('growViability and the scan', () => {
         floors: [],
       });
     }
-    const twenty = scanPool(f.pool, f.index, CONFIG, SETTINGS, 20, ['U']);
-    expect(twenty.archetypes.every((a) => a.rules === undefined)).toBe(true);
   });
 });

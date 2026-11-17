@@ -130,8 +130,8 @@ function commanderFixture(): { pool: Pool; idx: CardIndex } {
 }
 
 describe('agreement between the scan, the plans, the builder, and the deck views', () => {
-  it('agrees at 60 and 40 on the fixture pool', () => {
-    for (const size of [60, 40] as const) {
+  it('agrees at 60, 40, and 20 on the fixture pool', () => {
+    for (const size of [60, 40, 20] as const) {
       const r = checkAgreement({ size, colors: ['W'] }, bigPool(), index, CONFIG, SETTINGS);
       expect(r.issues).toEqual([]);
       expect(r.plans).toEqual(expect.arrayContaining(['midrange', 'aggro', 'control', 'tokens']));
@@ -204,7 +204,16 @@ describe('agreement between the scan, the plans, the builder, and the deck views
 
   it('leaves a classic deck to its own counts', () => {
     const { deck } = buildDeck(
-      { size: 20, colors: ['W'], settings: SETTINGS, id: 't', createdAt: 't' },
+      {
+        size: 60,
+        colors: ['W'],
+        style: 'tokens',
+        secondary: 'aggro',
+        requireStyle: true,
+        settings: SETTINGS,
+        id: 't',
+        createdAt: 't',
+      },
       bigPool(),
       index,
       CONFIG,
@@ -224,7 +233,7 @@ describe('learned plan data on grow paths', () => {
   });
 
   it('builds best fit and every planned style alike without the learned files', () => {
-    for (const size of [60, 40] as const) {
+    for (const size of [60, 40, 20] as const) {
       const request = { size, colors: ['W' as const], settings: SETTINGS, id: 't', createdAt: 't' };
       const styles = ['', 'midrange', 'aggro', 'control', 'tokens'];
       for (const style of styles) {

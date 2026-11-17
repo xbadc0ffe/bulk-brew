@@ -1686,13 +1686,13 @@ export function checkBuiltDeck(
 }
 
 /**
- * Build one deck. At 60, 40, and 100 cards without a secondary style, best
- * fit, a theme the rules describe, and a plain shape go to the grow builder
- * (grow.ts), whose plan picker ranks every plan. Tribes, secondary styles,
- * and 20-card packets go to the classic builder below; a tribe a commander
- * names is scored by the picker too, so it ranks with that commander's other
- * decks. Throws BuildError with a plain-language message when the pool
- * cannot make a deck of the requested size and color.
+ * Build one deck. Without a secondary style, best fit, a theme the rules
+ * describe, and a plain shape go to the grow builder (grow.ts), whose plan
+ * picker ranks every plan. Tribes and secondary styles go to the classic
+ * builder below; a tribe a commander names is scored by the picker too, so
+ * it ranks with that commander's other decks. Throws BuildError with a
+ * plain-language message when the pool cannot make a deck of the requested
+ * size and color.
  */
 export function buildDeck(
   request: BuildRequest,
@@ -1716,8 +1716,8 @@ export function buildDeck(
 
 /**
  * The classic builder: scan, pick archetypes, fill in passes, improve by
- * swaps. 20-card packets, secondary styles, and tribes, plus a plain shape
- * the grow builder cannot fill on a thin pool.
+ * swaps. Secondary styles and tribes, plus a plain shape the grow builder
+ * cannot fill on a thin pool at 60, 40, and 100.
  */
 export function buildClassic(
   request: BuildRequest,

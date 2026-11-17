@@ -1,5 +1,5 @@
 {
-  "version": "5",
+  "version": "6",
   "templates": {
     "100": {
       "size": 100,
@@ -152,6 +152,7 @@
       },
       "maxCopies": 2,
       "copyCaps": { "legendary": 2, "expensiveMv": 6, "expensive": 2 },
+      "halfCast": { "turn": 10, "minChance": 0.3 },
       "tolerances": { "curve": 1, "typeMix": 0.08 }
     }
   }

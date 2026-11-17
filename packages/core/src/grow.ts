@@ -1,5 +1,5 @@
-// The grow builder (seed and grow), for every deck at 60, 40, and 100 cards
-// but tribes and secondary styles: best fit, a theme the rules describe, or
+// The grow builder (seed and grow), for every deck at 60, 40, 20, and 100
+// cards but tribes and secondary styles: best fit, a theme the rules describe, or
 // Aggro, Midrange, or Control. It builds the way a person does: check the plan
 // against honest counts (config/theme-rules.json), seed the payoffs the pool
 // supports, grow setup to what they demand, add interaction and card advantage
@@ -1908,10 +1908,27 @@ function withPick(r: BuildResult, pick: PickScore): BuildResult {
 }
 
 /**
+ * Sizes where a thin pool's plain shape, or a request no plan fills, may
+ * fall back to the classic builder. A 20-card packet never does: it pads
+ * with lands instead (buildPlan), and the classic builder there serves only
+ * secondary styles.
+ */
+function classicFallback(ctx: GrowContext): boolean {
+  return ctx.size !== 20;
+}
+
+/** Why the grow builder cannot fill a plain shape, in its notes' words ("too few lands (...)"). */
+function plainLacks(ctx: GrowContext, style: string): string {
+  const built = buildPlan(ctx, plainPlan(ctx, style)!, undefined);
+  return 'lacks' in built ? built.lacks : 'too few cards for this shape';
+}
+
+/**
  * One plan of the picker's list, built and scored, or undefined when the
  * pool cannot fill it. A theme comes from the grow builder only; a plain
  * shape too thin for this builder's fill comes from the classic builder, as
- * a shape asked for by name does; a tribe always from the classic builder.
+ * a shape asked for by name does (not at 20); a tribe always from the
+ * classic builder.
  */
 function planResult(
   ctx: GrowContext,
@@ -1926,6 +1943,7 @@ function planResult(
   if (plan.kind === 'plain') {
     const built = buildPlan(ctx, plan, undefined);
     if (!('lacks' in built)) return finish(ctx, plan, built, lead);
+    if (!classicFallback(ctx)) return undefined;
   }
   const { requireStyle: _required, ...rest } = ctx.request;
   try {
@@ -2033,11 +2051,15 @@ function labelOf(config: BulkBrewConfig, style: string): string {
 /**
  * Best fit: the first deck of the picker's list. With nothing the grow
  * builder can fill and no classic shape either, the classic builder's own
- * best fit is the last resort.
+ * best fit is the last resort (not at 20).
  */
 function bestFit(ctx: GrowContext, pool: Pool): BuildResult {
   const ranked = rankPlans(ctx, pool);
   const top = ranked[0];
+  if (!top && !classicFallback(ctx))
+    throw new BuildError(
+      `Not enough cards for a ${ctx.size}-card ${colorsLabel(ctx.colors)} deck: ${plainLacks(ctx, PLAIN_SHAPES[0])}.`,
+    );
   if (!top) return buildClassic(ctx.request, pool, ctx.index, withoutLearned(ctx.config));
   const rest = ranked.slice(1).map((r) => labelOf(ctx.config, r.style));
   const shown = rest.slice(0, 3);
@@ -2177,8 +2199,11 @@ function buildPlan(
   lands = ctx.size - cmd - d.spells;
   const range = ctx.template.landFormula;
   // The prototype checked only the slack over the formula; the template's
-  // range is a hard limit for every deck (checkBuiltDeck).
-  if (lands - formula > (ctx.size >= 60 ? 2 : 1) || lands > range.max)
+  // range is a hard limit for every deck (checkBuiltDeck). Where no classic
+  // builder takes a thin pool's plain shape, the deck pads with lands up to
+  // the range, as the scan counts the size buildable.
+  const slack = !classicFallback(ctx) ? Infinity : ctx.size >= 60 ? 2 : 1;
+  if (lands - formula > slack || lands > range.max)
     return {
       lacks: `too few playable cards for a ${ctx.size}-card ${plan.archetype.label} deck (${d.spells} spells for ${ctx.size - cmd - formula} slots)`,
     };
@@ -2672,14 +2697,12 @@ function finish(
 // ---------------------------------------------------------------- routing and the nearest rule
 
 /**
- * Whether buildDeck sends a request here: 60, 40, or 100 cards with no
- * secondary style, and best fit (no style), a plain shape, or a theme the
- * rules describe at that size. Tribes, secondary styles, and 20-card packets
- * keep the classic builder.
+ * Whether buildDeck sends a request here: any size with no secondary style,
+ * and best fit (no style), a plain shape, or a theme the rules describe at
+ * that size. Tribes and secondary styles keep the classic builder.
  */
 export function growBuilds(request: BuildRequest, config: BulkBrewConfig): boolean {
   const { style, size } = request;
-  if (size !== 60 && size !== 40 && size !== 100) return false;
   if (request.secondary) return false;
   if (!style) return true;
   if (tribeOf(style)) return false;
@@ -2747,7 +2770,10 @@ export function buildGrowDeck(
       pool,
       asked ? [`Built ${label} as asked.`] : [],
     );
-    if (!r) throw new BuildError(`Not enough cards for a ${ctx.size}-card ${label} deck.`);
+    if (!r)
+      throw new BuildError(
+        `Not enough cards for a ${ctx.size}-card ${label} deck: ${plainLacks(ctx, style)}.`,
+      );
     return r;
   }
 

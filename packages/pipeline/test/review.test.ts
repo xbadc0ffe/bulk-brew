@@ -159,18 +159,20 @@ describe.skipIf(!existsSync(PACK))('review:build with head on a public pool', ()
       const again = await buildReviewDeck('head', pool, request, ctx);
       expect(deckDifferences(r.deck, again)).toEqual([]);
 
-      // 20-card packets keep the classic builder, which declines a style it cannot build.
-      const fail = await runJob({ ...job, size: 20, style: 'energy' }, ctx);
-      expect(fail.file).toBe(path.join(out, 'head', 'tiny-blue-U-20-energy-s1.json'));
+      // A secondary style keeps the classic builder, which declines a style it cannot build.
+      const fail = await runJob({ ...job, size: 20, style: 'energy', secondary: 'aggro' }, ctx);
+      expect(fail.file).toBe(path.join(out, 'head', 'tiny-blue-U-20-energy+aggro-s1.json'));
       expect(fail.deck.error).toMatch(/Energy/);
       expect(fail.deck.deck.cards).toEqual([]);
       expect(existsSync(fail.file)).toBe(true);
-      // At 40 the grow builder answers it with the nearest deck and a note instead.
-      const near = await runJob({ ...job, style: 'energy' }, ctx);
-      expect(near.deck.error).toBeUndefined();
-      expect(near.deck.deck.archetype).not.toBe('energy');
-      const e = near.deck.explanation as { nearest?: { requested: string } };
-      expect(e.nearest?.requested).toBe('energy');
+      // Without one the grow builder answers it with the nearest deck and a note instead.
+      for (const size of [40, 20] as const) {
+        const near = await runJob({ ...job, size, style: 'energy' }, ctx);
+        expect(near.deck.error).toBeUndefined();
+        expect(near.deck.deck.archetype).not.toBe('energy');
+        const e = near.deck.explanation as { nearest?: { requested: string } };
+        expect(e.nearest?.requested).toBe('energy');
+      }
     } finally {
       rmSync(out, { recursive: true, force: true });
     }
