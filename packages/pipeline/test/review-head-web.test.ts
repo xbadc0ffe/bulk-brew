@@ -1,10 +1,14 @@
-import { existsSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
 import type { Color, Settings } from '@bulk-brew/core';
 import { ROOT } from '../src/corpus.ts';
 import { toOptionsRequest } from '../src/review/algos/head-web.ts';
 import {
+  checkTracked,
+  isInside,
   toShippedBuildRequest,
   toShippedOptionsRequest,
   worktreeDir,
@@ -103,6 +107,38 @@ describe('shipped requests', () => {
       colors: ['R'],
       settings,
     });
+  });
+
+  it('tells a path inside the worktree from one beside it', () => {
+    const dir = path.join(ROOT, '..', 'bulk-brew-shipped');
+    expect(isInside(path.join(dir, 'packages'), dir)).toBe(true);
+    expect(isInside(dir, dir)).toBe(true);
+    expect(isInside(ROOT, dir)).toBe(false);
+    expect(isInside(`${dir}-other`, dir)).toBe(false);
+  });
+
+  it('refuses a loaded file that git does not track there', () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'bb-shipped-'));
+    try {
+      const git = (...args: string[]) =>
+        execFileSync('git', ['-C', dir, ...args], { stdio: ['ignore', 'pipe', 'pipe'] });
+      git('init', '-q');
+      writeFileSync(path.join(dir, 'tracked.json'), '{}');
+      writeFileSync(path.join(dir, 'stray.json'), '{}');
+      git('add', 'tracked.json');
+      expect(() => checkTracked(dir, 'abcdef0', [path.join(dir, 'tracked.json')])).not.toThrow();
+      expect(() =>
+        checkTracked(dir, 'abcdef0', [
+          path.join(dir, 'tracked.json'),
+          path.join(dir, 'stray.json'),
+        ]),
+      ).toThrow(/not in commit abcdef0: stray\.json/);
+      expect(() => checkTracked(dir, 'abcdef0', [path.join(tmpdir(), 'elsewhere.json')])).toThrow(
+        /outside/,
+      );
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it('finds the worktree next to the repo unless REVIEW_WORKTREE_SHIPPED says otherwise', () => {

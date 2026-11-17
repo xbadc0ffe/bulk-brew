@@ -85,7 +85,51 @@ export interface PlanEntry {
    * uniformly (spreadPicks). A `sameAs` entry spreads only its top-up.
    */
   spread?: boolean;
+  /**
+   * A jobs file (review:requests): pick `count` of its requests, whatever any
+   * version built, and take this version's deck for each. A `sameAs` entry
+   * naming this one takes the same picked requests. A picked request a version
+   * declined, built in another style, or has no deck for is recorded and
+   * counted as not decent, never replaced.
+   */
+  requests?: string;
   count: number;
+}
+
+/** A request as a jobs file lists it (requests.ts); the fields a plan reads. */
+export interface PlanJob {
+  pool: string;
+  size: number;
+  colors: string;
+  style?: string;
+  secondary?: string;
+  commander?: string;
+  commanderName?: string;
+  /** The deck file the runner writes, `<version>/<file>`. */
+  deck?: string;
+}
+
+/** What became of one picked request for one plan entry's version. */
+export interface PickRecord {
+  /** The plan entry, from 1. */
+  entry: number;
+  version: string;
+  request: {
+    pool: string;
+    size: number;
+    colors: string;
+    style?: string;
+    secondary?: string;
+    commander?: string;
+    commanderName?: string;
+  };
+  outcome: 'packet' | 'declined' | 'another style' | 'missing';
+  /** The version's deck file, when there is one. */
+  file?: string;
+  /** The style the version built, when it built a deck. */
+  archetype?: string;
+  /** The packet showing the deck, when the outcome is "packet". */
+  packet?: string;
 }
 
 /** What the key remembers about one deck, so collation never rereads a deck file that may have been rebuilt. */
@@ -157,6 +201,8 @@ export interface BatchKey {
   rubricHash?: string;
   packets: Record<string, KeyEntry>;
   inventory: InventoryRow[];
+  /** Plan entries with `requests`: every picked request per version and what became of it. */
+  picks?: PickRecord[];
   /** Shortfalls and skipped files, in plain words. */
   notes: string[];
 }
@@ -720,31 +766,50 @@ export function resolvePlan(plan: readonly PlanEntry[]): PlanEntry[] {
   return out;
 }
 
+/** How spreadPicks sees an item: its pool and its requested color letters. */
+export interface SpreadKeys<T> {
+  poolOf: (x: T) => string;
+  colorsOf: (x: T) => readonly string[];
+}
+
+const DECK_KEYS: SpreadKeys<StoredDeck> = {
+  poolOf: (s) => `${s.deck.pool.id}|${s.deck.pool.hash}`,
+  colorsOf: (s) => s.deck.request.colors,
+};
+
+const JOB_KEYS: SpreadKeys<PlanJob> = {
+  poolOf: (j) => j.pool.replace(/\\/g, '/'),
+  colorsOf: (j) => [...j.colors],
+};
+
 /**
- * Up to `n` decks from `order` (a seeded shuffle), spread over pools and colors.
- * Each pick is the first deck left in `order` whose pool has the fewest picks so
+ * Up to `n` items from `order` (a seeded shuffle), spread over pools and colors.
+ * Each pick is the first item left in `order` whose pool has the fewest picks so
  * far, and among those, whose most-picked color letter has the fewest (a request
  * with no colors counts as C). Only the pool and the requested colors count,
- * never what the version built, so every version is judged on requests chosen
- * the same way. Decks in `already` count as picked.
+ * never what a version built, so every version is judged on requests chosen
+ * the same way. Items in `already` count as picked.
  */
-export function spreadPicks(
-  order: readonly StoredDeck[],
+export function spreadPicks<T>(
+  order: readonly T[],
   n: number,
-  already: readonly StoredDeck[] = [],
-): StoredDeck[] {
+  keys: SpreadKeys<T>,
+  already: readonly T[] = [],
+): T[] {
   const poolUses = new Map<string, number>();
   const colorUses = new Map<string, number>();
-  const poolOf = (s: StoredDeck) => `${s.deck.pool.id}|${s.deck.pool.hash}`;
-  const lettersOf = (s: StoredDeck): string[] =>
-    s.deck.request.colors.length ? s.deck.request.colors : ['C'];
-  const pick = (s: StoredDeck) => {
+  const poolOf = keys.poolOf;
+  const lettersOf = (s: T): readonly string[] => {
+    const c = keys.colorsOf(s);
+    return c.length ? c : ['C'];
+  };
+  const pick = (s: T) => {
     poolUses.set(poolOf(s), (poolUses.get(poolOf(s)) ?? 0) + 1);
     for (const c of lettersOf(s)) colorUses.set(c, (colorUses.get(c) ?? 0) + 1);
   };
   already.forEach(pick);
   const left = [...order];
-  const out: StoredDeck[] = [];
+  const out: T[] = [];
   while (out.length < n && left.length) {
     let best = 0;
     let bestPool = Infinity;
@@ -765,6 +830,41 @@ export function spreadPicks(
   return out;
 }
 
+/** A job's request without the seed, in the shape requestKeyOf reads from a deck. */
+function jobKey(j: PlanJob): string {
+  return [
+    j.pool.replace(/\\/g, '/'),
+    j.size,
+    j.colors,
+    j.style ?? '',
+    j.secondary ?? '',
+    j.commander ?? '',
+  ].join('|');
+}
+
+/** A deck's pool file and request without the seed, to find the deck a job asked for. */
+function deckJobKey(d: ReviewDeck): string {
+  const r = d.request;
+  return [
+    d.pool.source.replace(/\\/g, '/'),
+    r.size,
+    colorKey(r.colors),
+    r.style ?? '',
+    r.secondary ?? '',
+    r.commander ?? '',
+  ].join('|');
+}
+
+/** Whether a job is in a plan entry's scope; the pool id leads its deck file's name. */
+function jobMatches(j: PlanJob, e: PlanEntry): boolean {
+  if (e.size !== undefined && j.size !== e.size) return false;
+  if (e.kinds && !e.kinds.includes(poolKindOf(j.pool))) return false;
+  if (e.styles && !e.styles.includes(j.style ?? 'bestfit')) return false;
+  const name = path.basename(j.deck ?? j.pool);
+  if (e.poolPrefix !== undefined && !name.startsWith(e.poolPrefix)) return false;
+  return true;
+}
+
 /** Group decks by a key, keys sorted, each group in the given order. */
 function groupBy(decks: readonly StoredDeck[], keyOf: (s: StoredDeck) => string) {
   const groups = new Map<string, StoredDeck[]>();
@@ -780,13 +880,18 @@ function groupBy(decks: readonly StoredDeck[], keyOf: (s: StoredDeck) => string)
  * The decks to judge: up to `anchors` decks per anchor version and size, plus a
  * seeded draw without replacement by quota (per version, size, and pool kind) or
  * by plan. Decks with `error` are never drawn; the inventory counts them as declined.
+ * Plan entries with `requests` pick from `jobs` (the jobs files by the plan's
+ * names) and record every picked request in `picks`.
  */
 export function selectDecks(
   decks: readonly StoredDeck[],
-  opts: Pick<BatchOptions, 'seed' | 'quota' | 'plan' | 'anchors'>,
-): { selected: StoredDeck[]; scope: StoredDeck[]; notes: string[] } {
+  opts: Pick<BatchOptions, 'seed' | 'quota' | 'plan' | 'anchors'> & {
+    jobs?: Readonly<Record<string, readonly PlanJob[]>>;
+  },
+): { selected: StoredDeck[]; scope: StoredDeck[]; notes: string[]; picks: PickRecord[] } {
   const built = decks.filter((s) => !s.deck.error).sort(byFile);
   const notes: string[] = [];
+  const picks: PickRecord[] = [];
   const taken = new Set<string>();
   const selected: StoredDeck[] = [];
   const take = (s: StoredDeck) => {
@@ -808,7 +913,78 @@ export function selectDecks(
     const plan = resolvePlan(opts.plan);
     scope = built.filter((s) => !isAnchor(s.deck.version) && plan.some((e) => matchesPlan(s, e)));
     const drawnBy: StoredDeck[][] = [];
+    // Fixed picks per entry: the requests an entry with `requests` picked, or took through sameAs.
+    const pickedBy: (PlanJob[] | undefined)[] = [];
+    // Every deck file by version and request, declined ones included, first file first.
+    const byJob = new Map<string, StoredDeck[]>();
+    for (const s of [...decks].sort(byFile)) {
+      const k = `${s.deck.version}|${deckJobKey(s.deck)}`;
+      byJob.set(k, [...(byJob.get(k) ?? []), s]);
+    }
     plan.forEach((e, i) => {
+      const fixedFrom = e.sameAs !== undefined ? pickedBy[e.sameAs - 1] : undefined;
+      if (e.requests !== undefined || fixedFrom) {
+        let chosen: PlanJob[];
+        let from: string;
+        if (e.requests !== undefined) {
+          const all = opts.jobs?.[e.requests];
+          if (!all) throw new Error(`plan entry ${i + 1}: no jobs loaded from ${e.requests}`);
+          // One candidate per request, seeds aside, in a fixed order before the shuffle.
+          const byKey = new Map<string, PlanJob>();
+          for (const j of all)
+            if (jobMatches(j, e) && !byKey.has(jobKey(j))) byKey.set(jobKey(j), j);
+          const candidates = [...byKey.keys()].sort().map((k) => byKey.get(k)!);
+          const order = shuffled(candidates, `review:packets:${opts.seed}:plan:${i}`);
+          chosen = e.spread ? spreadPicks(order, e.count, JOB_KEYS) : order.slice(0, e.count);
+          from = `of ${candidates.length} in ${e.requests}`;
+        } else {
+          chosen = fixedFrom!.slice(0, e.count);
+          from = `the first of entry ${e.sameAs}'s`;
+        }
+        pickedBy.push(chosen);
+        const drawn: StoredDeck[] = [];
+        const tally = { packet: 0, declined: 0, 'another style': 0, missing: 0 };
+        for (const job of chosen) {
+          const s = byJob.get(`${e.version}|${jobKey(job)}`)?.[0];
+          const outcome: PickRecord['outcome'] = !s
+            ? 'missing'
+            : s.deck.error
+              ? 'declined'
+              : builtAnotherStyle(s.deck.request, s.deck.deck.archetype)
+                ? 'another style'
+                : 'packet';
+          tally[outcome]++;
+          if (outcome === 'packet') drawn.push(s!);
+          picks.push({
+            entry: i + 1,
+            version: e.version,
+            request: {
+              pool: job.pool.replace(/\\/g, '/'),
+              size: job.size,
+              colors: job.colors,
+              ...(job.style ? { style: job.style } : {}),
+              ...(job.secondary ? { secondary: job.secondary } : {}),
+              ...(job.commander ? { commander: job.commander } : {}),
+              ...(job.commanderName ? { commanderName: job.commanderName } : {}),
+            },
+            outcome,
+            ...(s ? { file: s.file } : {}),
+            ...(s && !s.deck.error ? { archetype: s.deck.deck.archetype } : {}),
+          });
+        }
+        drawn.forEach(take);
+        drawnBy.push(drawn);
+        notes.push(
+          `plan entry ${i + 1} (${e.version}): ${chosen.length} requests, ${from}: ${tally.packet} with a packet, ` +
+            `${tally.declined} declined, ${tally['another style']} built another style, ${tally.missing} with no deck file`,
+        );
+        if (chosen.length < e.count)
+          notes.push(
+            `plan entry ${i + 1} (${e.version}): ${chosen.length} of ${e.count} requests found`,
+          );
+        return;
+      }
+      pickedBy.push(undefined);
       const pool = built.filter((s) => matchesPlan(s, e) && !taken.has(s.file));
       const drawn: StoredDeck[] = [];
       let paired: string | undefined;
@@ -865,7 +1041,7 @@ export function selectDecks(
         `review:packets:${opts.seed}:plan:${i}`,
       );
       const want = e.count - drawn.length;
-      drawn.push(...(e.spread ? spreadPicks(order, want, drawn) : order.slice(0, want)));
+      drawn.push(...(e.spread ? spreadPicks(order, want, DECK_KEYS, drawn) : order.slice(0, want)));
       if (paired) notes.push(`${paired}, ${drawn.length - matched} more drawn at random`);
       drawn.forEach(take);
       drawnBy.push(drawn);
@@ -885,7 +1061,7 @@ export function selectDecks(
       if (drawn.length < quota) notes.push(`quota ${k}: ${drawn.length} of ${quota} decks found`);
     }
   }
-  return { selected: selected.sort(byFile), scope, notes };
+  return { selected: selected.sort(byFile), scope, notes, picks };
 }
 
 function cross<T extends StoredDeck>(group: readonly T[], seed: string): [T, T][] {
@@ -1016,12 +1192,14 @@ export interface MakeBatchInput extends Omit<BatchOptions, 'decks'> {
   styles?: StyleTexts;
   dataVersion?: string;
   rubric?: string;
+  /** The jobs files plan entries name in `requests`, by those names. */
+  jobs?: Readonly<Record<string, readonly PlanJob[]>>;
 }
 
 /** Everything a batch writes, computed without touching the disk. */
 export function makeBatch(input: MakeBatchInput): Batch {
   const { seed } = input;
-  const { selected, scope, notes } = selectDecks(input.decks, input);
+  const { selected, scope, notes, picks } = selectDecks(input.decks, input);
   const lists = new Map<string, ListedCard[]>();
   const listFor = (s: StoredDeck) => {
     let l = lists.get(s.file);
@@ -1105,6 +1283,13 @@ export function makeBatch(input: MakeBatchInput): Batch {
       : {}),
     packets: keyed,
     inventory: inventoryOf(input.decks),
+    ...(picks.length
+      ? {
+          picks: picks.map((p) =>
+            p.outcome === 'packet' ? { ...p, packet: primaryId.get(p.file!)! } : p,
+          ),
+        }
+      : {}),
     notes,
   };
   return { packets, key, index: packets.map((p) => ({ id: p.id, kind: p.kind })) };
@@ -1154,6 +1339,10 @@ function readPlan(file: string): PlanEntry[] {
       throw new Error(`${file}: entry ${i + 1}: "substituted" must be true or false`);
     if (x.spread !== undefined && typeof x.spread !== 'boolean')
       throw new Error(`${file}: entry ${i + 1}: "spread" must be true or false`);
+    if (x.requests !== undefined && typeof x.requests !== 'string')
+      throw new Error(`${file}: entry ${i + 1}: "requests" must be a jobs file path`);
+    if (x.requests !== undefined && x.sameAs !== undefined)
+      throw new Error(`${file}: entry ${i + 1}: give "requests" or "sameAs", not both`);
     if (x.sameAs !== undefined && !(Number.isInteger(x.sameAs) && x.sameAs >= 1 && x.sameAs <= i))
       throw new Error(`${file}: entry ${i + 1}: "sameAs" must name an earlier entry (1 to ${i})`);
     return x as PlanEntry;
@@ -1191,6 +1380,7 @@ function main(): number {
   }
   let seed: number, pairs: number, quota: number | undefined, plan: PlanEntry[] | undefined;
   let twoJudges: number, anchors: number;
+  const jobs: Record<string, PlanJob[]> = {};
   try {
     seed = wholeNumber('seed', 1);
     pairs = wholeNumber('pairs', 0);
@@ -1198,6 +1388,11 @@ function main(): number {
     quota = arg('quota') !== undefined ? wholeNumber('quota', 0) : undefined;
     const planFile = arg('plan');
     plan = planFile ? readPlan(planFile) : undefined;
+    for (const f of new Set((plan ?? []).flatMap((e) => (e.requests ? [e.requests] : [])))) {
+      const raw = JSON.parse(readFileSync(path.resolve(ROOT, f), 'utf8')) as unknown;
+      if (!Array.isArray(raw)) throw new Error(`${f}: a jobs file is an array of jobs`);
+      jobs[f] = raw as PlanJob[];
+    }
     twoJudges = Number(arg('two-judges') ?? 0.25);
     if (!(twoJudges >= 0 && twoJudges <= 1)) throw new Error('--two-judges is a share from 0 to 1');
   } catch (err) {
@@ -1237,6 +1432,7 @@ function main(): number {
     seed,
     ...(quota !== undefined ? { quota } : {}),
     ...(plan ? { plan } : {}),
+    jobs,
     pairs,
     twoJudges,
     anchors,

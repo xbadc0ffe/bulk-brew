@@ -397,7 +397,8 @@ function readDeck(file: string): ReviewDeck | undefined {
 
 /**
  * Build one job and write its file. Unless ctx.force, a job whose file holds the
- * same build (pool file, pool cards, request, data version) is skipped.
+ * same build (pool file, pool cards, request, data version, and version notes)
+ * is skipped.
  */
 export async function runJob(job: ReviewJob, ctx: RunContext): Promise<JobResult> {
   const { pool, request, file } = planJob(job, ctx);
@@ -408,8 +409,13 @@ export async function runJob(job: ReviewJob, ctx: RunContext): Promise<JobResult
       throw new JobError(
         `${rel(file)} holds a build of ${old.pool?.source ?? 'another pool'}; rename one pool or use --force`,
       );
-    // A changed pool file or data pack makes the file stale.
-    if (old.pool.hash === pool.info.hash && old.dataVersion === ctx.index.dataVersion)
+    // A changed pool file, data pack, or builder (the notes carry its commit, core, or config) makes the file stale.
+    const { notes } = await versionFor(ctx, job.version);
+    if (
+      old.pool.hash === pool.info.hash &&
+      old.dataVersion === ctx.index.dataVersion &&
+      (old.versionNotes ?? '') === notes
+    )
       return { file, deck: old, skipped: true };
   }
   const deck = await buildReviewDeck(job.version, pool, request, ctx);
@@ -441,6 +447,11 @@ export function deckDifferences(a: ReviewDeck, b: ReviewDeck): string[] {
     (['W', 'U', 'B', 'R', 'G'] as const).map((c) => d.deck.basics[c] ?? 0).join(',');
   if (basics(a) !== basics(b)) out.push(`basics: ${basics(a)} / ${basics(b)}`);
   return out;
+}
+
+/** What a player would see differ: one build declined and not the other, the cards, or the basics. */
+export function cardDifferences(a: ReviewDeck, b: ReviewDeck): string[] {
+  return deckDifferences(a, b).filter((d) => /^(error|cards|basics)/.test(d));
 }
 
 function deckCount(d: ReviewDeck): number {
@@ -580,12 +591,72 @@ async function runBatch(jobsFile: string, ctx: RunContext): Promise<number> {
   return counts.bad ? 1 : 0;
 }
 
+/**
+ * Build every job with its own version and with `other`, in memory, and list
+ * the requests where the two differ in cards, basics, or a decline. Writes no file.
+ */
+async function runCompare(jobsFile: string, other: string, ctx: RunContext): Promise<number> {
+  const jobs = JSON.parse(readFileSync(path.resolve(ROOT, jobsFile), 'utf8')) as unknown;
+  if (!Array.isArray(jobs)) throw new Error(`${jobsFile} must hold an array of jobs`);
+  if (!listVersions().includes(other))
+    throw new JobError(`unknown version "${other}"; known: ${listVersions().join(', ')}`);
+  const bySize = new Map<number, { same: number; differ: number }>();
+  let bad = 0;
+  const t0 = performance.now();
+  for (const [i, job] of (jobs as ReviewJob[]).entries()) {
+    const at = `[${i + 1}/${jobs.length}]`;
+    try {
+      const { pool, request } = planJob(job, ctx);
+      const a = await buildReviewDeck(job.version, pool, request, ctx);
+      const b = await buildReviewDeck(other, pool, request, ctx);
+      const diff = cardDifferences(a, b);
+      const row = bySize.get(request.size) ?? { same: 0, differ: 0 };
+      if (diff.length) {
+        row.differ++;
+        const lines = (d: ReviewDeck) => new Set(d.deck.cards.map((c) => `${c.id} x${c.qty}`));
+        const [la, lb] = [lines(a), lines(b)];
+        const only = (x: Set<string>, y: Set<string>) => [...x].filter((l) => !y.has(l)).length;
+        console.log(
+          `${at} ${describe(job, request)}: ${other} differs: ${deckDifferences(a, b).join('; ')}` +
+            ` (card lines only in ${job.version} ${only(la, lb)}, only in ${other} ${only(lb, la)})`,
+        );
+      } else row.same++;
+      bySize.set(request.size, row);
+    } catch (err) {
+      bad++;
+      const msg = err instanceof Error ? err.message : String(err);
+      const kind =
+        err instanceof JobError
+          ? 'bad job'
+          : err instanceof VersionLoadError
+            ? 'version did not load'
+            : 'crashed';
+      console.log(`${at} ${describe(job)}: ${kind}: ${msg}`);
+    }
+  }
+  const secs = ((performance.now() - t0) / 1000).toFixed(1);
+  let differ = 0;
+  for (const size of SIZES) {
+    const r = bySize.get(size);
+    if (!r) continue;
+    differ += r.differ;
+    console.log(
+      `${size}: ${r.same + r.differ} requests, ${r.same} the same, ${r.differ} with other cards, basics, or a decline`,
+    );
+  }
+  console.log(
+    `${jobs.length} jobs compared with ${other} in ${secs} s: ${differ} differ, ${bad} bad or crashed; no files written`,
+  );
+  return differ || bad ? 1 : 0;
+}
+
 const USAGE = `usage:
   npm run review:build -- --pool <file> --colors <WUBRG letters> [--size 60|40|20|100]
       [--version ${listVersions().join('|')}] [--style <id>] [--secondary <id or tribal:Type>]
       [--commander "<name, part of a name, or oracle id>"] [--seed 1] [--out data/review/decks]
       [--twice] [--print]
-  npm run review:build -- --jobs <jobs.json> [--force] [--out data/review/decks]`;
+  npm run review:build -- --jobs <jobs.json> [--force] [--out data/review/decks]
+  npm run review:build -- --jobs <jobs.json> --compare <version>`;
 
 async function main(): Promise<number> {
   if (flag('help') || process.argv.length <= 2) {
@@ -595,7 +666,10 @@ async function main(): Promise<number> {
   const outDir = arg('out');
   const ctx = createContext({ ...(outDir ? { outDir } : {}), force: flag('force') });
   const jobs = arg('jobs');
+  const compare = arg('compare');
   try {
+    if (compare !== undefined && !jobs) throw new JobError('--compare goes with --jobs');
+    if (jobs && compare !== undefined) return await runCompare(jobs, compare, ctx);
     return jobs ? await runBatch(jobs, ctx) : await runSingle(ctx);
   } catch (err) {
     if (err instanceof JobError) {

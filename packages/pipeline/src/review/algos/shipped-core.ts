@@ -7,9 +7,9 @@
 
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, realpathSync } from 'node:fs';
-import { registerHooks } from 'node:module';
+import { createRequire, registerHooks, syncBuiltinESMExports } from 'node:module';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import {
   BuildError,
   normalizeColors,
@@ -111,7 +111,10 @@ export function worktreeDir(root: string): string {
 }
 
 function git(dir: string, args: string[]): string {
-  return execFileSync('git', ['-C', dir, ...args], { encoding: 'utf8' }).trim();
+  return execFileSync('git', ['-C', dir, ...args], {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  }).trim();
 }
 
 /** Value objects only, so a write by the old core throws instead of changing later builds. */
@@ -123,20 +126,72 @@ function deepFreeze<T>(value: T): T {
   return value;
 }
 
+/** Whether `child` is `parent` or inside it; Windows paths compare without case. */
+export function isInside(child: string, parent: string): boolean {
+  const fold = (p: string) => (process.platform === 'win32' ? p.toLowerCase() : p);
+  const c = fold(path.resolve(child));
+  const p = fold(path.resolve(parent));
+  return c === p || c.startsWith(p.endsWith(path.sep) ? p : p + path.sep);
+}
+
 /**
  * Point `@bulk-brew/core` imports from files in the worktree at its own core,
  * so its pipeline loader runs without an npm install there. Imports from the
- * repo resolve as before.
+ * repo resolve as before. Every module file loaded from the worktree goes in `modules`.
  */
-function routeCoreImports(dir: string, coreUrl: string): void {
+function routeCoreImports(dir: string, coreUrl: string, modules: Set<string>): void {
   const base = pathToFileURL(dir + path.sep).href;
   registerHooks({
     resolve(specifier, context, next) {
-      if (specifier === '@bulk-brew/core' && context.parentURL?.startsWith(base))
-        return { url: coreUrl, shortCircuit: true };
-      return next(specifier, context);
+      const r =
+        specifier === '@bulk-brew/core' && context.parentURL?.startsWith(base)
+          ? { url: coreUrl, shortCircuit: true }
+          : next(specifier, context);
+      if (r.url.startsWith(base)) modules.add(fileURLToPath(r.url));
+      return r;
     },
   });
+}
+
+// The CommonJS face of node:fs; syncBuiltinESMExports carries a change to it to every ES import.
+const nodeFs = createRequire(import.meta.url)('node:fs') as {
+  readFileSync: (...args: unknown[]) => unknown;
+};
+
+/** Run `fn` and list every file it reads with readFileSync. */
+function readsDuring<T>(fn: () => T): { value: T; files: string[] } {
+  const original = nodeFs.readFileSync;
+  const files = new Set<string>();
+  nodeFs.readFileSync = (file: unknown, ...rest: unknown[]) => {
+    if (typeof file === 'string') files.add(path.resolve(file));
+    return original(file, ...rest);
+  };
+  syncBuiltinESMExports();
+  try {
+    return { value: fn(), files: [...files] };
+  } finally {
+    nodeFs.readFileSync = original;
+    syncBuiltinESMExports();
+  }
+}
+
+/** Refuse when a file the adapter loaded is not tracked at the worktree's commit. */
+export function checkTracked(dir: string, commit: string, files: readonly string[]): void {
+  const outside = files.filter((f) => !isInside(f, dir));
+  if (outside.length)
+    throw new VersionLoadError(
+      `the shipped worktree loaded files outside ${dir}: ${outside.join(', ')}`,
+    );
+  const rel = [...new Set(files.map((f) => path.relative(dir, f).replace(/\\/g, '/')))].sort();
+  try {
+    git(dir, ['ls-files', '--error-unmatch', '--', ...rel]);
+  } catch (err) {
+    const stderr = String((err as { stderr?: unknown }).stderr ?? err);
+    const missing = [...stderr.matchAll(/pathspec '([^']+)' did not match/g)].map((m) => m[1]);
+    throw new VersionLoadError(
+      `the shipped worktree loaded files that are not in commit ${commit.slice(0, 7)}: ${missing.join(', ') || stderr.trim()}`,
+    );
+  }
 }
 
 async function load(ctx: PrepareContext): Promise<Shipped> {
@@ -151,13 +206,19 @@ async function load(ctx: PrepareContext): Promise<Shipped> {
   }
   // Node imports real paths, so the hook must compare against the real one.
   const dir = realpathSync(given);
+  // The hook would send the repo's own core imports to the worktree's core.
+  if (isInside(realpathSync(ctx.root), dir))
+    throw new VersionLoadError(
+      `the repo at ${ctx.root} is inside the shipped worktree ${dir}; put the worktree beside the repo`,
+    );
   const commit = git(dir, ['rev-parse', 'HEAD']);
   if (git(dir, ['status', '--porcelain', '--untracked-files=no']))
     throw new VersionLoadError(
       `the shipped worktree at ${dir} has uncommitted changes, so its decks would not be commit ${commit.slice(0, 7)}'s`,
     );
+  const modules = new Set<string>();
   const coreUrl = pathToFileURL(path.join(dir, 'packages', 'core', 'src', 'index.ts')).href;
-  routeCoreImports(dir, coreUrl);
+  routeCoreImports(dir, coreUrl, modules);
   const core = (await import(coreUrl)) as ShippedCore;
   const pack = ctx.index.pack;
   if (pack.schema !== core.DATA_SCHEMA_VERSION) {
@@ -175,7 +236,9 @@ async function load(ctx: PrepareContext): Promise<Shipped> {
   if (typeof loader.loadConfigDir !== 'function')
     throw new VersionLoadError(`${loaderFile} exports no loadConfigDir`);
   const configDir = path.join(dir, 'config');
-  const config = loader.loadConfigDir(configDir) as { learned?: object };
+  const { loadConfigDir } = loader;
+  const reads = readsDuring(() => loadConfigDir(configDir) as { learned?: object });
+  const config = reads.value;
   // That loader skips config/learned/ unless every file is there; the web always ships them.
   if (!config.learned)
     throw new VersionLoadError(
@@ -199,6 +262,13 @@ async function load(ctx: PrepareContext): Promise<Shipped> {
       `the shipped core cannot read ${learnedFile}: ${parsed.problems.join('; ')}`,
     );
   index.learned = parsed.data;
+  // Untracked files would not be the commit's: every module, config file, and data file must be tracked.
+  checkTracked(dir, commit, [
+    ...modules,
+    ...reads.files,
+    path.join(configDir, 'settings.defaults.json'),
+    learnedFile,
+  ]);
   return {
     core,
     config: deepFreeze(config),

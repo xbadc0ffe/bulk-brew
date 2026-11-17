@@ -112,17 +112,25 @@ The jobs file is an array of `{ version, pool, colors, size, style?, secondary?,
 
 - Jobs run in order.
 - The pack, the config, each pool, and each version load once per run.
-- A job whose file holds the same build (the same pool file, pool cards, request, and data pack) is skipped unless `--force` is given. A stale or unreadable file is rebuilt. A file holding another pool's build under the same name stops the job as a bad job.
+- A job whose file holds the same build (the same pool file, pool cards, request, data pack, and version notes) is skipped unless `--force` is given. A stale or unreadable file is rebuilt. A file holding another pool's build under the same name stops the job as a bad job. The notes say what built the deck, so a file from another builder is stale: `head` and `head-web` note a hash of `packages/core/src` (committed or not) with the config and learned data versions, `shipped` and `shipped-web` the worktree's commit, and `v26.0.30` and `v26.0.35` their fixed commit's config. A prototype's notes are fixed text, so a change to its code still needs `--force`. Checking the notes loads the version even when every job is skipped.
 - Each job prints one line: the version, pool, request, then the style built and the build time, or the error.
 - A summary line closes the run.
 - A `BuildError` is recorded in the job's file and counts as "could not build".
 - An unknown version, a missing pool file, a bad request, or a crash is reported and writes no file, so a rerun retries it. The exit code is 1 when any job did that.
 
+To check that two versions give the same deck on every request of a jobs file, such as `head`'s best fit and `head-web`'s first option:
+
+```sh
+npm run review:build -- --jobs data/review/jobs-h2/main-head.json --compare head-web
+```
+
+Each job is built with its own version and with the `--compare` version, in memory; nothing is written and no deck file is read. A request where one declined and the other did not, or where the cards or basics differ, prints one line with every difference (name, style, and colors too) and how many card lines only one of them has. A summary per size and a closing line follow, and the exit code is 1 when any request differs or a job is bad. On 2026-11-17, on four public requests (`bulk-red` R 60, `bulk-green` G 40, `elf-tribe` 100 under Lathril, best fit, and `white-bulk` W 60 Artifacts), `head` against `head-web` differed on the three best fits and matched on the requested style; `head` against `shipped` (at f88a87e) and `head-web` against `shipped-web` matched on all four.
+
 From a script, use the in-process API in `build.ts`:
 
 - `createContext({ outDir?, force? })` loads everything once.
 - `runJob(job, ctx)` returns `{ file, deck, skipped }`.
-- `planJob`, `buildReviewDeck`, `loadPool`, `deckDifferences`, `deckText`, and `deckFileName` are the pieces it uses.
+- `planJob`, `buildReviewDeck`, `loadPool`, `deckDifferences`, `cardDifferences` (the decline, cards, and basics only), `deckText`, and `deckFileName` are the pieces it uses.
 
 ## File names
 
@@ -242,7 +250,9 @@ The worktree:
 
   It needs no `npm install`.
 
-- The adapter stops with a clear message when the worktree is missing, when it has uncommitted changes to tracked files (its decks would not be that commit's), when the pack's schema differs from that core's `DATA_SCHEMA_VERSION`, when its `config/learned/` is incomplete, or when its config fails that core's `validateConfig`.
+- The repo must not be inside the worktree's folder: the hook below would send the repo's own core imports to the worktree's core, so the adapter refuses.
+- The adapter stops with a clear message when the worktree is missing, when it has uncommitted changes to tracked files (its decks would not be that commit's), when a file it loaded is not tracked there (below), when the pack's schema differs from that core's `DATA_SCHEMA_VERSION`, when its `config/learned/` is incomplete, or when its config fails that core's `validateConfig`.
+- Every file it loads must be tracked at that commit, checked with `git ls-files --error-unmatch` once everything is loaded: each module file the hook saw resolve inside the worktree (the core and the loader's imports, 40 at f88a87e), each file the commit's `loadConfigDir` read (seen through `node:fs` while it runs, 13 at f88a87e), `config/settings.defaults.json`, and `data/learned.json`. An untracked file that one of them reads, such as an optional config file left behind by a checkout of a later commit, would not be the commit's.
 
 What it loads, once per run for both versions:
 
@@ -255,7 +265,7 @@ Each deck's notes end with `Commit <full id>, config <config version>, learned d
 
 The requests are written out in `shipped-core.ts` (`toShippedBuildRequest`, `toShippedOptionsRequest`), not taken from `head` and `head-web`, so a change to the current builder's requests cannot move the baseline. They are the ones the commit f88a87e (26.0.39 plus card needs) sends. When the worktree moves to a commit whose `BuildRequest` or `useDeckOptions` request differs, update them there.
 
-The runner skips a job whose deck file holds the same pool, request, and data pack; it does not look at the commit. After moving the worktree, rebuild with `--force` or into a fresh `--out` folder.
+The notes carry the commit, so after the worktree moves the runner rebuilds every `shipped` and `shipped-web` deck file it meets; no `--force` is needed.
 
 Checked on 2026-11-17 with the worktree at f88a87e, the repo's `main` then, while `head` was the same code: `bulk-red` R 60, `bulk-green` G 40, and `elf-tribe` at 100 under Lathril, best fit, each built with `--twice` by all four versions (identical on rebuild). `shipped` gave the same name, archetype, colors, commander, cards in order with their reasons, basics, and explanation as `head` (Red Artifacts, Green Landfall, Lathril Elf tribe); `shipped-web` the same as `head-web`, `explanation.web` included apart from its timings (Red Midrange, Green Aggro, Lathril Tokens). The worktree has no `node_modules`, so its loader could only run through the hook. Build times matched too: about 210 and 75 ms for `bulk-red` (first build, then the repeat), 700 and 460 ms for Lathril with `shipped`, and 1,100 and 850 ms with `shipped-web`.
 

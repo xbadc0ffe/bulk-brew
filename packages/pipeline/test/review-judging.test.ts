@@ -34,8 +34,11 @@ import {
   styleTexts,
   type BatchKey,
   type PairKey,
+  type PickRecord,
   type PlanEntry,
+  type PlanJob,
   type SingleKey,
+  type SpreadKeys,
   type StoredDeck,
 } from '../src/review/packets.ts';
 import type { ReviewDeck, ReviewSize } from '../src/review/version.ts';
@@ -749,16 +752,20 @@ describe('plan sampling', () => {
       req(version, 'h2-p3', ['W', 'B'], archetype),
     ];
     const key = (s: StoredDeck) => `${s.deck.pool.id} ${s.deck.request.colors.join('')}`;
+    const keys: SpreadKeys<StoredDeck> = {
+      poolOf: (s) => s.deck.pool.id,
+      colorsOf: (s) => s.deck.request.colors,
+    };
 
     it('takes every pool once before any twice, then the least-picked colors', () => {
       const decks = grid('head');
-      const picks = spreadPicks(decks, 5);
+      const picks = spreadPicks(decks, 5, keys);
       expect(picks.slice(0, 3).map((s) => s.deck.pool.id)).toEqual(['h2-p1', 'h2-p2', 'h2-p3']);
       // In list order: p1 W; p2's B beats its W (W picked); p3's U beats WB, a pair counting
       // by its more-picked letter; then p1's G, the one letter not yet picked; then p2 again.
       expect(picks.map(key)).toEqual(['h2-p1 W', 'h2-p2 B', 'h2-p3 U', 'h2-p1 G', 'h2-p2 W']);
       // Picks already made count: with p1 W taken, p1 comes last in the first round.
-      expect(spreadPicks(decks.slice(1), 3, [decks[0]!]).map(key)).toEqual([
+      expect(spreadPicks(decks.slice(1), 3, keys, [decks[0]!]).map(key)).toEqual([
         'h2-p2 B',
         'h2-p3 U',
         'h2-p1 G',
@@ -766,35 +773,145 @@ describe('plan sampling', () => {
     });
 
     it('never looks at what a version built', () => {
-      const a = spreadPicks(shuffled(grid('head', 'aggro'), 's'), 6).map(key);
-      const b = spreadPicks(shuffled(grid('head', 'control'), 's'), 6).map(key);
+      const a = spreadPicks(shuffled(grid('head', 'aggro'), 's'), 6, keys).map(key);
+      const b = spreadPicks(shuffled(grid('head', 'control'), 's'), 6, keys).map(key);
       expect(a).toEqual(b);
     });
 
-    it('spreads a plan entry, and a sameAs entry takes its requests in pick order', () => {
-      const decks = [...grid('head'), ...grid('old'), ...grid('web')];
-      const r = selectDecks(decks, {
+    // The jobs file every version was asked, as review:requests writes it.
+    const jobs: PlanJob[] = grid('head').map((s) => ({
+      pool: s.deck.pool.source,
+      size: 60,
+      colors: s.deck.request.colors.join(''),
+      deck: `head/${path.basename(s.file)}`,
+    }));
+    const fixed = (decks: StoredDeck[]) =>
+      selectDecks(decks, {
         seed: 1,
         anchors: 0,
+        jobs: { 'jobs.json': jobs },
         plan: [
-          { version: 'head', poolPrefix: 'h2-', styles: ['bestfit'], spread: true, count: 4 },
+          {
+            version: 'head',
+            requests: 'jobs.json',
+            poolPrefix: 'h2-',
+            styles: ['bestfit'],
+            spread: true,
+            count: 4,
+          },
           { version: 'old', sameAs: 1, count: 4 },
           { version: 'web', sameAs: 1, count: 2 },
         ],
       });
-      const of = (v: string) =>
-        r.selected
-          .filter((s) => s.deck.version === v)
-          .map(key)
-          .sort();
+    const reqOf = (p: PickRecord) =>
+      `${path.basename(p.request.pool, '.json')} ${p.request.colors}`;
+
+    it('picks requests from the jobs file, the same ones for every version, in pick order', () => {
+      // head built nothing at all: the picks do not depend on any version's decks.
+      const r = fixed([...grid('old'), ...grid('web')]);
+      const of = (v: string) => r.picks.filter((p) => p.version === v).map(reqOf);
+      expect(of('head')).toHaveLength(4);
       expect(new Set(of('head').map((k) => k.split(' ')[0]))).toEqual(
         new Set(['h2-p1', 'h2-p2', 'h2-p3']),
       );
       expect(of('old')).toEqual(of('head'));
-      expect(of('web')).toHaveLength(2);
-      expect(of('web').every((k) => of('head').includes(k))).toBe(true);
-      // The first two picks are on two pools, so the 12-deck web entry spreads too.
-      expect(new Set(of('web').map((k) => k.split(' ')[0])).size).toBe(2);
+      expect(of('web')).toEqual(of('head').slice(0, 2));
+      expect(
+        r.picks.filter((p) => p.version === 'head').every((p) => p.outcome === 'missing'),
+      ).toBe(true);
+      expect(r.selected.filter((s) => s.deck.version === 'head')).toEqual([]);
+      expect(
+        r.selected
+          .filter((s) => s.deck.version === 'old')
+          .map(key)
+          .sort(),
+      ).toEqual([...of('old')].sort());
+    });
+
+    it('records a declined pick as declined, with no packet and nothing in its place', () => {
+      const first = fixed([...grid('head'), ...grid('old'), ...grid('web')]).picks;
+      const [a, b] = first.filter((p) => p.version === 'web');
+      // web declines its first pick; before, a decline drew the third pick in its place.
+      const decks = [
+        ...grid('head'),
+        ...grid('old'),
+        ...grid('web').map((s) =>
+          key(s) === reqOf(a!) ? { ...s, deck: { ...s.deck, error: 'cannot build' } } : s,
+        ),
+      ];
+      const r = fixed(decks);
+      const web = r.picks.filter((p) => p.version === 'web');
+      expect(web.map(reqOf)).toEqual([reqOf(a!), reqOf(b!)]);
+      expect(web.map((p) => p.outcome)).toEqual(['declined', 'packet']);
+      expect(r.selected.filter((s) => s.deck.version === 'web')).toHaveLength(1);
+      expect(r.notes).toContain(
+        "plan entry 3 (web): 2 requests, the first of entry 1's: 1 with a packet, 1 declined, 0 built another style, 0 with no deck file",
+      );
+      expect(r.notes.filter((n) => n.startsWith('plan entry 1'))[0]).toMatch(
+        /^plan entry 1 \(head\): 4 requests, of 8 in jobs.json: 4 with a packet/,
+      );
+    });
+
+    it('collates every picked request, a decline as not decent, and the styles built', () => {
+      const decks = [
+        ...grid('head', 'aggro'),
+        ...grid('old', 'control'),
+        ...grid('web').map((s, i) => (i < 4 ? { ...s, deck: { ...s.deck, error: 'no' } } : s)),
+      ];
+      const b = makeBatch({
+        batch: 'picks',
+        decks,
+        decksSpec: 'test',
+        index: INDEX,
+        seed: 1,
+        jobs: { 'jobs.json': jobs },
+        plan: [
+          { version: 'head', requests: 'jobs.json', spread: true, count: 4 },
+          { version: 'old', sameAs: 1, count: 4 },
+          { version: 'web', sameAs: 1, count: 2 },
+        ],
+        pairs: 0,
+        twoJudges: 0,
+        anchors: 0,
+      });
+      const picks = b.key.picks!;
+      expect(picks).toHaveLength(10);
+      for (const p of picks.filter((x) => x.outcome === 'packet'))
+        expect(b.key.packets[p.packet!]).toMatchObject({ version: p.version, file: p.file });
+      // Every head deck judged decent, every old deck not.
+      const answers = picks
+        .filter((p) => p.outcome === 'packet')
+        .map((p) => ({
+          id: p.packet!,
+          file: `${p.packet}.json`,
+          text: JSON.stringify({
+            ...GOOD,
+            decent_of_style: null,
+            style_reason: '',
+            ...(p.version === 'head' ? {} : { decent: false, score: 2, failures: ['bad-curve'] }),
+          }),
+        }));
+      const c = collate(b.key, answers);
+      const row = (v: string) => c.picked.find((r) => r.version === v)!;
+      expect(row('head')).toMatchObject({ picked: 4, judged: 4, decent: 4, decentRate: 1 });
+      expect(row('head').styles).toEqual({ aggro: 4 });
+      expect(row('old')).toMatchObject({ picked: 4, decent: 0, decentRate: 0 });
+      expect(row('old').styles).toEqual({ control: 4 });
+      const web = row('web');
+      expect(web.picked).toBe(2);
+      expect(web.declined + web.judged).toBe(2);
+      expect(web.decentRate).toBe(0);
+      expect(c.pickedVersions).toEqual(['head', 'old', 'web']);
+      expect(c.pickedRequests).toHaveLength(4);
+      expect(c.pickedRequests[0]!.cells.head).toBe('aggro, decent (4)');
+      // The two requests all three versions took, web's declines counted as not decent.
+      expect(c.pickedCommon).toEqual([
+        { size: 60, requests: 2, decent: { head: 2, old: 0, web: 0 } },
+      ]);
+      const md = renderCollation(c);
+      expect(md).toContain('## Picked requests');
+      expect(md).toContain('### On the requests every version took');
+      expect(md).toContain('### Each picked request at 60');
     });
   });
 

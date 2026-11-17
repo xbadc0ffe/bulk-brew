@@ -5,7 +5,6 @@
 
 import {
   BuildError,
-  configVersion,
   deckOptionSearch,
   normalizeColors,
   type Color,
@@ -13,7 +12,7 @@ import {
   type Settings,
 } from '@bulk-brew/core';
 import type { BuilderVersion, BuiltDeck, ReviewRequest } from '../version.ts';
-import { toBuiltDeck } from './head.ts';
+import { headNotes, toBuiltDeck } from './head.ts';
 
 /**
  * The request useDeckOptions sends: a picked style is the primary, a commander
@@ -112,8 +111,7 @@ const headWeb: BuilderVersion = {
   notes:
     'deckOptionSearch from the current core, as the web Build page worker runs it, with config/ and data/learned.json; the first ranked option is the deck. buildMs is the whole search. Ignores the seed.',
   prepare(ctx) {
-    const learned = ctx.index.learnedVersion;
-    return `Config ${configVersion(ctx.config)}${learned ? `, learned data ${learned}` : ''}.`;
+    return headNotes(ctx);
   },
   build(ctx) {
     return webFirstOption(
