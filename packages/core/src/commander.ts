@@ -12,7 +12,7 @@ import type { CardIndex } from './pack.ts';
 import { commanderTribes, scanPool, secondaryLabel, tribeOf } from './scan.ts';
 import type { Color, Pool, ScanReport, Settings } from './types.ts';
 import { normalizeColors } from './colors.ts';
-import { landColors } from './lands.ts';
+import { draftOnly, landColors } from './lands.ts';
 import { canBeCommander } from './matchers.ts';
 
 export type CommanderTier = 'top' | 'good' | 'possible';
@@ -57,7 +57,7 @@ function fixingLands(
   for (const entry of Object.values(pool.entries)) {
     const card = index.get(entry.cardId);
     if (!card || !card.types.includes('land') || entry.qty <= 0) continue;
-    if (!card.identity.every((c) => colors.includes(c))) continue;
+    if (!card.identity.every((c) => colors.includes(c)) || draftOnly(card)) continue;
     if (landColors(card, colors, 100).length >= 2) n += Math.min(entry.qty, 1);
   }
   return n;

@@ -227,14 +227,50 @@ export interface LandRulesConfig {
   nonbasic: {
     producesDeckColor: number;
     colorlessOnly: number;
+    /** One-color decks: the cost of a land that always enters tapped, scaled by its chance. */
     entersTapped: number;
+    /** A utility ability; in a one-color deck only on a land that costs nothing against a basic. */
     utility: number;
-    /** Nonbasics scoring below this stay out. */
+    /** Multi-color nonbasics scoring below this stay out. */
     minScore: number;
     /** Largest share of the land count nonbasics may take. */
     maxShare: number;
     /** Lands that make only colorless mana allowed per deck size. */
     maxColorlessOnly: PerSize<number>;
+  };
+  /** One-color decks score a nonbasic against the basic it replaces: costs below 0, gains above. */
+  mono: {
+    /** Per life a land asks to enter untapped (shock lands), when that costs less than entering tapped. */
+    lifeToEnter: number;
+    /** Per life paid each time the land taps for the deck color. */
+    lifePerTap: number;
+    /** A land with one of `drawbackTags`, such as "sacrifice it unless ...". */
+    drawback: number;
+    /** Tags that mark a land's drawback. */
+    drawbackTags: string[];
+    /** A land that makes no mana of the deck color. */
+    noDeckColor: number;
+    /** A land with one of `planTags` for one of the deck's styles. */
+    planUtility: number;
+    /** Tags, by style id, whose ability helps that style's plan. */
+    planTags: Record<string, string[]>;
+    /** Nonbasics scoring below this stay out; above 0, so a land must beat a basic. */
+    minScore: number;
+  };
+  /** How a land that "enters tapped unless ..." enters in a given deck. */
+  entering: {
+    /** A land at or below this chance to enter tapped reads as untapped. */
+    readsUntapped: number;
+    /** Land drops in a typical game, for "unless you control two or more other lands". */
+    landsPlayed: PerSize<number>;
+    /** Chance to enter tapped when it asks for a basic land, or a basic land type the deck runs. */
+    basicInPlay: number;
+    /** Chance to enter tapped when it asks to reveal a card of a type the deck runs. */
+    revealFromHand: number;
+    /** Chance to enter tapped for "unless a player has 13 or less life". */
+    lowLife: number;
+    /** Chance to enter tapped for "unless you control a legendary creature" in Commander. */
+    legendInPlay: number;
   };
   mdfc: {
     landFaceCountsAsLand: boolean;
@@ -617,6 +653,9 @@ export function collectTagReferences(c: BulkBrewConfig): Set<string> {
     take(s.payoff);
   }
   for (const e of c.cardStrength.effects) take(e.match);
+  const mono = c.landRules.mono;
+  for (const t of [...(mono?.drawbackTags ?? []), ...Object.values(mono?.planTags ?? {}).flat()])
+    out.add(t);
   for (const s of Object.values(c.themeRules?.styles ?? {}))
     for (const rule of [...(s.setup ?? []), ...(s.payoff ?? []), ...(s.exclude ?? [])])
       for (const t of [...(rule.anyTags ?? []), ...(rule.allTags ?? []), ...(rule.notTags ?? [])])
@@ -893,6 +932,48 @@ export function validateConfig(c: BulkBrewConfig): string[] {
       if (key === '100' && nb.maxColorlessOnly?.[key] === undefined) continue;
       if (!isNum(nb.maxColorlessOnly?.[key]))
         problems.push(`landRules.nonbasic.maxColorlessOnly.${key}: must be a number`);
+    }
+  }
+  const mono = lr.mono;
+  if (!mono) problems.push('landRules.mono: missing');
+  else {
+    for (const k of ['lifeToEnter', 'lifePerTap', 'drawback', 'noDeckColor'] as const) {
+      if (!isNum(mono[k]) || mono[k] > 0) problems.push(`landRules.mono.${k}: must be 0 or less`);
+    }
+    if (!Array.isArray(mono.drawbackTags) || mono.drawbackTags.some((t) => typeof t !== 'string'))
+      problems.push('landRules.mono.drawbackTags: must be a list of tags');
+    if (!isNum(mono.planUtility) || mono.planUtility < 0)
+      problems.push('landRules.mono.planUtility: must be 0 or more');
+    // Above 0, so a land never ties its way past the basic it replaces.
+    if (!isNum(mono.minScore) || mono.minScore <= 0)
+      problems.push('landRules.mono.minScore: must be above 0');
+    const styleIds = new Set([
+      ...c.archetypes.archetypes.map((a) => a.id),
+      ...Object.keys(c.themeRules?.styles ?? {}),
+    ]);
+    for (const [style, tags] of Object.entries(mono.planTags ?? {})) {
+      if (!styleIds.has(style)) problems.push(`landRules.mono.planTags: unknown style "${style}"`);
+      if (!Array.isArray(tags) || tags.some((t) => typeof t !== 'string' || !t))
+        problems.push(`landRules.mono.planTags.${style}: must be a list of tags`);
+    }
+  }
+  const en = lr.entering;
+  if (!en) problems.push('landRules.entering: missing');
+  else {
+    for (const k of [
+      'readsUntapped',
+      'basicInPlay',
+      'revealFromHand',
+      'lowLife',
+      'legendInPlay',
+    ] as const) {
+      if (!isNum(en[k]) || en[k] < 0 || en[k] > 1)
+        problems.push(`landRules.entering.${k}: must be a chance between 0 and 1`);
+    }
+    for (const key of [...SIZE_KEYS, '100'] as const) {
+      if (key === '100' && en.landsPlayed?.[key] === undefined) continue;
+      if (!isNum(en.landsPlayed?.[key]) || en.landsPlayed[key]! < 1)
+        problems.push(`landRules.entering.landsPlayed.${key}: must be 1 or more`);
     }
   }
   if (typeof lr.mdfc?.landFaceCountsAsLand !== 'boolean')

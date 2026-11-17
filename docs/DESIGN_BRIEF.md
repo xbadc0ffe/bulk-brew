@@ -72,7 +72,7 @@ The same view serves a fresh build and a saved deck.
 - Explanation panel: archetype and what it does, role coverage against targets (removal 6 of 6, card draw 3 of 4) led by the archetype's own cards (Voltron enablers 13 of 13), key synergies in plain words, notes.
 - Each card can reveal "why this card": the role or synergy slot it filled, or that it is filler.
 - Actions on a fresh build: Accept (saves and removes cards from the pool), Try another style, Discard, Export, Copy.
-- Replace a card on a fresh build (web): the card detail's Replace this card opens a picker of pool cards that fit the deck, closest matches first, as card images or text cards, each with the jobs it shares with the card going out. The picked card shows large beside the list (the card going out until one is picked), or over the list on a narrow window with Back to the list. Leaving a deck with replaced cards asks Discard your changes? first.
+- Replace a card on a fresh build (web): the card detail's Replace this card opens a picker of pool cards that fit the deck, closest matches first, as card images or text cards, each with the jobs it shares with the card going out; a nonbasic land's picker also lists the basic it could be. The picked card shows large beside the list (the card going out until one is picked), or over the list on a narrow window with Back to the list. Leaving a deck with replaced cards asks Discard your changes? first.
 - Actions on a saved deck: click the name to rename it; Export, a popup with Copy as text, Download .txt, or Cancel; a red Remove that asks Delete (cards stay out of the pool), Disassemble (cards go back), or Cancel.
 - A badge shows whether the deck's cards were removed from the pool.
 

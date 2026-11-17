@@ -1501,7 +1501,18 @@ function attempt(
   }
   let mana: ManaBase;
   try {
-    mana = chooseManaBase(lands, cands, plan, spellCopies(state), config, settings, size, index);
+    const styles = [archetype.id, ...(secondary ? [secondary.id] : [])];
+    mana = chooseManaBase(
+      lands,
+      cands,
+      plan,
+      spellCopies(state),
+      config,
+      settings,
+      size,
+      index,
+      styles,
+    );
   } catch (err) {
     if (err instanceof ManaBaseError) throw new BuildError(err.message);
     throw err;

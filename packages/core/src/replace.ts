@@ -6,7 +6,7 @@
 import { deckThemes, landNote, spellSynergyLines, type DeckTheme } from './builder.ts';
 import { factsFor, listCandidates, type Candidate, type CardFacts } from './candidates.ts';
 import { templateFor, type BulkBrewConfig } from './config.ts';
-import { isFetch, landColors, planLandCount, scoreNonbasic } from './lands.ts';
+import { draftOnly, isFetch, landColors, planLandCount, scoreNonbasic } from './lands.ts';
 import type { CardIndex } from './pack.ts';
 import {
   COLOR_LABELS,
@@ -82,6 +82,16 @@ function deckColorsOf(deck: Deck): Color[] {
   return deck.colors ?? [deck.color];
 }
 
+/** The deck's style ids, as the mana base reads them; merged packets record "a+b". */
+function deckStyles(deck: Deck): string[] {
+  return [...deck.archetype.split('+'), ...(deck.secondary ? [deck.secondary] : [])];
+}
+
+/** The deck color whose basic land this card is, by the land rules' names. */
+function basicColorOf(card: CardRecord, config: BulkBrewConfig): Color | undefined {
+  return COLORS.find((c) => config.landRules.basics.names[c] === card.name);
+}
+
 /** The roles the deck counts (those its size asks for) and its themes. */
 function jobContext(deck: Deck, config: BulkBrewConfig): JobContext {
   const counted = deck.explanation
@@ -131,10 +141,12 @@ function swappable(deck: Deck, cardId: string): DeckCard | undefined {
  * first: the same deck colors, copy limit, and settings the builder used;
  * spells for a spell and nonbasic lands for a land. Each takes as many copies
  * as go out when the bulk list has them spare, within the builder's usual
- * copies of legendary and expensive cards. Spells rank by the jobs they
- * share with the card going out, then strength, mana value, and creature or
- * not; lands by the land rules. Undefined for a card the deck does not hold,
- * a basic land, or the commander.
+ * copies of legendary and expensive cards. A nonbasic land can also give
+ * way to a basic of a deck color it makes (any deck color for a land that
+ * makes none), as many as the pool has spare when basics are tracked.
+ * Spells rank by the jobs they share with the card going out, then strength,
+ * mana value, and creature or not; lands and basics by the land rules.
+ * Undefined for a card the deck does not hold, a basic land, or the commander.
  */
 export function replacementOptions(
   deck: Deck,
@@ -149,33 +161,48 @@ export function replacementOptions(
   if (!out || !outCard) return undefined;
   const outFacts = factsFor(index, config, outCard);
   const colors = deckColorsOf(deck);
+  const styles = deckStyles(deck);
   const ctx = jobContext(deck, config);
   const outJobs = jobsOf(asCandidate(outFacts), ctx);
   const outIds = new Set(outJobs.map((j) => j.id));
   const inDeck = new Map(deck.cards.map((c) => [c.cardId, c.qty]));
+  const short = (qty: number) => WEIGHTS.short * (1 - qty / out.qty);
 
   const ranked: { option: ReplacementOption; score: number }[] = [];
+  if (!outFacts.spell && !outFacts.basic) {
+    const makes = landColors(outCard, colors, deck.size);
+    for (const c of makes.length > 0 ? makes : colors) {
+      const basic = index.find(config.landRules.basics.names[c]);
+      if (!basic) continue;
+      // Tracked basics: the pool's copies beyond those the deck already runs.
+      const spare = settings.unlimitedBasics
+        ? out.qty
+        : (pool.entries[basic.id]?.qty ?? 0) - (deck.basics[c] ?? 0);
+      if (spare <= 0) continue;
+      const qty = Math.min(out.qty, spare);
+      const score = scoreNonbasic(basic, colors, config, deck.size, styles).score - short(qty);
+      ranked.push({ option: { card: basic, qty, shared: [], added: [] }, score });
+    }
+  }
   for (const cand of listCandidates(pool, index, config, settings, colors, deck.size)) {
     const f = cand.facts;
     const id = f.card.id;
     if (id === cardId || id === deck.commander || f.basic || f.spell !== outFacts.spell) continue;
+    if (!f.spell && draftOnly(f.card)) continue;
     const spare = cand.preferred - (inDeck.get(id) ?? 0);
     if (spare <= 0) continue;
     const qty = Math.min(out.qty, spare);
     const jobs = jobsOf(cand, ctx);
     const shared = jobs.filter((j) => outIds.has(j.id));
     const added = jobs.filter((j) => !outIds.has(j.id));
-    let score =
-      WEIGHTS.sharedJob * shared.length +
-      WEIGHTS.newJob * added.length -
-      WEIGHTS.short * (1 - qty / out.qty);
+    let score = WEIGHTS.sharedJob * shared.length + WEIGHTS.newJob * added.length - short(qty);
     if (f.spell) {
       score +=
         WEIGHTS.strength * f.strength -
         WEIGHTS.mvStep * Math.min(WEIGHTS.mvCap, Math.abs(f.card.mv - outCard.mv)) +
         (f.creature === outFacts.creature ? WEIGHTS.sameKind : 0);
     } else {
-      score += scoreNonbasic(f.card, colors, config, deck.size).score;
+      score += scoreNonbasic(f.card, colors, config, deck.size, styles).score;
     }
     const option: ReplacementOption = { card: f.card, qty, shared, added };
     if (cand.printing) option.printing = cand.printing;
@@ -197,9 +224,11 @@ export function replacementOptions(
 /**
  * The deck with `qty` copies of one card swapped for another (all of them
  * when `qty` is at least the copies in the deck). The new card's line says
- * what it replaced; a card already in the deck just gains copies. The
- * explanation's curve, roles, land notes, and synergies follow the swap; its
- * score is dropped, since it scored the deck as built.
+ * what it replaced; a card already in the deck just gains copies. A basic
+ * land in place of a nonbasic raises the deck's basics of its color, and a
+ * builder note says what it replaced, since basics have no line of their
+ * own. The explanation's curve, roles, land notes, and synergies follow the
+ * swap; its score is dropped, since it scored the deck as built.
  */
 export function replaceCard(
   deck: Deck,
@@ -222,6 +251,33 @@ export function replaceCard(
     throw new Error('A spell replaces a spell and a land a land');
   const n = Math.max(1, Math.min(Math.floor(qty), out.qty));
 
+  if (inFacts.basic) {
+    const color = basicColorOf(inCard, config);
+    if (!color || !deckColorsOf(deck).includes(color) || outFacts.basic)
+      throw new Error(`${inCard.name} cannot be swapped in`);
+    const cards = deck.cards.flatMap((dc): DeckCard[] =>
+      dc.cardId !== outId ? [dc] : dc.qty > n ? [{ ...dc, qty: dc.qty - n }] : [],
+    );
+    const next: Deck = {
+      ...deck,
+      cards,
+      basics: { ...deck.basics, [color]: (deck.basics[color] ?? 0) + n },
+    };
+    if (deck.explanation) {
+      next.explanation = followSwap(
+        deck.explanation,
+        next,
+        deck,
+        outFacts,
+        inFacts,
+        n,
+        index,
+        config,
+      );
+    }
+    return next;
+  }
+
   const present = deck.cards.some((c) => c.cardId === inId);
   const added: DeckCard = { cardId: inId, qty: n, why: `${SWAP_WHY_PREFIX}${outCard.name}` };
   if (printing) added.printing = printing;
@@ -236,15 +292,25 @@ export function replaceCard(
 
   const next: Deck = { ...deck, cards };
   if (deck.explanation) {
-    next.explanation = followSwap(deck.explanation, next, outFacts, inFacts, n, index, config);
+    next.explanation = followSwap(
+      deck.explanation,
+      next,
+      deck,
+      outFacts,
+      inFacts,
+      n,
+      index,
+      config,
+    );
   }
   return next;
 }
 
-/** The explanation after swapping `n` copies of one card for another. */
+/** The explanation after swapping `n` copies of one card for another; `before` is the deck before it. */
 function followSwap(
   e: BuildExplanation,
   deck: Deck,
+  before: Deck,
   outFacts: CardFacts,
   inFacts: CardFacts,
   n: number,
@@ -280,14 +346,24 @@ function followSwap(
     move(inFacts, n);
   } else if (sources) {
     // A fetch land counts for the colors the deck runs basics of, as the mana base counts it.
-    const move = (f: CardFacts, by: number) => {
+    const move = (f: CardFacts, by: number, basics: Deck['basics']) => {
       for (const c of landColors(f.card, colors, deck.size))
-        if (!isFetch(f.card) || (deck.basics[c] ?? 0) > 0) sources[c] = (sources[c] ?? 0) + by;
+        if (!isFetch(f.card) || (basics[c] ?? 0) > 0) sources[c] = (sources[c] ?? 0) + by;
     };
-    move(outFacts, -n);
-    move(inFacts, n);
+    move(outFacts, -n, before.basics);
+    move(inFacts, n, deck.basics);
+    // A first basic of a color lets the deck's fetch lands find it.
+    for (const c of colors) {
+      if ((before.basics[c] ?? 0) > 0 || (deck.basics[c] ?? 0) === 0) continue;
+      for (const dc of deck.cards) {
+        const card = index.get(dc.cardId);
+        if (card && isFetch(card) && landColors(card, colors, deck.size).includes(c))
+          sources[c] = (sources[c] ?? 0) + dc.qty;
+      }
+    }
     lands.sources = sources;
   }
+  if (inFacts.basic) lands.nonbasics -= n;
 
   const spellList: { facts: CardFacts; qty: number }[] = [];
   for (const dc of deck.cards) {
@@ -297,13 +373,16 @@ function followSwap(
     if (facts.spell) spellList.push({ facts, qty: dc.qty });
   }
 
+  const notes = followNotes(e, lands, sources, outFacts.card.name);
+  // Basics have no line of their own to say what they replaced.
+  if (inFacts.basic) notes.push(`${n} ${inFacts.card.name} swapped in for ${outFacts.card.name}.`);
   const next: BuildExplanation = {
     ...e,
     curve,
     roles,
     lands,
     synergies: spellSynergyLines(spellList, config),
-    notes: followNotes(e, lands, sources, outFacts.card.name),
+    notes,
   };
   delete next.score;
   return next;

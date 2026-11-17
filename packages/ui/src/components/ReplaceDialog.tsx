@@ -94,7 +94,7 @@ function Picker(props: {
             {jobs.length > 0
               ? `It counts as ${jobs.join(', ')}. `
               : 'It fills no role or theme the deck counts. '}
-            These cards from your bulk list fit the deck, closest matches first.
+            These cards fit the deck, closest matches first.
           </p>
         </header>
 

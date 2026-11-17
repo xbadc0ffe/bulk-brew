@@ -1,5 +1,5 @@
 {
-  "version": "3",
+  "version": "4",
   "basics": {
     "names": { "W": "Plains", "U": "Island", "B": "Swamp", "R": "Mountain", "G": "Forest" }
   },
@@ -11,6 +11,26 @@
     "minScore": 0.5,
     "maxShare": 0.4,
     "maxColorlessOnly": { "100": 6, "60": 4, "40": 2, "20": 1 }
+  },
+  "mono": {
+    "lifeToEnter": -0.5,
+    "lifePerTap": -1.0,
+    "drawback": -1.0,
+    "drawbackTags": ["drawback", "sacrifice-cost-land"],
+    "noDeckColor": -2.0,
+    "planUtility": 2.0,
+    "planTags": {
+      "graveyard": ["mill-self"]
+    },
+    "minScore": 0.25
+  },
+  "entering": {
+    "readsUntapped": 0.2,
+    "landsPlayed": { "100": 7, "60": 6, "40": 6, "20": 4 },
+    "basicInPlay": 0.15,
+    "revealFromHand": 0.3,
+    "lowLife": 0.7,
+    "legendInPlay": 0.5
   },
   "mdfc": {
     "landFaceCountsAsLand": true

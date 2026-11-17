@@ -4,7 +4,11 @@ One long session, nine steps, one at a time and in order. Written 2026-11-16 aft
 
 ## Status
 
-Not started. The session that runs this brief keeps this section current: which step is done, what is running, what it found, and where each result lives. Add one entry per step with its commits, eval deltas, and panel result.
+Started 2026-11-16 (unattended session). The session that runs this brief keeps this section current: which step is done, what is running, what it found, and where each result lives. Add one entry per step with its commits, eval deltas, and panel result.
+
+The local data pack stays 2026-11-03 for the whole run (the manifest pins 2026-11-16, nine cards more), so eval and panel numbers compare with the committed baselines and the phase 1 pools.
+
+- **Step 1, done (26.0.39).** A mono-color deck scores a nonbasic against its basic (`landRules.mono`, land rules version 4): making the deck's color or any color is worth nothing, entering tapped, a life payment, a drawback, or no deck color is a cost, and the land must beat the basic by `mono.minScore`. "Enters tapped unless ..." is read against the deck (`landEntry` in `lands.ts`): of 680 lands marked tapped, 502 always are, 150 are conditional shapes read from the text (check, slow, fast, shock, reveal, bond, basic-land, low-life, legendary-creature lands), and 28 unknown shapes stay tapped. Utility counts only on a land that costs nothing against a basic, or for the deck's plan when the land's identity fits the deck and the ability lasts (a "when this land enters, surveil 1" rider earns nothing). Draft-only lands (Paliano) never enter a mana base. `landMana` no longer counts one-shot sacrifice mana or "activate only if" mana the deck cannot meet. Replace offers the basic of each color a nonbasic land could make. Eval: every per-size metric unchanged; mono-color runs dropped from 105 nonbasic copies to 24 (no new baseline, since no metric moved). The owner's black pool: 10 nonbasics before, 25 Swamps after (Dakmor Salvage plus 24 Swamps for Graveyard). A UB 60 test pool kept its duals and gained two shock lands for two Command Bridge (shock and check lands now read as untapped in their colors). Reviewed; the review's fixes (plan credit on tapped off-color surveil lands, two weak tests, Paliano in `fixingLands`) are in.
 
 ## How to start
 

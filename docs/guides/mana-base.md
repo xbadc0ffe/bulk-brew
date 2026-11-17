@@ -47,16 +47,25 @@ Basics are unlimited by default, so the user never imports them. The deck lists 
 
 ## Nonbasic lands
 
-Every nonbasic in the pool that fits the color is scored:
+In a one-color deck a nonbasic takes the place of a basic, so it is scored against that basic, which scores 0. Making the deck's color, or any color, gains nothing over a basic. Every cost counts:
 
-| Factor                                        | Score |
-| --------------------------------------------- | ----- |
-| Produces the deck's color                     | +2.0  |
-| Produces only colorless mana                  | −1.0  |
-| Enters tapped                                 | −1.5  |
-| Has a utility ability (Tagger `utility-land`) | +1.0  |
+| Factor                                                                             | Score                           |
+| ---------------------------------------------------------------------------------- | ------------------------------- |
+| Enters tapped                                                                      | −1.5 times the chance it does   |
+| Pays life to enter untapped (shock lands)                                          | −0.5 per life, at most the −1.5 |
+| Pays life each time it taps for the deck color (painlands)                         | −1.0 per life                   |
+| A drawback (Tagger `drawback`, or sacrificing a land to play it)                   | −1.0                            |
+| Makes none of the deck's color                                                     | −2.0                            |
+| A utility ability (Tagger `utility-land`), on a land with none of these            | +1.0                            |
+| An ability the deck's plan uses (`mono.planTags`, such as self-mill for Graveyard) | +2.0                            |
 
-Lands scoring below 0.5 stay out. Nonbasics take at most 40% of the land count, and colorless-only lands are capped at 4, 2, and 1 by size, because a mono-color deck that cannot cast its spells on time loses to its own mana base. Within the allowed share the highest scores go in and basics fill the rest.
+Both gains need a land whose color identity fits the deck, since an ability that asks for another color's mana does nothing there. The plan gain also needs an ability the land keeps: a one-time "When this land enters, surveil 1" is a rider, not a plan, while Dakmor Salvage's dredge works every turn. A land gets in only at 0.25 or more, that is, when it is better than the basic. A Castle (enters tapped unless you control its basic type) with a utility ability gets in; a rainbow land that always enters tapped, a painland with a small upside, or a land whose ability needs a plan the deck does not have stays out. Dakmor Salvage enters a Graveyard deck, where dredge feeds the plan, and no other: +2.0 against −1.5. Lands whose mana depends on a draft (Paliano, the High City) never enter a mana base.
+
+**Conditional tapped lands.** The card data marks a land as entering tapped whenever its text says so, conditions and all, so the builder reads the condition against the deck. "Unless you control a Swamp" (or a basic land) reads as almost never tapped (15%) when the deck runs Swamps and always tapped when it does not. Conditions on land counts read against a typical game's land drops (6 at 60 and 40 cards, 7 in Commander, 4 at 20): "unless you control two or more other lands" is tapped on the first two of them, "two or fewer other lands" from the fourth on. "Unless you have two or more opponents" is untapped in Commander only. "You may pay 2 life" is a life cost instead of a tapped land. "You may reveal a Swamp card" is tapped 30% of the time when the deck runs Swamps. A condition the builder does not know reads as always tapped. The numbers are `landRules.entering`.
+
+Nonbasics take at most 40% of the land count, and colorless-only lands are capped at 4, 2, and 1 by size, because a mono-color deck that cannot cast its spells on time loses to its own mana base. Within the allowed share the highest scores go in and basics fill the rest.
+
+In Replace, a basic of a color a nonbasic land makes is a valid replacement for it, and in a one-color deck it ranks above any land worse than it.
 
 ## Multi-color decks
 
@@ -75,9 +84,9 @@ The colors are access, not a quota. Nothing splits the spells evenly between the
 
 So two colors work on basics when double pips stay in the main color, and three or more colors need fixing or a light splash.
 
-**Which lands count.** A land is a source of a color when it taps for that color directly: from its basic land types, or from an ability that costs only {T} (life payments are fine) and does not limit what the mana may be spent on. Filter lands ("{1}, {T}: Add one mana of any color") and restricted mana do not count. A land that fetches a basic counts for every deck color it can find, but only once the deck holds a basic of that color, and only in multi-color decks; a mono-color deck does not use it, since a basic does the same job without the slow turn. Lands and rocks that work only with a commander (Command Tower, Arcane Signet) are never candidates outside Commander.
+**Which lands count.** A land is a source of a color when it taps for that color directly: from its basic land types, or from an ability that costs only {T} (life payments are fine) and does not limit what the mana may be spent on. Filter lands ("{1}, {T}: Add one mana of any color"), restricted mana, mana that costs a sacrifice ("{T}, Sacrifice this land: Add one mana of any color"), and mana that depends on other permanents ("any color among legendary permanents you control") do not count. Mana that is "Activate only if you control a Swamp or a Mountain" counts when the deck runs one of those basics. A land that fetches a basic counts for every deck color it can find, but only once the deck holds a basic of that color, and only in multi-color decks; a mono-color deck does not use it, since a basic does the same job without the slow turn. Lands and rocks that work only with a commander (Command Tower, Arcane Signet) are never candidates outside Commander.
 
-**Choosing lands.** Nonbasics score +2 for making a deck color and +1.5 for each further deck color; entering tapped costs only 0.5 in a multi-color deck, where fixing is worth a slow turn. Nonbasics may take up to 60%, 70%, 75%, or 80% of the lands for two to five colors, and lands that enter tapped (fetch lands included) at most 25%, 35%, 40%, or 45%. Basics then go one at a time to the color furthest below its want, and once every color has what it wants, by colored pips. The deck notes list each color's sources and say when a color is stretched.
+**Choosing lands.** Nonbasics score +2 for making a deck color, +1.5 for each further deck color, and +1 for a utility ability; entering tapped costs only 0.5 in a multi-color deck, where fixing is worth a slow turn, times the chance it enters tapped read as above (so a check land of the deck's colors costs almost nothing). Lands scoring below 0.5 stay out. Nonbasics may take up to 60%, 70%, 75%, or 80% of the lands for two to five colors, and lands that enter tapped (fetch lands included) at most 25%, 35%, 40%, or 45%, each copy counting its chance to enter tapped. Basics then go one at a time to the color furthest below its want, and once every color has what it wants, by colored pips. The deck notes list each color's sources and say when a color is stretched.
 
 ## Modal cards with a land face
 

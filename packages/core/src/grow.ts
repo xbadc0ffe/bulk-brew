@@ -1317,6 +1317,7 @@ function buildPlan(
       ctx.settings,
       ctx.size,
       ctx.index,
+      [plan.style],
     );
     return { d, lands, mana, colorPlan, relaxed: [...relaxed] };
   } catch (err) {

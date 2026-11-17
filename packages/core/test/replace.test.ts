@@ -71,15 +71,13 @@ describe('replacementOptions', () => {
     expect(fresh.qty).toBe(1);
   });
 
-  it('offers nonbasic lands for a land and nothing for basics or unknown cards', () => {
+  it('offers lands for a land, its basic among them, and nothing for basics or unknown cards', () => {
     const deck = build(60);
     const land = deck.cards.find((c) => index.get(c.cardId)!.types.includes('land'));
     if (land) {
       const r = replacementOptions(deck, land.cardId, bigPool(), index, CONFIG, SETTINGS)!;
-      for (const o of r.options) {
-        expect(o.card.types).toContain('land');
-        expect(o.card.id).not.toBe('plains');
-      }
+      for (const o of r.options) expect(o.card.types).toContain('land');
+      expect(r.options.filter((o) => o.card.id === 'plains')).toHaveLength(1);
     }
     expect(replacementOptions(deck, 'plains', bigPool(), index, CONFIG, SETTINGS)).toBeUndefined();
     expect(replacementOptions(deck, 'nope', bigPool(), index, CONFIG, SETTINGS)).toBeUndefined();
