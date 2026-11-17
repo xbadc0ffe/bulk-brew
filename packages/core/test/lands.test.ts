@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { buildDeck, landNote } from '../src/builder.ts';
 import { computeFacts, type Candidate } from '../src/candidates.ts';
+import { sourcesNeeded } from '../src/colors.ts';
 import { configVersion, validateConfig } from '../src/config.ts';
 import { commitDeck } from '../src/decks.ts';
 import {
   chooseManaBase,
+  colorWants,
   landColors,
   landEntry,
   lifePerTap,
@@ -16,6 +18,7 @@ import { replaceCard, replacementOptions } from '../src/replace.ts';
 import type { CardRecord, Color, Deck, DeckSize, Pool, Settings } from '../src/types.ts';
 import { bigPool, CONFIG_BUNDLE as CONFIG, PACK, SETTINGS } from './builder-fixtures.ts';
 import { LAND, land } from './land-cards.ts';
+import { needsCard } from './needs-cards.ts';
 
 const index = new CardIndex({
   schema: 2,
@@ -220,6 +223,99 @@ describe('two-color mana bases', () => {
   });
 });
 
+describe('colorWants', () => {
+  // Pack spells: Typhoid Rats {B}, Cast Down and Walking Corpse {1}{B}, Murder {1}{B}{B},
+  // Swords to Plowshares {W}, Glorious Anthem {1}{W}{W}.
+  const copies = (name: string, qty: number) => ({
+    facts: computeFacts(needsCard(name), CONFIG),
+    qty,
+  });
+  const black = [
+    copies('Typhoid Rats', 4),
+    copies('Cast Down', 4),
+    copies('Walking Corpse', 4),
+    copies('Murder', 2),
+  ];
+  const white = [copies('Swords to Plowshares', 1), copies('Glorious Anthem', 1)];
+  const cover = (n: number) => {
+    const c = JSON.parse(JSON.stringify(CONFIG)) as typeof CONFIG;
+    c.landRules.colors.sourceCover['60'] = n;
+    return c;
+  };
+
+  it('covers the size share of a color copies, so a few demanding spells do not set the want', () => {
+    expect(CONFIG.landRules.colors.sourceCover['60']).toBe(0.8);
+    const want = colorWants([...black, ...white], plan('B', 'W'), 60, 24, CONFIG);
+    // 12 of the 14 black copies ask one pip by turn 2 or 1 and cover 80%; the two Murders,
+    // two pips on turn 3, may wait a turn. At 90% and 24 of 60: 15 for one pip on turn 1, 17 for Murder.
+    expect(want.B).toBe(sourcesNeeded(60, 24, 1, 1, 0.9));
+    expect(want.B).toBe(15);
+    expect(colorWants(black, plan('B', 'W'), 60, 24, cover(1)).B).toBe(17);
+  });
+
+  it('keeps the most demanding card of a light color, and every land in one color', () => {
+    // Two white copies: covering 80% of them covers both, so Glorious Anthem sets the want.
+    const want = colorWants([...black, ...white], plan('B', 'W'), 60, 24, CONFIG);
+    expect(want.W).toBe(sourcesNeeded(60, 24, 2, 3, 0.85));
+    expect(want.W).toBeGreaterThan(sourcesNeeded(60, 24, 1, 1, 0.85));
+    expect(colorWants(black, plan('B'), 60, 24, CONFIG)).toEqual({ B: 24 });
+  });
+
+  it('gives basics to the want first, so a deck that can meet every want is not stretched', () => {
+    // Black: 8 one-pip two-drops and 2 Murders want 13 (17 with Murder); white: 4 Pacifism want 11.
+    const spells = [
+      copies('Cast Down', 4),
+      copies('Walking Corpse', 4),
+      copies('Murder', 2),
+      copies('Pacifism', 4),
+    ];
+    const mana = chooseManaBase(24, [], plan('B', 'W'), spells, CONFIG, SETTINGS, 60, index);
+    expect(mana.wanted).toEqual({ B: 13, W: 11 });
+    expect(mana.basics).toEqual({ B: 13, W: 11 });
+    expect(mana.notes.some((n) => n.includes('stretched'))).toBe(false);
+    const strict = chooseManaBase(24, [], plan('B', 'W'), spells, cover(1), SETTINGS, 60, index);
+    expect(strict.wanted).toEqual({ B: 17, W: 11 });
+    expect(strict.notes.some((n) => n.includes('stretched'))).toBe(true);
+  });
+
+  it('gives basics past the want to what every copy needs, before colored pips', () => {
+    // Black: 4 Cast Down and one Murder; white: 12 one-pip two-drops, so white has twice
+    // black's pips. At 26 lands the wants are 13 and 11, and Murder asks 18 sources: the two
+    // basics left go to black (by pips alone they would go to white, 13 and 13).
+    const spells = [
+      copies('Cast Down', 4),
+      copies('Murder', 1),
+      copies('Pacifism', 4),
+      copies('Luminarch Aspirant', 4),
+      copies('Ainok Bond-Kin', 4),
+    ];
+    const mana = chooseManaBase(26, [], plan('B', 'W'), spells, CONFIG, SETTINGS, 60, index);
+    expect(mana.wanted).toEqual({ B: 13, W: 11 });
+    expect(colorWants(spells, plan('B', 'W'), 60, 26, CONFIG, 1)).toEqual({ B: 18, W: 11 });
+    expect(mana.basics).toEqual({ B: 15, W: 11 });
+  });
+
+  it('lists basics in the order the split gave before the want was fitted', () => {
+    // Two Forum of Amity make both colors. Against the wants (13 and 11) black is furthest
+    // short first; against every copy (13, and 16 for Glorious Anthem) white is.
+    const spells = [
+      copies('Cast Down', 4),
+      copies('Walking Corpse', 4),
+      copies('Pacifism', 4),
+      copies('Glorious Anthem', 1),
+    ];
+    const lands = [cand(land('Forum of Amity'), 2)];
+    const mana = chooseManaBase(24, lands, plan('B', 'W'), spells, CONFIG, SETTINGS, 60, index);
+    const strict = chooseManaBase(24, lands, plan('B', 'W'), spells, cover(1), SETTINGS, 60, index);
+    expect(picked(mana)).toEqual({ 'Forum of Amity': 2 });
+    expect(mana.wanted).toEqual({ B: 13, W: 11 });
+    expect(strict.wanted).toEqual({ B: 13, W: 16 });
+    expect(Object.keys(strict.basics)).toEqual(['W', 'B']);
+    expect(Object.keys(mana.basics)).toEqual(['W', 'B']);
+    expect(mana.basics).toEqual({ W: 11, B: 11 });
+  });
+});
+
 describe('basics in Replace', () => {
   // The white fixture pool plus a pack land the mono-white builder takes, and a Swamp.
   const castle = land('Castle Ardenvale');
@@ -336,7 +432,9 @@ describe('land rules config', () => {
     broken.landRules.mono.minScore = 0;
     broken.landRules.mono.planTags = { nope: ['mill-self'] };
     broken.landRules.entering.basicInPlay = 2;
+    broken.landRules.colors.sourceCover['40'] = 0;
     const problems = validateConfig(broken);
+    expect(problems).toContain('landRules.colors.sourceCover.40: must be above 0 and at most 1');
     expect(problems).toContain('landRules.mono.minScore: must be above 0');
     expect(problems).toContain('landRules.mono.planTags: unknown style "nope"');
     expect(problems).toContain('landRules.entering.basicInPlay: must be a chance between 0 and 1');

@@ -280,6 +280,11 @@ export interface LandRulesConfig {
   colors: {
     /** Target chance to cast a spell on curve, by the role of the color it asks for. */
     castChance: { main: number; secondary: number; splash: number };
+    /**
+     * Share of a color's spell copies its source want must cast on curve at
+     * `castChance`, by size (fitted to real decks); at 1 the most demanding spell sets it.
+     */
+    sourceCover: PerSize<number>;
     /** A non-main color carrying less than this share of the main color's weight is a splash. */
     splashShare: number;
     /** Each color of a multi-color deck holds at least this many spells. */
@@ -1223,6 +1228,12 @@ export function validateConfig(c: BulkBrewConfig): string[] {
     const v = lc?.castChance?.[k];
     if (!isNum(v) || v <= 0 || v >= 1)
       problems.push(`landRules.colors.castChance.${k}: must be between 0 and 1`);
+  }
+  for (const key of ['60', '40', '20', '100'] as const) {
+    if (key === '100' && lc?.sourceCover?.[key] === undefined) continue;
+    const v = lc?.sourceCover?.[key];
+    if (!isNum(v) || v <= 0 || v > 1)
+      problems.push(`landRules.colors.sourceCover.${key}: must be above 0 and at most 1`);
   }
   if (!isNum(lc?.splashShare) || lc.splashShare < 0 || lc.splashShare > 1)
     problems.push('landRules.colors.splashShare: must be between 0 and 1');

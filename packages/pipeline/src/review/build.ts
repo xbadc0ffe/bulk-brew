@@ -2,7 +2,7 @@
 // pool and store the deck as one ReviewDeck JSON file in data/review/decks/.
 // Usage and file naming: docs/review/runner.md.
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import {
@@ -99,6 +99,28 @@ function deepFreeze<T>(value: T): T {
     for (const v of Object.values(value)) deepFreeze(v);
   }
   return value;
+}
+
+/**
+ * The development pools, as paths from the repo root: eval/pools, plain-01 to
+ * plain-10, and the theme pools without a seed prefix. Never the held-out h1-,
+ * h2-, h3-, or plain-11 to plain-30 pools.
+ */
+export function devPools(): string[] {
+  return [
+    ...readdirSync(path.join(ROOT, 'eval', 'pools'))
+      .filter((f) => f.endsWith('.txt'))
+      .sort()
+      .map((f) => `eval/pools/${f}`),
+    ...Array.from(
+      { length: 10 },
+      (_, i) => `data/review/pools/plain/plain-${String(i + 1).padStart(2, '0')}.json`,
+    ),
+    ...readdirSync(path.join(ROOT, 'data', 'review', 'pools', 'theme'))
+      .filter((f) => f.endsWith('.json') && !/^h\d+-/.test(f))
+      .sort()
+      .map((f) => `data/review/pools/theme/${f}`),
+  ];
 }
 
 /** Load the pack, learned data, config, and settings once for a whole run. */

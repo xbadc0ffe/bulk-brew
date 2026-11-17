@@ -106,7 +106,7 @@ export interface ManaBase {
   basics: Partial<Record<Color, number>>;
   /** Lands that can make each deck color. */
   sources: Partial<Record<Color, number>>;
-  /** Sources each color wants so its most demanding spell casts on curve (multi-color only). */
+  /** Sources each color wants so its spells cast on curve, by colorWants (multi-color only). */
   wanted: Partial<Record<Color, number>>;
   notes: string[];
 }
@@ -539,8 +539,10 @@ function scoreMono(
 
 /**
  * Sources each color wants: for every spell, the sources that cast it on
- * curve with the color role's target chance; the most demanding spell sets
- * the want. Mono decks want every land.
+ * curve with the color role's target chance; the want is the fewest sources
+ * that do so for the size's `sourceCover` share of the color's spell copies,
+ * so its most demanding few may wait a turn, as in real decks (at a `cover`
+ * of 1, the most demanding spell sets it). Mono decks want every land.
  */
 export function colorWants(
   spells: SpellCopies[],
@@ -548,6 +550,7 @@ export function colorWants(
   size: DeckSize,
   lands: number,
   config: BulkBrewConfig,
+  cover = forSize(config.landRules.colors.sourceCover, size),
 ): Partial<Record<Color, number>> {
   const want: Partial<Record<Color, number>> = {};
   if (plan.colors.length === 1) {
@@ -556,6 +559,8 @@ export function colorWants(
   }
   const chance = config.landRules.colors.castChance;
   const prefer = [plan.main, ...plan.colors.filter((c) => c !== plan.main)];
+  // Per color, each spell's sources needed and its copies.
+  const needs = new Map<Color, [number, number][]>();
   for (const { facts, qty } of spells) {
     if (qty <= 0) continue;
     const demand = pipDemand(facts.card, prefer);
@@ -571,7 +576,19 @@ export function colorWants(
         target,
         isCommanderSize(size),
       );
-      want[c] = Math.max(want[c] ?? 0, need);
+      const list = needs.get(c) ?? [];
+      list.push([need, qty]);
+      needs.set(c, list);
+    }
+  }
+  for (const [c, list] of needs) {
+    list.sort((a, b) => a[0] - b[0]);
+    const total = list.reduce((n, [, qty]) => n + qty, 0);
+    let copies = 0;
+    for (const [need, qty] of list) {
+      copies += qty;
+      want[c] = need;
+      if (copies >= cover * total - 1e-9) break;
     }
   }
   return want;
@@ -580,7 +597,8 @@ export function colorWants(
 /**
  * Pick nonbasics from the pool by score, then fill with basics. Mono decks
  * take basics of their color. Multi-color decks give basics first to the
- * colors furthest below what their spells want, then by colored pips.
+ * colors furthest below what their spells want, then below what every copy
+ * needs on curve, then by colored pips.
  * Basics are unlimited unless the settings track them, in which case the
  * pool's basics (passed as candidates) bound each color. `styles` are the
  * deck's style ids, which decide whether a land's ability helps its plan.
@@ -718,7 +736,10 @@ export function chooseManaBase(
     if (need > 0) basics[plan.main] = need;
     sources[plan.main] = (sources[plan.main] ?? 0) + need;
   } else {
-    // Colored pips per color, for the split once every color has what it wants.
+    // Past the want, basics aim at what every copy needs, as before the want was fitted
+    // to real decks: splitting the rest otherwise moved near-tie plan picks (docs/todo.md).
+    const every = colorWants(spells, plan, size, count, config, 1);
+    // Colored pips per color, for the split once every color has what every copy needs.
     const prefer = [plan.main, ...colors.filter((c) => c !== plan.main)];
     const pips: Partial<Record<Color, number>> = {};
     for (const { facts, qty } of spells) {
@@ -726,24 +747,38 @@ export function chooseManaBase(
       for (const c of colors) pips[c] = (pips[c] ?? 0) + (d[c] ?? 0) * qty;
     }
     const order = prefer;
-    for (let i = 0; i < need; i++) {
-      const open = order.filter((c) => (basics[c] ?? 0) < (cap.get(c) ?? 0));
+    // One basic at a time to the color furthest below the first aim it is short of, then by pips.
+    const split = (aims: Partial<Record<Color, number>>[]) => {
+      const got: Partial<Record<Color, number>> = {};
       const have = (c: Color) =>
-        (sources[c] ?? 0) + ((basics[c] ?? 0) > 0 ? (fetchFor[c] ?? 0) : 0);
-      const short = open
-        .map((c) => ({ c, gap: ((wanted[c] ?? 0) - have(c)) / Math.max(1, wanted[c] ?? 0) }))
-        .filter((x) => x.gap > 0);
-      let pick: Color;
-      if (short.length > 0) {
-        pick = short.reduce((a, b) => (b.gap > a.gap ? b : a)).c;
-      } else {
-        pick = open.reduce((a, b) =>
-          (pips[b] ?? 0) / (have(b) + 1) > (pips[a] ?? 0) / (have(a) + 1) ? b : a,
-        );
+        (sources[c] ?? 0) + (got[c] ?? 0) + ((got[c] ?? 0) > 0 ? (fetchFor[c] ?? 0) : 0);
+      for (let i = 0; i < need; i++) {
+        const open = order.filter((c) => (got[c] ?? 0) < (cap.get(c) ?? 0));
+        let short: { c: Color; gap: number }[] = [];
+        for (const want of aims) {
+          short = open
+            .map((c) => ({ c, gap: ((want[c] ?? 0) - have(c)) / Math.max(1, want[c] ?? 0) }))
+            .filter((x) => x.gap > 0);
+          if (short.length > 0) break;
+        }
+        const pick =
+          short.length > 0
+            ? short.reduce((a, b) => (b.gap > a.gap ? b : a)).c
+            : open.reduce((a, b) =>
+                (pips[b] ?? 0) / (have(b) + 1) > (pips[a] ?? 0) / (have(a) + 1) ? b : a,
+              );
+        got[pick] = (got[pick] ?? 0) + 1;
       }
-      basics[pick] = (basics[pick] ?? 0) + 1;
-      sources[pick] = (sources[pick] ?? 0) + 1;
+      return got;
+    };
+    const counts = split([wanted, every]);
+    // Deck views list basics in this object's order: keep the order the split had before
+    // the want was fitted, so only the counts move.
+    for (const c of [...Object.keys(split([every])), ...Object.keys(counts)] as Color[]) {
+      const n = counts[c] ?? 0;
+      if (n > 0 && basics[c] === undefined) basics[c] = n;
     }
+    for (const c of colors) sources[c] = (sources[c] ?? 0) + (basics[c] ?? 0);
     // Fetch lands now count for every color they can find a basic of.
     for (const c of colors)
       if ((basics[c] ?? 0) > 0) sources[c] = (sources[c] ?? 0) + (fetchFor[c] ?? 0);

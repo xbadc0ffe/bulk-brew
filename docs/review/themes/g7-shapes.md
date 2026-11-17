@@ -25,7 +25,7 @@ A plain deck has nothing to set up and nothing to pay off. Judge it on its plays
   - Below the floor, a payoff that does little without its resource counts as a card that does nothing.
 - Plain decks fail in their own ways: a curve that starts on turn four, removal that cannot hit a creature, no way to win, cards that do nothing in an ordinary game, or early cards the lands cannot cast. The checks below look for those.
 
-**Colors.** The live builder gives each color the sources its most demanding spell needs, by `sourcesNeeded` in `packages/core/src/colors.ts`: the chance, given the deck made its land drops, that enough of those lands make the color. It aims at 90% for the main color and 85% for the second (`config/land-rules.json`). Judge early cards by the same math. Sources of one color for 90% / 85%:
+**Colors.** The live builder gives each color the sources most of its spells need (80% of its copies at 60, 55% at 40, 65% at 100, all at 20), by `sourcesNeeded` in `packages/core/src/colors.ts`: the chance, given the deck made its land drops, that enough of those lands make the color. It aims at 90% for the main color and 85% for the second (`config/land-rules.json`). Judge early cards by the same math. Sources of one color for 90% / 85%:
 
 | Card, cast on curve    | 60 cards, 24 lands | 40 cards, 17 lands | 99 cards, 37 lands |
 | ---------------------- | ------------------ | ------------------ | ------------------ |

@@ -41,6 +41,7 @@
     "theme:bulk": "node packages/pipeline/src/theme-bulk.ts",
     "needs:report": "node packages/pipeline/src/needs-report.ts",
     "needs:decks": "node packages/pipeline/src/needs-decks.ts",
+    "sources:fit": "node packages/pipeline/src/sources-fit.ts",
     "rules:fetch": "node scripts/fetch-comp-rules.mjs",
     "smoke": "node scripts/smoke-web.mjs",
     "review:cards": "node packages/pipeline/src/review/cards.ts",
