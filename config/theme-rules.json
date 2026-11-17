@@ -1,5 +1,5 @@
 {
-  "version": "4",
+  "version": "5",
   "styles": {
     "tokens": {
       "resource": "creature tokens that stay on the battlefield, counted in bodies",
@@ -1715,6 +1715,63 @@
           "notTags": ["typal"],
           "notText": "^(other )?creatures you control get \\+\\d[^\\n]*until end of turn|without flying|if you control a creature with flying|(creature tokens|enchanted creatures|equipped creatures) you control",
           "priority": 1
+        },
+        {
+          "job": "team combat damage trigger",
+          "weight": 2,
+          "notTypes": ["instant", "sorcery"],
+          "text": "^([^\\n\\u2014]*\\u2014 )?(when [^,\\n]* enters( the battlefield)? and )?(when|whenever) ((a|one or more) (other )?(nontoken )?creatures? you control( with (flying|shadow))? deals? (combat )?damage to (a player|an opponent|one or more players|one or more of your opponents|one of your opponents|defending player)\\b|a creature deals combat damage to one of your opponents\\b)(?![^,.\\n]* this turn)",
+          "notText": "if this card is in your graveyard|put a time counter on this creature|if that creature entered this turn|becomes prepared|had to attack",
+          "priority": 1
+        },
+        {
+          "job": "evasive attacker with its own combat damage trigger",
+          "weight": 1,
+          "types": ["creature"],
+          "keywords": [
+            "Flying",
+            "Menace",
+            "Shadow",
+            "Fear",
+            "Intimidate",
+            "Skulk",
+            "Horsemanship",
+            "Landwalk",
+            "Islandwalk",
+            "Swampwalk",
+            "Forestwalk",
+            "Mountainwalk",
+            "Plainswalk",
+            "Desertwalk",
+            "Legendary landwalk",
+            "Nonbasic landwalk"
+          ],
+          "text": "^([^\\n\\u2014]*\\u2014 )?(when|whenever) (this creature|(?!(a|an|one|two|each|equipped|enchanted|that|those|another|target|your|you|it|any|all|this|creatures|he|she|they|either)\\b)(?![^,.\\n]*\\byou control\\b)[^,.\\n\"]+?(, [^,.\\n\"]+?)?)( enters( the battlefield)? (or|and whenever it)| or equipped creature)? (deals? (combat )?damage to (a player|an opponent|one or more players|one or more of your opponents|one of your opponents|defending player)\\b(?![^,.\\n]* this turn)|attacks and isn't blocked)",
+          "notKeywords": ["Defender"],
+          "notText": "can't attack",
+          "minPower": 1,
+          "priority": -1
+        },
+        {
+          "job": "evasive attacker with its own combat damage trigger",
+          "weight": 1,
+          "types": ["creature"],
+          "anyTags": ["fake-flying"],
+          "text": "^([^\\n\\u2014]*\\u2014 )?(when|whenever) (this creature|(?!(a|an|one|two|each|equipped|enchanted|that|those|another|target|your|you|it|any|all|this|creatures|he|she|they|either)\\b)(?![^,.\\n]*\\byou control\\b)[^,.\\n\"]+?(, [^,.\\n\"]+?)?)( enters( the battlefield)? (or|and whenever it)| or equipped creature)? (deals? (combat )?damage to (a player|an opponent|one or more players|one or more of your opponents|one of your opponents|defending player)\\b(?![^,.\\n]* this turn)|attacks and isn't blocked)",
+          "notKeywords": ["Defender"],
+          "notText": "can't attack",
+          "minPower": 1,
+          "priority": -1
+        },
+        {
+          "job": "evasive attacker with its own combat damage trigger",
+          "weight": 1,
+          "types": ["creature"],
+          "text": "^(?=[\\s\\S]*can't be blocked(\\.$| (as long as|if|this turn)))[\\s\\S]*?^([^\\n\\u2014]*\\u2014 )?(when|whenever) (this creature|(?!(a|an|one|two|each|equipped|enchanted|that|those|another|target|your|you|it|any|all|this|creatures|he|she|they|either)\\b)(?![^,.\\n]*\\byou control\\b)[^,.\\n\"]+?(, [^,.\\n\"]+?)?)( enters( the battlefield)? (or|and whenever it)| or equipped creature)? (deals? (combat )?damage to (a player|an opponent|one or more players|one or more of your opponents|one of your opponents|defending player)\\b(?![^,.\\n]* this turn)|attacks and isn't blocked)",
+          "notKeywords": ["Defender"],
+          "notText": "can't attack",
+          "minPower": 1,
+          "priority": -1
         }
       ],
       "minimums": {

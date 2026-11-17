@@ -1,7 +1,7 @@
 {
-  "version": "1lddk1e",
+  "version": "di9pv",
   "dataVersion": "2026-11-03",
-  "rulesVersion": "4",
+  "rulesVersion": "5",
   "styles": {
     "aristocrats": {
       "W": {
@@ -423,15 +423,15 @@
         "setupUnits": 0.221878,
         "setupWeight": 0.356368,
         "repeatable": 0.225906,
-        "payoffUnits": 0.002169,
-        "payoffWeight": 0.003409
+        "payoffUnits": 0.003719,
+        "payoffWeight": 0.006508
       },
       "B": {
         "setupUnits": 0.131531,
         "setupWeight": 0.225395,
         "repeatable": 0.132442,
-        "payoffUnits": 0,
-        "payoffWeight": 0
+        "payoffUnits": 0.000304,
+        "payoffWeight": 0.000608
       },
       "R": {
         "setupUnits": 0.052153,
@@ -458,8 +458,8 @@
         "setupUnits": 0.054822,
         "setupWeight": 0.086969,
         "repeatable": 0.055109,
-        "payoffUnits": 0,
-        "payoffWeight": 0
+        "payoffUnits": 0.000574,
+        "payoffWeight": 0.001148
       }
     },
     "goad": {

@@ -267,6 +267,158 @@ describe('the shipped rules', () => {
     ]);
   });
 
+  it('reads Evasion payoffs from combat damage triggers, each card once', () => {
+    const flyers = themeRulesFor(CONFIG).styles.get('flyers')!;
+    // "both" marks a card that met a setup and a payoff job and was counted once.
+    const as = (c: CardRecord) => {
+      const m = matchCard(c, flyers, 60);
+      return m && m.as !== 'excluded' ? `${m.as} ${m.weight}${m.dual ? ' both' : ''}` : 'neither';
+    };
+    const permanent = (partial: Partial<CardRecord> & Pick<CardRecord, 'name'>): CardRecord => {
+      const { power: _p, toughness: _t, ...rest } = card(partial);
+      return rest;
+    };
+    // Text, keywords, and power as the pack gives them.
+    const cards = [
+      card({ name: 'Wind Drake', keywords: ['Flying'], text: 'Flying' }),
+      // Its own trigger pays off only its own body, so it stays an evasive attacker.
+      card({
+        name: 'Nightveil Specter',
+        keywords: ['Flying'],
+        text: 'Flying\nWhenever this creature deals combat damage to a player, that player exiles the top card of their library.\nYou may play lands and cast spells from among cards exiled with this creature.',
+      }),
+      card({
+        name: 'Shadowmage Infiltrator',
+        keywords: ['Fear'],
+        power: '1',
+        text: "Fear (This creature can't be blocked except by artifact creatures and/or black creatures.)\nWhenever this creature deals combat damage to a player, you may draw a card.",
+      }),
+      card({
+        name: 'Thieving Magpie',
+        keywords: ['Flying'],
+        power: '1',
+        text: "Flying (This creature can't be blocked except by creatures with flying or reach.)\nWhenever this creature deals damage to an opponent, draw a card.",
+      }),
+      card({
+        name: 'Gregor, Shrewd Magistrate',
+        keywords: ['Skulk'],
+        power: '1',
+        text: "Skulk (This creature can't be blocked by creatures with greater power.)\nWhenever Gregor, Shrewd Magistrate deals combat damage to a player, draw cards equal to its power.",
+      }),
+      card({
+        name: "Suq'Ata Assassin",
+        keywords: ['Fear'],
+        power: '1',
+        text: "Fear (This creature can't be blocked except by artifact creatures and/or black creatures.)\nWhenever this creature attacks and isn't blocked, defending player gets a poison counter. (A player with ten or more poison counters loses the game.)",
+      }),
+      permanent({
+        name: 'Coastal Piracy',
+        types: ['enchantment'],
+        typeLine: 'Enchantment',
+        text: 'Whenever a creature you control deals combat damage to an opponent, you may draw a card.',
+      }),
+      // In a two-player game only your creatures can deal combat damage to your opponent.
+      card({
+        name: 'Gix, Yawgmoth Praetor',
+        power: '3',
+        toughness: '3',
+        text: "Whenever a creature deals combat damage to one of your opponents, its controller may pay 1 life. If they do, they draw a card.\n{4}{B}{B}{B}, Discard X cards: Exile the top X cards of target opponent's library. You may play lands and cast spells from among cards exiled this way without paying their mana costs.",
+      }),
+      card({
+        name: 'Rapacious Guest',
+        keywords: ['Food', 'Menace'],
+        text: 'Menace\nWhenever one or more creatures you control deal combat damage to a player, create a Food token.\nWhenever you sacrifice a Food, put a +1/+1 counter on this creature.\nWhen this creature leaves the battlefield, target opponent loses life equal to its power.',
+      }),
+      // Paid by counters, by Faeries, or only on what an Aura or Equipment is on.
+      card({
+        name: 'Yathan Tombguard',
+        keywords: ['Menace'],
+        text: "Menace (This creature can't be blocked except by two or more creatures.)\nWhenever a creature you control with a counter on it deals combat damage to a player, you draw a card and you lose 1 life.",
+      }),
+      card({
+        name: 'Faerie Bladecrafter',
+        keywords: ['Flying'],
+        text: 'Flying\nWhenever one or more Faeries you control deal combat damage to a player, put a +1/+1 counter on this creature.\nWhen this creature dies, each opponent loses X life and you gain X life, where X is its power.',
+      }),
+      permanent({
+        name: 'Curious Obsession',
+        types: ['enchantment'],
+        typeLine: 'Enchantment — Aura',
+        keywords: ['Enchant'],
+        text: 'Enchant creature\nEnchanted creature gets +1/+1 and has "Whenever this creature deals combat damage to a player, you may draw a card."\nAt the beginning of your end step, if you didn\'t attack with a creature this turn, sacrifice this Aura.',
+      }),
+      permanent({
+        name: 'Zephyr Boots',
+        types: ['artifact'],
+        typeLine: 'Artifact — Equipment',
+        keywords: ['Equip'],
+        tags: ['gives-flying'],
+        text: 'Equipped creature has flying.\nWhenever equipped creature deals combat damage to a player, draw a card, then discard a card.\nEquip {2} ({2}: Attach to target creature you control. Equip only as a sorcery.)',
+      }),
+      // Not evasive, only for one turn, or a reward for the card itself alone.
+      card({
+        name: 'Thieving Otter',
+        text: 'Whenever this creature deals damage to an opponent, draw a card.',
+      }),
+      card({
+        name: 'Mistway Spy',
+        keywords: ['Flying', 'Investigate', 'Disguise'],
+        power: '1',
+        toughness: '1',
+        text: 'Flying\nDisguise {1}{U} (You may cast this card face down for {3} as a 2/2 creature with ward {2}. Turn it face up any time for its disguise cost.)\nWhen this creature is turned face up, until end of turn, whenever a creature you control deals combat damage to a player, investigate.',
+      }),
+      permanent({
+        name: 'The Girl in the Fireplace',
+        types: ['enchantment'],
+        typeLine: 'Enchantment — Saga',
+        keywords: ['Time Travel'],
+        text: '(As this Saga enters and after your draw step, add a lore counter. Sacrifice after III.)\nI — Create a 1/1 white Human Noble creature token with vanishing 3 and "Prevent all damage that would be dealt to this token."\nII — Create a 2/2 white Horse creature token with "Doctors you control have horsemanship." (They can\'t be blocked except by creatures with horsemanship.)\nIII — Whenever a creature you control deals combat damage to a player this turn, time travel.',
+      }),
+      card({
+        name: 'Pyrewild Shaman',
+        keywords: ['Bloodrush'],
+        power: '3',
+        toughness: '1',
+        text: 'Bloodrush — {1}{R}, Discard this card: Target attacking creature gets +3/+1 until end of turn.\nWhenever one or more creatures you control deal combat damage to a player, if this card is in your graveyard, you may pay {3}. If you do, return this card to your hand.',
+      }),
+      card({
+        name: 'Lavacore Elemental',
+        keywords: ['Vanishing'],
+        power: '5',
+        toughness: '3',
+        text: 'Vanishing 1 (This creature enters with a time counter on it. At the beginning of your upkeep, remove a time counter from it. When the last is removed, sacrifice it.)\nWhenever a creature you control deals combat damage to a player, put a time counter on this creature.',
+      }),
+      permanent({
+        name: "Predators' Hour",
+        types: ['sorcery'],
+        typeLine: 'Sorcery',
+        text: 'Until end of turn, creatures you control gain menace and "Whenever this creature deals combat damage to a player, exile the top card of that player\'s library face down. You may look at and play that card for as long as it remains exiled, and you may spend mana as though it were mana of any color to cast that spell."',
+      }),
+    ];
+    expect(Object.fromEntries(cards.map((c) => [c.name, as(c)]))).toEqual({
+      'Wind Drake': 'setup 2',
+      'Nightveil Specter': 'setup 2 both',
+      'Shadowmage Infiltrator': 'setup 1 both',
+      'Thieving Magpie': 'setup 1 both',
+      'Gregor, Shrewd Magistrate': 'setup 1 both',
+      "Suq'Ata Assassin": 'setup 1 both',
+      // A team trigger pays off the rest, so it is a payoff even on an evasive body.
+      'Coastal Piracy': 'payoff 2',
+      'Gix, Yawgmoth Praetor': 'payoff 2',
+      'Rapacious Guest': 'payoff 2 both',
+      'Yathan Tombguard': 'setup 2',
+      'Faerie Bladecrafter': 'setup 2',
+      'Curious Obsession': 'neither',
+      'Zephyr Boots': 'setup 1',
+      'Thieving Otter': 'neither',
+      'Mistway Spy': 'setup 1',
+      'The Girl in the Fireplace': 'neither',
+      'Pyrewild Shaman': 'neither',
+      'Lavacore Elemental': 'neither',
+      "Predators' Hour": 'neither',
+    });
+  });
+
   it('marks the styles whose setup needs their own payoffs, and their kin', () => {
     const rules = themeRulesFor(CONFIG);
     const needs = [...rules.styles.values()].filter((s) => s.setupNeedsPayoff).map((s) => s.id);
