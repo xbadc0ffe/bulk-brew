@@ -38,10 +38,14 @@ const TABS: { id: TabIconName; label: string; screen: ScreenId }[] = [
 
 /** Card detail as a full-screen sheet; on tablets it sits beside the content. */
 function DetailSheet() {
-  const { detail, index, config, settings, pool, decks } = useAppState();
+  const { detail, index, config, settings, pool, decks, build } = useAppState();
   const open = detail.current;
   const card = open && index ? index.get(open.cardId) : undefined;
   if (!card || !index) return null;
+  // The deck the card was opened from as it is now, should it change while the sheet is open.
+  const from = open?.deck;
+  const deck =
+    from && ([build.result?.deck, ...decks.decks].find((d) => d?.id === from.id) ?? from);
   const entry = pool.pool.entries[card.id];
   const inDecks = decks.decks.filter((d) => d.cards.some((c) => c.cardId === card.id));
   return (
@@ -59,7 +63,7 @@ function DetailSheet() {
         config={config}
         showArt={settings.settings.showArt}
         inDecks={inDecks.map((d) => d.name)}
-        deck={open?.deck}
+        deck={deck}
         onClose={detail.close}
         onQtyChange={entry ? (q) => pool.actions.setQty(card.id, q) : undefined}
         onRemove={

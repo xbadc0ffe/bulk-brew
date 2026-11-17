@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest';
 import shippedTags from '../../../config/display-tags.json';
 import { styleCounts } from '../src/builder.ts';
 import { computeFacts } from '../src/candidates.ts';
-import { deckCredits, supplyOfDeck, swapSupply } from '../src/deck-credits.ts';
+import {
+  deckCredits,
+  deckRoleCounts,
+  reasonEarned,
+  supplyOfDeck,
+  swapSupply,
+} from '../src/deck-credits.ts';
 import { displayTagsFor, type DisplayTagsConfig } from '../src/display-tags.ts';
 import { CardIndex } from '../src/pack.ts';
 import { replaceCard, replacementOptions } from '../src/replace.ts';
@@ -135,7 +141,6 @@ describe('Replace with deck-aware jobs', () => {
     ),
     updatedAt: '2026-11-03T00:00:00Z',
   };
-  const whisper = needsCard("Night's Whisper");
   const options = (deck: Deck, out: string) =>
     replacementOptions(deck, needsCard(out).id, pool, index, CONFIG, SETTINGS)!;
   const optionFor = (deck: Deck, out: string, name: string) =>
@@ -171,35 +176,85 @@ describe('Replace with deck-aware jobs', () => {
     expect([...labels(short.shared), ...labels(short.added)]).not.toContain(ROLES.cardAdvantage);
   });
 
-  it('moves the role counts by what the cards earn after the swap', () => {
+  it("keeps the builder's role count in the explanation; the Roles bars count what is earned", () => {
+    // The builder counts every copy with the role: Night's Whisper and Yathan Tombguard
+    // for card advantage, Vampire Interloper and Yathan for evasive threats.
     const explanation: BuildExplanation = {
       archetype: 'midrange',
       curve: [0, 4, 8, 6, 2, 2, 0, 0],
       roles: {
-        cardAdvantage: { have: 2, want: 4 },
-        evasiveThreat: { have: 4, want: 4 },
+        cardAdvantage: { have: 4, want: 4 },
+        evasiveThreat: { have: 6, want: 4 },
       },
       lands: { count: 24, averageMv: 2.4, cheapManaSources: 0, nonbasics: 0 },
       synergies: [],
       notes: [],
     };
-    const swap = (cards: Cards, colors: Color[]) =>
-      replaceCard(
-        { ...deckOf([...cards, ["Night's Whisper", 2]], colors), explanation },
-        whisper.id,
-        yathan.id,
-        2,
-        index,
-        CONFIG,
-      ).explanation!.roles;
-    // Without counters it draws nothing: card advantage drops, the evasive threats grow.
-    expect(swap(MONO_BLACK, ['B'])).toEqual({
-      cardAdvantage: { have: 0, want: 4 },
+    const before = {
+      ...deckOf([...MONO_BLACK, ["Night's Whisper", 2], ['Yathan Tombguard', 2]]),
+      explanation,
+    };
+    expect(deckRoleCounts(before, index, CONFIG)).toEqual({
+      cardAdvantage: { have: 2, want: 4 },
       evasiveThreat: { have: 6, want: 4 },
     });
-    expect(swap([...MONO_BLACK, ...COUNTERS], ['B', 'W', 'G']).cardAdvantage).toEqual({
-      have: 2,
-      want: 4,
+    // Yathan goes out for Gruesome Realization: the plain role change, two out and two in.
+    const after = replaceCard(
+      before,
+      yathan.id,
+      needsCard('Gruesome Realization').id,
+      2,
+      index,
+      CONFIG,
+    );
+    expect(after.explanation!.roles).toEqual({
+      cardAdvantage: { have: 4, want: 4 },
+      evasiveThreat: { have: 4, want: 4 },
     });
+    expect(deckRoleCounts(after, index, CONFIG)).toEqual({
+      cardAdvantage: { have: 4, want: 4 },
+      evasiveThreat: { have: 4, want: 4 },
+    });
+    // With counters in the deck, Yathan draws and counts.
+    const counters = {
+      ...deckOf(
+        [...MONO_BLACK, ...COUNTERS, ["Night's Whisper", 2], ['Yathan Tombguard', 2]],
+        ['B', 'W', 'G'],
+      ),
+      explanation,
+    };
+    expect(deckRoleCounts(counters, index, CONFIG).cardAdvantage).toEqual({ have: 4, want: 4 });
+    const { explanation: _dropped, ...unexplained } = before;
+    expect(deckRoleCounts(unexplained, index, CONFIG)).toEqual({});
+  });
+});
+
+describe('reasonEarned', () => {
+  const holds = (why: string, deck: Deck) =>
+    reasonEarned(why, yathan, deck, deckCredits(deck, index, CONFIG), CONFIG);
+  const countersPlan = (cards: Cards, colors: Color[]) => deckOf(cards, colors, 'counters');
+
+  it('drops a role or theme reason the deck does not earn', () => {
+    const deck = countersPlan([...MONO_BLACK, ['Yathan Tombguard', 2]], ['B']);
+    expect(holds('Card advantage', deck)).toBe(false);
+    expect(holds('+1/+1 counters payoff', deck)).toBe(false);
+    expect(holds('Payoff: counters on creatures', deck)).toBe(false);
+    expect(holds('Evasive threat', deck)).toBe(true);
+  });
+
+  it('keeps it when the deck supplies the need', () => {
+    const deck = countersPlan(
+      [...MONO_BLACK, ...COUNTERS, ['Yathan Tombguard', 2]],
+      ['B', 'W', 'G'],
+    );
+    expect(holds('Card advantage', deck)).toBe(true);
+    expect(holds('+1/+1 counters payoff', deck)).toBe(true);
+    expect(holds('Payoff: counters on creatures', deck)).toBe(true);
+  });
+
+  it('keeps every reason that names no credit', () => {
+    const deck = countersPlan([...MONO_BLACK, ['Yathan Tombguard', 2]], ['B']);
+    for (const why of ['Curve: 3-drop', 'Filler', 'Swapped in for Murder', 'Elf tribe payoff'])
+      expect(holds(why, deck)).toBe(true);
   });
 });

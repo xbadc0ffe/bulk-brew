@@ -11,6 +11,7 @@ import {
   typeParts,
 } from '../src/data/poolView.ts';
 import { DISPLAY_TAGS } from '../src/data/config.ts';
+import { deckGroups } from '../src/data/deckGroups.ts';
 import { bigPool, CONFIG_BUNDLE as CONFIG, PACK } from '../../core/test/builder-fixtures.ts';
 import { NEEDS_CARD, needsCard } from '../../core/test/needs-cards.ts';
 
@@ -93,10 +94,11 @@ describe('tags in a deck', () => {
     color: colors[0]!,
     ...(colors.length > 1 ? { colors } : {}),
     archetype: 'counters',
-    cards: [...cards, ['Yathan Tombguard', 2] as const].map(([name, qty]) => ({
-      cardId: needsCard(name).id,
-      qty,
-    })),
+    cards: [
+      ...cards.map(([name, qty]) => ({ cardId: needsCard(name).id, qty })),
+      // As a builder records it: picked for the role.
+      { cardId: yathan.id, qty: 2, why: 'Card advantage' },
+    ],
     basics: { B: 24 },
     committed: false,
     createdAt: '',
@@ -108,6 +110,10 @@ describe('tags in a deck', () => {
     ['Typhoid Rats', 4],
     ['Vampire Interloper', 4],
     ['Murder', 2],
+  ];
+  const counters: [string, number][] = [
+    ['Luminarch Aspirant', 4],
+    ['Hunger of the Howlpack', 2],
   ];
   const tags = (deck?: Deck) => {
     const credits = deck ? deckCredits(deck, needsIndex, CONFIG) : undefined;
@@ -137,14 +143,19 @@ describe('tags in a deck', () => {
   });
 
   it('keeps card advantage in a deck with counters', () => {
-    const counters: [string, number][] = [
-      ['Luminarch Aspirant', 4],
-      ['Hunger of the Howlpack', 2],
-    ];
     const { general, major } = tags(deckOf([...black, ...counters], ['B', 'W', 'G']));
     expect(general).toContain('card advantage');
     expect(general).toContain('+1/+1 counters payoff');
     expect(major).toContain('Draw');
+  });
+
+  it('leaves out a row reason the deck does not earn', () => {
+    const why = (deck: Deck) =>
+      deckGroups(deck, needsIndex, CONFIG)
+        .flatMap((g) => g.rows)
+        .find((r) => r.card?.id === yathan.id)!.why;
+    expect(why(deckOf(black, ['B']))).toBeUndefined();
+    expect(why(deckOf([...black, ...counters], ['B', 'W', 'G']))).toBe('card advantage');
   });
 });
 

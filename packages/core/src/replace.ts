@@ -359,6 +359,11 @@ function followSwap(
     const template = templateFor(config, deck.size);
     const move = (f: CardFacts, by: number) => {
       if (f.bucket >= 0) curve[f.bucket] = (curve[f.bucket] ?? 0) + by;
+      // The builder's own count; the Roles bars show what the cards earn (deckRoleCounts).
+      for (const id of f.roles) {
+        const r = roles[id];
+        if (r) r.have += by;
+      }
       // Rocks, dorks, and land ramp, as the land formula counts them.
       const cheap = planLandCount(template, [{ facts: f, qty: 1 }], config.landRules.mdfc);
       lands.cheapManaSources += cheap.cheapManaSources * by;
@@ -385,24 +390,6 @@ function followSwap(
     lands.sources = sources;
   }
   if (inFacts.basic) lands.nonbasics -= n;
-
-  // A role counts the spells that earn it in their deck, and a swap can change what the
-  // other cards earn too, so the counts move by the difference over the whole deck.
-  const shift = (d: Deck, by: number) => {
-    const credits = deckCredits(d, index, config);
-    for (const dc of d.cards) {
-      const card = index.get(dc.cardId);
-      if (!card || dc.cardId === d.commander) continue;
-      const f = factsFor(index, config, card);
-      if (!f.spell) continue;
-      for (const id of f.roles) {
-        const r = roles[id];
-        if (r && credits.earned(card, id)) r.have += by * dc.qty;
-      }
-    }
-  };
-  shift(before, -1);
-  shift(deck, 1);
 
   const spellList: { facts: CardFacts; qty: number }[] = [];
   for (const dc of deck.cards) {
