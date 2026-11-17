@@ -8,14 +8,14 @@ Everything runs on your device. There is no account, no server, and nothing you 
 
 **Try it:** https://xbadc0ffe.github.io/bulk-brew/
 
-**Status:** working v1. Import decklists or ManaBox, Moxfield, and Deckbox CSV exports, keep a bulk list you can filter, sort, and analyze (with the strongest decks it can build at every size), build decks of 60, 40, or 20 cards in one to five colors, or 100-card Commander decks, from ranked options with a primary and secondary style and a rarity filter, each with an explanation, accept them to take their cards out of the list, export or copy decklists, pair and merge two packets, export and restore the bulk list, decks, or both, and browse card details with optional art. Light, dark, and six theme colors. The web app works offline once loaded. The phone layout builds a single deck for now; the iOS app comes later. See [SPEC.md](SPEC.md) for the plan and the decisions behind it.
+**Status:** working v1. Import decklists or ManaBox, Moxfield, and Deckbox CSV exports, keep a bulk list you can filter, sort, and analyze (with the strongest decks it can build at every size), build decks of 60, 40, or 20 cards in one to five colors, or 100-card Commander decks, from ranked options with a primary and secondary style and a rarity filter, each with an explanation, swap a card in a new deck for another from the list, accept decks to take their cards out of the list, export or copy decklists, pair and merge two packets, export and restore the bulk list, decks, or both, and browse card details with optional art. Light, dark, and six theme colors. The web app works offline once loaded. The phone layout builds a single deck for now; the iOS app comes later. See [SPEC.md](SPEC.md) for the plan and the decisions behind it.
 
 ## How it works
 
 1. **Import** a decklist such as `4 Lightning Bolt (M10) 146`, or a ManaBox, Moxfield, or Deckbox CSV export.
 2. **Bulk List**: every card you imported, matched against a local card database built from Scryfall data.
 3. **Build**: choose 100, 60, 40, or 20 cards and one or more colors, or a commander for 100. Deck options build one by one, strongest first. Each picks a style your pool supports, fills role quotas and a mana curve, and sizes the mana base from the curve and the cheap mana sources it chose.
-4. **Accept** an option to save it and take its cards out of your bulk list, or go back to the options and pick another.
+4. **Accept** an option to save it and take its cards out of your bulk list, or go back to the options and pick another. Before you accept, click any card and **Replace** it: the web app lists the cards from your bulk list that could do its job, closest matches first, and shows the one you pick at full size.
 5. **Export** any saved deck as plain decklist text.
 
 Card art is optional and off by default. When on, images load from Scryfall as you browse; nothing is bundled.

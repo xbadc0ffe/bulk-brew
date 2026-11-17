@@ -2,7 +2,7 @@
 
 For the interface design pass. Everything under the interface is shared and already specified in `SPEC.md`; this brief covers what people see and do.
 
-The design pass is done (milestone 7b), followed by an owner review. Where the shipped app differs from this brief, `SPEC.md` wins. Most notably: the pool is shown as the Bulk List, with Import as its subpage; a fresh build offers Accept (with a confirmation), Reject, and Export instead of Try another style and Discard; and two packets pair from a packet's view, with a Merge that replaces them. The design handoff that guided the pass, with the unbuilt alternates, is in `docs/design_handoff_bulk_brew_ui/`.
+The design pass is done (milestone 7b), followed by an owner review. Where the shipped app differs from this brief, `SPEC.md` wins. Most notably: the pool is shown as the Bulk List, with Import as its subpage; a fresh build offers Accept (with a confirmation), Reject, and Export instead of Try another style and Discard; two packets pair from a packet's view, with a Merge that replaces them; in a deck view the card detail opens over the deck details, below the deck's header; and a fresh build's cards can be replaced before Accept. The design handoff that guided the pass, with the unbuilt alternates, is in `docs/design_handoff_bulk_brew_ui/`.
 
 ## The product in one paragraph
 
@@ -72,6 +72,7 @@ The same view serves a fresh build and a saved deck.
 - Explanation panel: archetype and what it does, role coverage against targets (removal 6 of 6, card draw 3 of 4) led by the archetype's own cards (Voltron enablers 13 of 13), key synergies in plain words, notes.
 - Each card can reveal "why this card": the role or synergy slot it filled, or that it is filler.
 - Actions on a fresh build: Accept (saves and removes cards from the pool), Try another style, Discard, Export, Copy.
+- Replace a card on a fresh build (web): the card detail's Replace this card opens a picker of pool cards that fit the deck, closest matches first, as card images or text cards, each with the jobs it shares with the card going out. The picked card shows large beside the list (the card going out until one is picked), or over the list on a narrow window with Back to the list. Leaving a deck with replaced cards asks Discard your changes? first.
 - Actions on a saved deck: click the name to rename it; Export, a popup with Copy as text, Download .txt, or Cancel; a red Remove that asks Delete (cards stay out of the pool), Disassemble (cards go back), or Cancel.
 - A badge shows whether the deck's cards were removed from the pool.
 
@@ -134,10 +135,10 @@ A plain, functional interface already implements every screen above, so the desi
 - Import: paste or choose a file; decklists and ManaBox, Moxfield, and Deckbox CSV exports are detected automatically; a resolution report with suggestions.
 - Pool: color filters, type, subtype, mana value, and tag filters, search, sort (name, mana value, color, quantity), header counts, quantity buttons, Select to remove cards. Card art opens full screen on click; a two-sided card has a turn-over button over the art's right edge. Tags show as bubbles; the web table only renders rows near the viewport for large pools.
 - Build (desktop): settings beside ranked deck options; an option opens the deck view with Accept, Back, and Export. Phones: size, colors, archetype list, Build, then the deck view.
-- Deck view: cards grouped by type, mana symbols, optional "why each card is here", curve bars, land reasoning, roles, synergies, notes.
+- Deck view: cards grouped by type, mana symbols, optional "why each card is here", curve bars, land reasoning, roles, synergies, notes. On a fresh build (web), any card but the commander and basics can be replaced from the bulk list.
 - Decks: list, open, rename by clicking the name, export, Remove (Delete or Disassemble), pair two packets with Copy.
 - Settings: Un-sets, card art, appearance, export (bulk list, decks, or both, as JSON or TXT) and restore (bulk list, decks, or both), reset settings, clear all data, card data version, About with the attribution notices.
-- Card detail: opened from any card row. Web shows a right-hand panel; phones show a full-screen sheet; tablets show a side panel. With art on, lists show small thumbnails and the detail shows the whole card.
+- Card detail: opened from any card row. Web shows a right-hand panel, which in a deck view opens over the deck details below the deck's header so Accept, Back, and Export stay in view; phones show a full-screen sheet; tablets show a side panel. With art on, lists show small thumbnails and the detail shows the whole card.
 - Mobile shell: bottom tab bar on phones; from 768 px a side rail, and Build shows the form beside the result.
 - Web app: installable, works offline after the first load through a service worker.
 

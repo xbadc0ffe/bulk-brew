@@ -2,9 +2,11 @@
 // End-to-end smoke test of the web app in a headless Chromium browser (Edge
 // or Chrome) over the DevTools protocol. Drives the main loop a person uses:
 // load, paste a list, import it, open the Bulk List, open the strongest deck
-// option, leave and come back, accept it (which removes its cards), confirm
-// the list shrank, see the deck on Decks and its Export popup, then open
-// the Analyze pane and open its strongest deck.
+// option, leave and come back, open a card (its detail must leave Accept in
+// view), replace it from the picker (whose picked card shows large), check
+// that Back asks before it drops the change, accept the deck (which removes
+// its cards), confirm the list shrank, see the deck on Decks and its Export
+// popup, then open the Analyze pane and open its strongest deck.
 //
 // Usage: node scripts/smoke-web.mjs [appUrl] [poolFile] [outDir]
 //   appUrl   default http://localhost:4173/ (a `vite preview` of the web build)
@@ -17,7 +19,9 @@
 // a style that commander leads. SMOKE_EXPECT_NOTE=1 checks that the first
 // option, once open, says the style asked for was short and what was built
 // instead ("Asked for Graveyard: ... Built Aristocrats instead."), for a style
-// the list marks Short.
+// the list marks Short. SMOKE_ART=1 turns card art on before the deck checks,
+// and SMOKE_WIDTH sets the window width (default 1280; 420 gives the narrow
+// layout, where the picked replacement covers the list until Back to the list).
 
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -62,7 +66,7 @@ const browser = spawn(
     '--no-default-browser-check',
     `--remote-debugging-port=${PORT}`,
     `--user-data-dir=${profile}`,
-    '--window-size=1280,900',
+    `--window-size=${process.env.SMOKE_WIDTH ?? 1280},900`,
     'about:blank',
   ],
   { stdio: 'ignore' },
@@ -281,6 +285,15 @@ try {
   await click('^Build$');
   await waitForText(/Accept/, 5000);
   log('navigation', 'opened deck survived a trip to the Bulk List');
+  if (process.env.SMOKE_ART === '1') {
+    await click('^Settings');
+    await sleep(500);
+    await evaluate(`document.querySelector('[aria-label="Show card art"]').click()`);
+    await sleep(300);
+    await click('^Build$');
+    await waitForText(/Accept/, 5000);
+    log('art', 'card art on');
+  }
 
   // A card opens below the deck header, so Accept, Back, and Export stay in view.
   const opened = await evaluate(`(() => {
