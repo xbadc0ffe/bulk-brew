@@ -1,0 +1,1851 @@
+{
+  "version": "1",
+  "vocabulary": {
+    "creatureTypes": [
+      "Advisor",
+      "Aetherborn",
+      "Alien",
+      "Ally",
+      "Angel",
+      "Antelope",
+      "Ape",
+      "Archer",
+      "Archon",
+      "Armadillo",
+      "Army",
+      "Artificer",
+      "Assassin",
+      "Assembly-Worker",
+      "Astartes",
+      "Atog",
+      "Aurochs",
+      "Avatar",
+      "Azra",
+      "Badger",
+      "Balloon",
+      "Barbarian",
+      "Bard",
+      "Basilisk",
+      "Bat",
+      "Bear",
+      "Beast",
+      "Beaver",
+      "Beeble",
+      "Beholder",
+      "Berserker",
+      "Bird",
+      "Bison",
+      "Blinkmoth",
+      "Boar",
+      "Bringer",
+      "Brushwagg",
+      "Camarid",
+      "Camel",
+      "Capybara",
+      "Caribou",
+      "Carrier",
+      "Cat",
+      "Centaur",
+      "Child",
+      "Chimera",
+      "Citizen",
+      "Cleric",
+      "Clown",
+      "Cockatrice",
+      "Construct",
+      "Coward",
+      "Coyote",
+      "Crab",
+      "Crocodile",
+      "C'tan",
+      "Custodes",
+      "Cyberman",
+      "Cyclops",
+      "Dalek",
+      "Dauthi",
+      "Demigod",
+      "Demon",
+      "Deserter",
+      "Detective",
+      "Devil",
+      "Dinosaur",
+      "Djinn",
+      "Doctor",
+      "Dog",
+      "Dragon",
+      "Drake",
+      "Dreadnought",
+      "Drix",
+      "Drone",
+      "Druid",
+      "Dryad",
+      "Dwarf",
+      "Echidna",
+      "Efreet",
+      "Egg",
+      "Elder",
+      "Eldrazi",
+      "Elemental",
+      "Elephant",
+      "Elf",
+      "Elk",
+      "Employee",
+      "Eternal",
+      "Eye",
+      "Faerie",
+      "Ferret",
+      "Fish",
+      "Flagbearer",
+      "Fox",
+      "Fractal",
+      "Frog",
+      "Fungus",
+      "Gamer",
+      "Gamma",
+      "Gargoyle",
+      "Germ",
+      "Giant",
+      "Giraffe",
+      "Gith",
+      "Glimmer",
+      "Gnoll",
+      "Gnome",
+      "Goat",
+      "Goblin",
+      "God",
+      "Golem",
+      "Gorgon",
+      "Graveborn",
+      "Gremlin",
+      "Griffin",
+      "Guest",
+      "Hag",
+      "Halfling",
+      "Hamster",
+      "Harpy",
+      "Hedgehog",
+      "Hellion",
+      "Hero",
+      "Hippo",
+      "Hippogriff",
+      "Homarid",
+      "Homunculus",
+      "Horror",
+      "Horse",
+      "Human",
+      "Hydra",
+      "Hyena",
+      "Illusion",
+      "Imp",
+      "Incarnation",
+      "Inhuman",
+      "Inkling",
+      "Inquisitor",
+      "Insect",
+      "Jackal",
+      "Jellyfish",
+      "Juggernaut",
+      "Kangaroo",
+      "Kavu",
+      "Kirin",
+      "Kithkin",
+      "Knight",
+      "Kobold",
+      "Kor",
+      "Kraken",
+      "Kree",
+      "Llama",
+      "Lamia",
+      "Lammasu",
+      "Leech",
+      "Lemur",
+      "Leviathan",
+      "Lhurgoyf",
+      "Licid",
+      "Lizard",
+      "Lobster",
+      "Manticore",
+      "Masticore",
+      "Mercenary",
+      "Merfolk",
+      "Metathran",
+      "Minion",
+      "Minotaur",
+      "Mite",
+      "Mole",
+      "Monger",
+      "Mongoose",
+      "Monk",
+      "Monkey",
+      "Moogle",
+      "Moonfolk",
+      "Mount",
+      "Mouse",
+      "Mutant",
+      "Myr",
+      "Mystic",
+      "Nautilus",
+      "Necron",
+      "Nephilim",
+      "Nightmare",
+      "Nightstalker",
+      "Ninja",
+      "Noble",
+      "Noggle",
+      "Nomad",
+      "Nymph",
+      "Octopus",
+      "Ogre",
+      "Ooze",
+      "Orb",
+      "Orc",
+      "Orgg",
+      "Otter",
+      "Ouphe",
+      "Ox",
+      "Oyster",
+      "Pangolin",
+      "Peasant",
+      "Pegasus",
+      "Pentavite",
+      "Performer",
+      "Pest",
+      "Phelddagrif",
+      "Phoenix",
+      "Phyrexian",
+      "Pilot",
+      "Pincher",
+      "Pirate",
+      "Plant",
+      "Platypus",
+      "Porcupine",
+      "Possum",
+      "Praetor",
+      "Primarch",
+      "Prism",
+      "Processor",
+      "Qu",
+      "Rabbit",
+      "Raccoon",
+      "Ranger",
+      "Rat",
+      "Rebel",
+      "Reflection",
+      "Rhino",
+      "Rigger",
+      "Robot",
+      "Rogue",
+      "Sable",
+      "Salamander",
+      "Samurai",
+      "Sand",
+      "Saproling",
+      "Satyr",
+      "Scarecrow",
+      "Scientist",
+      "Scion",
+      "Scorpion",
+      "Scout",
+      "Sculpture",
+      "Seal",
+      "Serf",
+      "Serpent",
+      "Servo",
+      "Shade",
+      "Shaman",
+      "Shapeshifter",
+      "Shark",
+      "Sheep",
+      "Shi'ar",
+      "Siren",
+      "Skeleton",
+      "Skrull",
+      "Skunk",
+      "Slith",
+      "Sliver",
+      "Sloth",
+      "Slug",
+      "Snail",
+      "Snake",
+      "Soldier",
+      "Soltari",
+      "Sorcerer",
+      "Spawn",
+      "Specter",
+      "Spellshaper",
+      "Sphinx",
+      "Spider",
+      "Spike",
+      "Spirit",
+      "Splinter",
+      "Sponge",
+      "Spy",
+      "Squid",
+      "Squirrel",
+      "Starfish",
+      "Surrakar",
+      "Survivor",
+      "Symbiote",
+      "Synth",
+      "Tentacle",
+      "Tetravite",
+      "Thalakos",
+      "Thopter",
+      "Thrull",
+      "Tiefling",
+      "Toy",
+      "Treefolk",
+      "Trilobite",
+      "Triskelavite",
+      "Troll",
+      "Turtle",
+      "Tyranid",
+      "Unicorn",
+      "Utrom",
+      "Vampire",
+      "Varmint",
+      "Vedalken",
+      "Villain",
+      "Volver",
+      "Wall",
+      "Walrus",
+      "Warlock",
+      "Warrior",
+      "Weasel",
+      "Weird",
+      "Werewolf",
+      "Whale",
+      "Wizard",
+      "Wolf",
+      "Wolverine",
+      "Wombat",
+      "Worm",
+      "Wraith",
+      "Wurm",
+      "Yeti",
+      "Zombie",
+      "Zubera",
+      "Time Lord"
+    ],
+    "artifactTypes": [
+      "Attraction",
+      "Blood",
+      "Bobblehead",
+      "Book",
+      "Clue",
+      "Contraption",
+      "Equipment",
+      "Food",
+      "Fortification",
+      "Gold",
+      "Heartwood",
+      "Incubator",
+      "Infinity",
+      "Junk",
+      "Lander",
+      "Map",
+      "Mutagen",
+      "Powerstone",
+      "Spacecraft",
+      "Stone",
+      "Treasure",
+      "Vehicle",
+      "Vibranium"
+    ],
+    "enchantmentTypes": [
+      "Aura",
+      "Background",
+      "Cartouche",
+      "Case",
+      "Class",
+      "Curse",
+      "Plan",
+      "Role",
+      "Room",
+      "Rune",
+      "Saga",
+      "Shard",
+      "Shrine"
+    ],
+    "landTypes": [
+      "Cave",
+      "Desert",
+      "Forest",
+      "Gate",
+      "Island",
+      "Lair",
+      "Locus",
+      "Mine",
+      "Mountain",
+      "Plains",
+      "Planet",
+      "Power-Plant",
+      "Sphere",
+      "Swamp",
+      "Tower",
+      "Town",
+      "Urza's"
+    ],
+    "spellTypes": ["Adventure", "Arcane", "Lesson", "Omen", "Trap"],
+    "planeswalkerTypes": [
+      "Ajani",
+      "Aminatou",
+      "Angrath",
+      "Arlinn",
+      "Ashiok",
+      "Bahamut",
+      "Basri",
+      "Bolas",
+      "Calix",
+      "Chandra",
+      "Comet",
+      "Dack",
+      "Dakkon",
+      "Daretti",
+      "Davriel",
+      "Dellian",
+      "Dihada",
+      "Domri",
+      "Dovin",
+      "Ellywick",
+      "Elminster",
+      "Elspeth",
+      "Estrid",
+      "Freyalise",
+      "Garruk",
+      "Gideon",
+      "Grist",
+      "Guff",
+      "Huatli",
+      "Jace",
+      "Jared",
+      "Jaya",
+      "Jeska",
+      "Kaito",
+      "Karn",
+      "Kasmina",
+      "Kaya",
+      "Kiora",
+      "Koth",
+      "Liliana",
+      "Lolth",
+      "Lukka",
+      "Minsc",
+      "Mordenkainen",
+      "Nahiri",
+      "Narset",
+      "Niko",
+      "Nissa",
+      "Nixilis",
+      "Oko",
+      "Quintorius",
+      "Ral",
+      "Rowan",
+      "Saheeli",
+      "Samut",
+      "Sarkhan",
+      "Serra",
+      "Sivitri",
+      "Sorin",
+      "Szat",
+      "Tamiyo",
+      "Tasha",
+      "Teferi",
+      "Teyo",
+      "Tezzeret",
+      "Tibalt",
+      "Tyvar",
+      "Ugin",
+      "Urza",
+      "Venser",
+      "Vivien",
+      "Vraska",
+      "Vronos",
+      "Will",
+      "Windgrace",
+      "Wrenn",
+      "Xenagos",
+      "Yanggu",
+      "Yanling",
+      "Zariel"
+    ],
+    "battleTypes": ["Siege"],
+    "plurals": {
+      "Elf": "Elves",
+      "Dwarf": "Dwarves",
+      "Wolf": "Wolves",
+      "Werewolf": "Werewolves",
+      "Mouse": "Mice",
+      "Fungus": "Fungi",
+      "Pegasus": "Pegasi",
+      "Ox": "Oxen",
+      "Child": "Children",
+      "Homunculus": "Homunculi",
+      "Cyclops": "Cyclopes",
+      "Locus": "Loci",
+      "Aurochs": "Aurochs",
+      "Astartes": "Astartes",
+      "Custodes": "Custodes",
+      "Thalakos": "Thalakos",
+      "Plains": "Plains",
+      "Equipment": "Equipment",
+      "Merfolk": "Merfolk",
+      "Kithkin": "Kithkin",
+      "Moonfolk": "Moonfolk",
+      "Treefolk": "Treefolk",
+      "Sheep": "Sheep",
+      "Fish": "Fish",
+      "Djinn": "Djinn",
+      "Efreet": "Efreet",
+      "Eldrazi": "Eldrazi",
+      "Samurai": "Samurai",
+      "Kor": "Kor",
+      "Dauthi": "Dauthi",
+      "Soltari": "Soltari",
+      "Metathran": "Metathran",
+      "Kree": "Kree",
+      "Qu": "Qu",
+      "Shi'ar": "Shi'ar",
+      "C'tan": "C'tan",
+      "Urza's": "Urza's",
+      "Blood": "Blood",
+      "Gold": "Gold",
+      "Junk": "Junk",
+      "Spacecraft": "Spacecraft",
+      "Arcane": "Arcane",
+      "Heartwood": "Heartwood",
+      "Infinity": "Infinity",
+      "Vibranium": "Vibranium",
+      "Sand": "Sand",
+      "Gith": "Gith",
+      "Bison": "Bison",
+      "Nephilim": "Nephilim"
+    },
+    "groups": {
+      "outlaw": ["Assassin", "Mercenary", "Pirate", "Rogue", "Warlock"]
+    },
+    "selfNouns": [
+      "creature",
+      "land",
+      "artifact",
+      "enchantment",
+      "spell",
+      "permanent",
+      "card",
+      "Aura",
+      "Equipment",
+      "Vehicle",
+      "Saga",
+      "Class",
+      "Case",
+      "Room",
+      "door",
+      "token",
+      "planeswalker",
+      "battle",
+      "Siege",
+      "Spacecraft",
+      "Planet",
+      "Attraction",
+      "Contraption",
+      "Food",
+      "Treasure",
+      "Clue",
+      "Shrine",
+      "Curse",
+      "Background",
+      "Role",
+      "Incubator",
+      "Map",
+      "Gold",
+      "Lander",
+      "Fortification",
+      "Book",
+      "Cartouche",
+      "Rune",
+      "Shard",
+      "Plan",
+      "Junk",
+      "Powerstone",
+      "Blood",
+      "Mount",
+      "object",
+      "Mutagen",
+      "Bobblehead"
+    ],
+    "numbers": {
+      "a": 1,
+      "an": 1,
+      "one": 1,
+      "another": 1,
+      "two": 2,
+      "three": 3,
+      "four": 4,
+      "five": 5,
+      "six": 6,
+      "seven": 7,
+      "eight": 8,
+      "nine": 9,
+      "ten": 10,
+      "eleven": 11,
+      "twelve": 12,
+      "thirteen": 13,
+      "fourteen": 14,
+      "fifteen": 15,
+      "twenty": 20
+    },
+    "builtInSacrifice": ["Food", "Clue", "Treasure", "Blood", "Gold", "Map", "Junk", "Lander"],
+    "creatureKeywords": [
+      "Flying",
+      "Deathtouch",
+      "Lifelink",
+      "Trample",
+      "Vigilance",
+      "Haste",
+      "First strike",
+      "Double strike",
+      "Menace",
+      "Reach",
+      "Defender",
+      "Hexproof",
+      "Indestructible",
+      "Ward",
+      "Flash",
+      "Prowess",
+      "Infect",
+      "Toxic"
+    ]
+  },
+  "keywords": {
+    "Affinity for": {
+      "kind": "bonus",
+      "place": "count",
+      "obj": "yours"
+    },
+    "Improvise": {
+      "kind": "bonus",
+      "place": "cost",
+      "res": ["type:artifact"]
+    },
+    "Delve": {
+      "kind": "bonus",
+      "place": "cost",
+      "res": ["graveyard:any"]
+    },
+    "Escape": {
+      "kind": "bonus",
+      "place": "cost",
+      "res": ["graveyard:any"]
+    },
+    "Champion": {
+      "kind": "drawback",
+      "place": "cost",
+      "obj": "yours"
+    },
+    "Splice onto": {
+      "kind": "bonus",
+      "place": "selection",
+      "obj": "cast"
+    },
+    "Prowl": {
+      "kind": "bonus",
+      "place": "cost",
+      "res": ["tribe:Rogue"]
+    },
+    "Madness": {
+      "kind": "bonus",
+      "place": "cost",
+      "res": ["discard"]
+    }
+  },
+  "harmful": [
+    "\\bsacrifices? (?:~|(?:it|a|an|another|one|two|three|that|them|this|those|all)\\b)",
+    "\\byou lose \\w+ life\\b|\\bloses? \\w+ life\\b",
+    "\\bdeals? (?:\\w+ )?damage to you\\b",
+    "\\bdiscards?\\b",
+    "\\bcan't\\b",
+    "\\b(?:doesn't|don't) untap\\b",
+    "\\benters? (?:the battlefield )?tapped\\b",
+    "\\bisn't a creature\\b",
+    "\\btap ~",
+    "\\breturn ~ to (?:its|their) owner's hand\\b",
+    "\\bexile ~",
+    "\\bput ~ on (?:the bottom|top) of\\b",
+    "\\bskip\\b",
+    "\\blose the game\\b",
+    "\\bcounter (?:it|~)\\b",
+    "\\bloses? (?:flying|all abilities|defender)\\b"
+  ],
+  "statOnly": "^~ gets [+-][\\dX]+/[+-][\\dX]+(?: until end of turn)?\\s*\\.?$",
+  "bonusSentence": "(?:~|\\bthis spell|\\bit|\\bthis ability|\\bactivating this ability) costs? (?:\\{[^}]+\\}|x|\\w+) less\\b|\\brather than pay\\b|\\bwithout paying (?:its|~'s|this spell's) mana cost\\b",
+  "resourceWords": "\\b(?:graveyards?|counters?|tokens?|life|sacrific\\w*|discard\\w*|devotion|energy|experience|commanders?|you control|you've cast|you cast|spells?|artifacts?|enchantments?|instants?|sorcery|sorceries|legendary|snow|historic|planeswalkers?|power \\d+ or greater|mill(?:s|ed)?)\\b|\\{E\\}",
+  "templates": {
+    "trigger": [
+      {
+        "re": "~ or (?:another|an?|one or more) {obj} (?:you control )?(?:dies|die|is put into (?:a|your) graveyard from the battlefield)",
+        "obj": "yours"
+      },
+      {
+        "re": "~ or (?:another|an?|one or more) {obj} (?:enters?|attacks?|blocks?|becomes? [^,]+|leaves? the battlefield)(?: the battlefield)?(?: under your control)?",
+        "obj": "yours"
+      },
+      {
+        "re": "~(?! or (?:another|an?|one or more) )[^,]*",
+        "ignore": true
+      },
+      {
+        "re": "(?:the )?beginning of [^,]*",
+        "ignore": true
+      },
+      {
+        "re": "you control no {obj}",
+        "obj": "yours",
+        "kind": "drawback"
+      },
+      {
+        "re": "you next cast {obj}",
+        "obj": "cast"
+      },
+      {
+        "re": "(?:one or more |{num} or more )?{obj} (?:leave|leaves) your graveyard[^,]*",
+        "obj": "graveyard"
+      },
+      {
+        "re": "(?:the )?end of combat[^,]*",
+        "ignore": true
+      },
+      {
+        "re": "you gain or lose life[^,]*",
+        "res": ["lifegain", "lifeloss"]
+      },
+      {
+        "re": "you gain life[^,]*",
+        "res": ["lifegain"]
+      },
+      {
+        "re": "you lose life[^,]*",
+        "res": ["lifeloss"]
+      },
+      {
+        "re": "you (?:cast or copy|copy|cast) {obj}",
+        "obj": "cast"
+      },
+      {
+        "re": "you sacrifice {obj}",
+        "obj": "yours",
+        "ubiquitous": ["sacrifice"]
+      },
+      {
+        "re": "you (?:cycle or )?discard {obj}",
+        "res": ["discard"]
+      },
+      {
+        "re": "you cycle ~[^,]*",
+        "ignore": true
+      },
+      {
+        "re": "you cycle {obj}",
+        "res": ["keyword:cycling"]
+      },
+      {
+        "re": "you create {obj}",
+        "obj": "yours",
+        "ubiquitous": ["tokens"]
+      },
+      {
+        "re": "(?:one or more |an? |{num} )?{counter} counters? (?:is|are) put on {obj}",
+        "counter": true
+      },
+      {
+        "re": "(?:one or more |an? )?counters? (?:is|are) put on {obj}",
+        "res": ["counters:any"]
+      },
+      {
+        "re": "you put one or more {counter} counters on {obj}",
+        "counter": true
+      },
+      {
+        "re": "you put (?:a|one or more) counters? on {obj}",
+        "res": ["counters:any"]
+      },
+      {
+        "re": "you (?:remove|move) (?:one or more |a )?{counter} counters? from [^,]+",
+        "counter": true
+      },
+      {
+        "re": "{obj} you control (?:dies|die|is put into (?:a|your) graveyard from the battlefield|are put into (?:a|your) graveyard from the battlefield)",
+        "obj": "yours",
+        "ubiquitous": ["death"]
+      },
+      {
+        "re": "{obj} (?:dies|die|is put into (?:a|your) graveyard from the battlefield|are put into (?:a|your) graveyard from the battlefield)",
+        "obj": "yours"
+      },
+      {
+        "re": "{obj} (?:enters|enter)(?: the battlefield)?(?: under your control)?(?: this turn)?(?: or (?:attacks|dies))?(?: and whenever you (?:fully )?unlock [^,]+)?",
+        "obj": "yours"
+      },
+      {
+        "re": "you attack with {obj}",
+        "obj": "yours"
+      },
+      {
+        "re": "{obj} (?:attacks|attack|blocks|block|attacks or blocks|blocks or becomes blocked|becomes blocked|is blocked|deals? (?:combat )?damage[^,]*|becomes tapped|becomes untapped|becomes the target of [^,]+|become the target of [^,]+|leaves? the battlefield|is dealt damage|explores|transforms|is turned face up|becomes? attached to [^,]+|becomes? unattached[^,]*|attacks alone|attacks and isn't blocked|becomes blocked by [^,]+|is exiled[^,]*|is returned [^,]+|becomes monstrous|becomes renowned|connives|mutates|becomes crewed[^,]*|becomes saddled[^,]*|attack[^,]*)",
+        "obj": "yours"
+      },
+      {
+        "re": "one or more cards are put into your graveyard[^,]*",
+        "res": ["graveyard:any"]
+      },
+      {
+        "re": "you (?:draw|expend|commit|roll|flip|win|scry|surveil|activate|play|tap|untap|become|venture|complete|unlock|foretell|attack|search|shuffle|mill|discover|explore|manifest|investigate|crew|saddle|proliferate|transform|forage|collect|clash|reveal|choose|planeswalk|look|turn|vote|gain control|lose control|lose the game|crank|face|exert|harness|airbend|earthbend|waterbend|firebend|connive|seek|learn|conjure|bolster|support|adapt|amass|incubate|suspect|cast your|cast a spell during|put a card|return|plot|descend|pay|cast your first|are dealt|'re dealt|end your turn|would)\\b[^,]*",
+        "ignore": true
+      },
+      {
+        "re": "(?:a|an|another|each|one or more|any|target|the chosen|your) (?:player|opponent|player's|opponent's|opponents)s?\\b[^,]*",
+        "ignore": true
+      },
+      {
+        "re": "(?:a|an|another|one or more|the) (?:spell|ability|source|spell or ability|spells)\\b[^,]*",
+        "ignore": true
+      },
+      {
+        "re": "(?:day|night) becomes (?:day|night)(?: or (?:day|night) becomes (?:day|night))?|it becomes (?:day|night)[^,]*",
+        "ignore": true
+      },
+      {
+        "re": "(?:the|a) ring tempts you[^,]*",
+        "ignore": true
+      },
+      {
+        "re": "(?:you're|you are) dealt damage[^,]*",
+        "ignore": true
+      },
+      {
+        "re": "(?:a|one or more) (?:land|lands) (?:you control )?(?:enters?|enter)[^,]*",
+        "ignore": true
+      },
+      {
+        "re": "(?:enchanted|equipped|fortified) (?:creature|permanent|land|player)[^,]*",
+        "ignore": true
+      },
+      {
+        "re": "(?:it|that creature|they|this chapter|the chosen creature|that permanent)\\b[^,]*",
+        "ignore": true
+      },
+      {
+        "re": "(?:a|an|another|one or more) (?:creature|permanent|nontoken creature|other creature)s?(?: or (?:planeswalker|battle|player)s?)? (?:an opponent controls|your opponents control|you don't control)[^,]*",
+        "ignore": true
+      },
+      {
+        "re": "(?:combat damage|damage) (?:is dealt|would be dealt)[^,]*",
+        "ignore": true
+      }
+    ],
+    "condition": [
+      {
+        "re": "able|you do|you don't|you can't|you did|you didn't|it's (?:not )?your turn|it isn't your turn|it's an opponent's turn|it's (?:day|night)|it's the [^,]+",
+        "ignore": true
+      },
+      {
+        "re": "~ has (?:a|an|one or more|{num} or more|{num}|at least {num}) {counter} counters? on it",
+        "counter": true
+      },
+      {
+        "re": "~ has (?:a|one or more|{num} or more) counters? on it",
+        "res": ["counters:any"]
+      },
+      {
+        "re": "~ has no {counter} counters? on it",
+        "ignore": true
+      },
+      {
+        "re": "(?:it|enchanted creature|equipped creature) has (?:a|an|one or more|{num} or more|{num}|at least {num}) {counter} counters? on it",
+        "counter": true
+      },
+      {
+        "re": "there (?:is|are) (?:a|an|one or more|{num} or more|{num}) {counter} counters? on ~",
+        "counter": true
+      },
+      {
+        "re": "(?:it's|it is|that card is|the revealed card is|the card is|it was|that card was|that creature is|it's still) (?:a|an) {obj}",
+        "obj": "card"
+      },
+      {
+        "re": "~(?: is|'s| was|'s not| isn't| wasn't| has| had| would| could| can| entered| attacked| blocked| dealt| didn't| did| became| is attacking| isn't attacking| deals| survived| remains?| left| leaves)\\b.*",
+        "ignore": true
+      },
+      {
+        "re": "you pay (?:\\{E\\})+[^,]*|you pay {num} \\{E\\}[^,]*",
+        "res": ["energy"]
+      },
+      {
+        "re": "you sacrifice {obj}",
+        "obj": "yours"
+      },
+      {
+        "re": "you return {obj} to (?:its|their) owner's hands?",
+        "obj": "yours"
+      },
+      {
+        "re": "you exile {obj} from your graveyard",
+        "obj": "graveyard"
+      },
+      {
+        "re": "you tap {obj}",
+        "obj": "yours"
+      },
+      {
+        "re": "you reveal {obj} from your hand",
+        "obj": "card"
+      },
+      {
+        "re": "you have a full party",
+        "res": ["tribe:Cleric", "tribe:Rogue", "tribe:Warrior", "tribe:Wizard"]
+      },
+      {
+        "re": "you have (?:two|three|{num}) or more opponents",
+        "res": ["format:multiplayer"]
+      },
+      {
+        "re": "creatures you control have total power {num} or greater",
+        "res": ["power"]
+      },
+      {
+        "re": "you (?:discard|pay|put|win|lose|won|lost|search|searched|flip|chose|choose|clash)\\b[^,]*|any player pays [^,]+|you're not playing for ante|you're on the [^,]+ team|you have an enduring story|tribute (?:was|wasn't) paid|(?:a|an|another) (?:nonland )?permanent (?:you control )?left the battlefield[^,]*|you've been attacked[^,]*|(?:\\{[^}]+\\})+ was spent to cast [^,]+|{num} or more mana was spent to cast [^,]+",
+        "ignore": true
+      },
+      {
+        "re": "mana from {obj} was spent to cast (?:it|~|that spell)",
+        "obj": "yours"
+      },
+      {
+        "re": "you (?:reveal|revealed|beheld) {obj}(?: this way)?(?: or you control [^,]+)?",
+        "obj": "card"
+      },
+      {
+        "re": "(?:an?|the) {obj} (?:card )?is revealed this way|{obj} cards? (?:is|are|was|were) revealed this way",
+        "obj": "card"
+      },
+      {
+        "re": "you control no {obj}",
+        "obj": "yours",
+        "negated": true
+      },
+      {
+        "re": "you don't control {obj}",
+        "obj": "yours",
+        "negated": true
+      },
+      {
+        "re": "you control (?:more|fewer|at least as many|as many) [^,]+|you control (?:the most|fewer than|less than) [^,]+",
+        "ignore": true
+      },
+      {
+        "re": "you control {obj}",
+        "obj": "yours"
+      },
+      {
+        "re": "there(?:'s| is| are) {obj} in your graveyard",
+        "obj": "graveyard"
+      },
+      {
+        "re": "{obj} (?:is|are) in your graveyard",
+        "obj": "graveyard"
+      },
+      {
+        "re": "your graveyard (?:contains|has) {obj}",
+        "obj": "graveyard"
+      },
+      {
+        "re": "(?:there are )?{n} or more card types among cards in your graveyard",
+        "res": ["graveyard:any"]
+      },
+      {
+        "re": "(?:there are|you have) {obj} in your graveyard",
+        "obj": "graveyard"
+      },
+      {
+        "re": "you(?:'ve)? descended this turn",
+        "res": ["graveyard:any"]
+      },
+      {
+        "re": "[^,]* in (?:a|any|all|each|an opponent's|target player's|their|that player's) graveyards?[^,]*",
+        "ignore": true
+      },
+      {
+        "re": "you(?:'ve)? (?:gained or lost|gained and lost|lost or gained) life this turn",
+        "res": ["lifegain", "lifeloss"]
+      },
+      {
+        "re": "you(?:'ve)? gained (?:{num} or more )?life this turn|you've gained [^,]+ life this turn",
+        "res": ["lifegain"]
+      },
+      {
+        "re": "you(?:'ve)? lost (?:{num} or more )?life this turn|you've lost [^,]+ life this turn",
+        "res": ["lifeloss"]
+      },
+      {
+        "re": "you(?:'ve)? cast (?:two|three|four|five|\\d+) or more spells this turn|you've cast (?:another|a) spell this turn|you've cast your [^,]+",
+        "ignore": true
+      },
+      {
+        "re": "you(?:'ve)? cast {obj} this turn",
+        "obj": "cast"
+      },
+      {
+        "re": "you(?:'ve)? cast {obj}",
+        "obj": "cast"
+      },
+      {
+        "re": "you(?:'ve)? sacrificed {obj}(?: this turn| this way)?",
+        "obj": "yours",
+        "ubiquitous": ["sacrifice"]
+      },
+      {
+        "re": "you(?:'ve)? discarded {obj}(?: this turn)?",
+        "res": ["discard"]
+      },
+      {
+        "re": "{obj} you control died this turn|one or more creatures you controlled died this turn|a creature you controlled died this turn",
+        "obj": "yours",
+        "ubiquitous": ["death"]
+      },
+      {
+        "re": "{obj} died this turn",
+        "obj": "yours"
+      },
+      {
+        "re": "{obj} (?:entered|has entered) (?:the battlefield )?under your control this turn",
+        "obj": "yours"
+      },
+      {
+        "re": "you(?:'ve)? created {obj} this turn",
+        "obj": "yours",
+        "ubiquitous": ["tokens"]
+      },
+      {
+        "re": "you(?:'ve)? put (?:a|one or more) {counter} counters? on [^,]+",
+        "counter": true
+      },
+      {
+        "re": "you have (?:{num} or more|at least {num}) life(?: more than your starting life total)?|your life total is (?:at least )?{num} or (?:more|greater)|you have more life than [^,]+|you have {num} or more life more than your starting life total",
+        "res": ["lifegain"]
+      },
+      {
+        "re": "you have {num} or less life|your life total is {num} or less|you have less life than [^,]+|you have {num} or fewer life",
+        "ignore": true
+      },
+      {
+        "re": "you have (?:no|one or fewer|{num} or fewer|{num} or more|seven or more|at least {num}|exactly {num}) cards? in (?:your )?hand|you have no cards in hand|you have more cards in hand than [^,]+|you have fewer cards in hand than [^,]+",
+        "ignore": true
+      },
+      {
+        "re": "your devotion to {color}(?: and \\w+)? is less than {num}",
+        "res": ["devotion:{C}"],
+        "negated": true
+      },
+      {
+        "re": "you would gain life|you would gain [^,]+ life",
+        "res": ["lifegain"],
+        "event": true
+      },
+      {
+        "re": "one or more {counter} counters would be put on {obj}",
+        "counter": true,
+        "event": true
+      },
+      {
+        "re": "you would put one or more counters on {obj}",
+        "res": ["counters:any"],
+        "event": true
+      },
+      {
+        "re": "you would create {obj}|an effect would create {obj}|one or more tokens would be created[^,]*",
+        "obj": "yours",
+        "ubiquitous": ["tokens"],
+        "event": true
+      },
+      {
+        "re": "[^,]* would [^,]+|damage would be dealt[^,]*",
+        "ignore": true
+      },
+      {
+        "re": "~ (?:was|is) kicked|it was kicked|this spell was kicked|it was bargained|~ was bargained|the gift was promised|the gift wasn't promised|evidence was collected|it was cast|you cast it(?: [^,]+)?|~ was cast(?: [^,]+)?|you cast ~(?: [^,]+)?|its additional cost was paid|this spell's additional cost was paid|the additional cost was paid|the [^,]+ cost was paid|you paid [^,]+|x is {num} or (?:more|greater|less)|{num} or more mana was spent to cast (?:it|~)|at least [^,]+ was spent[^,]*|it was foretold|~ was foretold|~ was entwined|it escaped|~ escaped|it was blitzed|its [^,]+ cost was paid|this spell was cast [^,]+|you spent [^,]+|it was dashed",
+        "ignore": true
+      },
+      {
+        "re": "you attacked(?: this turn| with [^,]+)?|you're the monarch|you're not the monarch|you have the city's blessing|you have max speed|you've completed a dungeon|you control the ring-bearer|a creature died this turn|(?:a|another) creature (?:died|was put into a graveyard)[^,]* this turn|you've drawn [^,]+|you drew [^,]+|you've played [^,]+|you played [^,]+|you haven't [^,]+|you've attacked [^,]+|you've committed a crime this turn|you committed a crime this turn|this is the (?:first|second|third) [^,]+|you weren't dealt damage[^,]*|you were dealt damage[^,]*|you've been dealt [^,]+|no (?:creatures|other creatures|permanents|[^,]+) (?:are|were) [^,]+|there are no [^,]+|you control (?:a|an) (?:untapped )?(?:land|creature)(?: [^,]+)?|you control {num} or more lands[^,]*|a land entered the battlefield under your control this turn|you had a land enter[^,]*|you(?:'ve)? cast a spell this turn|it's attacking|it's blocking|it's tapped|it's untapped|it has [^,]+|they have [^,]+|it shares [^,]+|they share [^,]+|you've activated [^,]+|you cycled [^,]+|you've cycled [^,]+|you've cast [^,]+ from exile[^,]*|you're dealt damage[^,]*|you've scried [^,]+|you scried [^,]+|you've surveilled [^,]+|you rolled [^,]+|you've rolled [^,]+|you flipped [^,]+|you won [^,]+|you lost [^,]+ flip[^,]*|you(?:'ve)? expended [^,]+|its power is [^,]+|its toughness is [^,]+|its mana value is [^,]+|that spell's mana value is [^,]+|the number of [^,]+|you have exactly [^,]+|your speed is [^,]+",
+        "ignore": true
+      },
+      {
+        "re": "(?:it|that creature|that permanent|the creature|this spell|the target creature|the targeted creature|that card|that spell|the exiled card|they|those creatures|the sacrificed creature|the chosen creature|its controller|that player|the player|each player|target player|target opponent|an opponent|a player|no opponent|no player|each opponent|defending player|your opponents|all opponents|neither player|the defending player|that land|that artifact|the token|that token|the copy|the spell|that spell's controller|its owner|their|the first|the second|the creature card|the revealed card|the milled card|the discarded card|the card|this creature|a source|damage|one or more of them|two or more of them|any of them|all of them|none of them|enchanted creature|equipped creature|enchanted permanent|enchanted land)\\b.*",
+        "ignore": true
+      }
+    ],
+    "cost": [
+      {
+        "re": "{mana}(?: or {mana})*|\\{T\\}|\\{Q\\}|tap ~|untap ~|[+-]?(?:\\d+|x)",
+        "ignore": true
+      },
+      {
+        "re": "(?:sacrifice|exile|discard|return|reveal|put|tap|untap|exert|unattach) ~(?: [^,]+)?|unattach [^,]+",
+        "ignore": true
+      },
+      {
+        "re": "sacrifice {obj}",
+        "obj": "yours",
+        "supplies": ["sacrifice"]
+      },
+      {
+        "re": "exile {obj} from your graveyard",
+        "obj": "graveyard"
+      },
+      {
+        "re": "exile {obj} from your hand",
+        "obj": "card"
+      },
+      {
+        "re": "exile the top {num} cards? of your library",
+        "ignore": true
+      },
+      {
+        "re": "exile {obj} you control",
+        "obj": "yours"
+      },
+      {
+        "re": "discard (?:a|an|one|two|three|{num}|x|your) (?:cards?|hand)(?: at random)?",
+        "supplies": ["discard", "graveyard:any"]
+      },
+      {
+        "re": "discard {obj}",
+        "obj": "card",
+        "supplies": ["discard", "graveyard:any"]
+      },
+      {
+        "re": "pay {num} life",
+        "supplies": ["lifeloss"]
+      },
+      {
+        "re": "pay (?:\\{E\\})+|pay {n} \\{E\\}|pay (?:an amount of|any amount of|one or more) \\{E\\}|pay \\{E\\}[^,]*",
+        "res": ["energy"]
+      },
+      {
+        "re": "pay {mana}|pay (?:x|\\{x\\})|pay (?:any amount of|an amount of) mana",
+        "ignore": true
+      },
+      {
+        "re": "remove (?:a|an|one|{num}|x|all) loyalty counters? from ~",
+        "ignore": true
+      },
+      {
+        "re": "remove (?:a|an|one|{num}|x|all|any number of) {counter} counters? from ~",
+        "counter": true
+      },
+      {
+        "re": "remove (?:a|an|one|{num}|x|all|any number of) counters? from ~",
+        "res": ["counters:any"]
+      },
+      {
+        "re": "remove (?:a|an|one|{num}|x|all|any number of) {counter} counters? from {obj}",
+        "counter": true
+      },
+      {
+        "re": "remove (?:a|an|one|{num}|x|all|any number of) counters? from (?:among )?{obj}",
+        "res": ["counters:any"]
+      },
+      {
+        "re": "tap {n} untapped {obj}",
+        "obj": "yours"
+      },
+      {
+        "re": "tap (?:an? )?untapped {obj}",
+        "obj": "yours"
+      },
+      {
+        "re": "tap {obj} you control",
+        "obj": "yours"
+      },
+      {
+        "re": "return {obj} to (?:its|their) owner's hands?",
+        "obj": "yours"
+      },
+      {
+        "re": "put {obj} on (?:top|the bottom) of (?:its owner's|your) library",
+        "obj": "yours"
+      },
+      {
+        "re": "mill {num} cards?",
+        "supplies": ["graveyard:any"]
+      },
+      {
+        "re": "collect evidence {num}",
+        "res": ["graveyard:any"]
+      },
+      {
+        "re": "forage",
+        "res": ["graveyard:any", "subtype:Food"]
+      },
+      {
+        "re": "behold {obj}",
+        "obj": "yours"
+      },
+      {
+        "re": "reveal {obj} from your hand",
+        "obj": "card"
+      },
+      {
+        "re": "blight {num}|waterbend {mana}|earthbend {num}|put (?:a|an|{num}) {counter} counters? on (?:~|a creature you control|target creature you control)",
+        "ignore": true
+      }
+    ],
+    "effect": [
+      {
+        "re": "\\bcounters? (?=target\\b|it\\b|that\\b|all\\b|up to\\b|the next\\b|each\\b|any number\\b|~)",
+        "ignore": true
+      },
+      {
+        "re": "\\b(?:each opponent|each other player|each player|target opponent|target player|an opponent|that player|they|defending player|its controller|its owner|their controller|that creature's controller|that permanent's controller|that spell's controller|the chosen player|chosen player|any player|a player|another target player|the player|each of your opponents|your opponents)\\b[^.;]*?\\b(?:sacrifices?|discards?|loses?|mills?|gains?|creates?|exiles?|reveals?|puts?|returns?)\\b[^.;]*?(?=\\.|;|, then |, and you | and you |$)",
+        "ignore": true
+      },
+      {
+        "re": "\\byou may sacrifice {obj}(?=\\.|,| and | to | rather|$)",
+        "obj": "yours",
+        "supplies": ["sacrifice"],
+        "optional": true
+      },
+      {
+        "re": "\\byou may exile {obj} from your graveyard",
+        "obj": "graveyard",
+        "optional": true
+      },
+      {
+        "re": "\\byou may discard {obj}(?=\\.|,| and |$)",
+        "obj": "card",
+        "supplies": ["discard", "graveyard:any"],
+        "optional": true
+      },
+      {
+        "re": "\\byou may (?:tap|return) {obj} you control",
+        "obj": "yours",
+        "optional": true
+      },
+      {
+        "re": "\\byou may pay (?:\\{E\\})+|\\byou may pay {num} \\{E\\}",
+        "res": ["energy"],
+        "optional": true
+      },
+      {
+        "re": "\\byou may reveal {obj} from your hand",
+        "obj": "card",
+        "optional": true
+      },
+      {
+        "re": "\\byou may behold {obj}(?=[,.]|$)",
+        "obj": "yours",
+        "optional": true
+      },
+      {
+        "re": "\\byou may remove (?:a|an|one|{num}|x|any number of|all) {counter} counters? from {obj}",
+        "counter": true,
+        "optional": true
+      },
+      {
+        "re": "\\byou may exile (?:a|an|one|{num}|x|any number of|all) {obj} you control",
+        "obj": "yours",
+        "optional": true
+      },
+      {
+        "re": "\\bcreates? (?<obj>[^.;:\"¤•]*?\\btokens?\\b(?:(?:, and |, | and )[^.;:\"¤•]*?\\btokens?\\b)*)",
+        "obj": "token",
+        "supply": true
+      },
+      {
+        "re": "\\b(?:put|puts|distribute|distributes|enters? with|enters the battlefield with|with an additional|with that many|with x|gets?|get) (?:an? |{num} |that many |x |an additional |another |additional |{num} additional |a number of |up to (?:\\w+ )?|twice that many |half that many )*{counter} counters?\\b",
+        "counter": true,
+        "supply": true
+      },
+      {
+        "re": "\\b(?:you |target player )?gains? (?:\\w+ |that much )?life\\b|\\byou gain life equal to\\b",
+        "supplies": ["lifegain"]
+      },
+      {
+        "re": "\\blifelink\\b",
+        "supplies": ["lifegain"]
+      },
+      {
+        "re": "\\b(?:you )?lose (?:\\w+ |that much |half your )?life\\b|\\bpay (?:\\w+) life\\b|\\bdeals? (?:\\w+ )?damage to you\\b",
+        "supplies": ["lifeloss"]
+      },
+      {
+        "re": "\\bmills? (?:\\w+ )?cards?\\b|\\bsurveil (?:\\w+)\\b|\\b(?:put|puts|and) [^.]*?\\binto your graveyard\\b",
+        "supplies": ["graveyard:any"]
+      },
+      {
+        "re": "\\b(?:you )?discards? [^.,]*",
+        "supplies": ["discard", "graveyard:any"]
+      },
+      {
+        "re": "\\bsacrifices? (?<obj>~|it|them|[^,.;:\"¤•]+?)(?=[,.]|$|\\s*¤| and | to | rather| unless| at | then| this way| of their)",
+        "obj": "yours",
+        "supplies": ["sacrifice"]
+      },
+      {
+        "re": "\\binvestigate\\b",
+        "supplies": ["subtype:Clue", "type:artifact", "tokens"]
+      },
+      {
+        "re": "\\bamass (?:\\w+ )?{num}\\b",
+        "supplies": ["tokens", "tribe:Army"]
+      },
+      {
+        "re": "\\bincubate {num}\\b",
+        "supplies": ["subtype:Incubator", "type:artifact", "tokens"]
+      },
+      {
+        "re": "\\byou get (?:\\{E\\})+|\\byou get (?:\\w+ )?\\{E\\}|\\byou get an amount of \\{E\\}",
+        "supplies": ["energy"]
+      },
+      {
+        "re": "\\byou get an? experience counters?\\b",
+        "supplies": ["experience"]
+      },
+      {
+        "re": "\\bconnives?\\b",
+        "supplies": ["discard", "graveyard:any"]
+      },
+      {
+        "re": "\\bpopulate\\b",
+        "res": ["tokens"]
+      },
+      {
+        "re": "\\b(?:where x is|x is|equal to|plus) (?:twice |half )?the (?:amount|total amount) of life you(?:'ve)? gained this turn\\b",
+        "res": ["lifegain"],
+        "place": "count"
+      },
+      {
+        "re": "\\b(?:where x is|x is|equal to|plus) (?:twice |half )?the (?:amount|total amount) of life you(?:'ve)? lost this turn\\b",
+        "res": ["lifeloss"],
+        "place": "count"
+      },
+      {
+        "re": "\\b(?:where x is|x is|equal to) (?:half )?your life total\\b",
+        "ignore": true
+      },
+      {
+        "re": "\\bwhen(?:ever)? you (?:next )?cast {obj}(?= this turn|,)",
+        "obj": "cast"
+      },
+      {
+        "re": "\\b(?:you(?:'ve)? cast your commander from the command zone[^.]*|commanders? you own|a commander you own)",
+        "res": ["commander"]
+      },
+      {
+        "re": "\\bfor each cards? you've discarded this turn\\b",
+        "res": ["discard"],
+        "place": "count"
+      },
+      {
+        "re": "\\b(?:you may )?cast (?:a|an|up to \\w+|one) (?<obj>[^,.;:\"¤•]+?) spells?(?= from| with| without| this turn|[,.]| if)",
+        "obj": "cast"
+      },
+      {
+        "re": "\\b(?:you may )?cast (?<obj>[^,.;:\"¤•]+?) spells (?:as though|from|this turn|without)",
+        "obj": "cast"
+      },
+      {
+        "re": "\\b(?<obj>(?:all |other |each other |[Aa]ll |[Oo]ther )?[A-Z][\\w'-]*(?:(?:,| or| and|, or|, and) [A-Z][\\w'-]*)*) (?:creatures|permanents) (?:get|have|gain|can't|attack|are)\\b",
+        "obj": "yours",
+        "typed": true
+      },
+      {
+        "re": "\\b(?:creature )?tokens (?:you control )?(?:get|have|gain)\\b",
+        "res": ["tokens"]
+      },
+      {
+        "re": "\\b(?<obj>(?:all |other |attacking |blocking |untapped |tapped |each other )*[A-Z][\\w'-]*(?:(?:,| or| and|, or|, and) [A-Z][\\w'-]*)*) (?:get|gets|have|has|gain|gains|can't|attack|attacks|deal|deals)\\b",
+        "obj": "yours",
+        "typed": true
+      },
+      {
+        "re": "\\bsearch your (?:graveyard|hand|library)(?:,? (?:and/or |and |or )?(?:your )?(?:hand|graveyard|library))+ for {obj}(?=[,.]|$|\\s*¤| and (?:put|reveal|exile)| then)",
+        "obj": "card"
+      },
+      {
+        "re": "\\bput {obj} from your hand or graveyard\\b",
+        "obj": "card"
+      },
+      {
+        "re": "\\byou may pay (?:any amount of|an amount of|one or more|x) \\{E\\}|\\bpay (?:any amount of|an amount of) \\{E\\}",
+        "res": ["energy"]
+      },
+      {
+        "re": "\\bcommander creatures you own\\b",
+        "res": ["commander"]
+      },
+      {
+        "re": "\\bspend this mana only to cast {obj}(?=[,.]|$|\\s*¤| and | or activate)(?: or activate (?:abilities of|an ability of) [^.]+)?",
+        "obj": "cast"
+      },
+      {
+        "re": "\\b(?:the next|the first) {obj} spells? you cast\\b",
+        "obj": "cast"
+      },
+      {
+        "re": "\\b(?:loyalty )?abilities of {obj} you control\\b",
+        "obj": "yours"
+      },
+      {
+        "re": "\\band (?:an? |{num} )(?:additional )?{counter} counters? on\\b",
+        "counter": true,
+        "supply": true
+      },
+      {
+        "re": "\\b(?:put|reveal|choose|exile) (?:a|an|up to \\w+|any number of|all|one|two) (?<obj>[^.;:\"¤•]+?) from among (?:them|those cards|the revealed cards|the milled cards|cards revealed this way|the cards)",
+        "obj": "card"
+      },
+      {
+        "re": "\\bproliferate\\b",
+        "res": ["counters:any"]
+      },
+      {
+        "re": "\\b(?:return|exile|cast|play|put|shuffle) ~ (?:from|into|on the bottom of|on top of) your (?:graveyard|library)\\b|~ (?:from|in) your graveyard\\b|\\bfrom your graveyard, ~",
+        "ignore": true
+      },
+      {
+        "re": "\\b(?<obj>[^,.;:\"¤•]+? you control(?: with [^,.;:\"¤•]+?| that [^,.;:\"¤•]+?)?) (?:gets?|have|has|gains?|can't|attacks?|each get|enter|enters|are|is|deal|deals|lose|loses|become|becomes|untap|phase)\\b",
+        "obj": "yours"
+      },
+      {
+        "re": "(?<!\\bfor )\\beach {obj} you control\\b",
+        "obj": "yours"
+      },
+      {
+        "re": "\\btarget {obj} you control\\b",
+        "obj": "yours"
+      },
+      {
+        "re": "\\bsearch(?:es)? your library(?: and(?:/or)? graveyard)? for (?<obj>[^.;:\\\"¤•]+?)(?=, (?:put|reveal|exile|and|then|you)|\\.|$|\\s*¤| and (?:put|reveal|exile)| then| named| other than)",
+        "obj": "card"
+      },
+      {
+        "re": "\\breturn {obj} from your graveyard\\b",
+        "obj": "graveyard"
+      },
+      {
+        "re": "\\bput {obj} from your graveyard (?:onto the battlefield|into your hand|on top of your library|on the bottom of your library|into your library)",
+        "obj": "graveyard"
+      },
+      {
+        "re": "\\b(?:cast|play) {obj} from your graveyard\\b",
+        "obj": "graveyard"
+      },
+      {
+        "re": "\\bexile {obj} from your graveyard\\b",
+        "obj": "graveyard"
+      },
+      {
+        "re": "\\bput {obj} from your hand onto the battlefield\\b",
+        "obj": "card"
+      },
+      {
+        "re": "\\b{obj} spells? you cast (?:costs?|have|gain|has)\\b",
+        "obj": "yours"
+      },
+      {
+        "re": "\\battach {obj} (?:you control )?to\\b",
+        "obj": "yours"
+      },
+      {
+        "re": "\\b(?:all|each) {obj} (?:gets?|get|have|has|gain|gains)\\b",
+        "obj": "yours"
+      },
+      {
+        "re": "\\btarget {obj} (?:gets? \\+|gains?\\b|can't be blocked|has base power)",
+        "obj": "yours"
+      },
+      {
+        "re": "\\bdouble the number of {counter} counters on\\b",
+        "counter": true
+      },
+      {
+        "re": "\\bfor each {obj}(?=[,.]|$|\\s*¤| that | this | to | plus | in addition| beyond| it | among them| and each)",
+        "obj": "yours",
+        "place": "count"
+      },
+      {
+        "re": "\\b(?:equal to|where x is|x is|plus) (?:the|twice the|half the) (?:total )?number of {obj}(?=[,.]|$|\\s*¤| that | plus | rounded| to | among them| and (?:the|each|twice))",
+        "obj": "yours",
+        "place": "count"
+      },
+      {
+        "re": "\\byour devotion to {color}(?: and \\w+)?",
+        "res": ["devotion:{C}"],
+        "place": "count"
+      },
+      {
+        "re": "\\b(?:equal to|where x is|x is) the (?:greatest|highest|total) (?:power|toughness|mana value)[^.]* among {obj}(?=[,.]|$|\\s*¤| and )",
+        "obj": "yours",
+        "place": "count"
+      },
+      {
+        "re": "\\bthe (?:total )?number of {obj}(?=[,.]|$|\\s*¤| that | plus | rounded| to | among them| is | are | and (?:the|each|twice))",
+        "obj": "yours",
+        "place": "count"
+      },
+      {
+        "re": "\\b(?:artifact |enchantment |land )creatures?\\b(?= until end of turn| with base| in addition)|\\b(?:an? |X )?(?:[\\dx]+/[\\dx]+ )(?:[\\w'-]+ ){0,4}?creatures?\\b(?: with [^.]*)?|\\b(?:becomes?|become) (?:an? |the )?(?:[\\dx]+/[\\dx]+ )?[^.]*|\\bcan't be blocked except by [^.]*|\\bblocked except by [^.]*|\\b(?:is|are) (?:also |still )?(?:every )?[A-Z][\\w'-]+s?\\b|\\bthat (?:artifact|creature|planeswalker|permanent|enchantment|land)'s controller\\b|\\benchanted (?:artifact|land|permanent|planeswalker)\\b|\\bcopy of (?:that|any|target|an?|each) [^.]*|\\b(?:destroy|exile|sacrifice) that (?:artifact|creature|planeswalker|permanent|enchantment|land)\\b|\\bremove (?:a|an|all|one|\\w+|x|up to \\w+|that many) (?:[\\w+/-]+ )?counters? from\\b|\\bpoison counters?\\b|\\brad counters?\\b|\\bmove (?:a|an|one|\\w+) [\\w+/-]* ?counters? from\\b[^.]*|\\bis dealt to [^.]* instead\\b|\\bwould\\b[^.]*\\binstead\\b",
+        "ignore": true
+      },
+      {
+        "re": "\\btargets? [^.;:\\\"¤•]+?(?=\\.|;|$|\\s*¤| and (?:you|~|it|that|put|draw|then|create|return|its|their)\\b|, (?:then|and then|you|~|it|draw|put|create|return|exile|destroy|tap|untap|where|and you|its|their)\\b| unless\\b| if\\b)",
+        "ignore": true
+      },
+      {
+        "re": "\\b(?<obj>[^.;:\"¤•]+?) (?:an opponent controls|your opponents control|you don't control|target player controls|target opponent controls|that player controls|defending player controls|its controller controls|each opponent controls|opponents control)\\b",
+        "ignore": true
+      },
+      {
+        "re": "\\b(?:all|each) [^.;:\\\"¤•]+?(?=\\.|;|$|\\s*¤| and (?:you|~|it|that|put|draw|then|create|return)\\b|, (?:then|and then|you|~|it|draw|put|create|return|exile|destroy|tap|untap|where)\\b| unless\\b| if\\b)",
+        "ignore": true
+      },
+      {
+        "re": "\\b(?<obj>[^,.;:\\\"¤•]+?) with (?:a|one or more|\\w+ or more) (?:[\\w+/-]+ )?counters? on (?:it|them)",
+        "obj": "yours"
+      },
+      {
+        "re": "\\b(?<obj>[^,.;:\\\"¤•]+?) (?:cards? )?(?:in|from) your graveyard\\b",
+        "obj": "graveyard"
+      },
+      {
+        "re": "\\bbecomes? (?:an? )?(?:[\\dx]+/[\\dx]+ )?[^.,]*? (?:creature|artifact|land|enchantment)s?\\b(?:[^.]*in addition to its other types)?",
+        "ignore": true
+      },
+      {
+        "re": "\\b(?:is|are) (?:also |still )?(?:an? )?[^.,]* in addition to (?:its|their) other (?:creature )?types\\b|\\bin addition to (?:its|their) other (?:creature )?types\\b|\\b(?:is|are) (?:also )?(?:an? )?[^.,]* in addition to\\b",
+        "ignore": true
+      },
+      {
+        "re": "\\b(?:choose|chosen|of the chosen|a|that) creature type\\b[^.]*|\\bof the chosen type\\b|\\bcreature type of your choice\\b|\\bthe chosen type\\b",
+        "ignore": true
+      },
+      {
+        "re": "\\bnamed [^.,;]+",
+        "ignore": true
+      },
+      {
+        "re": "\\bcan't be sacrificed\\b|\\bbands with other [^.]*|\\bprotection from [^.]*|\\bchoose [A-Z]\\w+ or [A-Z]\\w+\\b|\\bcommander can have\\b[^.]*|\\b(?:isn't|is not|aren't) legendary\\b|\\bnonlegendary\\b|\\b(?:it's|that's|is|are) still an? [\\w' -]+|\\b(?:you|a player) or (?:a )?planeswalkers? (?:you|they|that player) controls?\\b|\\b(?:it's|it is|they're|they are|that creature is|each is) (?:an? |the )?(?:[\\dx]+/[\\dx]+ )?[^.]*|\\b(?:is|are) (?:also |still )?(?:an? |every )(?:[\\dx]+/[\\dx]+ )?[^.,]*|\\bwith base power and toughness [\\dx]+/[\\dx]+|\\b(?:you )?choose (?:a|an|up to \\w+|any number of) [^.]*? from (?:it|their hand|that player's hand)\\b|\\b(?:noncreature |creature |instant and sorcery |instant |sorcery |artifact |enchantment |aura |equipment |[A-Z]\\w+ )?spells (?:your opponents cast |cost|can't|with)[^.]*|\\bshuffle your graveyard into your library\\b|\\bopen an attraction\\b|\\broll to visit your attractions\\b|\\bempower \\w+ \\d+|\\ba deck can have [^.]*|\\bthe sacrificed (?:creature|permanent|artifact|land)'s\\b|\\bcan't be blocked by [^.]*|\\bcan block [^.]*|\\bcan't block [^.]*|\\bsaddles [^.]*|\\bcrews [^.]*|\\b[\\w+/-]+ counters? (?:is|are) put on (?:it|them|that creature|that permanent)\\b|\\bthat many plus \\w+ [\\w+/-]+ counters\\b|\\bremove (?:a|an|one|{num}|x|all) [\\w+/-]* ?counters? from ~|\\b(?:hand|library) and graveyard\\b|\\bgraveyard and (?:hand|library)\\b",
+        "ignore": true
+      },
+      {
+        "re": "\\b(?:from|in|into|on top of|to|on the bottom of) (?:a|an|a single|its owner's|their owners'|their owner's|its controller's|that player's|target player's|each player's|each opponent's|an opponent's|any|all|the|that|their|his or her|its controller's|one) graveyards?\\b",
+        "ignore": true
+      },
+      {
+        "re": "\\b(?:target player's|each opponent's|an opponent's|each player's|that player's|their|all|its owner's|their owners') graveyards?\\b",
+        "ignore": true
+      },
+      {
+        "re": "\\bactivate (?:this ability )?only (?:as an instant|as a sorcery|once each turn|any time you could cast a sorcery|during your (?:turn|upkeep|combat)|during combat|once|before|from)\\b[^.]*",
+        "ignore": true
+      },
+      {
+        "re": "\\bas though (?:it|they) (?:had|were)[^.]*|\\bany time you could cast a sorcery\\b|\\bat sorcery speed\\b|\\bonly as a sorcery\\b|\\bas a sorcery\\b|\\bany time you could cast an instant\\b",
+        "ignore": true
+      },
+      {
+        "re": "\\b(?:the|that|those|these|its|each such|such) tokens?\\b|\\btokens? created this way\\b|\\bnontoken\\b|\\btoken cop(?:y|ies)\\b|\\bit's a token\\b|\\bthey're tokens\\b",
+        "ignore": true
+      },
+      {
+        "re": "\\b(?:with|has|have) (?:a|an|one or more|\\w+|that many) [\\w+/-]+ counters? on (?:it|them)\\b",
+        "ignore": true
+      },
+      {
+        "re": "\\bremove (?:a|an|all|one|\\w+|x) [\\w+/-]*\\s?counters? from (?:target|each|a|an|it|that|all|up to)\\b[^.]*",
+        "ignore": true
+      },
+      {
+        "re": "\\b(?:player|opponent)s? or planeswalkers?\\b|\\bplaneswalkers? (?:they|that player|your opponents|an opponent) controls?\\b|\\bcreatures? (?:or|and) planeswalkers?\\b",
+        "ignore": true
+      },
+      {
+        "re": "\\bcan be your commander\\b|\\bcommander's color identity\\b|\\bcolor identity\\b",
+        "ignore": true
+      },
+      {
+        "re": "\\b(?:counter|copy) (?:it|that spell|this spell|the spell|that ability)\\b",
+        "ignore": true
+      },
+      {
+        "re": "\\bput (?:it|that card|them|those cards|the rest|any number of them|the other)[^.]* into (?:its owner's|their owners'|your) graveyards?\\b",
+        "ignore": true
+      },
+      {
+        "re": "\\byou may cast (?:it|that card|the copy|them|those cards)[^.]*\\b(?:instant|sorcery|spells?)\\b",
+        "ignore": true
+      },
+      {
+        "re": "\\bany number of\\b",
+        "ignore": true
+      }
+    ]
+  },
+  "mentions": {
+    "graveyard": "\\bgraveyards?\\b",
+    "sacrifice": "\\bsacrific(?:e|es|ed|ing)\\b",
+    "discard": "\\bdiscard(?:s|ed)?\\b",
+    "life": "\\b(?:gain|gains|gained|gaining|lose|loses|lost|losing) (?:\\w+ )?life\\b|\\blife you(?:'ve)? (?:gained|lost)\\b",
+    "counters": "\\bcounters?\\b(?! (?:target|that|it|all|up to|each|the next|this|spells?))",
+    "tokens": "\\btokens?\\b",
+    "card type": "\\b(?:artifacts?|enchantments?|instants?|sorcery|sorceries|legendary|snow|historic|noncreature|planeswalkers?|battles?)\\b",
+    "devotion": "\\bdevotion\\b",
+    "energy": "\\{E\\}|\\benergy\\b",
+    "experience": "\\bexperience\\b",
+    "commander": "\\bcommanders?\\b",
+    "power": "\\bpower (?:\\d+|x) or greater\\b",
+    "for each": "\\bfor each\\b",
+    "number of": "\\bnumber of\\b",
+    "instead": "\\binstead\\b"
+  },
+  "credits": {
+    "roles": {
+      "removal": {
+        "clause": "\\b(?:destroy|exile)s? (?:up to (?:one|two|\\w+) )?(?:other )?(?:another )?target\\b|\\bdeals? (?:\\w+ |x )?damage to (?:any target|target|each creature|up to|another target)|\\bgets? -[\\dx]+/-[\\dx]+|\\b-[\\dx]+/-[\\dx]+ until|\\bfights?\\b|\\breturn (?:up to \\w+ )?target [^.]*to (?:its|their) owners?'?s? hands?|\\bput target [^.]* on (?:the bottom|top) of (?:its|their) owners?'?s? library|\\btarget [^.]* can't (?:attack|block)|\\bdoesn't untap\\b|\\bloses all abilities\\b|\\b-1/-1 counters? on target\\b|\\bdeals damage equal to (?:its|~'s|this creature's) power to\\b|\\b(?:target|each) (?:player|opponent) sacrifices\\b|\\bgain control of target\\b|\\bput (?:a|an|\\w+) -1/-1 counters?\\b|\\bdestroy (?:target|up to one|another target|it|that creature)\\b|\\bdeals? damage equal to [^.]* to (?:any target|target|another target|up to|each)|\\bdeals? [^.]*damage divided\\b|\\breturn (?:each|all) [^.]* to (?:its|their) owners?'? hands?|\\b(?:enchanted|equipped) (?:creature|permanent) can't (?:attack|block)|\\b(?:doesn't|don't) untap\\b|\\bprevent all (?:combat )?damage that would be dealt by\\b|\\b(?:that|target|each|defending) (?:player|opponent) sacrifices\\b|\\bdeals? (?:\\w+ |x )?damage to (?:that creature|a creature|itself|each other|that permanent|it)\\b|\\bdamage to (?:that|a|target|each|another) (?:creature|planeswalker)|\\bexile [^.]*\\btarget\\b|\\bsacrifices? (?:a|an) (?:creature|nonland|attacking)|\\bshuffles? (?:it|that permanent|target)[^.]* into (?:their|its owner's) library|\\bputs? (?:it|target)[^.]* (?:on|into) (?:the top|the bottom|their library|its owner's library)|\\breturn (?:up to \\w+ )?(?:other )?target\\b|\\bgets? -[\\dx]+/-[\\dx]+"
+      },
+      "sweeper": {
+        "clause": "\\b(?:destroy|exile) (?:all|each)\\b|\\bdeals? [^.]* damage to each (?:creature|other creature|nonland|opponent and each creature|player and each creature|creature and each)|\\b(?:all|each) (?:other )?(?:creatures?|nonland|permanents|non-\\w+ creatures?)[^.]*gets? -|\\breturn all [^.]* to (?:their|its) owners'? hands?|\\beach (?:player|opponent) sacrifices\\b|\\bput (?:a|an|\\w+) -1/-1 counters? on each\\b|\\beach (?:\\w+ )?creatures?\\b|\\bcreatures? (?:target opponent|your opponents|an opponent|target player) controls? get -|\\bcreatures get -|\\btime counters? on it to each"
+      },
+      "cardAdvantage": {
+        "clause": "\\bdraws? (?:a|an|one|two|three|four|five|six|seven|x|that many|cards?|\\w+ cards?|a card)\\b|\\binvestigate\\b|\\bconnives?\\b|\\bput (?:it|that card|one of them|those cards|them|any number of them|a card|up to \\w+ of them|the rest|\\w+ of (?:them|those cards)|all \\w+ cards revealed this way)[^.]* into your hand|\\breturn [^.]* to your hand\\b|\\byou may (?:play|cast) (?:it|that card|them|those cards|cards exiled|the exiled card|one of them|spells|lands|the top card|that spell)|\\bexile the top [^.]*\\b(?:you may play|until)\\b|\\bseek\\b|\\bdiscover\\b|\\blearn\\b|\\bclue\\b|\\bdraw\\b|\\binto your hand\\b|\\bplay (?:it|that card|them) this turn\\b|\\bcast (?:it|that card) this turn\\b|\\bblood token|\\bsurveil\\b|\\bscry\\b|\\bmill\\b|\\blook at the top\\b|\\b\\w*cycling\\b|\\bmonarch\\b|\\bexplores?\\b|\\bflashback\\b|\\bunearth\\b|\\bretrace\\b|\\bjump-start\\b|\\bbuyback\\b|\\bescape\\b|\\bembalm\\b|\\beternalize\\b|\\bencore\\b|\\bdisturb\\b|\\brebound\\b|\\bcasualty\\b|\\breveal [^.]*\\b(?:until|from among)\\b|\\bshuffles? [^.]* draws?\\b"
+      },
+      "cheapInteraction": {
+        "clause": "\\bgets? [+-]|\\bgains? (?:hexproof|indestructible|protection|shroud|first strike|deathtouch|lifelink|trample|flying|vigilance|menace|ward)|\\bcounter target\\b|\\bdestroy target|\\bexile target|\\breturn target [^.]* to (?:its|their) owner|\\bdeals? [^.]*damage to|\\btap target|\\btap (?:up to \\w+|all)|\\bdoesn't untap|\\bprevent\\b|\\bcan't (?:attack|block|be blocked|be the target)|\\bphases? out|\\buntap target|\\bfights?\\b|\\bregenerate\\b|\\bcounter (?:it|that spell|all)|\\bcounters? on target\\b|\\breturn [^.]* to (?:its|their) owners?'? hands?|\\bget [+-]|\\bhexproof\\b|\\bindestructible\\b|\\bsacrifices? a creature|\\bdamage divided|\\bsupport \\d|\\bdestroy up to|\\bdeals damage equal to|\\bblocks? it this turn if able|\\bput (?:a|an|\\w+) [+-]\\d+/[+-]\\d+ counters?\\b"
+      },
+      "finisher": {
+        "body": true
+      },
+      "commanderFinisher": {
+        "body": true,
+        "clause": "\\bextra combat|\\badditional combat|\\bwin the game|\\bcreatures you control get \\+|\\bgains? trample|\\bdouble strike|\\bget \\+[\\dx]+/\\+[\\dx]+|\\btrample\\b"
+      },
+      "ramp": {
+        "clause": "\\badd (?:\\{|one mana|two mana|three mana|mana|an amount|x mana|that much|\\w+ mana|an additional)|\\bsearch your library for [^.]*\\blands?\\b|\\bput [^.]*\\bland cards?\\b[^.]* onto the battlefield|\\btreasure\\b|\\bplay an additional land|\\bput a land card from your hand onto the battlefield|\\buntap target land|\\bpowerstone\\b|\\bgold token|\\blands? you control (?:tap|could produce)|\\bmana of any\\b"
+      },
+      "earlyCreature": {
+        "body": true
+      },
+      "evasiveThreat": {
+        "bodyKeywords": [
+          "Flying",
+          "Menace",
+          "Skulk",
+          "Shadow",
+          "Fear",
+          "Intimidate",
+          "Horsemanship"
+        ],
+        "clause": "\\bcan't be blocked\\b"
+      }
+    },
+    "strength": {
+      "removal": {
+        "role": "removal"
+      },
+      "sweeper": {
+        "role": "sweeper"
+      },
+      "exile removal": {
+        "clause": "\\bexile (?:target|another target|up to one target|up to \\w+ target|all|each)\\b"
+      },
+      "removal that hits any nonland permanent": {
+        "clause": "\\b(?:destroy|exile|return) (?:target|up to one target|another target|up to \\w+ target) (?:nonland )?permanents?\\b|\\bnonland permanents?\\b"
+      },
+      "removal only for attackers or blockers": {
+        "always": true
+      },
+      "artifact or enchantment removal": {
+        "clause": "\\b(?:destroy|exile|return|sacrifices?)\\b[^.]*\\b(?:artifacts?|enchantments?)\\b"
+      },
+      "counterspell": {
+        "clause": "\\bcounter target\\b|\\bcounter (?:it|that spell|all|up to)\\b"
+      },
+      "repeatable card advantage": {
+        "role": "cardAdvantage"
+      },
+      "card draw": {
+        "role": "cardAdvantage"
+      },
+      "cantrip or looting": {
+        "role": "cardAdvantage"
+      },
+      "repeatable creature tokens": {
+        "clause": "\\bcreates? [^.]*\\btokens?\\b|\\bpopulate\\b|\\bamass\\b"
+      },
+      "several bodies": {
+        "clause": "\\bcreates? [^.]*\\btokens?\\b|\\bamass\\b|\\bfabricate\\b|\\bpopulate\\b"
+      },
+      "mana source": {
+        "role": "ramp"
+      },
+      "anthem": {
+        "clause": "\\byou control (?:get|have|gain)\\b|\\b(?:all|each other|other) [^.]*\\b(?:get|have)\\b|\\bcreatures you control\\b"
+      },
+      "repeatable +1/+1 counters": {
+        "clause": "\\+1/\\+1 counters?\\b|\\bproliferate\\b"
+      },
+      "recursion": {
+        "clause": "\\breturn [^.]*from your graveyard|\\bfrom your graveyard (?:to|onto)\\b"
+      },
+      "protection": {
+        "clause": "\\bgains? (?:hexproof|indestructible|protection|shroud)|\\bprevent\\b|\\bregenerate\\b|\\bphases? out\\b|\\bcan't be the target\\b|\\bhexproof\\b|\\bindestructible\\b|\\bward\\b"
+      },
+      "drawback": {
+        "always": true
+      },
+      "aura or equipment that only adds stats or keywords": {
+        "always": true
+      }
+    },
+    "themeTags": {
+      "repeatable-loot": "\\bdiscards?\\b",
+      "repeatable-rummage": "\\bdiscards?\\b",
+      "loot": "\\bdiscards?\\b",
+      "rummage": "\\bdiscards?\\b",
+      "tutor-to-graveyard": "\\bgraveyard\\b",
+      "mulch": "\\bgraveyard\\b",
+      "free-discard-outlet": "\\bdiscard",
+      "reanimate-creature": "\\breturn [^.]*\\bcreature cards?\\b[^.]* (?:to|onto) the battlefield|\\bput [^.]*\\bcreature cards?\\b[^.]* onto the battlefield|\\bfrom your graveyard to the battlefield",
+      "regrowth-creature": "\\breturn [^.]*from your graveyard|\\bfrom your graveyard to\\b",
+      "recursion-creature": "\\breturn [^.]*from your graveyard|\\bfrom your graveyard to\\b",
+      "castable-from-graveyard": "\\bfrom your graveyard\\b",
+      "graveyard-fuel": "\\bexile [^.]*from your graveyard",
+      "cards-in-graveyard-matter": "\\bgraveyard\\b",
+      "threshold": "\\bgraveyard\\b",
+      "undergrowth": "\\bgraveyard\\b",
+      "repeatable-lifegain": "\\bgains? [^.]*life\\b|\\blifelink\\b|\\bfood\\b|\\bextort\\b",
+      "lifegain": "\\bgains? [^.]*life\\b|\\blifelink\\b|\\bfood\\b|\\bextort\\b|\\bdrains?\\b",
+      "pridemate": "\\bgain(?:s|ed)? life\\b",
+      "lifegain-to-damage": "\\bgain(?:s|ed)? life\\b",
+      "lifegain-increaser": "\\bgain(?:s|ed)? life\\b|\\bwould gain\\b",
+      "keyword-anthem": "\\byou control (?:have|gain)\\b|\\bhave \\w+",
+      "overrun": "\\byou control get \\+|\\bcreatures you control\\b",
+      "repeatable-artifact-tokens": "\\bcreates?\\b",
+      "artifact-count-matters": "\\bartifacts?\\b",
+      "metalcraft": "\\bartifacts?\\b",
+      "affinity-for-artifacts": "\\bartifacts?\\b",
+      "improvise": "\\bartifacts?\\b|\\bimprovise\\b",
+      "artifactfall": "\\bartifacts?\\b",
+      "cost-reducer-artifact": "\\bartifacts?\\b",
+      "gains-pp-counters": "\\+1/\\+1 counters?\\b|\\bproliferate\\b|\\b(?:increment|monstrosity|tribute|explores?|dethrone|adapt|evolve|bolster|support|outlast|renown|training|backup|mentor|graft|modular|riot|unleash|fabricate|scavenge|reinforce|amplify|bloodthirst|sunburst|devour|ravenous|exploit|level up)\\b",
+      "repeatable-proliferate": "\\bproliferate\\b",
+      "pp-counters-matter": "\\bcounters?\\b",
+      "counters-matter": "\\bcounters?\\b",
+      "group-hug": "\\bcounters?\\b",
+      "removal": "\\b(?:destroy|exile|damage|-\\d|fights?)\\b",
+      "synergy-instant": "\\b(?:instant|sorcery|noncreature)\\b",
+      "synergy-sorcery": "\\b(?:instant|sorcery|noncreature)\\b",
+      "synergy-noncreature": "\\b(?:instant|sorcery|noncreature)\\b",
+      "cost-reducer-instant-sorcery": "\\b(?:instant|sorcery)\\b",
+      "cost-reducer-instant": "\\binstant\\b",
+      "cost-reducer-sorcery": "\\bsorcery\\b",
+      "regrowth-instant": "\\b(?:instant|sorcery)\\b",
+      "regrowth-sorcery": "\\b(?:instant|sorcery)\\b",
+      "recursion-instant": "\\b(?:instant|sorcery)\\b",
+      "recursion-sorcery": "\\b(?:instant|sorcery)\\b",
+      "turns-off-defender-self": "\\b(?:instant|sorcery|defender)\\b",
+      "prowess-like": "\\b(?:noncreature|instant|sorcery)\\b",
+      "gives-flying": "\\bflying\\b",
+      "unblockable": "\\bcan't be blocked\\b",
+      "fake-flying": "\\bflying\\b|\\bcan't be blocked\\b|\\breach\\b",
+      "heroic": "\\btargets?\\b",
+      "mill-opponent": "\\bmills?\\b",
+      "synergy-mill": "\\bgraveyard|\\bmill",
+      "tutor-land-to-battlefield": "\\blands?\\b",
+      "sneak-land": "\\blands?\\b",
+      "play-additional-land": "\\blands?\\b",
+      "multi-land-ramp": "\\blands?\\b",
+      "reanimate-land": "\\blands?\\b",
+      "crucible-of-worlds": "\\blands?\\b",
+      "mana-dork": "\\badd\\b",
+      "mana-rock": "\\badd\\b",
+      "ethereal-armor": "\\benchantments?\\b",
+      "affinity-for-enchantments": "\\benchantments?\\b",
+      "cost-reducer-enchantment": "\\benchantments?\\b",
+      "blood-artist-ability": "\\bdies\\b|\\bloses? \\w+ life\\b",
+      "morbid": "\\bdied this turn\\b",
+      "attacking-opponents-matters": "\\battack",
+      "repeatable-pp-counters": "\\+1/\\+1\\b",
+      "gives-pp-counters-to-all": "\\+1/\\+1\\b"
+    }
+  },
+  "supply": {
+    "lifegain": {
+      "theme": "lifegain"
+    },
+    "counters:+1/+1": {
+      "theme": "counters"
+    },
+    "counters:any": {
+      "theme": "counters",
+      "text": true
+    },
+    "type:artifact": {
+      "theme": "artifacts"
+    },
+    "graveyard:any": {
+      "theme": "graveyard",
+      "freeCount": 1
+    },
+    "graveyard:land": {
+      "theme": "graveyard"
+    },
+    "tokens": {
+      "theme": "tokens"
+    },
+    "death": {
+      "theme": "aristocrats"
+    },
+    "sacrifice": {
+      "theme": "aristocrats"
+    },
+    "energy": {
+      "theme": "energy"
+    }
+  },
+  "thresholds": {
+    "base": {
+      "20": 2,
+      "40": 4,
+      "60": 5,
+      "100": 7
+    },
+    "families": {
+      "tribe": {
+        "20": 3,
+        "40": 5,
+        "60": 6,
+        "100": 8
+      },
+      "type:creature": {
+        "20": 4,
+        "40": 8,
+        "60": 10,
+        "100": 15
+      },
+      "devotion": {
+        "20": 4,
+        "40": 7,
+        "60": 9,
+        "100": 12
+      }
+    },
+    "perCount": {
+      "20": 1,
+      "40": 1,
+      "60": 2,
+      "100": 2
+    },
+    "unparsedScale": 1.5
+  }
+}

@@ -284,7 +284,7 @@ describe('theme rules and the bulk baseline in the config', () => {
     const { themeBulk: _bulk, ...bare } = CONFIG;
     expect(validateConfig(bare)).toEqual([]);
     expect(configVersion(CONFIG)).toContain(
-      `.k${CONFIG.cardStrength.version}.h${CONFIG.themeRules.version}.q${CONFIG.themeBulk!.version}.`,
+      `.k${CONFIG.cardStrength.version}.h${CONFIG.themeRules.version}.n${CONFIG.cardNeeds.version}.q${CONFIG.themeBulk!.version}.`,
     );
     expect(configVersion(bare)).not.toContain('.q');
   });

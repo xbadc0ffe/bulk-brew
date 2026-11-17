@@ -3,6 +3,7 @@
 // Keep erasable TypeScript only: this runs under Node without a build step.
 
 import type { CardType, Color, DeckSize } from './types.ts';
+import { checkCardNeeds, type CardNeedsConfig } from './card-needs.ts';
 import { validateLearnedConfig, type LearnedConfig } from './learned.ts';
 import {
   checkThemeBulk,
@@ -520,6 +521,8 @@ export interface BulkBrewConfig {
   cardStrength: CardStrengthConfig;
   /** Setup and payoff jobs per themed style, read from oracle text, type lines, and tags. */
   themeRules: ThemeRulesFile;
+  /** What each ability of a card depends on, read from its rules text (card-needs.ts). */
+  cardNeeds: CardNeedsConfig;
   /** Each style's mean tally per bulk card of each color class (config/theme-bulk.json), when bundled. */
   themeBulk?: ThemeBulkConfig;
   /** Plan profiles and tag data learned from real decks (config/learned/), when bundled. */
@@ -540,6 +543,7 @@ export const CONFIG_FILES: Record<
   builderWeights: 'builder-weights.json',
   cardStrength: 'card-strength.json',
   themeRules: 'theme-rules.json',
+  cardNeeds: 'card-needs.json',
 };
 
 /** The bulk baseline in config/, written by npm run theme:bulk; optional like the learned files. */
@@ -564,6 +568,7 @@ export function configVersion(c: BulkBrewConfig): string {
     `w${c.builderWeights.version}`,
     `k${c.cardStrength.version}`,
     `h${c.themeRules.version}`,
+    `n${c.cardNeeds.version}`,
     ...(c.themeBulk ? [`q${c.themeBulk.version}`] : []),
     ...learned,
   ].join('.');
@@ -1253,6 +1258,7 @@ export function validateConfig(c: BulkBrewConfig): string[] {
       problems.push(`themeRules.styles.${id}: not a synergy archetype in archetypes.json`);
   if (c.themeBulk !== undefined)
     problems.push(...checkThemeBulk(c.themeBulk, c.themeRules).map((p) => `themeBulk: ${p}`));
+  problems.push(...checkCardNeeds(c.cardNeeds, c).map((p) => `cardNeeds: ${p}`));
 
   if (c.learned) problems.push(...validateLearnedConfig(c.learned, archetypeIds));
 

@@ -39,6 +39,7 @@
     "spellbook:fetch": "node packages/pipeline/src/spellbook-fetch.ts",
     "learn:build": "node packages/pipeline/src/learn-build.ts",
     "theme:bulk": "node packages/pipeline/src/theme-bulk.ts",
+    "needs:report": "node packages/pipeline/src/needs-report.ts",
     "rules:fetch": "node scripts/fetch-comp-rules.mjs",
     "smoke": "node scripts/smoke-web.mjs",
     "review:cards": "node packages/pipeline/src/review/cards.ts",
