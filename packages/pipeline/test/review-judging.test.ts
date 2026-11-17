@@ -301,6 +301,7 @@ describe('packets show only printed card facts', () => {
   it('reads the pool kind from where the pool file lives', () => {
     expect(poolKindOf('data/review/pools/plain/plain-01.json')).toBe('plain');
     expect(poolKindOf('data/review/pools/owner/b.json')).toBe('owner');
+    expect(poolKindOf('data/review/pools/tribe/h3-elf-17.json')).toBe('tribe');
     expect(poolKindOf('eval/pools/bulk-black.txt')).toBe('public');
     expect(poolKindOf('test-bulk/mine.txt')).toBe('owner');
     expect(poolKindOf('data/corpus/decks.json')).toBe('other');
@@ -912,6 +913,47 @@ describe('plan sampling', () => {
       expect(md).toContain('## Picked requests');
       expect(md).toContain('### On the requests every version took');
       expect(md).toContain('### Each picked request at 60');
+    });
+
+    it('keeps tribe requests apart from best fit at the same size', () => {
+      const pick = (
+        version: string,
+        style: string | undefined,
+        outcome: PickRecord['outcome'],
+      ) => ({
+        entry: style ? 2 : 1,
+        version,
+        request: {
+          pool: 'data/review/pools/tribe/h3-elf-17.json',
+          size: 100,
+          colors: 'G',
+          ...(style ? { style } : {}),
+          commander: 'id-1',
+        },
+        outcome,
+      });
+      const key: BatchKey = {
+        batch: 'kinds',
+        options: { decks: 'test', seed: 1, pairs: 0, twoJudges: 0, anchors: 0 },
+        packets: {},
+        inventory: [],
+        picks: [
+          pick('head', undefined, 'declined'),
+          pick('head', 'tribal:Elf', 'missing'),
+          pick('old', undefined, 'missing'),
+          pick('old', 'tribal:Elf', 'declined'),
+        ],
+        notes: [],
+      };
+      const c = collate(key, []);
+      expect(c.picked.map((r) => [r.version, r.size, r.kind, r.picked])).toEqual([
+        ['head', 100, 'themed', 1],
+        ['head', 100, 'bestfit', 1],
+        ['old', 100, 'themed', 1],
+        ['old', 100, 'bestfit', 1],
+      ]);
+      expect(c.picked[0]).toMatchObject({ missing: 1, styles: { 'no deck': 1 } });
+      expect(renderCollation(c)).toMatch(/\| head +\| 100 +\| themed +\| 1 +\|/);
     });
   });
 

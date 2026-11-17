@@ -67,7 +67,7 @@ export interface StoredDeck {
 export interface PlanEntry {
   version: string;
   size?: number;
-  /** Pool kinds: plain, theme, public, owner, other. Absent means any. */
+  /** Pool kinds: plain, theme, tribe, public, owner, other. Absent means any. */
   kinds?: string[];
   /** Requested style ids, "bestfit" for none. Absent means any. */
   styles?: string[];
@@ -245,7 +245,7 @@ export function isAnchor(version: string): boolean {
 /** The pool kind from where the pool file lives; owner pools must be recognizable so examples skip them. */
 export function poolKindOf(source: string): string {
   const s = source.replace(/\\/g, '/');
-  const m = /(?:^|\/)data\/review\/pools\/(plain|theme|public|owner)\//.exec(s);
+  const m = /(?:^|\/)data\/review\/pools\/(plain|theme|tribe|public|owner)\//.exec(s);
   if (m) return m[1]!;
   if (/(?:^|\/)eval\/pools\//.test(s)) return 'public';
   if (/(?:^|\/)test-bulk\//.test(s)) return 'owner';
@@ -1326,7 +1326,8 @@ const USAGE = `Usage: npm run review:packets -- --batch <name> (--quota <n> | --
   [--decks data/review/decks] [--also <folder or glob>]... [--seed 1] [--pairs 0]
   [--two-judges 0.25] [--anchors 25 | --no-anchors] [--out data/review/packets] [--force]`;
 
-function readPlan(file: string): PlanEntry[] {
+/** A plan file, checked as the command checks it; exported for dry runs of a plan. */
+export function readPlan(file: string): PlanEntry[] {
   const raw = JSON.parse(readFileSync(path.resolve(ROOT, file), 'utf8')) as unknown;
   if (!Array.isArray(raw)) throw new Error(`${file}: a plan is an array of entries`);
   return raw.map((e, i) => {

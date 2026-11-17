@@ -438,10 +438,14 @@ export interface AnotherStyleRow {
   setAsideDecent: number;
 }
 
-/** One version at one size over the requests a plan picked (`requests` entries). */
+/**
+ * One version at one size and request kind over the requests a plan picked
+ * (`requests` entries), so best fit and tribe requests at one size stay apart.
+ */
 export interface PickedRow {
   version: string;
   size: number;
+  kind: RequestKind;
   picked: number;
   /** Packets with a valid answer. */
   judged: number;
@@ -634,12 +638,14 @@ function pickedTables(
   const requests = new Map<string, PickedRequestRow>();
   for (const p of picks) {
     const size = p.request.size;
-    const k = `${p.version}|${size}`;
+    const kind = requestKindOf(p.request.style ?? 'bestfit');
+    const k = `${p.version}|${size}|${kind}`;
     let row = rows.get(k);
     if (!row) {
       row = {
         version: p.version,
         size,
+        kind,
         picked: 0,
         judged: 0,
         decent: 0,
@@ -692,7 +698,10 @@ function pickedTables(
   const bySize = (a: number, b: number) => SIZE_ORDER.indexOf(a) - SIZE_ORDER.indexOf(b);
   const picked = [...rows.values()]
     .sort(
-      (a, b) => versions.indexOf(a.version) - versions.indexOf(b.version) || bySize(a.size, b.size),
+      (a, b) =>
+        versions.indexOf(a.version) - versions.indexOf(b.version) ||
+        bySize(a.size, b.size) ||
+        KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind),
     )
     .map(({ scores, ...r }) => ({
       ...r,
@@ -1107,12 +1116,13 @@ export function renderCollation(c: Collation): string {
     L.push(
       '## Picked requests',
       '',
-      'The plan picked these requests from a jobs file, whatever any version built, and every version that takes them is judged on the same ones. "Decent, all picked" counts a declined request, a deck in another style, or a request with no deck file as not decent; packets with no valid answer yet are left out of it.',
+      'The plan picked these requests from a jobs file, whatever any version built, and every version that takes them is judged on the same ones. Rows are per request kind, so a tribe request never pools with best fit. "Decent, all picked" counts a declined request, a deck in another style, or a request with no deck file as not decent; packets with no valid answer yet are left out of it.',
       '',
       ...table(
         [
           'Version',
           'Size',
+          'Kind',
           'Picked',
           'Judged',
           'Decent, all picked',
@@ -1125,6 +1135,7 @@ export function renderCollation(c: Collation): string {
         c.picked.map((r) => [
           r.version,
           String(r.size),
+          r.kind,
           String(r.picked),
           String(r.judged),
           r.picked - r.unanswered ? `${pct(r.decentRate)} (${r.decent})` : '-',
@@ -1159,10 +1170,11 @@ export function renderCollation(c: Collation): string {
       '### Styles built on the picked requests',
       '',
       ...table(
-        ['Version', 'Size', 'Styles'],
+        ['Version', 'Size', 'Kind', 'Styles'],
         c.picked.map((r) => [
           r.version,
           String(r.size),
+          r.kind,
           Object.entries(r.styles)
             .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))
             .map(([s, n]) => `${s} ${n}`)
