@@ -33,10 +33,11 @@ describe('bestDeckPlans', () => {
   it('plans what best fit compares in every buildable color set, fewer colors first in each turn', () => {
     const scans = scansFor(bigPool(), 60);
     const plans = bestDeckPlans(scans);
-    // The themes the rules call viable and the three plain shapes, always.
+    // The themes the rules call viable and the three plain shapes, which the rules
+    // call viable wherever the size can be built: the scan's one field.
     const viable = [...scans.values()]
       .filter((s) => s.possible)
-      .reduce((n, s) => n + s.archetypes.filter((a) => a.rules?.viable).length + 3, 0);
+      .reduce((n, s) => n + s.archetypes.filter((a) => a.rules?.viable).length, 0);
     expect(plans.length).toBe(viable);
     for (const shape of ['midrange', 'aggro', 'control'])
       expect(plans.some((p) => p.style === shape)).toBe(true);

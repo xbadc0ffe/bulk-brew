@@ -82,7 +82,7 @@ function BuildForm() {
     flow.commander && commanders.list
       ? filterCommanders(commanders.list, flow.pickedColors, undefined, config)
       : commanders.inColors;
-  const styleScans = commanderMode ? colorScans(listed, commanders.scans) : options.scans;
+  const styleScans = commanderMode ? commanderScans(listed, commanders.scans) : options.scans;
   const choices = commanderMode
     ? commanderStyleChoices(config, listed, commanders.scans)
     : styleChoicesFrom(config, options.scans);
@@ -353,26 +353,25 @@ function CommanderColors() {
   );
 }
 
-/** Scans of the commanders' colors, keyed by color letters, for the style pickers. */
-function colorScans(
+/** The listed commanders' own scans, keyed by card id, for the style pickers. */
+function commanderScans(
   list: readonly CommanderCandidate[],
   scans: ReadonlyMap<string, ScanReport>,
 ): Map<string, ScanReport> {
   const out = new Map<string, ScanReport>();
   for (const c of list) {
-    const key = c.colors.join('');
-    const scan = scans.get(key);
-    if (scan) out.set(key, scan);
+    const scan = scans.get(c.id);
+    if (scan) out.set(c.id, scan);
   }
   return out;
 }
 
 /**
  * Styles to filter the commanders by: every style a listed commander leads.
- * Viable when some leader's colors can build it (by the theme rules where
- * the scan carries them, as the builder reads them); short when none can,
- * still pickable so the player sees which commanders lead it, with what the
- * bulk list lacks from the leader's colors closest to the floors.
+ * Viable when the pool can build it under some leader (by the theme rules,
+ * the leader counted as the builder counts it); short when none can, still
+ * pickable so the player sees which commanders lead it, with what the bulk
+ * list lacks under the leader closest to the floors.
  */
 function commanderStyleChoices(
   config: ReturnType<typeof useAppState>['config'],
@@ -384,7 +383,7 @@ function commanderStyleChoices(
     const leaders = list.filter((c) => commanderSuits(c, a.id, config));
     if (leaders.length === 0) continue;
     const reports = leaders.flatMap((c) => {
-      const r = scans.get(c.colors.join(''))?.archetypes.find((x) => x.archetype === a.id);
+      const r = scans.get(c.id)?.archetypes.find((x) => x.archetype === a.id);
       return r ? [r] : [];
     });
     const viable = reports.some((r) => r.rules?.viable ?? r.viable);

@@ -290,8 +290,14 @@ export interface BuildExplanation {
   };
   synergies: string[];
   notes: string[];
-  /** Absent on decks built before deck scores existed. */
+  /** The classic builder's deck score; absent on grow decks and on decks built before deck scores existed. */
   score?: DeckScore;
+  /**
+   * A grow deck's theme as the builder counted it (theme rules): each floor
+   * of the alternative it built to, what the finished deck earns against what
+   * the floor asks. The Roles bars count the deck again against these floors.
+   */
+  theme?: { style: string; floors: FloorCount[] };
   /**
    * The plan picker's score (`pickScore` in grow.ts): one number that ranks
    * the finished decks of every plan at 60, 40, and 100 cards, for best fit,
@@ -331,6 +337,17 @@ export interface BuildResult {
   explanation: BuildExplanation;
 }
 
+/** The theme rules' floor kinds (config/theme-rules.json minimums). */
+export type ThemeFloorKey =
+  'setup' | 'setupWeight' | 'repeatable' | 'payoff' | 'payoffWeight' | 'repeatableOrPayoff';
+
+/** One floor of a theme: what a pool or deck holds against what the floor asks. */
+export interface FloorCount {
+  floor: ThemeFloorKey;
+  have: number;
+  need: number;
+}
+
 /** Viability of one archetype for one color and deck size. */
 export interface ArchetypeReport {
   archetype: string;
@@ -344,13 +361,17 @@ export interface ArchetypeReport {
   margin: number;
   notes: string[];
   /**
-   * Synergy styles at 60, 40, and 100 cards: the pool against the theme rules'
-   * floors (growViability), which the grow builder builds from and the Build
-   * page's style list reads. `margin` is have over need, so 1 or more is
-   * viable; below `builderWeights.grow.nearMargin` the style is left out.
-   * `lacks` says what is missing in a plain phrase, empty when viable.
+   * At 60, 40, and 100 cards, what the grow builder plans from: for a synergy
+   * style the pool against the theme rules' floors (growViability), for a
+   * plain shape whether the size can be built at all. `viable` is false when
+   * the size cannot be built (`possible`), so the apps read this one field.
+   * `margin` is have over need, 1 or more viable; it is 0 when the size cannot
+   * be built, and below `builderWeights.grow.nearMargin` the style is left
+   * out. `lacks` says what is missing in a plain phrase, empty when viable.
+   * `floors` are the pool's counts for the floor alternative it meets best,
+   * as the builder counts them (empty for a plain shape).
    */
-  rules?: { viable: boolean; margin: number; lacks: string };
+  rules?: { viable: boolean; margin: number; lacks: string; floors: FloorCount[] };
 }
 
 export interface ScanReport {

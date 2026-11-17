@@ -5,8 +5,9 @@
 import type { BulkBrewConfig, Matcher } from './config.ts';
 import type { CardFacts } from './candidates.ts';
 import { themeCredit } from './card-needs.ts';
+import { cardThemeSides } from './deck-themes.ts';
 import { cardMatches } from './matchers.ts';
-import type { CardRecord } from './types.ts';
+import type { CardRecord, DeckSize } from './types.ts';
 
 export interface DisplayTagDef {
   id: string;
@@ -15,7 +16,7 @@ export interface DisplayTagDef {
   description: string;
   /** Config role ids that count for this tag. */
   roles?: string[];
-  /** Archetype ids whose enablers or payoffs count for this tag. */
+  /** Archetype ids whose setup or payoff jobs (theme rules) count for this tag. */
   styles?: string[];
   /** Tagger slugs, keywords, or types that count for this tag. */
   match?: Matcher;
@@ -27,24 +28,25 @@ export interface DisplayTagsConfig {
 }
 
 /**
- * Display tags that apply to a card, in config order. With `earned` (a deck
- * view), a tag the card has through a role or a style shows only when it
- * earns one of them there; one it has through its Scryfall tags alone still
- * shows, as there is no credit to check.
+ * Display tags that apply to a card, in config order. A style counts through
+ * the theme rules' setup or payoff job at the deck's size (60 outside a
+ * deck). In a deck view (`deck`), a tag the card has through a role or a
+ * style shows only when it earns one of them there; one it has through its
+ * Scryfall tags alone still shows, as there is no credit to check.
  */
 export function displayTagsFor(
   card: CardRecord,
   facts: CardFacts,
   tags: DisplayTagsConfig,
-  earned?: (credit: string) => boolean,
+  config: BulkBrewConfig,
+  deck?: { earned: (credit: string) => boolean; size: DeckSize },
 ): DisplayTagDef[] {
+  const sides = cardThemeSides(config, facts, deck?.size);
+  const earned = deck?.earned;
   return tags.tags.filter((t) => {
     const credits = [
       ...(t.roles?.filter((r) => facts.roles.includes(r)) ?? []),
-      ...(t.styles ?? []).flatMap((s) => [
-        ...(facts.enablerOf.includes(s) ? [themeCredit(s, 'setup')] : []),
-        ...(facts.payoffOf.includes(s) ? [themeCredit(s, 'payoff')] : []),
-      ]),
+      ...sides.filter((s) => t.styles?.includes(s.style)).map((s) => themeCredit(s.style, s.as)),
     ];
     if (credits.length > 0) return !earned || credits.some(earned);
     return t.match ? cardMatches(card, t.match) : false;

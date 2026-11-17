@@ -340,6 +340,24 @@ export function learnedSizeKey(size: DeckSize): '100' | '60' | '40' | '20' {
   return String(size) as '100' | '60' | '40' | '20';
 }
 
+const unlearned = new WeakMap<BulkBrewConfig, BulkBrewConfig>();
+
+/**
+ * The config without its learned plans and tags, for the classic builder when
+ * it runs on a grow path (a thin pool's plain shape): learned plan data is
+ * retired wherever the grow builder serves a request. Cached, so the facts
+ * and the reader's caches keyed by config are reused.
+ */
+export function withoutLearned(config: BulkBrewConfig): BulkBrewConfig {
+  if (!config.learned) return config;
+  let out = unlearned.get(config);
+  if (!out) {
+    const { learned: _learned, ...rest } = config;
+    unlearned.set(config, (out = rest));
+  }
+  return out;
+}
+
 /** Whether a size builds with the learned plans (builderWeights.learned.plan[size].use). */
 export function learnedAt(config: BulkBrewConfig, size: DeckSize): boolean {
   const plan = config.builderWeights.learned?.plan;

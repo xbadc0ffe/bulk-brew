@@ -15,9 +15,9 @@ import {
   type TypeMix,
 } from './config.ts';
 import { creditEarned, type DeckSupply } from './card-needs.ts';
-import { listCandidates, type Candidate } from './candidates.ts';
+import { factsFor, listCandidates, type Candidate, type CardFacts } from './candidates.ts';
 import { colorsLabel, isCommanderSize, normalizeColors } from './colors.ts';
-import { growViability, poolSupply } from './grow.ts';
+import { growViability, poolSupply, type StyleViability } from './grow.ts';
 import { creatureTypes, inTribe } from './matchers.ts';
 import type { CardIndex } from './pack.ts';
 import {
@@ -237,30 +237,118 @@ function poolCounts(
   return { template, spells, colored, distinct, lands, spellSlots, minSpells, notes, possible };
 }
 
-/** Scan an already computed candidate list. */
+/** What a style lacks when the size cannot be built at all. */
+function tooFew(size: DeckSize): string {
+  return `too few cards for a ${size}-card deck`;
+}
+
+/**
+ * The rules' view of one style, for the sizes the grow builder builds. A size
+ * that cannot be built makes no style viable, so the apps read one field; the
+ * grow builder plans every plain shape whenever the size can be built.
+ */
+function rulesView(
+  a: Archetype,
+  r: StyleViability | undefined,
+  possible: boolean,
+  size: DeckSize,
+): ArchetypeReport['rules'] {
+  const impossible = tooFew(size);
+  if (a.kind !== 'synergy')
+    return {
+      viable: possible,
+      margin: possible ? 1 : 0,
+      lacks: possible ? '' : impossible,
+      floors: [],
+    };
+  if (!r) return undefined;
+  return possible
+    ? { viable: r.viable, margin: r.margin, lacks: r.lacks, floors: r.floors }
+    : { viable: false, margin: 0, lacks: impossible, floors: r.floors };
+}
+
+/**
+ * A color set's scan at 100 (`base`, the commander among its candidates) as
+ * that commander leads it, as scanCandidates with the commander counts it:
+ * what the size can build is counted again with the commander left out of
+ * the 99. The color set counts the commander as one candidate, one copy, at
+ * the same pool supply, so while `grow.commanderCredit` is 1 its rules' view
+ * is the commander's own; at another credit it is counted again. The
+ * classic fields stay the color set's. Cheap enough for every commander of
+ * a big pool.
+ */
+export function scanUnderCommander(
+  base: ScanReport,
+  cands: readonly Candidate[],
+  config: BulkBrewConfig,
+  settings: Settings,
+  commander: CardFacts,
+): ScanReport {
+  const own = cands.filter((c) => c.facts.card.id !== commander.card.id);
+  const { spells, colored, distinct, lands, notes, possible } = poolCounts(
+    own,
+    config,
+    settings,
+    base.size,
+    base.colors,
+  );
+  const copies = cands.find((c) => c.facts.card.id === commander.card.id)?.preferred ?? 0;
+  const rules =
+    copies === config.builderWeights.grow.commanderCredit
+      ? undefined
+      : growViability(
+          own,
+          config,
+          base.size,
+          commander,
+          base.colors,
+          poolSupply(own, config, base.size, base.colors, commander.card),
+        );
+  const archetypes = base.archetypes.map((report) => {
+    const a = config.archetypes.archetypes.find((x) => x.id === report.archetype)!;
+    // Fewer candidates can only make the size harder to build, never easier.
+    const view = rules
+      ? rulesView(a, rules[a.id], possible, base.size)
+      : report.rules && !possible
+        ? { viable: false, margin: 0, lacks: tooFew(base.size), floors: report.rules.floors }
+        : report.rules;
+    const { rules: _old, ...rest } = report;
+    return view ? { ...rest, rules: view } : rest;
+  });
+  return { ...base, candidates: spells, colored, distinct, lands, notes, possible, archetypes };
+}
+
+/**
+ * Scan an already computed candidate list. At 100 with a commander, the
+ * commander leads rather than counting as one of the 99: it is left out of
+ * the candidates and credited once, as the grow builder credits it.
+ */
 export function scanCandidates(
-  cands: Candidate[],
+  candsIn: Candidate[],
   config: BulkBrewConfig,
   settings: Settings,
   size: DeckSize,
   colorsIn: Color | readonly Color[],
+  commander?: CardFacts,
 ): ScanReport {
   const colors = normalizeColors(typeof colorsIn === 'string' ? [colorsIn] : colorsIn);
   const color = colors[0]!;
+  const cands = commander ? candsIn.filter((c) => c.facts.card.id !== commander.card.id) : candsIn;
   const { template, spells, colored, distinct, lands, spellSlots, minSpells, notes, possible } =
     poolCounts(cands, config, settings, size, colors);
   const tribes = tribesOf(cands);
   // What the pool could supply, read once for the theme rules' view and the shapes' role counts.
-  const supply = poolSupply(cands, config, size, colors);
+  const supply = poolSupply(cands, config, size, colors, commander?.card);
   // The theme rules' view, for the sizes the grow builder builds; the old fields stay as they were.
   const rules =
-    size === 20 ? undefined : growViability(cands, config, size, undefined, colors, supply);
+    size === 20 ? undefined : growViability(cands, config, size, commander, colors, supply);
   const archetypes = config.archetypes.archetypes.map((a) => {
-    if (a.kind !== 'synergy')
-      return reportComposition(a, cands, config, template, spells, spellSlots, possible, supply);
-    const report = reportSynergy(a, config, cands, template, colors, possible);
-    const r = rules?.[a.id];
-    if (r) report.rules = { viable: r.viable, margin: r.margin, lacks: r.lacks };
+    const report =
+      a.kind === 'synergy'
+        ? reportSynergy(a, config, cands, template, colors, possible)
+        : reportComposition(a, cands, config, template, spells, spellSlots, possible, supply);
+    const view = rules && rulesView(a, rules[a.id], possible, size);
+    if (view) report.rules = view;
     return report;
   });
   return {
@@ -486,6 +574,7 @@ export function secondaryChoices(
   return out;
 }
 
+/** Scan a pool for one size and color set; at 100, under the commander when given (see scanCandidates). */
 export function scanPool(
   pool: Pool,
   index: CardIndex,
@@ -493,6 +582,7 @@ export function scanPool(
   settings: Settings,
   size: DeckSize,
   colors: Color | readonly Color[],
+  commander?: CardRecord,
 ): ScanReport {
   return scanCandidates(
     listCandidates(pool, index, config, settings, colors, size),
@@ -500,6 +590,7 @@ export function scanPool(
     settings,
     size,
     colors,
+    commander && isCommanderSize(size) ? factsFor(index, config, commander) : undefined,
   );
 }
 

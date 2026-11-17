@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { BuildError, buildClassic, buildDeck, styleCounts } from '../src/builder.ts';
 import { planOptions } from '../src/options.ts';
+import { scanPool } from '../src/scan.ts';
 import {
   commanderCanBuild,
   commanderCandidates,
@@ -210,11 +211,15 @@ describe('Commander builds', () => {
     );
   });
 
-  it('fills the scans of each commander color set while listing', () => {
+  it('fills a scan of its own for each commander while listing, the commander leading the 99', () => {
     const scans = new Map<string, ScanReport>();
     commanderCandidates(pool, index, CONFIG, SETTINGS, scans);
-    expect([...scans.keys()]).toEqual(['W']);
-    expect(scans.get('W')!.size).toBe(100);
+    expect([...scans.keys()]).toEqual(['lead']);
+    expect(scans.get('lead')!.size).toBe(100);
+    // The commander is credited once, not counted among the candidates.
+    expect(scans.get('lead')!.candidates).toBe(
+      scanPool(pool, index, CONFIG, SETTINGS, 100, ['W']).candidates - 1,
+    );
   });
 
   it('answers a style the pool cannot build with a note, or refuses it on the classic path', () => {
@@ -254,8 +259,8 @@ describe('Commander builds', () => {
     expect(midrange.deck.archetype).toBe('midrange');
     expect(commanderCanBuild('lead', 'midrange', pool, index, CONFIG, SETTINGS)).toBe(true);
 
-    // Token makers and anthems make Tokens viable, and a commander with an anthem leads it.
-    // The tags feed today's matchers; the text feeds the theme rules the grow builder reads.
+    // Token makers and anthems make Tokens viable, and a commander with an anthem leads it:
+    // the theme rules read the text, as the grow builder does.
     const themed = cards.map((c, i) =>
       i % 9 === 3 || i % 9 === 4
         ? {
@@ -267,7 +272,11 @@ describe('Commander builds', () => {
           ? { ...c, tags: ['anthem'], text: 'Other creatures you control get +1/+1.' }
           : c,
     );
-    const anthemLead = { ...lead, tags: ['anthem'] };
+    const anthemLead = {
+      ...lead,
+      tags: ['anthem'],
+      text: 'Other creatures you control get +1/+1.',
+    };
     const tIndex = new CardIndex({ ...pack, cards: [...themed, anthemLead, plains] });
     const listed = commanderCandidates(pool, tIndex, CONFIG, SETTINGS);
     expect(listed[0]!.supports).toContain('tokens');

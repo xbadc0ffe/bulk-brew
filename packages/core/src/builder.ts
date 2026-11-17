@@ -59,6 +59,7 @@ import {
   learnedPlanFor,
   learnedSizeKey,
   learnedTheme,
+  withoutLearned,
   type LearnedPlan,
   type Spread,
 } from './learned.ts';
@@ -1300,7 +1301,7 @@ export function castPenalties(
 }
 
 /** The commander counts toward the roles it fills, so the 99 need fewer of them. */
-function creditCommander(
+export function creditCommander(
   quotas: Record<string, RoleQuota>,
   roles: readonly string[],
   credit: number,
@@ -1345,11 +1346,7 @@ interface Attempt {
   notes: string[];
 }
 
-/**
- * Everything the fills, swaps, and deck score read for one archetype. The
- * learned selection is costly; the grow builder only scores with this, so it
- * leaves it out.
- */
+/** Everything the fills, swaps, and deck score read for one archetype. */
 function contextFor(
   archetype: Archetype,
   template: DeckTemplate,
@@ -1361,7 +1358,6 @@ function contextFor(
   penalty: Map<string, number>,
   secondary: SecondaryTheme | undefined,
   commander: CardRecord | undefined,
-  withSelection = true,
 ): Ctx {
   // A shape as secondary style sets the curve, type mix, and roles under a themed primary.
   const shape = secondary?.shape;
@@ -1423,17 +1419,16 @@ function contextFor(
     },
     theme,
     profile: planShapeOf(archetype, config, size),
-    selection:
-      withSelection && learnedAt(config, size)
-        ? selectionFor(
-            config,
-            index,
-            spells,
-            archetype.kind === 'synergy' ? archetype.id : undefined,
-            size,
-            commander,
-          )
-        : undefined,
+    selection: learnedAt(config, size)
+      ? selectionFor(
+          config,
+          index,
+          spells,
+          archetype.kind === 'synergy' ? archetype.id : undefined,
+          size,
+          commander,
+        )
+      : undefined,
   };
   return ctx;
 }
@@ -1690,63 +1685,6 @@ export function checkBuiltDeck(
   }
 }
 
-/** What both builders report about a finished spell list. */
-export interface SpellReport {
-  score: DeckScore;
-  /** Spell copies per mana value, 0 through 7, the commander left out. */
-  curve: number[];
-  roles: BuildExplanation['roles'];
-  synergies: string[];
-  /** Roles below their minimum, in the classic builder's words. */
-  roleNotes: string[];
-}
-
-/**
- * Score and describe a spell list the grow builder chose, the way the classic
- * builder does its own (same quotas, commander credit, synergy lines, and
- * deck score), so the Build page ranks both on one scale.
- */
-export function spellReport(
-  archetype: Archetype,
-  chosen: readonly { cand: Candidate; qty: number; why: string }[],
-  cands: Candidate[],
-  lands: number,
-  mana: ManaBase,
-  plan: ColorPlan,
-  config: BulkBrewConfig,
-  index: CardIndex,
-  size: DeckSize,
-  commander: CardRecord | undefined,
-): SpellReport {
-  const template = templateFor(config, size);
-  const ctx = contextFor(
-    archetype,
-    template,
-    cands,
-    config,
-    size,
-    index,
-    plan,
-    new Map(),
-    undefined,
-    commander,
-    false,
-  );
-  const state: State = {
-    slots: size - (commander ? 1 : 0) - lands,
-    chosen: new Map(chosen.map((c) => [c.cand.facts.card.id, { ...c }])),
-    order: [],
-  };
-  const t = tally(state, ctx);
-  return {
-    score: scoreDeck(state, ctx, mana, lands),
-    curve: t.curve,
-    roles: roleCounts(t, ctx),
-    synergies: synergyLines(t, config),
-    roleNotes: roleShortNotes(t, ctx, cands),
-  };
-}
-
 /**
  * Build one deck. At 60, 40, and 100 cards without a secondary style, best
  * fit, a theme the rules describe, and a plain shape go to the grow builder
@@ -1763,10 +1701,17 @@ export function buildDeck(
   config: BulkBrewConfig,
 ): BuildResult {
   if (growBuilds(request, config)) return buildGrowDeck(request, pool, index, config);
-  const result = buildClassic(request, pool, index, config);
+  // A tribe a commander names is one of best fit's plans, built as best fit builds it: without
+  // the learned plan data, so its option is best fit's deck card for card.
   if (isCommanderSize(request.size) && !request.secondary && tribeOf(request.style))
-    return scoreTribeDeck(request, result, pool, index, config);
-  return result;
+    return scoreTribeDeck(
+      request,
+      buildClassic(request, pool, index, withoutLearned(config)),
+      pool,
+      index,
+      config,
+    );
+  return buildClassic(request, pool, index, config);
 }
 
 /**
@@ -2037,7 +1982,8 @@ export function buildClassic(
     createdAt: request.createdAt ?? '',
     configVersion: configVersion(config),
     dataVersion: index.dataVersion,
-    ...(index.learnedVersion ? { learnedVersion: index.learnedVersion } : {}),
+    // Card-level learned data is read only with the learned plans (not on a grow path's fallback).
+    ...(config.learned && index.learnedVersion ? { learnedVersion: index.learnedVersion } : {}),
     explanation,
   };
   return { deck, explanation };

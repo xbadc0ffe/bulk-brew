@@ -457,7 +457,10 @@ describe('grow builder: a requested theme', () => {
       .filter((l) => /^\d+ /.test(l))
       .reduce((k, l) => k + Number(l.split(' ')[0]), 0);
     expect(counted).toBe(60);
-    expect(r.explanation.score!.total).toBeGreaterThan(0);
+    // No classic deck score; the theme as the builder counted it against its floors.
+    expect(r.explanation.score).toBeUndefined();
+    expect(r.explanation.theme?.style).toBe('graveyard');
+    for (const f of r.explanation.theme!.floors) expect(f.have).toBeGreaterThanOrEqual(f.need);
     expect(r.explanation.curve).toHaveLength(8);
     expect(r.explanation.notes.at(-1)).toMatch(/^25 lands|^\d+ lands: average cost/);
     expect(r.deck.learnedVersion).toBeUndefined();
@@ -706,13 +709,18 @@ describe('growViability and the scan', () => {
     expect(out.lacks).toBe('few cards that fill your graveyard (0 of 8)');
   });
 
-  it('reports the rules on synergy styles at 60, 40, and 100 but not at 20', () => {
+  it('reports the rules at 60, 40, and 100 but not at 20, a plain shape viable wherever the size builds', () => {
     const f = fakePool();
     for (const size of [60, 40] as const) {
       const scan = scanPool(f.pool, f.index, CONFIG, SETTINGS, size, ['U']);
       const gy = scan.archetypes.find((a) => a.archetype === 'graveyard')!;
       expect(gy.rules).toMatchObject({ viable: true, lacks: '' });
-      expect(scan.archetypes.find((a) => a.archetype === 'midrange')!.rules).toBeUndefined();
+      expect(scan.archetypes.find((a) => a.archetype === 'midrange')!.rules).toEqual({
+        viable: true,
+        margin: 1,
+        lacks: '',
+        floors: [],
+      });
     }
     const twenty = scanPool(f.pool, f.index, CONFIG, SETTINGS, 20, ['U']);
     expect(twenty.archetypes.every((a) => a.rules === undefined)).toBe(true);

@@ -1,7 +1,7 @@
 {
-  "version": "pscuep",
+  "version": "e3o2ik",
   "dataVersion": "2026-11-03",
-  "rulesVersion": "6",
+  "rulesVersion": "7",
   "styles": {
     "aristocrats": {
       "W": {
@@ -305,8 +305,8 @@
         "setupUnits": 0.033582,
         "setupWeight": 0.038175,
         "repeatable": 0.017796,
-        "payoffUnits": 0.00287,
-        "payoffWeight": 0.004592
+        "payoffUnits": 0.002296,
+        "payoffWeight": 0.003444
       }
     },
     "enchantments": {
@@ -515,16 +515,16 @@
     },
     "graveyard": {
       "W": {
-        "setupUnits": 0.018087,
-        "setupWeight": 0.018386,
-        "repeatable": 0.006577,
+        "setupUnits": 0.018386,
+        "setupWeight": 0.018685,
+        "repeatable": 0.006876,
         "payoffUnits": 0.03139,
         "payoffWeight": 0.03139
       },
       "U": {
-        "setupUnits": 0.090487,
-        "setupWeight": 0.117756,
-        "repeatable": 0.043694,
+        "setupUnits": 0.090641,
+        "setupWeight": 0.117911,
+        "repeatable": 0.044004,
         "payoffUnits": 0.030834,
         "payoffWeight": 0.030834
       },

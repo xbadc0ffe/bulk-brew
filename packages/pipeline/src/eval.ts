@@ -139,6 +139,12 @@ export function summarize(runs: DeckRun[], skips: Skip[]): Summary {
   const n = built.length;
   const avg = (f: (m: DeckMetrics) => number) =>
     n === 0 ? 0 : Math.round((built.reduce((s, r) => s + f(r.metrics!), 0) / n) * 100) / 100;
+  // The classic deck score, over the decks that carry one (grow decks do not).
+  const scored = built.filter((r) => r.metrics!.score !== undefined);
+  const score =
+    scored.length === 0
+      ? undefined
+      : Math.round((scored.reduce((s, r) => s + r.metrics!.score!, 0) / scored.length) * 100) / 100;
   return {
     decks: n,
     failures: runs.filter((r) => !r.ok).length,
@@ -150,7 +156,7 @@ export function summarize(runs: DeckRun[], skips: Skip[]): Summary {
     synergyDensity: avg((m) => m.synergyDensity),
     filler: avg((m) => m.filler),
     ...(built.every((r) => r.metrics!.strength !== undefined)
-      ? { strength: avg((m) => m.strength), score: avg((m) => m.score) }
+      ? { strength: avg((m) => m.strength), ...(score !== undefined ? { score } : {}) }
       : {}),
     ...(n > 0 && built.every((r) => r.metrics!.unsupported !== undefined)
       ? { unsupported: avg((m) => m.unsupported) }
@@ -266,7 +272,13 @@ function printDeltas(previous: Results, current: Results): void {
     console.log(deltaLine('filler', before.filler, after.filler, 'lower'));
     if (before.strength !== undefined && after.strength !== undefined) {
       console.log(deltaLine('card strength', before.strength, after.strength, 'higher'));
-      console.log(deltaLine('deck score', before.score ?? 0, after.score ?? 0, 'higher'));
+      // Grow decks carry no classic deck score, so the line compares only where both runs have one.
+      if (before.score !== undefined && after.score !== undefined)
+        console.log(deltaLine('deck score', before.score, after.score, 'higher'));
+      else if (before.score !== undefined)
+        console.log(
+          `  ${'deck score'.padEnd(16)} ${String(before.score).padStart(8)} -> ${'-'.padStart(8)}  (no classic decks now)`,
+        );
     }
     if (after.unsupported !== undefined)
       console.log(deltaLine('unsupported', before.unsupported, after.unsupported, 'lower'));

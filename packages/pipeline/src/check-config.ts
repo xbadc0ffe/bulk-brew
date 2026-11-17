@@ -103,7 +103,11 @@ display tag matches among ${mono.length} mono-color cards:`);
   for (const tag of displayTags.tags) {
     const counts: Record<string, number> = {};
     for (const c of mono)
-      if (displayTagsFor(c, factsFor(index, config, c), displayTags).some((t) => t.id === tag.id))
+      if (
+        displayTagsFor(c, factsFor(index, config, c), displayTags, config).some(
+          (t) => t.id === tag.id,
+        )
+      )
         counts[colorOf(c)] = (counts[colorOf(c)] ?? 0) + 1;
     console.log(countRow(tag.label, counts));
   }

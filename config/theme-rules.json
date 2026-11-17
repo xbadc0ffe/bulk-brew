@@ -1,5 +1,5 @@
 {
-  "version": "6",
+  "version": "7",
   "styles": {
     "tokens": {
       "resource": "creature tokens that stay on the battlefield, counted in bodies",
@@ -229,7 +229,8 @@
         {
           "job": "multiplier",
           "weight": 2,
-          "anyTags": ["repeatable-proliferate"]
+          "anyTags": ["repeatable-proliferate"],
+          "notText": "\\bput another time counter on it\\b"
         },
         {
           "job": "cash-in",
@@ -496,6 +497,16 @@
           "priority": 1
         },
         {
+          "job": "mills itself one a turn",
+          "weight": 1,
+          "anyTags": ["mill-self"],
+          "notTypes": ["instant", "sorcery"],
+          "text": "(^(?![^:\\n]*sacrifice (this|it\\b))[^:\\n]*(\\{T\\}|\\}): |\\bwhenever\\b|\\bat the beginning of\\b)[^\\n]*\\bput (one|a card) of them into your graveyard",
+          "notText": "\\bwhenever [^.\\n]*(attacks|deals combat damage|becomes tapped)[^\\n]*into your graveyard",
+          "repeatable": true,
+          "priority": 1
+        },
+        {
           "job": "mills itself two or more on attack",
           "weight": 1,
           "anyTags": ["mill-self"],
@@ -568,6 +579,12 @@
           "anyTags": ["loot", "rummage"],
           "text": "\\bdiscards? two cards",
           "priority": 1
+        },
+        {
+          "job": "expensive looter on a permanent",
+          "weight": 0.5,
+          "anyTags": ["repeatable-loot", "repeatable-rummage"],
+          "notTypes": ["instant", "sorcery"]
         },
         {
           "job": "loots or rummages one card once",

@@ -20,7 +20,7 @@ export type CommanderFit = 'fits' | 'checking' | 'short';
 export interface CommanderList {
   /** Every commander in the pool, best first; undefined until listed. */
   list: CommanderCandidate[] | undefined;
-  /** Scans of each listed commander's colors at 100, keyed by color letters such as "WU". */
+  /** Each listed commander's own scan at 100 (the commander leading, as the builder counts it), keyed by its card id. */
   scans: ReadonlyMap<string, ScanReport>;
   /** The commanders that fit the picked colors and style, best first. */
   shown: CommanderCandidate[];
@@ -39,7 +39,7 @@ const NO_FIT: ReadonlyMap<string, CommanderFit> = new Map();
 
 /**
  * Commanders in the pool for the Build page. Listing scans the pool once per
- * color identity, which takes a moment on a big collection, so it runs on
+ * commander, which takes a moment on a big collection, so it runs on
  * the next tick and is kept until the pool or settings change. Colors and a
  * style filter the list without listing again. With a style picked, each
  * shown commander whose colors can build it gets a full build to confirm,
@@ -115,9 +115,9 @@ export function useCommanderList(input: {
         out.set(c.id, checked ? 'fits' : 'short');
         continue;
       }
-      // The scan of its colors counts the commander too, so a style it rules out the 99 cannot build.
-      // A theme reads the rules where the scan carries them, as the grow builder does.
-      const report = scans.get(c.colors.join(''))?.archetypes.find((r) => r.archetype === style);
+      // The commander's own scan: a style it rules out the 99 cannot build. A theme or shape
+      // reads the rules' viability, as the grow builder does.
+      const report = scans.get(c.id)?.archetypes.find((r) => r.archetype === style);
       const viable = tribeOf(style)
         ? c.primaryTribes.includes(style)
         : (report?.rules?.viable ?? report?.viable);

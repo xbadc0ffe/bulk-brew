@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import {
   deckCredits,
   deckRoleCounts,
+  deckSynergyLines,
   reasonEarned,
   SWAP_WHY_PREFIX,
   type BulkBrewConfig,
@@ -209,6 +210,10 @@ export function DeckExplanation({
     () => (index ? deckRoleCounts(deck, index, config) : deck.explanation?.roles),
     [deck, index, config],
   );
+  const synergies = useMemo(
+    () => (index ? deckSynergyLines(deck, index, config) : (deck.explanation?.synergies ?? [])),
+    [deck, index, config],
+  );
   const notes = notesOpen || detailed;
   const e = deck.explanation;
   // A role the deck size does not ask for (a target of 0) has nothing to show.
@@ -302,10 +307,10 @@ export function DeckExplanation({
           </ul>
         </section>
       )}
-      {e.synergies.length > 0 && (
+      {synergies.length > 0 && (
         <section className="flex flex-col gap-2">
           <h3 className={label}>Key synergies</h3>
-          {e.synergies.map((s) => (
+          {synergies.map((s) => (
             <p key={s} className="border-l-2 border-line-strong pl-2.5 leading-[1.45]">
               {s}
             </p>

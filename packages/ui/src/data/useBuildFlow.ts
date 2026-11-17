@@ -165,7 +165,9 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
     // Before a commander is picked, the colors at 100 only filter the commanders.
     if (!index || colors.length === 0 || (size === 100 && !commander)) return undefined;
     if (colors.length === 1 && sizeScans) return sizeScans[colors[0]!];
-    return scanPool(pool.pool, index, config, buildSettings, size, colors);
+    // Under a commander the scan leaves it out of the 99 and credits it once, as the builder does.
+    const lead = size === 100 && commander ? index.get(commander) : undefined;
+    return scanPool(pool.pool, index, config, buildSettings, size, colors, lead);
   }, [index, colors, sizeScans, pool.pool, config, buildSettings, size, commander]);
 
   const reject = useCallback(() => {
@@ -317,14 +319,7 @@ export function useBuildFlow(input: BuildFlowInput): BuildFlow {
     config,
   ]);
 
-  // At 100 the scan counts the commander among its spells, but the 99 cannot use it.
-  const canBuild = Boolean(
-    index &&
-    colors.length > 0 &&
-    colorScan?.possible &&
-    (size !== 100 || colorScan.candidates - 1 >= colorScan.minSpells) &&
-    !building,
-  );
+  const canBuild = Boolean(index && colors.length > 0 && colorScan?.possible && !building);
 
   const build = useCallback(() => {
     if (!canBuild) return;

@@ -7,9 +7,18 @@
 
 import type { BulkBrewConfig } from './config.ts';
 import { BuildError, buildDeck, styleCounts } from './builder.ts';
+import type { DeckSupply } from './card-needs.ts';
 import { factsFor, listCandidates, type Candidate } from './candidates.ts';
+import { cardThemeSides } from './deck-themes.ts';
+import { poolSupply, poolThemeJobs, themeStyles } from './grow.ts';
 import type { CardIndex } from './pack.ts';
-import { commanderTribes, scanPool, secondaryLabel, tribeOf } from './scan.ts';
+import {
+  commanderTribes,
+  scanCandidates,
+  scanUnderCommander,
+  secondaryLabel,
+  tribeOf,
+} from './scan.ts';
 import type { Color, Pool, ScanReport, Settings } from './types.ts';
 import { normalizeColors } from './colors.ts';
 import { draftOnly, landColors } from './lands.ts';
@@ -24,11 +33,11 @@ export interface CommanderCandidate {
   tier: CommanderTier;
   /** Higher is more promising; orders candidates inside a tier. */
   score: number;
-  /** Styles the commander itself enables or rewards that the pool can build. */
+  /** Styles the commander itself enables or rewards that the pool can build under it. */
   styles: { id: string; label: string }[];
-  /** The styles it rewards (a payoff for them), tribes included; the rest of `styles` it only feeds. */
+  /** The styles it rewards (a payoff job in the theme rules), tribes included; the rest of `styles` it only feeds (setup). */
   leads: { id: string; label: string }[];
-  /** Synergy archetypes its text rewards or feeds, whether or not the pool can build them. */
+  /** Synergy archetypes the theme rules give it a setup or payoff job for, whether or not the pool can build them. */
   supports: string[];
   /** Tribes its text names that the pool can build as the primary style, such as "tribal:Dragon". */
   primaryTribes: string[];
@@ -68,19 +77,23 @@ function fixingLands(
  * style the pool can build (or a creature type it has), sit on a deep pool,
  * cost two to five, and, at three colors or more, have fixing lands to
  * match. Colorless commanders are left out: a deck of basics cannot make
- * the colorless mana their colorless cards need.
+ * the colorless mana their colorless cards need. A commander leads the
+ * themes its own text pays off by the theme rules and feeds the ones it is
+ * setup for, where the pool can build them under it (the scan, as the
+ * builder counts the commander).
  */
 export function commanderCandidates(
   pool: Pool,
   index: CardIndex,
   config: BulkBrewConfig,
   settings: Settings,
-  /** Scans of each commander's colors at 100, keyed by color letters such as "WU"; filled while listing. */
+  /** Each commander's own scan at 100, keyed by its card id; filled while listing. */
   scans: Map<string, ScanReport> = new Map(),
 ): CommanderCandidate[] {
   const out: CommanderCandidate[] = [];
   const rarities = settings.rarities?.length ? new Set(settings.rarities) : undefined;
-  const candsByColors = new Map<string, Candidate[]>();
+  // Candidates and the classic scan once per color identity; each commander's own view from them.
+  const byColors = new Map<string, { cands: Candidate[]; base: ScanReport; supply: DeckSupply }>();
   for (const entry of Object.values(pool.entries)) {
     if (entry.qty <= 0) continue;
     const card = index.get(entry.cardId);
@@ -90,31 +103,44 @@ export function commanderCandidates(
     const colors = normalizeColors(card.identity);
     if (colors.length === 0) continue;
     const key = colors.join('');
-    let scan = scans.get(key);
-    if (!scan) {
-      scan = scanPool(pool, index, config, settings, 100, colors);
-      scans.set(key, scan);
+    let shared = byColors.get(key);
+    if (!shared) {
+      const cands = listCandidates(pool, index, config, settings, colors, 100);
+      shared = {
+        cands,
+        base: scanCandidates(cands, config, settings, 100, colors),
+        supply: poolSupply(cands, config, 100, colors),
+      };
+      byColors.set(key, shared);
     }
+    const { cands } = shared;
     const facts = factsFor(index, config, card);
+    let scan = scans.get(card.id);
+    if (!scan) {
+      scan = scanUnderCommander(shared.base, cands, config, settings, facts);
+      scans.set(card.id, scan);
+    }
     // Styles the commander rewards (payoff) say "build around me"; ones it only feeds are weaker.
+    // Its jobs count as the builder credits them: only where the pool pays for their needs.
+    const sides = cardThemeSides(config, facts, 100);
+    // The color set's supply holds the commander once, as a single candidate copy does.
+    const single = cands.some((c) => c.facts.card.id === card.id && c.preferred === 1);
+    const supply = single ? shared.supply : poolSupply(cands, config, 100, colors, card);
+    const paid = poolThemeJobs(config, facts, 100, supply);
+    const styleIds = themeStyles(config);
     const leads: { id: string; label: string }[] = [];
     const feeds: { id: string; label: string }[] = [];
     for (const r of scan.archetypes) {
-      if (!r.viable || r.kind !== 'synergy') continue;
-      if (facts.payoffOf.includes(r.archetype)) leads.push({ id: r.archetype, label: r.label });
-      else if (facts.enablerOf.includes(r.archetype))
-        feeds.push({ id: r.archetype, label: r.label });
+      if (!r.rules?.viable || r.kind !== 'synergy') continue;
+      const side = paid[styleIds.indexOf(r.archetype)]?.as;
+      if (side === 'payoff') leads.push({ id: r.archetype, label: r.label });
+      else if (side === 'setup') feeds.push({ id: r.archetype, label: r.label });
     }
     for (const t of scan.tribes ?? []) {
       if (card.tags.includes(`typal-${t.type.toLowerCase()}`))
         leads.push({ id: `tribal:${t.type}`, label: secondaryLabel(config, `tribal:${t.type}`) });
     }
     // A tribe the pool can build as the primary style leads even when it is not among the largest.
-    let cands = candsByColors.get(key);
-    if (!cands) {
-      cands = listCandidates(pool, index, config, settings, colors, 100);
-      candsByColors.set(key, cands);
-    }
     const named = card.tags.some((t) => t.startsWith('typal-'));
     const others = named ? cands.filter((c) => c.facts.card.id !== card.id) : [];
     const primaryTribes = commanderTribes(card, others, config, 100)
@@ -123,20 +149,16 @@ export function commanderCandidates(
     for (const id of primaryTribes)
       if (!leads.some((l) => l.id === id)) leads.push({ id, label: secondaryLabel(config, id) });
     const styles = [...leads, ...feeds];
-    const supports = config.archetypes.archetypes
-      .filter(
-        (a) =>
-          a.kind === 'synergy' && (facts.payoffOf.includes(a.id) || facts.enablerOf.includes(a.id)),
-      )
-      .map((a) => a.id);
-    const depth = scan.distinct;
+    const supports = sides.map((s) => s.style);
+    // Nonland cards in its colors, the commander among them.
+    const depth = cands.reduce((n, c) => n + (c.facts.spell ? 1 : 0), 0);
     // Three or more colors need lands that make several of them.
     const fixers = fixingLands(pool, index, config, colors);
     const fixed = colors.length < 3 || fixers >= 3 * (colors.length - 1);
     const reasons: string[] = [];
     const deep = depth >= config.builderWeights.commander.deepPool;
-    // The scan counts the commander among its own candidates; the 99 cannot.
-    const enough = scan.possible && scan.candidates - 1 >= scan.minSpells;
+    // The scan leaves the commander out of the 99 it counts.
+    const enough = scan.possible;
     const cheap = card.mv >= 2 && card.mv <= 5;
     if (!enough) reasons.push(`${depth} cards in its colors, not enough for 99`);
     else reasons.push(`${depth} cards in its colors`);

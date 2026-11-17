@@ -135,11 +135,13 @@ export function planOptions(
   // Plan by the builder that runs: the grow builder answers a picked primary with requireStyle.
   const grows = pickerRanks({ ...req, colors: picked }, config);
   const bestFitList = grows && !req.primary;
+  // The grow builder answers a picked style wherever the size can be built (the nearest deck when short).
   const plannable = (a: ArchetypeReport) => (grows && a.rules ? true : a.viable);
   let fullFirst = false;
   for (const subset of subsets) {
     const scan =
-      scans?.get(subset.join('')) ?? scanPool(pool, index, config, req.settings, req.size, subset);
+      scans?.get(subset.join('')) ??
+      scanPool(pool, index, config, req.settings, req.size, subset, lead);
     if (!scan.possible) continue;
     const styles = bestFitList
       ? pickerStyles(scan)
@@ -351,8 +353,8 @@ export interface DeckOptionSearch {
  * Analyze pane's bestDeckSearch: a scan of each color subset, the plan, then
  * one build per step, each ranked in with addOption. The result is the same
  * as planOptions followed by buildOption on every plan. `cache` holds scans
- * by color letters for one size, settings, and pool: subsets found there are
- * not scanned again, and new scans are added to it.
+ * by color letters (and commander, at 100) for one size, settings, and pool:
+ * subsets found there are not scanned again, and new scans are added to it.
  */
 export function deckOptionSearch(
   req: OptionsRequest,
@@ -378,10 +380,12 @@ export function deckOptionSearch(
     const scans = new Map<string, ScanReport>();
     for (const subset of subsets) {
       const id = subset.join('');
-      let scan = cache.get(id);
+      // A commander's scan counts it as the builder does, so the cache keeps one per commander.
+      const cacheKey = lead ? `${id}@${lead.id}` : id;
+      let scan = cache.get(cacheKey);
       if (!scan) {
-        scan = scanPool(pool, index, config, req.settings, req.size, subset);
-        cache.set(id, scan);
+        scan = scanPool(pool, index, config, req.settings, req.size, subset, lead);
+        cache.set(cacheKey, scan);
         yield { kind: 'scan', colors: subset };
       }
       scans.set(id, scan);

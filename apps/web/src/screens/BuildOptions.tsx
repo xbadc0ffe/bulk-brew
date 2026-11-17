@@ -2,6 +2,7 @@ import {
   COLOR_LABELS,
   colorsLabel,
   deckRoleCounts,
+  deckSynergyLines,
   normalizeColors,
   type CardRecord,
   type CommanderCandidate,
@@ -389,7 +390,10 @@ function OptionCard({ option, onOpen }: { option: DeckOption; onOpen(): void }) 
   const colors = normalizeColors(deck.colors ?? [deck.color]);
   const style = archetypeInfo(config, deck.archetype);
   const missing = flow.colors.filter((c) => !colors.includes(c));
-  const synergy = explanation.synergies[0];
+  const synergy = useMemo(
+    () => (index ? deckSynergyLines(deck, index, config) : explanation.synergies)[0],
+    [deck, index, config, explanation.synergies],
+  );
   const stretched = explanation.notes.find((n) => n.includes('is stretched'));
   const secondary = explanation.secondary;
   const title = `${colorsLabel(colors)} ${style.label}${secondary ? ` with ${secondary.label}` : ''}`;

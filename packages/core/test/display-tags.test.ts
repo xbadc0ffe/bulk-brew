@@ -13,7 +13,7 @@ import { CONFIG_BUNDLE as CONFIG, PACK } from './builder-fixtures.ts';
 const SHIPPED = shipped as unknown as DisplayTagsConfig;
 const index = new CardIndex(PACK);
 const labels = (id: string) =>
-  displayTagsFor(index.get(id)!, factsFor(index, CONFIG, index.get(id)!), SHIPPED).map(
+  displayTagsFor(index.get(id)!, factsFor(index, CONFIG, index.get(id)!), SHIPPED, CONFIG).map(
     (t) => t.label,
   );
 

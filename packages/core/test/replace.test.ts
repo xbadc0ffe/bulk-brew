@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { buildDeck, landNote, styleCounts } from '../src/builder.ts';
+import { buildDeck, landNote } from '../src/builder.ts';
 import { computeFacts } from '../src/candidates.ts';
+import { deckStyleRows, themeSynergyLines } from '../src/deck-themes.ts';
 import { CardIndex } from '../src/pack.ts';
 import { replaceCard, replacementOptions } from '../src/replace.ts';
 import type { CardRecord, Deck, DeckSize, Pool } from '../src/types.ts';
@@ -151,9 +152,11 @@ describe('replaceCard', () => {
     expect(ne.roles.cardAdvantage!.have).toBe(e.roles.cardAdvantage!.have + n);
     expect(ne.lands.count).toBe(e.lands.count);
     expect(ne.score).toBeUndefined();
-    expect(e.score).toBeDefined();
-    // Theme bars read the deck itself.
-    expect(styleCounts(next, index, CONFIG)[0]!.id).toBe('tokens');
+    // Theme bars read the deck itself, by the theme rules the grow builder counted it with.
+    expect(e.builder).toBe('grow');
+    expect(deckStyleRows(next, index, CONFIG)[0]!.key).toMatch(/^tokens:/);
+    expect(ne.theme?.style).toBe('tokens');
+    expect(ne.synergies).toEqual(themeSynergyLines(next, index, CONFIG));
   });
 
   it('counts cheap mana sources and the average cost, and rewrites the land note', () => {

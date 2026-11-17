@@ -81,7 +81,8 @@ const tagIds = (deck?: Deck) => {
     yathan,
     computeFacts(yathan, CONFIG),
     TAGS,
-    credits ? (c) => credits.earned(yathan, c) : undefined,
+    CONFIG,
+    credits ? { earned: (c) => credits.earned(yathan, c), size: 60 } : undefined,
   ).map((t) => t.id);
 };
 

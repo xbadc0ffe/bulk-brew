@@ -65,8 +65,8 @@ export interface DeckMetrics {
   filler: number;
   /** Average card strength over spell copies. */
   strength: number;
-  /** The builder's deck score, 0 to 100. */
-  score: number;
+  /** The classic builder's deck score, 0 to 100; absent on grow decks, which rank by the plan picker's score. */
+  score?: number;
   /** Spell copies the deck does not support: a drawback it does not meet, no credit earned, or a reason not earned. */
   unsupported: number;
   castable: boolean;
@@ -239,7 +239,7 @@ export function deckMetrics(
     synergyDensity: round(spells > 0 ? weighted / spells : 0),
     filler,
     strength: round(spells > 0 ? strengthTotal / spells : 0, 2),
-    score: deck.explanation?.score?.total ?? 0,
+    ...(deck.explanation?.score ? { score: deck.explanation.score.total } : {}),
     unsupported: unsupportedCards(deck, index, config).reduce((n, u) => n + u.qty, 0),
     castable: offenders.length === 0,
     offenders,

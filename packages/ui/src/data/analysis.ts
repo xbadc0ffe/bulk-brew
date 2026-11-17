@@ -1,8 +1,10 @@
 import {
+  FLOOR_WORDS,
   type ArchetypeReport,
   type BulkBrewConfig,
   type Color,
   type DeckSize,
+  type FloorCount,
   type ScanReport,
 } from '@bulk-brew/core';
 
@@ -55,11 +57,11 @@ function shortfall(report: ArchetypeReport): number | undefined {
 }
 
 /**
- * Where the scan carries the theme rules' view (synergy styles at 60, 40,
- * and 100), the rules decide, as the builder does: viable when the pool
- * meets the floors, short when it reaches `builderWeights.grow.nearMargin`
- * of them. Elsewhere the old scan decides: viable, a near miss (a few cards
- * short), or not enough.
+ * Where the scan carries the rules' view (60, 40, and 100 cards), it decides
+ * alone, as the builder plans: viable when the size can be built and a
+ * theme's pool meets its floors, short when a theme reaches
+ * `builderWeights.grow.nearMargin` of them. Elsewhere (20 cards) the old
+ * scan decides: viable, a near miss (a few cards short), or not enough.
  */
 export function archetypeViability(
   report: ArchetypeReport,
@@ -68,7 +70,6 @@ export function archetypeViability(
 ): Viability {
   const rules = report.rules;
   if (rules) {
-    if (!scan.possible) return 'none';
     if (rules.viable) return 'viable';
     return rules.margin >= config.builderWeights.grow.nearMargin ? 'short' : 'none';
   }
@@ -78,6 +79,11 @@ export function archetypeViability(
   return short !== undefined && short > 0 && short <= NEAR_MISS_SHORTFALL ? 'near' : 'none';
 }
 
+/** "12 setup cards · 6 payoff cards": the pool's theme counts as the builder counts them. */
+function floorLine(floors: readonly FloorCount[]): string {
+  return floors.map((f) => `${Math.round(f.have * 100) / 100} ${FLOOR_WORDS[f.floor]}`).join(' · ');
+}
+
 /** One short line under the viability label. */
 export function viabilityDetail(
   report: ArchetypeReport,
@@ -85,12 +91,14 @@ export function viabilityDetail(
   state: Viability,
 ): string {
   if (state === 'viable') {
+    if (report.rules?.floors.length) return floorLine(report.rules.floors);
     return report.kind === 'synergy'
       ? `${report.enablers.have} enablers · ${report.payoffs.have} payoffs`
       : `${report.enablers.have} spells`;
   }
   if (state === 'short') return capitalize(report.rules?.lacks ?? '');
   if (state === 'near') return report.notes.join(', ');
+  // The scan's own count says more than the rules' "too few cards" when the size cannot be built.
   if (!scan.possible) return scanShortfall(scan) ?? 'not enough cards for this size';
   // The rules' phrase, so the line agrees with what the builder would say.
   if (report.rules?.lacks) return report.rules.lacks;

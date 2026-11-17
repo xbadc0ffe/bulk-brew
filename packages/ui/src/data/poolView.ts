@@ -1,4 +1,5 @@
 import {
+  cardThemeSides,
   displayTagsFor,
   factsFor,
   themeCredit,
@@ -144,10 +145,11 @@ export interface CardTag {
 const lowerFirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
 
 /**
- * General tags for a card: the config's role labels, then the styles it
- * enables or pays off. The short display tags and the raw Scryfall tags
- * are shown beside these in the card detail. With a deck's `credits`, only
- * the roles and styles the card earns in that deck.
+ * General tags for a card: the config's role labels, then the styles the
+ * theme rules give it a setup or payoff job in ("tokens setup", "tokens
+ * payoff"). The short display tags and the raw Scryfall tags are shown
+ * beside these in the card detail. With a deck's `credits`, only the roles
+ * and jobs the card earns in that deck, its jobs read at the deck's size.
  */
 export function cardTags(
   index: CardIndex,
@@ -163,12 +165,9 @@ export function cardTags(
     config.archetypes.archetypes.find((a) => a.id === id)?.label ?? id;
   for (const id of facts.roles)
     if (has(id)) out.push({ id: `role:${id}`, label: lowerFirst(roleLabel(id)) });
-  for (const id of facts.enablerOf)
-    if (has(themeCredit(id, 'setup')))
-      out.push({ id: `style:${id}`, label: lowerFirst(styleLabel(id)) });
-  for (const id of facts.payoffOf)
-    if (has(themeCredit(id, 'payoff')))
-      out.push({ id: `style:${id}`, label: `${lowerFirst(styleLabel(id))} payoff` });
+  for (const s of cardThemeSides(config, facts, credits?.supply.size))
+    if (has(themeCredit(s.style, s.as)))
+      out.push({ id: `style:${s.style}`, label: `${lowerFirst(styleLabel(s.style))} ${s.as}` });
   return out;
 }
 
@@ -190,16 +189,20 @@ export function majorTags(
   credits?: DeckCredits,
 ): DisplayTagDef[] {
   if (credits)
-    return displayTagsFor(card, factsFor(index, config, card), displayTags, (credit) =>
-      credits.earned(card, credit),
-    );
+    return displayTagsFor(card, factsFor(index, config, card), displayTags, config, {
+      earned: (credit) => credits.earned(card, credit),
+      size: credits.supply.size,
+    });
   let byTags = majorCache.get(index);
   if (!byTags) majorCache.set(index, (byTags = new WeakMap()));
   let byId = byTags.get(displayTags);
   if (!byId) byTags.set(displayTags, (byId = new Map()));
   let tags = byId.get(card.id);
   if (!tags)
-    byId.set(card.id, (tags = displayTagsFor(card, factsFor(index, config, card), displayTags)));
+    byId.set(
+      card.id,
+      (tags = displayTagsFor(card, factsFor(index, config, card), displayTags, config)),
+    );
   return tags;
 }
 

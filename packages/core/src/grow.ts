@@ -19,25 +19,32 @@ import {
   commanderFor,
   commanderShortName,
   copyNotes,
+  creditCommander,
   curveTargets,
   curveWhy,
   FILLER_WHY,
   landLine,
-  spellReport,
 } from './builder.ts';
+import { themeSynergyLines } from './deck-themes.ts';
+import { withoutLearned } from './learned.ts';
 import {
   addSupply,
   cardNeeds,
+  cardSupply,
   cardSupport,
   creditEarned,
+  creditNeeds,
   deckSupply,
   effectiveManaValue,
+  needMet,
   positiveCredits,
+  refSupplies,
   strengthCredit,
   themeCredit,
   themeOwnResources,
   unmetDrawback,
   type DeckSupply,
+  type NeedRef,
 } from './card-needs.ts';
 import {
   bucketOf,
@@ -95,6 +102,7 @@ import type {
   Deck,
   DeckCard,
   DeckSize,
+  FloorCount,
   PickScore,
   Pool,
   Settings,
@@ -149,6 +157,7 @@ function emptyTally(): Tally {
   return { setupUnits: 0, setupWeight: 0, repeatable: 0, payoffUnits: 0, payoffWeight: 0 };
 }
 
+/** Count `copies` of a card's job for a style, each card once, as the floors measure it. */
 function addJob(t: Tally, job: Job | undefined, copies: number): void {
   if (!job) return;
   const units = Math.min(job.weight, 1) * copies;
@@ -192,6 +201,22 @@ function floorsFor(defs: Defs, i: number, size: DeckSize): ThemeFloor[] | undefi
   return Array.isArray(entry) ? entry : [entry];
 }
 
+/** Synergy style ids the theme rules describe, in config order (the order of themeJobsOf). */
+export function themeStyles(config: BulkBrewConfig): readonly string[] {
+  return defsFor(config).styles;
+}
+
+/** A style's floor alternatives at a size; undefined when the rules give it none there. */
+export function themeFloorsOf(
+  config: BulkBrewConfig,
+  style: string,
+  size: DeckSize,
+): ThemeFloor[] | undefined {
+  const defs = defsFor(config);
+  const i = defs.styles.indexOf(style);
+  return i < 0 ? undefined : floorsFor(defs, i, size);
+}
+
 // The scan has no card index, so jobs are cached per config and per card
 // facts object, which factsFor already caches per index, config, and card.
 const jobsCache = new WeakMap<
@@ -199,7 +224,18 @@ const jobsCache = new WeakMap<
   WeakMap<CardFacts, Map<number, (Job | undefined)[]>>
 >();
 
-/** A card's job for each style the rules describe (undefined: none, a rider, or excluded). */
+/**
+ * A card's job for each style the rules describe, aligned with themeStyles
+ * (undefined: none, a rider, or excluded). Read-only: cached per card and size.
+ */
+export function themeJobsOf(
+  config: BulkBrewConfig,
+  facts: CardFacts,
+  size: DeckSize,
+): readonly (Job | undefined)[] {
+  return jobsOf(config, facts, size);
+}
+
 function jobsOf(config: BulkBrewConfig, facts: CardFacts, size: DeckSize): (Job | undefined)[] {
   let byFacts = jobsCache.get(config);
   if (!byFacts) jobsCache.set(config, (byFacts = new WeakMap()));
@@ -220,6 +256,7 @@ function jobsOf(config: BulkBrewConfig, facts: CardFacts, size: DeckSize): (Job 
 
 // ---------------------------------------------------------------- floors
 
+/** A tally in the measure one floor counts. */
 function floorValue(t: Tally, key: FloorKey): number {
   switch (key) {
     case 'setup':
@@ -237,7 +274,7 @@ function floorValue(t: Tally, key: FloorKey): number {
   }
 }
 
-interface Margin {
+export interface Margin {
   setup: number;
   payoff: number;
   margin: number;
@@ -263,7 +300,10 @@ function themeMargin(t: Tally, floor: ThemeFloor): Margin {
 }
 
 /** The floor alternative a tally meets best. */
-function bestFloor(t: Tally, floors: readonly ThemeFloor[]): { floor: ThemeFloor; margin: Margin } {
+export function bestFloor(
+  t: Tally,
+  floors: readonly ThemeFloor[],
+): { floor: ThemeFloor; margin: Margin } {
   let pick: { floor: ThemeFloor; margin: Margin } | undefined;
   for (const floor of floors) {
     const margin = themeMargin(t, floor);
@@ -333,8 +373,19 @@ function shortOf(t: Tally, targets: Targets): StyleShort[] {
   return out;
 }
 
-/** Floor names for notes, when a style gives no phrase of its own. */
-const FLOOR_WORDS: Record<FloorKey, string> = {
+/** Every floor of an alternative, what the tally holds against what it asks, in floor order. */
+export function floorCounts(t: Tally, floor: ThemeFloor): FloorCount[] {
+  const out: FloorCount[] = [];
+  for (const k of FLOOR_KEYS) {
+    const need = floor[k];
+    if (need === undefined || need <= 0) continue;
+    out.push({ floor: k, have: round2(floorValue(t, k)), need: round2(need) });
+  }
+  return out;
+}
+
+/** Floor names a player reads, in the builder's notes and the Roles bars. */
+export const FLOOR_WORDS: Record<FloorKey, string> = {
   setup: 'setup cards',
   setupWeight: 'setup weight',
   repeatable: 'repeatable setup',
@@ -351,12 +402,13 @@ function lacksSentence(lacks: ThemeLacks, short: readonly StyleShort[]): string 
       worst = s;
   if (!worst) return 'too few cards for this style';
   const phrase = lacks[worst.floor] ?? `too few ${FLOOR_WORDS[worst.floor]}`;
-  return `${phrase} (${wholeCount(worst.have)} of ${wholeCount(worst.need)})`;
+  // A count short of its floor rounds down, so it never reads as met ("about 6 of 6").
+  return `${phrase} (${wholeCount(worst.have, Math.floor)} of ${wholeCount(worst.need, Math.round)})`;
 }
 
 /** Units and weights can be halves; a player reads whole cards. */
-function wholeCount(n: number): string {
-  return Number.isInteger(n) ? String(n) : `about ${Math.round(n)}`;
+function wholeCount(n: number, round: (x: number) => number): string {
+  return Number.isInteger(n) ? String(n) : `about ${round(n)}`;
 }
 
 function round2(n: number): number {
@@ -366,11 +418,7 @@ function round2(n: number): number {
 // ---------------------------------------------------------------- viability
 
 /** One floor a pool misses, for the floor alternative it meets best. */
-export interface StyleShort {
-  floor: FloorKey;
-  have: number;
-  need: number;
-}
+export type StyleShort = FloorCount;
 
 /** A themed style against the rules' floors, as the scan reports it. */
 export interface StyleViability {
@@ -379,6 +427,8 @@ export interface StyleViability {
   /** The smaller of the setup and payoff sides' have over need. */
   margin: number;
   short: StyleShort[];
+  /** Every floor of the alternative the pool meets best, with the pool's counts. */
+  floors: FloorCount[];
   /** What the pool lacks, as a phrase a player reads: "no repeatable way to fill the graveyard (1 of 2)". Empty when viable. */
   lacks: string;
 }
@@ -430,6 +480,19 @@ function poolJobs(
 }
 
 /**
+ * A card's theme jobs, per style in themeStyles order, that a pool's supply
+ * could pay for: a commander's jobs as the builder credits them.
+ */
+export function poolThemeJobs(
+  config: BulkBrewConfig,
+  facts: CardFacts,
+  size: DeckSize,
+  supply: DeckSupply,
+): readonly (Job | undefined)[] {
+  return poolJobs(config, facts.card, jobsOf(config, facts, size), supply);
+}
+
+/**
  * Each themed style the rules describe at this size, the pool against its
  * floors: every copy the builder may use of each spell candidate, plus the
  * commander's job when given and its needs met. A theme card counts only when
@@ -473,6 +536,7 @@ export function growViability(
       viable,
       margin: margin.margin,
       short,
+      floors: floorCounts(t, floor),
       lacks: viable ? '' : lacksSentence(defs.compiled[i]!.lacks, short),
     };
   });
@@ -1859,7 +1923,8 @@ function planResult(
   }
   const { requireStyle: _required, ...rest } = ctx.request;
   try {
-    // A tribe is built as one plan of a list, a shape as asked for by name.
+    // A tribe is built as one plan of a list, a shape as asked for by name. Both are plans
+    // of a grow best fit, so the classic builder reads no learned plan data for them.
     const r = buildClassic(
       {
         ...rest,
@@ -1868,7 +1933,7 @@ function planResult(
       },
       pool,
       ctx.index,
-      ctx.config,
+      withoutLearned(ctx.config),
     );
     return withPick(r, pickScore(ctx, plan, r.deck));
   } catch (err) {
@@ -1884,13 +1949,11 @@ interface Ranked {
 }
 
 /**
- * Every plan the request can build, finished and ranked by pickScore: the
- * three plain shapes, each theme the rules call viable (the pool meets its
- * floors), and under a commander the tribes it names that the pool supports.
- * These are exactly the plans the Build page's options and the Analyze pane
- * plan, so their first option is this list's first deck.
+ * The plans best fit compares: the three plain shapes, each theme the rules
+ * call viable (the pool meets its floors), and under a commander the tribes
+ * it names that the pool supports.
  */
-function rankPlans(ctx: GrowContext, pool: Pool): Ranked[] {
+function planList(ctx: GrowContext): (Plan | TribePlan)[] {
   const plans: (Plan | TribePlan)[] = [];
   for (const style of PLAIN_SHAPES) {
     const plan = plainPlan(ctx, style);
@@ -1903,8 +1966,53 @@ function rankPlans(ctx: GrowContext, pool: Pool): Ranked[] {
   if (ctx.commander)
     for (const t of commanderTribes(ctx.commander.card, ctx.candidates, ctx.config, ctx.size))
       if (t.viable) plans.push({ kind: 'tribe', style: t.archetype.id, archetype: t.archetype });
+  return plans;
+}
+
+/** A plan best fit compares, with the pool's counts against a theme's floors. */
+export interface PickerPlan {
+  style: string;
+  kind: 'plain' | 'theme' | 'tribe';
+  /** A theme: every floor of the alternative the pool meets best, as the builder counts the pool. */
+  floors?: FloorCount[];
+}
+
+/**
+ * The plans the builder's best fit would build for a request, before building
+ * any (none when the size cannot be built). The scan, the Build page's plan,
+ * and the Analyze pane's plan must list the same ones (see the agreement check).
+ */
+export function pickerPlans(
+  request: BuildRequest,
+  pool: Pool,
+  index: CardIndex,
+  config: BulkBrewConfig,
+): PickerPlan[] {
+  const { style: _style, requireStyle: _asked, ...bestFitRequest } = request;
+  if (!growBuilds(bestFitRequest, config)) return [];
+  const ctx = growContext(bestFitRequest, pool, index, config);
+  if (!scanPossible(ctx.candidates, config, ctx.settings, ctx.size, ctx.colors).possible) return [];
+  return planList(ctx).map((p) =>
+    p.kind === 'theme'
+      ? {
+          style: p.style,
+          kind: p.kind,
+          floors: floorCounts(poolTally(ctx, p.index), p.floor),
+        }
+      : { style: p.style, kind: p.kind },
+  );
+}
+
+/**
+ * Every plan the request can build, finished and ranked by pickScore: the
+ * three plain shapes, each theme the rules call viable (the pool meets its
+ * floors), and under a commander the tribes it names that the pool supports.
+ * These are exactly the plans the Build page's options and the Analyze pane
+ * plan, so their first option is this list's first deck.
+ */
+function rankPlans(ctx: GrowContext, pool: Pool): Ranked[] {
   const out: Ranked[] = [];
-  for (const plan of plans) {
+  for (const plan of planList(ctx)) {
     const result = planResult(ctx, plan, pool, []);
     if (result?.explanation.pick)
       out.push({ style: plan.style, score: result.explanation.pick.score, result });
@@ -1924,7 +2032,7 @@ function labelOf(config: BulkBrewConfig, style: string): string {
 function bestFit(ctx: GrowContext, pool: Pool): BuildResult {
   const ranked = rankPlans(ctx, pool);
   const top = ranked[0];
-  if (!top) return buildClassic(ctx.request, pool, ctx.index, ctx.config);
+  if (!top) return buildClassic(ctx.request, pool, ctx.index, withoutLearned(ctx.config));
   const rest = ranked.slice(1).map((r) => labelOf(ctx.config, r.style));
   const shown = rest.slice(0, 3);
   if (rest.length > 3) shown.push(`${rest.length - 3} more`);
@@ -2201,9 +2309,108 @@ function noWorse(before: Tally, after: Tally, targets: Targets): boolean {
   );
 }
 
+/** Rounds of supply a feed may add for one need before it gives up. */
+const FEED_ROUNDS = 10;
+
+/**
+ * Feed a theme card whose job the finished deck does not pay for. The theme
+ * core counts a job the pool pays for (its second, loose try, as the scan
+ * counts the pool), but nothing put that supply in the deck: for the clause
+ * of the job's credit with the fewest unmet needs, each unmet need takes the
+ * best pool card that supplies it (more copies of the card itself when it
+ * supplies its own need) in place of the weakest curve copy that does not.
+ * Kept when the card then earns its reason, the plan's floors are no
+ * worse, and every other copy that held still holds; otherwise every swap is
+ * undone and the card goes as before.
+ */
+function feedNeeds(
+  ctx: GrowContext,
+  plan: ThemePlan,
+  d: GrowDeck,
+  c: GrowCard,
+  why: string,
+  minimum: Targets,
+): boolean {
+  const side = THEME_WHY.exec(why);
+  if (!side) return false;
+  const card = c.facts.card;
+  const reading = creditNeeds(
+    card,
+    themeCredit(plan.style, sideOf(side[1]!)),
+    ctx.config,
+    ctx.size,
+  );
+  const unmet = (r: NeedRef) => !needMet(r, d.supply, card, ctx.config);
+  // A gate (a drawback, a required cost) is not a need a supplier can feed.
+  if (reading.kind === 'absent' || reading.gates.some(unmet)) return false;
+  let refs: NeedRef[] | undefined;
+  for (const cl of reading.clauses) {
+    const u = cl.needs.filter(unmet);
+    if (!refs || u.length < refs.length) refs = u;
+  }
+  if (!refs?.length) return false;
+  const before = honestPlan(ctx, plan, d);
+  // Copies that hold now must still hold after: a feed never starves another card's need.
+  const holds = (x: GrowCard) =>
+    supported(ctx, d, x, 0, true) && whyEarned(ctx, plan, d, x, d.why.get(x.id)!);
+  const fine = ctx.cards.filter((x) => x !== c && have(d, x) > 0 && holds(x));
+  const done: { out: GrowCard; outWhy: string; inn: GrowCard; at: number }[] = [];
+  for (const ref of refs) {
+    const res = new Set(refSupplies(ref));
+    const supplies = (x: GrowCard) =>
+      cardSupply(x.facts.card, ctx.config, ctx.size).some((r) => res.has(r));
+    for (let n = 0; n < FEED_ROUNDS && unmet(ref); n++) {
+      const inn = best(
+        ctx.cards,
+        (s) =>
+          have(d, s) < s.max &&
+          supplies(s) &&
+          supported(ctx, d, s, 1, true) &&
+          gateOpen(ctx, plan, d, s),
+        (s) => s.value * planPull(ctx, plan, d, s),
+      );
+      if (!inn) break;
+      // The weakest curve copy that is neither the card nor a supplier of the need.
+      let at = -1;
+      let low = Infinity;
+      d.curveCopies.forEach((id, i) => {
+        const x = ctx.byId.get(id)!;
+        if (x === c || x === inn || supplies(x)) return;
+        const v = x.q * planPull(ctx, plan, d, x);
+        if (v <= low) {
+          low = v;
+          at = i;
+        }
+      });
+      if (at < 0) break;
+      const out = ctx.byId.get(d.curveCopies[at]!)!;
+      const outWhy = d.why.get(out.id)!;
+      remove(ctx, d, out);
+      add(ctx, d, inn, curveWhy(inn.slot));
+      d.curveCopies.splice(at, 1, inn.id);
+      done.push({ out, outWhy, inn, at });
+    }
+  }
+  if (
+    done.length > 0 &&
+    supported(ctx, d, c, 0, true) &&
+    whyEarned(ctx, plan, d, c, why) &&
+    noWorse(before, honestPlan(ctx, plan, d), minimum) &&
+    fine.every((x) => have(d, x) === 0 || holds(x))
+  )
+    return true;
+  for (const x of done.reverse()) {
+    remove(ctx, d, x.inn);
+    add(ctx, d, x.out, x.outWhy);
+    d.curveCopies.splice(x.at, 1, x.out.id);
+  }
+  return false;
+}
+
 /**
  * The finished-deck check: the deck's supply, lands included, can differ
  * from the running one the picks saw, so every spell is checked once more.
+ * A theme card whose job the deck does not pay for is fed first (feedNeeds).
  * A copy the deck does not support (an unmet drawback, no credit earned) or
  * whose recorded reason it does not earn goes for the best card for its slot,
  * keeping the deck's size and land count, a few rounds at most, choosing the
@@ -2236,6 +2443,11 @@ function settle(ctx: GrowContext, plan: Plan, built: Built): Built | { lacks: st
         const why = d.why.get(c.id)!;
         const holds = supported(ctx, d, c, 0, true);
         if (holds && whyEarned(ctx, plan, d, c, why)) break;
+        // A theme card the pool pays for but the deck does not: feed its needs first.
+        if (plan.kind === 'theme' && minimum && feedNeeds(ctx, plan, d, c, why, minimum)) {
+          swapped = true;
+          continue;
+        }
         const roleCard = holds && ctx.roleIds.has(why);
         const before = honestPlan(ctx, plan, d);
         remove(ctx, d, c);
@@ -2295,18 +2507,15 @@ function finish(
     .filter((c) => have(d, c) > 0)
     .map((c) => ({ cand: c.cand, qty: have(d, c), why: d.why.get(c.id)! }));
   const landPlan = planLandCount(ctx.template, spellCopies(ctx, d), config.landRules.mdfc);
-  const report = spellReport(
-    plan.archetype,
-    chosen,
-    ctx.candidates,
-    lands,
-    mana,
-    colorPlan,
-    config,
-    index,
-    size,
-    commander,
+  const shape = shapeFor(ctx, plan);
+  // The targets the classic builder reports: the commander counts toward the roles its tags give it.
+  const quotas = creditCommander(
+    shape.quotas,
+    ctx.commander?.facts.roles ?? [],
+    config.builderWeights.commander.roleCredit,
   );
+  const curve = [0, 0, 0, 0, 0, 0, 0, 0];
+  for (const x of chosen) curve[x.cand.facts.bucket]! += x.qty;
 
   // Roles as the finished deck earns them, the commander left out as the deck views count it.
   const supply = deckSupply(
@@ -2323,14 +2532,14 @@ function finish(
   );
   const credits = creditsFor(supply, config);
   const roles: BuildExplanation['roles'] = {};
-  for (const [id, r] of Object.entries(report.roles)) {
+  for (const [id, q] of Object.entries(quotas)) {
     let have = 0;
     for (const x of chosen)
       if (x.cand.facts.roles.includes(id) && credits.earned(x.cand.facts.card, id)) have += x.qty;
-    roles[id] = { have, want: r.want };
+    roles[id] = { have, want: q.target };
   }
   const roleNotes: string[] = [];
-  for (const [id, q] of Object.entries(shapeFor(ctx, plan).quotas)) {
+  for (const [id, q] of Object.entries(shape.quotas)) {
     if ((roles[id]?.have ?? 0) >= q.min) continue;
     let inPool = 0;
     for (const c of ctx.cards)
@@ -2340,11 +2549,13 @@ function finish(
   }
 
   const notes = [...lead];
-  if (plan.kind === 'theme') {
-    const counts = FLOOR_KEYS.filter((k) => (plan.floor[k] ?? 0) > 0).map(
-      (k) =>
-        `${FLOOR_WORDS[k]} ${round2(floorValue(built.floors ?? cur(ctx, d).plan, k))} of ${plan.floor[k]}`,
-    );
+  // The theme as the finished deck earns it, against the floor alternative the deck was built to.
+  const theme =
+    plan.kind === 'theme'
+      ? { style: plan.style, floors: floorCounts(built.floors ?? cur(ctx, d).plan, plan.floor) }
+      : undefined;
+  if (theme) {
+    const counts = theme.floors.map((f) => `${FLOOR_WORDS[f.floor]} ${f.have} of ${f.need}`);
     notes.push(`${plan.archetype.label} minimums met: ${counts.join(', ')}.`);
   }
   if (built.relaxed.length) notes.push(`To fill every slot, relaxed ${joinWords(built.relaxed)}.`);
@@ -2377,7 +2588,7 @@ function finish(
     archetype: plan.style,
     builder: 'grow',
     ...(nearest ? { nearest } : {}),
-    curve: report.curve,
+    curve,
     roles,
     lands: {
       count: lands,
@@ -2386,9 +2597,9 @@ function finish(
       nonbasics: mana.nonbasics.reduce((n, p) => n + p.qty, 0),
       ...(ctx.colors.length > 1 ? { sources: mana.sources } : {}),
     },
-    synergies: report.synergies,
+    synergies: [],
     notes,
-    score: report.score,
+    ...(theme ? { theme } : {}),
   };
 
   // The deck carries the colors its spells use, main first, as the classic builder
@@ -2414,6 +2625,8 @@ function finish(
     dataVersion: index.dataVersion,
     explanation,
   };
+  // The key synergies are the rules' themes the finished deck earns, as its views count them.
+  explanation.synergies = themeSynergyLines(deck, index, config);
   explanation.pick = pickScore(ctx, plan, deck);
   return { deck, explanation };
 }
@@ -2545,3 +2758,6 @@ function withNote(
   };
   return { deck: { ...r.deck, explanation }, explanation };
 }
+
+// Theme tallies for the deck views (deck-themes.ts), under names that say what they count.
+export { addJob as addThemeJob, emptyTally as emptyThemeTally };

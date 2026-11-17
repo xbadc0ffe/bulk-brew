@@ -5,7 +5,15 @@
 
 import { deckThemes, landNote, spellSynergyLines, type DeckTheme } from './builder.ts';
 import { factsFor, listCandidates, type Candidate, type CardFacts } from './candidates.ts';
+import { themeCredit } from './card-needs.ts';
 import { templateFor, type BulkBrewConfig } from './config.ts';
+import {
+  cardThemeSides,
+  deckThemeFloors,
+  rulesCounted,
+  themeJobLabel,
+  themeSynergyLines,
+} from './deck-themes.ts';
 import {
   creditsFor,
   deckCredits,
@@ -23,6 +31,7 @@ import {
   type Color,
   type Deck,
   type DeckCard,
+  type DeckSize,
   type Pool,
   type PrintingHint,
   type Settings,
@@ -82,7 +91,10 @@ export interface Replacements {
 
 interface JobContext {
   roles: { id: string; label: string }[];
+  /** A classic deck's themes, counted by the old matchers. */
   themes: DeckTheme[];
+  /** A grow deck's theme, counted by the theme rules at the deck's size. */
+  rules?: { style: string; size: DeckSize };
 }
 
 function deckColorsOf(deck: Deck): Color[] {
@@ -99,7 +111,7 @@ function basicColorOf(card: CardRecord, config: BulkBrewConfig): Color | undefin
   return COLORS.find((c) => config.landRules.basics.names[c] === card.name);
 }
 
-/** The roles the deck counts (those its size asks for) and its themes. */
+/** The roles the deck counts (those its size asks for) and its themes, as its builder counts them. */
 function jobContext(deck: Deck, config: BulkBrewConfig): JobContext {
   const counted = deck.explanation
     ? new Set(
@@ -108,24 +120,36 @@ function jobContext(deck: Deck, config: BulkBrewConfig): JobContext {
           .map(([id]) => id),
       )
     : undefined;
-  return {
-    roles: config.roles.roles
-      .filter((r) => !counted || counted.has(r.id))
-      .map((r) => ({ id: r.id, label: r.label })),
-    themes: deckThemes(deck, config),
-  };
+  const roles = config.roles.roles
+    .filter((r) => !counted || counted.has(r.id))
+    .map((r) => ({ id: r.id, label: r.label }));
+  if (rulesCounted(deck))
+    return { roles, themes: [], rules: { style: deck.archetype, size: deck.size } };
+  return { roles, themes: deckThemes(deck, config) };
 }
 
 /**
  * Theme sides first, as the deck's Roles bars list them, then roles in config
  * order. Lands have none: the builders count roles and themes over spells only.
  * A job counts only when the card earns it in the deck it plays in, whose
- * credits are asked for only when the card has a job to check.
+ * credits are asked for only when the card has a job to check. A grow deck's
+ * theme job reads as its reason does ("Setup: makes a creature token").
  */
-function jobsOf(cand: Candidate, ctx: JobContext, credits: () => DeckCredits): DeckJob[] {
+function jobsOf(
+  cand: Candidate,
+  ctx: JobContext,
+  credits: () => DeckCredits,
+  config: BulkBrewConfig,
+): DeckJob[] {
   const out: DeckJob[] = [];
   if (!cand.facts.spell) return out;
   const card = cand.facts.card;
+  if (ctx.rules) {
+    const { style, size } = ctx.rules;
+    const side = cardThemeSides(config, cand.facts, size).find((s) => s.style === style);
+    if (side && credits().earned(card, themeCredit(style, side.as)))
+      out.push({ id: `${style}:${side.as}`, label: themeJobLabel(side.as, side.job) });
+  }
   for (const t of ctx.themes) {
     const name = t.tribal ? t.id.slice('tribal:'.length) : t.label;
     // The reader has no credit for a tribe; its cards count as the Roles bars count them.
@@ -181,7 +205,7 @@ export function replacementOptions(
   const styles = deckStyles(deck);
   const ctx = jobContext(deck, config);
   const now = deckCredits(deck, index, config);
-  const outJobs = jobsOf(asCandidate(outFacts), ctx, () => now);
+  const outJobs = jobsOf(asCandidate(outFacts), ctx, () => now, config);
   const outIds = new Set(outJobs.map((j) => j.id));
   const inDeck = new Map(deck.cards.map((c) => [c.cardId, c.qty]));
   const short = (qty: number) => WEIGHTS.short * (1 - qty / out.qty);
@@ -218,6 +242,7 @@ export function replacementOptions(
       ctx,
       () =>
         (after ??= creditsFor(swapSupply(now.supply, outCard, qty, f.card, qty, config), config)),
+      config,
     );
     const shared = jobs.filter((j) => outIds.has(j.id));
     const added = jobs.filter((j) => !outIds.has(j.id));
@@ -408,9 +433,15 @@ function followSwap(
     curve,
     roles,
     lands,
-    synergies: spellSynergyLines(spellList, config),
+    // Each builder's own key synergies: a grow deck's are the rules' themes the deck earns.
+    synergies: rulesCounted(deck)
+      ? themeSynergyLines(deck, index, config)
+      : spellSynergyLines(spellList, config),
     notes,
   };
+  // A grow deck's theme against the same floors, as the deck now earns it.
+  const theme = e.theme && deckThemeFloors(deck, index, config);
+  if (theme) next.theme = theme;
   delete next.score;
   return next;
 }

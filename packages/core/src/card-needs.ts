@@ -2754,6 +2754,41 @@ function resourceMet(
 }
 
 /**
+ * The supply resources a deck's cards add toward a ref, as resourceMet counts
+ * them: a spell supplying one of them helps meet it. Refs met by the deck's
+ * colors, its format, its lands, or devotion name none.
+ */
+export function refSupplies(ref: NeedRef): string[] {
+  const out = new Set<string>();
+  for (const resource of ref.anyOf) {
+    const r =
+      ref.head && SUPERTYPE_RES.test(resource) ? `${resource}&${ref.head}` : castOf(resource);
+    if (
+      r.startsWith('color:') ||
+      r.startsWith('devotion:') ||
+      ['land:basic', 'commander', 'format:multiplayer', 'type:land', 'domain'].includes(r)
+    )
+      continue;
+    if (r.startsWith('graveyard:')) {
+      const inner = r.slice(10);
+      out.add(r);
+      if (inner !== 'any' && inner !== 'land')
+        out.add(
+          inner === 'creature'
+            ? 'type:creature'
+            : inner.includes(':')
+              ? castOf(`cast:${inner}`)
+              : `type:${inner}`,
+        );
+    } else if (r === 'creatures') out.add('type:creature');
+    else if (r.startsWith('tribe:')) out.add(r).add('tribe:*');
+    else if (r.startsWith('mv:')) for (let v = Number(r.slice(3)); v <= 16; v++) out.add(`mv:${v}`);
+    else out.add(r);
+  }
+  return [...out];
+}
+
+/**
  * Whether one ref is met in this deck: the card supplies it itself, or the
  * deck's cards supply one of its resources to the threshold. Pass the card the
  * ref belongs to: it counts toward "you control N" but not toward "another".

@@ -50,7 +50,8 @@
     "review:requests": "node packages/pipeline/src/review/requests.ts",
     "review:packets": "node packages/pipeline/src/review/packets.ts",
     "review:collate": "node packages/pipeline/src/review/collate.ts",
-    "review:check": "node packages/pipeline/src/review/check.ts"
+    "review:check": "node packages/pipeline/src/review/check.ts",
+    "review:agree": "node packages/pipeline/src/review/agree.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

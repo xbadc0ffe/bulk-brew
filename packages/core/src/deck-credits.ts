@@ -103,10 +103,11 @@ export function swapSupply(
 }
 
 /**
- * Whether the card earns a theme side: `setup` for an enabler, `payoff` for a
- * payoff. The views still count theme cards with the old matchers until the
- * matcher cleanup, so a side the theme rules do not give the card at all is
- * left as the old matchers count it rather than dropped.
+ * Whether a classic deck's theme card earns its side: `setup` for an enabler,
+ * `payoff` for a payoff. A classic deck counts theme cards with the old
+ * matchers, so a side the theme rules do not give the card at all is left as
+ * the old matchers count it rather than dropped. A grow deck's jobs come from
+ * the rules and must be earned outright (see reasonEarned, deck-themes.ts).
  */
 export function earnedTheme(
   card: CardRecord,
@@ -151,10 +152,11 @@ const THEME_WHY = / (enabler|payoff)$/;
 
 /**
  * Whether a reason the builder recorded for a card still holds in its deck.
- * A reason that names a role ("Removal"), a theme side ("Tokens enabler",
- * "Tokens payoff"), or a grow builder job ("Setup: ...", "Payoff: ...")
- * holds only when the card earns that credit. Any other reason (the curve,
- * filler, lands, a swap, a tribe) always holds.
+ * A reason that names a role ("Removal"), a classic theme side ("Tokens
+ * enabler", "Tokens payoff"), or a grow builder job ("Setup: ...",
+ * "Payoff: ...") holds only when the card earns that credit; a grow job must
+ * be the side the theme rules give the card, as the builder counted it. Any
+ * other reason (the curve, filler, lands, a swap, a tribe) always holds.
  */
 export function reasonEarned(
   why: string,
@@ -168,8 +170,7 @@ export function reasonEarned(
   const job = SIDE_WHY.exec(why);
   if (job) {
     const side = job[1] === 'Setup' ? 'setup' : 'payoff';
-    // Merged packets record "a+b"; the job belongs to one of them.
-    return deck.archetype.split('+').some((s) => earnedTheme(card, s, side, credits));
+    return credits.earned(card, themeCredit(deck.archetype, side));
   }
   const theme = THEME_WHY.exec(why);
   if (theme) {

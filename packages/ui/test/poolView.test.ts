@@ -123,12 +123,13 @@ describe('tags in a deck', () => {
     };
   };
 
-  it('shows every credit outside a deck', () => {
+  it('shows every credit outside a deck, theme jobs as the theme rules give them', () => {
     expect(tags().general).toEqual([
       'card advantage',
       'evasive threat',
-      'evasion',
       '+1/+1 counters payoff',
+      'voltron payoff',
+      'evasion setup',
     ]);
     expect(tags().major).toContain('Draw');
   });

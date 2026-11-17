@@ -73,15 +73,21 @@ describe('archetypeViability with the theme rules', () => {
   const lacks = 'few repeatable ways to fill the graveyard (1 of 2)';
   const ruled = (viable: boolean, margin: number) =>
     // The old fields say viable, so only the rules can make it short or out.
-    report({ viable: true, rules: { viable, margin, lacks: viable ? '' : lacks } });
+    report({ viable: true, rules: { viable, margin, lacks: viable ? '' : lacks, floors: [] } });
 
   it('reads the rules where the scan carries them', () => {
     expect(archetypeViability(ruled(true, 1.4), possible, CONFIG)).toBe('viable');
     expect(archetypeViability(ruled(false, near), possible, CONFIG)).toBe('short');
     expect(archetypeViability(ruled(false, near - 0.01), possible, CONFIG)).toBe('none');
-    expect(archetypeViability(ruled(true, 1.4), { possible: false } as ScanReport, CONFIG)).toBe(
-      'none',
-    );
+  });
+
+  it('reads one field: the scan folds a size it cannot build into the rules', () => {
+    const thin = scanPool(thinPool(), index, CONFIG, SETTINGS, 60, ['W']);
+    expect(thin.possible).toBe(false);
+    for (const r of thin.archetypes) {
+      expect(r.rules).toMatchObject({ viable: false, margin: 0 });
+      expect(archetypeViability(r, thin, CONFIG)).toBe('none');
+    }
   });
 
   it('says what a short style lacks in a sentence', () => {
@@ -97,7 +103,12 @@ describe('styleChoicesFrom', () => {
   const near = CONFIG.builderWeights.grow.nearMargin;
   const scan = (colors: string, archetypes: ArchetypeReport[]) =>
     [colors, { possible: true, colors: [...colors], archetypes } as unknown as ScanReport] as const;
-  const rules = (margin: number, lacks = '') => ({ viable: margin >= 1, margin, lacks });
+  const rules = (margin: number, lacks = '') => ({
+    viable: margin >= 1,
+    margin,
+    lacks,
+    floors: [],
+  });
   const at = (archetype: string, over: Partial<ArchetypeReport>) =>
     report({ archetype, label: archetype, ...over });
 
@@ -152,7 +163,7 @@ describe('primaryLacks', () => {
         {
           possible,
           colors: [...colors],
-          archetypes: [report({ rules: { viable: false, margin: 0.2, lacks } })],
+          archetypes: [report({ rules: { viable: false, margin: 0.2, lacks, floors: [] } })],
         } as unknown as ScanReport,
       ] as const;
     const scans = new Map([
@@ -191,7 +202,8 @@ describe('analysisRows', () => {
     expect(states).toEqual([...states].sort((a, b) => b - a));
     const tokens = rows.find((r) => r.archetype === 'tokens')!;
     expect(tokens.cells[60].state).toBe('viable');
-    expect(tokens.cells[60].detail).toMatch(/\d+ enablers · \d+ payoffs/);
+    // The pool's counts as the builder counts them, against the rules' floors.
+    expect(tokens.cells[60].detail).toMatch(/^[\d.]+ setup cards · .*[\d.]+ payoff cards$/);
   });
 
   it('reports which sizes a color can build', () => {

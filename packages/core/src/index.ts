@@ -30,4 +30,6 @@ export * from './plan.ts';
 export * from './theme-rules.ts';
 export * from './card-needs.ts';
 export * from './deck-credits.ts';
+export * from './deck-themes.ts';
 export * from './replace.ts';
+export * from './agreement.ts';
