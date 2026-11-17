@@ -43,7 +43,7 @@ New, 2026-11-16:
 - The classic builder should not stay in the project where the new builder can do the job. Each phase below moves a path over; step 7 removes what is left unused.
 - In a one-color deck, a nonbasic land must be better than the basic it replaces.
 - A basic land is a valid replacement for a nonbasic land.
-- A card gets credit for a job only in a deck that supplies what that job depends on. This applies to every card in the pack and every kind of dependency, not only the cards and the four kinds (tribe, lifegain, counters, artifacts) that came up in the review. If the tags cannot tell us, we read the cards and tag them ourselves.
+- A card gets credit for a job only in a deck that supplies what that job depends on. This applies to every card in the pack and every kind of dependency, not only the cards and the four kinds (tribe, lifegain, counters, artifacts) that came up in the review. The tags cannot tell us, so an automated script reads each card's rules text, which is strict and templated. Agents do not tag cards.
 - Learned plan data (default chosen for this unattended run): retire it for every path the grow builder serves. Do not relearn it. Keep the files while any classic path still reads them.
 
 ## Approvals
@@ -51,9 +51,9 @@ New, 2026-11-16:
 These cover the "stop and ask" items in `CLAUDE.md` for this work.
 
 - `packages/core`, `config/`, `packages/ui`, and both apps may change.
-- Config format additions, each included in the config version and documented in `config/README.md`: new keys in `config/land-rules.json` for step 1; card needs for step 2 (a new file `config/card-needs.json`, and per-card needs data built by the pipeline beside the learned files, such as `config/learned/needs.json`); new Evasion payoff jobs and floors in `theme-rules.json`; picker constants in `config/builder-weights.json`; tribes and 20-card floors in `theme-rules.json` for step 5. Removing config that nothing reads any more is approved in step 7 only.
+- Config format additions, each included in the config version and documented in `config/README.md`: new keys in `config/land-rules.json` for step 1; card needs for step 2 (a new file `config/card-needs.json`; if the script is costly on a device, its output may be computed by the pipeline beside the learned files); new Evasion payoff jobs and floors in `theme-rules.json`; picker constants in `config/builder-weights.json`; tribes and 20-card floors in `theme-rules.json` for step 5. Removing config that nothing reads any more is approved in step 7 only.
 - Multi-agent orchestration: agents for implementation and review, the Workflow tool for judging fan-out, worktrees under `.claude/worktrees` for agents that write code in parallel (junction the data folders in, detach them before removal).
-- Judging budget: about 15 million tokens each for step 3 and step 5, one main round and one re-check at most per step. Step 2 has its own budget of about 10 million tokens for reading cards (the audit and any agent tagging). No panel for the other steps. If a usage limit pauses a workflow, resume it; do not start it again.
+- Judging budget: about 15 million tokens each for step 3 and step 5, one main round and one re-check at most per step. Step 2 may spend up to about 2 million tokens on writing and spot-checking test expectations; it has no agent tagging. No panel for the other steps. If a usage limit pauses a workflow, resume it; do not start it again.
 - No new dependencies. No data pack schema change. Never touch `LICENSE`, `ATTRIBUTION.md`, `gh release`, or the data refresh workflow.
 - Commits with the global git email, never overridden; on a GH007 push error, stop and tell the owner.
 
@@ -92,54 +92,60 @@ The owner's own lists in `test-bulk/` stay local. The session may build from the
 
 ## Step 2: card needs across the whole pack, and real Evasion payoffs
 
-**Goal.** Every card in the pack is read for what its text depends on, and every credit a builder gives (a role, a theme job, strength, a land's utility) holds only in a deck that supplies what that credit depends on. This is a general rule for all cards, all styles, all sizes, and both spells and lands. The owner's black deck showed the problem; it is not the specification. Do not write rules for the cards named in this brief and stop there.
+**Goal.** A script reads every card's rules text and works out what each of its abilities depends on. Every credit a builder gives (a role, a theme job, strength, a land's utility) then holds only in a deck that supplies what that credit depends on. This is a general rule for all cards, all styles, all sizes, and both spells and lands. The owner's black deck showed the problem; it is not the specification. Do not write rules for the cards named in this brief and stop there.
+
+**Owner's direction, 2026-11-16.** Magic's rules text is strict and templated: the same words always mean the same thing. What a card needs can be read from its text by a program. So this step is an automated script, deterministic, run by the pipeline or the core over the whole pack and over every new set with no one in the loop. Agents do not tag cards. There is no per-card data written by a reader.
 
 **What the tags can and cannot do** (measured on pack 2026-11-03, 32,903 nonland cards):
 
 - About 15,000 cards carry a tag that hints at a dependency: 2,779 `typal-*`, 6,887 `synergy-*`, 8,682 `*-matter(s)`. Coverage of the hint is decent: of 124 cards whose text names Elf, the untagged ones are almost all Elf token makers or anti-Elf removal.
-- The tags do not say what a builder needs to know. `typal` is on Lo and Li (useless without Nobles or Lessons), on Shilgengar (a 6/6 flyer with an Angel bonus), and on Caustic Exhale (one mana cheaper with a Dragon). `synergy-artifact` is on cards that need artifacts, cards that are artifacts' payoffs, and cards that can merely tap or target one. `drawback` covers 271 of 368 "unless you" cards. No tag says which part of the card is conditional, whether the condition is required or a bonus, or what happens when it is unmet.
-- So tags are a way to find candidates, not the answer. The answer has to come from reading the text, by rules, by agents, or both.
+- The tags do not say what a builder needs to know. `typal` is on Lo and Li (useless without Nobles or Lessons), on Shilgengar (a 6/6 flyer with an Angel bonus), and on Caustic Exhale (one mana cheaper with a Dragon). `synergy-artifact` is on cards that need artifacts, cards that are artifacts' payoffs, and cards that can merely tap or target one. No tag says which ability is conditional, whether the condition is required or a bonus, or what happens when it is unmet.
+- So the tags are a cross-check, and the text is the source.
 
-**The model.** For each card, each thing it does is one of:
+**The model.** Rules text is a list of abilities, one per line, and each ability has a fixed shape: keywords; or a trigger, an optional condition, and an effect; or a cost and an effect; or a static statement. The script reads that shape. For each ability it finds what the ability refers to and how:
 
-- **Unconditional**: works in any deck (a body with flying, a removal spell).
-- **Needs a resource**: works only with enough of something in the deck or in play. The resource vocabulary is general: a creature type; a card type or subtype (artifact, enchantment, Equipment, Aura, Food, Lesson, legendary); lifegain; life loss; counters of a kind on your permanents; tokens; creatures dying or being sacrificed; cards in your graveyard, by type; instants and sorceries cast; discard; lands of a type; devotion to a color; a number of creatures; and whatever else the audit finds. Where a theme already defines the supply (Lifegain setup, Graveyard setup, Artifacts setup), the need points at that definition, so "a lifegain source" has one meaning in the project.
-- **A bonus on a resource**: the card is fine alone and better with it. Costs it nothing when unmet.
-- **A cost or drawback without a resource**: the card hurts its owner when unmet ("sacrifice a permanent unless you gained life this turn").
+- **Where a resource can appear**: in a condition ("if", "as long as", "unless"), in a trigger ("whenever you gain life", "whenever a creature you control with a counter on it"), in a cost ("sacrifice an artifact", "exile a creature card from your graveyard"), in what the effect selects ("Noble creatures you control", "search your library for a Lesson or Noble card", "target Elf"), in a count ("for each artifact you control", devotion, affinity), or in a replacement ("if you sacrificed an Angel this way, ... instead").
+- **The resource vocabulary is general**: a creature type; a card type or subtype (artifact, enchantment, Equipment, Aura, Food, Lesson, legendary); lifegain; life loss; counters of a kind on your permanents; tokens; creatures dying or being sacrificed; cards in your graveyard, by type; instants and sorceries cast; discard; lands of a type; devotion to a color; a number of creatures; and every other one the pack's text turns up. Where a theme already defines the supply (Lifegain setup, Graveyard setup, Artifacts setup), the need points at that definition, so "a lifegain source" has one meaning in the project.
+- **The kind follows from the template, not from judgment**:
+  - **Need**: the ability does nothing without the resource (its trigger, cost, selection, or condition cannot be met).
+  - **Bonus**: the ability works without it and is better with it. The templates are fixed: "instead", "if ..., also", "costs {N} less", "or pay", "as long as ... gets +N/+N" on a card that has other text, a count that only scales an effect above a base.
+  - **Drawback**: an "unless" or "if you didn't" whose effect harms the card's owner (sacrifice, life loss, discard, damage to you, "can't").
+  - **Unconditional**: everything else, always including the card's body and its keyword abilities.
+- **A card can supply itself.** A card that makes its own Food, puts its own counters on, or is itself of the type it asks for meets its own need to that extent. The script must check this before calling a need unmet.
 
-Each need records the resource, how much supply is enough at each deck size, and which credits depend on it: the roles (`config/roles.json`), the theme setup and payoff jobs, the finisher and other derived matchers, and the strength effects in `config/card-strength.json`. A conditional land ("enters tapped unless you control a Forest or a Plains", step 1) is the same model; fold step 1's handling into it rather than keeping two mechanisms.
+Each credit the config gives a card is tied to the ability that earns it. Theme jobs already match text, so the job's clause is known. Roles and strength effects come from tags today, so each role and effect gets a pattern for the clause that earns it (the draw clause for Card advantage, the destroy or exile clause for Removal, and so on); the credit is conditional exactly when that clause is. A conditional land ("enters tapped unless you control a Forest or a Plains", step 1) is the same model; fold step 1's handling into it rather than keeping two mechanisms.
 
 **Build, in this order.**
 
-1. **Audit first.** Before writing the feature, measure the problem across the pack. Take a stratified sample of at least 600 cards weighted toward what bulk holds (commons and uncommons, every color, the dependency-tagged and the untagged) and have reader agents classify each credit the current config gives the card as unconditional, needs a resource, bonus, or drawback, reading only the card's pack text. Two readers per card on a subset to measure agreement. Report: how many cards and how many role and theme credits are conditional, by resource and by role, and the largest families. This decides the resource list and the priorities, and it is the test set for the next part. Save it under `data/review/needs/` (not committed if large) with a summary in `docs/review/`.
-2. **Rules.** Write the needs as config rules over tags and oracle text, in the style of `theme-rules.json` (a new file `config/card-needs.json` is approved), with a loader and validation in the core. A rule names the clause pattern, the resource, and the kind (need, bonus, drawback). Score the rules against the audit: precision and recall per resource and overall. Hold part of the audit sample back and never tune on it.
-3. **Agent tagging where rules fall short.** If the rules agree with the readers on fewer than about 90% of conditional credits on the held-back sample, or a resource family resists patterns, read the candidates for that family with agents (the roughly 15,000 dependency-tagged cards at most; only cards in commons and uncommons first if the budget is tight) and ship the result as per-card data built by the pipeline beside the learned files (for example `config/learned/needs.json`, keyed by `oracle_id`, with the reader's kind and resource and no card text). The rules stay as the fallback for cards the data does not cover, such as new cards from the weekly refresh. Budget: up to about 10 million tokens for the audit and tagging together. Record in `docs/todo.md` that the per-card data needs a rerun for new sets, and add an `npm run` script for the deterministic part.
+1. **The reader.** A deterministic module that splits a card's text into abilities and each ability into its parts, strips reminder text, handles both faces of two-faced cards, Class levels, Saga chapters, modal lists, and the card naming itself. Put the vocabulary and the templates in config (a new file `config/card-needs.json` is approved, with a loader and validation in the core and a place in the config version); keep the parsing logic in code. If it runs in the core it stays pure (no Node, no network); if it is costly, the pipeline may compute per-card needs when it builds the data beside the learned files, from the same script, so new sets are covered by the weekly refresh with no manual step. Do not change the pack schema.
+2. **A coverage report over the whole pack**, as an `npm run` script: how many abilities parsed cleanly, how many were left unparsed and why, how many cards and how many role and theme credits came out as need, bonus, drawback, and unconditional, by resource and by role. Unparsed abilities are the work list: sort them by how many cards share the shape and by rarity (bulk is mostly commons and uncommons), and extend the templates until what is left is a short list of one-off cards. Where a shape is truly unparsed, the safe default is that its credit is conditional and unmet unless the deck clearly supplies the resource it names; the few stubborn cards go in `config/tag-overlay.json` by hand.
+3. **A check that the script is right.** Tests are pack cards with the expected result written down from their text, across every color, every resource, and every kind, including the confusing pairs (a need and a bonus that name the same tribe). A coordinator or a review agent may read a few hundred cards to write these expectations and to spot-check the report; that is test writing, a one-time job under 2 million tokens, and nothing it produces ships as data. Cross-check against the tags as well: a card tagged `lifegain-matters` whose text the script calls unconditional, or the reverse, is a case to look at.
 4. **Apply everywhere credit is given.** In the grow builder, a gate beside the payoff gate (`gateOpen`, `fed`): a card cannot fill a role slot or a theme slot on a credit whose need the deck does not meet, and gets no strength from it; a drawback card with an unmet need is excluded. Supply is counted from the deck being built, so check the finished deck once more and swap out anything left unsupported. Apply the same rule to the scan's counts, the picker's score (step 3), land utility (step 1), the commander's own needs, and the role and reason labels, so the app never says "Card advantage" for a card that cannot draw in this deck. Where the classic builder still runs, apply it there only if it is a small change; otherwise it leaves with the classic paths.
-5. **Measure the effect.** Count, over the eval pools and the development pools, how many built decks carry a card with an unmet need before and after (the eval should gain this as a metric, with the dead-card count), and report eval deltas. The number should fall to near zero without the decks losing their roles.
+5. **Measure the effect.** Count, over the eval pools and the development pools, how many built decks carry a card with an unmet need before and after (the eval gains this as a metric), and report eval deltas. The number should fall to near zero without the decks losing their roles.
 
-**Examples to keep as tests** (a few among many; the audit supplies the rest). In a mono-black 60 with no Elves, Dragons, Nobles, Lessons, counters plan, or lifegain plan:
+**Examples to keep as tests** (a few among many). In a mono-black 60 with no Elves, Dragons, Nobles, Lessons, counters plan, or lifegain plan:
 
-| Card                       | Expected                                                         |
-| -------------------------- | ---------------------------------------------------------------- |
-| Lo and Li, Twin Tutors     | no role, no theme job; not picked                                |
-| Yathan Tombguard           | an evasive attacker, not Card advantage                          |
-| Dawnhand Eulogist          | a 3/3 menace body only; no credit for its conditional text       |
-| Tragedy Feaster            | not picked without enough lifegain supply                        |
-| Starlit Soothsayer         | stays an evasive attacker (its rider also triggers on life loss) |
-| Shilgengar, Sire of Famine | stays an evasive threat (the Angel text is a bonus)              |
-| Caustic Exhale             | stays removal, costed as two mana without a Dragon               |
-| Great Arashin City         | always tapped without a Forest or Plains                         |
+| Card                       | Expected                                                           |
+| -------------------------- | ------------------------------------------------------------------ |
+| Lo and Li, Twin Tutors     | every ability needs Nobles or Lessons; no role, not picked         |
+| Yathan Tombguard           | an evasive attacker; its draw needs counters, so no Card advantage |
+| Dawnhand Eulogist          | a 3/3 menace body; its drain needs an Elf in the graveyard         |
+| Tragedy Feaster            | a drawback without lifegain; not picked without enough supply      |
+| Starlit Soothsayer         | an evasive attacker; its rider is met by life loss as well         |
+| Shilgengar, Sire of Famine | an evasive threat; the Angel text is a bonus ("instead")           |
+| Caustic Exhale             | removal; the Dragon is a bonus ("or pay"), costed as two mana      |
+| Great Arashin City         | always tapped without a Forest or Plains                           |
 
-Add at least as many examples from other colors and other resources, drawn from the audit, and the reverse cases: in a deck that does supply the need (the Elf pool `eval/pools/elf-tribe.txt`, a lifegain build, an artifact build), the same kind of card keeps its credit. Do not invent card facts; every example reads the card's text and tags from the pack.
+Add many more from other colors and other resources, and the reverse cases: in a deck that does supply the need (the Elf pool `eval/pools/elf-tribe.txt`, a lifegain build, an artifact build), the same card keeps its credit. Do not invent card facts; every expectation is written from the card's text in the pack.
 
 **Build: Evasion payoffs.**
 
 - Add payoff jobs to `flyers` in `theme-rules.json`: a team trigger ("whenever one or more creatures you control deal combat damage to a player", weight 2), and a self trigger on an evasive creature ("whenever this creature deals combat damage to a player", weight 1). A card that is both setup and payoff counts once, as the rules already require. The old matchers' "any anthem tag is an Evasion payoff" goes away with them in step 4.
-- While here, check the other styles' payoff lists the same way against the audit: a payoff must be paid by the style's own resource. Fix what the audit shows; do not stop at Evasion.
+- Check the other styles' payoff lists the same way, using the reader: a payoff must be paid by the style's own resource. Fix what the report shows; do not stop at Evasion.
 - Measure before adding a payoff floor: run `npm run theme:bulk` and check how many pools keep Evasion viable. Add a modest floor only if Evasion stays buildable about as often as today; otherwise leave the floor out and let the payoffs be pulled in above the floors. Record the choice and the counts.
 - Rerun `npm run theme:bulk` after the rules edit and commit the new `config/theme-bulk.json`.
 
-**Ship.** Check and eval green; the rules' precision and recall on the held-back audit sample reported; unmet-need cards per deck reported before and after; the examples passing as tests. No deck panel here; step 3's panel judges the decks.
+**Ship.** Check and eval green; the coverage report's numbers recorded (share of abilities parsed, the unparsed list, counts by kind); unmet-need cards per deck reported before and after; the examples passing as tests. No deck panel here; step 3's panel judges the decks.
 
 ## Step 3: phase 2, one plan picker
 
