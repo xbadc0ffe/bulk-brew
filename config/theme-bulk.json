@@ -1,5 +1,5 @@
 {
-  "version": "48u69x",
+  "version": "di9pv",
   "dataVersion": "2026-11-03",
   "rulesVersion": "5",
   "styles": {
@@ -437,8 +437,8 @@
         "setupUnits": 0.052153,
         "setupWeight": 0.087629,
         "repeatable": 0.054275,
-        "payoffUnits": 0.001819,
-        "payoffWeight": 0.002122
+        "payoffUnits": 0.001516,
+        "payoffWeight": 0.001516
       },
       "G": {
         "setupUnits": 0.020846,

@@ -1720,8 +1720,8 @@
           "job": "team combat damage trigger",
           "weight": 2,
           "notTypes": ["instant", "sorcery"],
-          "text": "^([^\\n\\u2014]*\\u2014 )?(when [^,\\n]* enters( the battlefield)? and )?(when|whenever) (a|one or more) (other )?(nontoken )?creatures? you control( with (flying|shadow))? deals? (combat )?damage to (a player|an opponent|one or more players|one or more of your opponents|one of your opponents|defending player)\\b(?![^,.\\n]* this turn)",
-          "notText": "if this card is in your graveyard",
+          "text": "^([^\\n\\u2014]*\\u2014 )?(when [^,\\n]* enters( the battlefield)? and )?(when|whenever) ((a|one or more) (other )?(nontoken )?creatures? you control( with (flying|shadow))? deals? (combat )?damage to (a player|an opponent|one or more players|one or more of your opponents|one of your opponents|defending player)\\b|a creature deals combat damage to one of your opponents\\b)(?![^,.\\n]* this turn)",
+          "notText": "if this card is in your graveyard|put a time counter on this creature|if that creature entered this turn|becomes prepared|had to attack",
           "priority": 1
         },
         {
