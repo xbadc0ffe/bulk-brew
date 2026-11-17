@@ -80,6 +80,11 @@ export interface PlanEntry {
    * requests (pool and request, seed aside) that entry drew, then top up at random.
    */
   sameAs?: number;
+  /**
+   * Spread the entry's own draw over pools and colors instead of drawing
+   * uniformly (spreadPicks). A `sameAs` entry spreads only its top-up.
+   */
+  spread?: boolean;
   count: number;
 }
 
@@ -715,6 +720,51 @@ export function resolvePlan(plan: readonly PlanEntry[]): PlanEntry[] {
   return out;
 }
 
+/**
+ * Up to `n` decks from `order` (a seeded shuffle), spread over pools and colors.
+ * Each pick is the first deck left in `order` whose pool has the fewest picks so
+ * far, and among those, whose most-picked color letter has the fewest (a request
+ * with no colors counts as C). Only the pool and the requested colors count,
+ * never what the version built, so every version is judged on requests chosen
+ * the same way. Decks in `already` count as picked.
+ */
+export function spreadPicks(
+  order: readonly StoredDeck[],
+  n: number,
+  already: readonly StoredDeck[] = [],
+): StoredDeck[] {
+  const poolUses = new Map<string, number>();
+  const colorUses = new Map<string, number>();
+  const poolOf = (s: StoredDeck) => `${s.deck.pool.id}|${s.deck.pool.hash}`;
+  const lettersOf = (s: StoredDeck): string[] =>
+    s.deck.request.colors.length ? s.deck.request.colors : ['C'];
+  const pick = (s: StoredDeck) => {
+    poolUses.set(poolOf(s), (poolUses.get(poolOf(s)) ?? 0) + 1);
+    for (const c of lettersOf(s)) colorUses.set(c, (colorUses.get(c) ?? 0) + 1);
+  };
+  already.forEach(pick);
+  const left = [...order];
+  const out: StoredDeck[] = [];
+  while (out.length < n && left.length) {
+    let best = 0;
+    let bestPool = Infinity;
+    let bestColor = Infinity;
+    left.forEach((s, j) => {
+      const p = poolUses.get(poolOf(s)) ?? 0;
+      const c = Math.max(...lettersOf(s).map((l) => colorUses.get(l) ?? 0));
+      if (p < bestPool || (p === bestPool && c < bestColor)) {
+        best = j;
+        bestPool = p;
+        bestColor = c;
+      }
+    });
+    const s = left.splice(best, 1)[0]!;
+    out.push(s);
+    pick(s);
+  }
+  return out;
+}
+
 /** Group decks by a key, keys sorted, each group in the given order. */
 function groupBy(decks: readonly StoredDeck[], keyOf: (s: StoredDeck) => string) {
   const groups = new Map<string, StoredDeck[]>();
@@ -810,12 +860,12 @@ export function selectDecks(
       }
       const matched = drawn.length;
       const taking = new Set(drawn.map((s) => s.file));
-      drawn.push(
-        ...shuffled(
-          pool.filter((s) => !taking.has(s.file)),
-          `review:packets:${opts.seed}:plan:${i}`,
-        ).slice(0, e.count - drawn.length),
+      const order = shuffled(
+        pool.filter((s) => !taking.has(s.file)),
+        `review:packets:${opts.seed}:plan:${i}`,
       );
+      const want = e.count - drawn.length;
+      drawn.push(...(e.spread ? spreadPicks(order, want, drawn) : order.slice(0, want)));
       if (paired) notes.push(`${paired}, ${drawn.length - matched} more drawn at random`);
       drawn.forEach(take);
       drawnBy.push(drawn);
@@ -1102,6 +1152,8 @@ function readPlan(file: string): PlanEntry[] {
       throw new Error(`${file}: entry ${i + 1}: "poolPrefix" must be a string`);
     if (x.substituted !== undefined && typeof x.substituted !== 'boolean')
       throw new Error(`${file}: entry ${i + 1}: "substituted" must be true or false`);
+    if (x.spread !== undefined && typeof x.spread !== 'boolean')
+      throw new Error(`${file}: entry ${i + 1}: "spread" must be true or false`);
     if (x.sameAs !== undefined && !(Number.isInteger(x.sameAs) && x.sameAs >= 1 && x.sameAs <= i))
       throw new Error(`${file}: entry ${i + 1}: "sameAs" must name an earlier entry (1 to ${i})`);
     return x as PlanEntry;

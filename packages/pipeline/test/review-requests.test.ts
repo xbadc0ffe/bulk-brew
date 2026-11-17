@@ -15,6 +15,7 @@ import {
   seedsFor,
   setOf,
   styleRequests,
+  stylesFor,
   themeStyleOf,
   twoColorSets,
   type CommanderPick,
@@ -150,6 +151,17 @@ describe('styleRequests', () => {
     expect(styleRequests(scan, 'tokens').filter((s) => s.style === 'tokens')).toEqual([
       { style: 'tokens', reason: 'viable' },
     ]);
+  });
+
+  it('asks best fit alone with --bestfit, and nothing where the scan cannot build the size', () => {
+    expect(stylesFor({ ...scan, possible: true }, true, 'mill', ['tribal:Elf'])).toEqual([
+      { reason: 'bestfit' },
+    ]);
+    expect(stylesFor({ ...scan, possible: false }, true, 'mill')).toEqual([]);
+    // Without the flag, the scan's word on the size changes nothing.
+    expect(stylesFor({ ...scan, possible: false }, false, 'mill')).toEqual(
+      styleRequests(scan, 'mill'),
+    );
   });
 });
 

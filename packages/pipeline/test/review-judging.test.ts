@@ -30,6 +30,7 @@ import {
   resolvePlan,
   selectDecks,
   shuffled,
+  spreadPicks,
   styleTexts,
   type BatchKey,
   type PairKey,
@@ -724,6 +725,76 @@ describe('plan sampling', () => {
       poolPrefix: 'h1-',
       styles: ['bestfit'],
       count: 1,
+    });
+  });
+
+  describe('spread draws', () => {
+    const req = (version: string, poolId: string, colors: Color[], archetype = 'midrange') =>
+      stored(`decks/${version}/${poolId}-${colors.join('')}-60-bestfit-s1.json`, {
+        version,
+        poolId,
+        source: `data/review/pools/plain/${poolId}.json`,
+        colors,
+        archetype,
+      });
+    // Three pools: four requests on p1, two each on p2 and p3.
+    const grid = (version: string, archetype?: string) => [
+      req(version, 'h2-p1', ['W'], archetype),
+      req(version, 'h2-p1', ['U'], archetype),
+      req(version, 'h2-p1', ['W', 'U'], archetype),
+      req(version, 'h2-p1', ['G'], archetype),
+      req(version, 'h2-p2', ['W'], archetype),
+      req(version, 'h2-p2', ['B'], archetype),
+      req(version, 'h2-p3', ['U'], archetype),
+      req(version, 'h2-p3', ['W', 'B'], archetype),
+    ];
+    const key = (s: StoredDeck) => `${s.deck.pool.id} ${s.deck.request.colors.join('')}`;
+
+    it('takes every pool once before any twice, then the least-picked colors', () => {
+      const decks = grid('head');
+      const picks = spreadPicks(decks, 5);
+      expect(picks.slice(0, 3).map((s) => s.deck.pool.id)).toEqual(['h2-p1', 'h2-p2', 'h2-p3']);
+      // In list order: p1 W; p2's B beats its W (W picked); p3's U beats WB, a pair counting
+      // by its more-picked letter; then p1's G, the one letter not yet picked; then p2 again.
+      expect(picks.map(key)).toEqual(['h2-p1 W', 'h2-p2 B', 'h2-p3 U', 'h2-p1 G', 'h2-p2 W']);
+      // Picks already made count: with p1 W taken, p1 comes last in the first round.
+      expect(spreadPicks(decks.slice(1), 3, [decks[0]!]).map(key)).toEqual([
+        'h2-p2 B',
+        'h2-p3 U',
+        'h2-p1 G',
+      ]);
+    });
+
+    it('never looks at what a version built', () => {
+      const a = spreadPicks(shuffled(grid('head', 'aggro'), 's'), 6).map(key);
+      const b = spreadPicks(shuffled(grid('head', 'control'), 's'), 6).map(key);
+      expect(a).toEqual(b);
+    });
+
+    it('spreads a plan entry, and a sameAs entry takes its requests in pick order', () => {
+      const decks = [...grid('head'), ...grid('old'), ...grid('web')];
+      const r = selectDecks(decks, {
+        seed: 1,
+        anchors: 0,
+        plan: [
+          { version: 'head', poolPrefix: 'h2-', styles: ['bestfit'], spread: true, count: 4 },
+          { version: 'old', sameAs: 1, count: 4 },
+          { version: 'web', sameAs: 1, count: 2 },
+        ],
+      });
+      const of = (v: string) =>
+        r.selected
+          .filter((s) => s.deck.version === v)
+          .map(key)
+          .sort();
+      expect(new Set(of('head').map((k) => k.split(' ')[0]))).toEqual(
+        new Set(['h2-p1', 'h2-p2', 'h2-p3']),
+      );
+      expect(of('old')).toEqual(of('head'));
+      expect(of('web')).toHaveLength(2);
+      expect(of('web').every((k) => of('head').includes(k))).toBe(true);
+      // The first two picks are on two pools, so the 12-deck web entry spreads too.
+      expect(new Set(of('web').map((k) => k.split(' ')[0])).size).toBe(2);
     });
   });
 

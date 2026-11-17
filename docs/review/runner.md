@@ -9,6 +9,7 @@ Code: `packages/pipeline/src/review/`.
 - `algos/head.ts`: the current builder.
 - `algos/v26-0-30.ts`: the builder before the learned work.
 - `algos/v26-0-35.ts`: the builder at 26.0.35, before builder phase 1 (`docs/builder-phase1.md`).
+- `algos/shipped.ts` and `algos/shipped-web.ts`: the shipped builder at any commit, from a worktree (below); `algos/shipped-core.ts` loads it for both.
 - `build.ts`: the runner and its in-process API.
 
 ## The interface
@@ -87,7 +88,7 @@ npm run review:build -- --pool eval/pools/bulk-black.txt --colors B [flags]
 
 | Flag                 | Meaning                                                                                                                                                                                         |
 | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--version <id>`     | `head` (default), `v26.0.30`, `v26.0.35`, or a registered prototype                                                                                                                             |
+| `--version <id>`     | `head` (default), `head-web`, `v26.0.30`, `v26.0.35`, `shipped`, `shipped-web`, `random`, or a registered prototype                                                                             |
 | `--pool <file>`      | A decklist text file, or a JSON pool `{ "id": "...", "cards": [[oracleId, qty], ...] }`. Paths are relative to the repo root.                                                                   |
 | `--colors <letters>` | WUBRG letters in any order, such as `B` or `UB`. Required below 100 cards. At 100 cards, leave it out or give the commander's identity.                                                         |
 | `--size <n>`         | 60 (default), 40, 20, or 100                                                                                                                                                                    |
@@ -221,6 +222,42 @@ The `v26.0.35` version, "Builder at 26.0.35 (before phase 1)", runs the core and
 - Each deck's notes give the config version and the learned data version, as `head`'s do.
 
 Checked on 2026-11-11, while `head` was still the same code: `bulk-blue` U 60 Graveyard, and `elf-tribe` at 100 under Lathril as best fit and as `tribal:Elf`, each built with `--twice` (identical on rebuild) and gave the same name, archetype, colors, commander, cards, basics, and explanation as `head`. Without the card-level learned data, the Lathril best fit came out with other cards, so the attach matters. A second check after the adapter read the worktree's own learned file: `plain-15` at 100 as best fit under Red XIII (RG) and under Rith (WRG), `theme-aristocrats-01` W 40 Tokens, `plain-01` WU 60 Tokens, and `theme-graveyard-02` U 60 Graveyard gave the same deck and explanation as `head`; four of the five change when `head` builds them without card-level learned data.
+
+## The shipped worktree
+
+Two versions run the shipped builder from a git worktree at any commit, so a phase can judge its new builder against what the live site runs while it changes `packages/core` and `config/`. Builder phase 2 (`docs/builder-phase2.md`, step 3) uses them. Code: `algos/shipped-core.ts` (the loader both share), `algos/shipped.ts`, and `algos/shipped-web.ts`.
+
+- `shipped`, "Shipped builder, core best fit (worktree)": that commit's `buildDeck`, as `head` runs the current one. A requested style adds `requireStyle`.
+- `shipped-web`, "Shipped builder, first web Build page option (worktree)": that commit's `deckOptionSearch`, with the request `useDeckOptions` sends, and its first option recorded as `head-web` records the current one (the same code, `webFirstOption` in `algos/head-web.ts`, so the deck, `buildMs`, and `explanation.web` mean the same thing).
+
+The worktree:
+
+- Its path comes from `REVIEW_WORKTREE_SHIPPED`. The default is `../bulk-brew-shipped`, next to the repo (from a worktree under `.claude/worktrees/`, set the variable to the full path).
+- Create it from the repo root, or move it to another commit:
+
+  ```sh
+  git worktree add --detach ../bulk-brew-shipped <commit>
+  git -C ../bulk-brew-shipped checkout --detach <commit>
+  ```
+
+  It needs no `npm install`.
+
+- The adapter stops with a clear message when the worktree is missing, when it has uncommitted changes to tracked files (its decks would not be that commit's), when the pack's schema differs from that core's `DATA_SCHEMA_VERSION`, when its `config/learned/` is incomplete, or when its config fails that core's `validateConfig`.
+
+What it loads, once per run for both versions:
+
+- That commit's core, imported from a `file://` URL, so `tsc` and CI never need the worktree.
+- That commit's `config/`, read by that commit's own `loadConfigDir` (`packages/pipeline/src/check-config.ts` in the worktree), so whatever files that loader reads come along: `card-needs.json` at f88a87e, and any file a later commit adds. A resolve hook (`registerHooks` from `node:module`) points the worktree's `@bulk-brew/core` imports at its own core; imports from the repo resolve as before.
+- That commit's `config/settings.defaults.json`, and its `data/learned.json`, read by that core's `parseLearnedData` and attached to a `CardIndex` built by that core from the current pack, as its `attachLearned` does (the same as the 26.0.35 adapter, above).
+- The config and settings are frozen, as the runner freezes the current ones.
+
+Each deck's notes end with `Commit <full id>, config <config version>, learned data <version>.`
+
+The requests are written out in `shipped-core.ts` (`toShippedBuildRequest`, `toShippedOptionsRequest`), not taken from `head` and `head-web`, so a change to the current builder's requests cannot move the baseline. They are the ones the commit f88a87e (26.0.39 plus card needs) sends. When the worktree moves to a commit whose `BuildRequest` or `useDeckOptions` request differs, update them there.
+
+The runner skips a job whose deck file holds the same pool, request, and data pack; it does not look at the commit. After moving the worktree, rebuild with `--force` or into a fresh `--out` folder.
+
+Checked on 2026-11-17 with the worktree at f88a87e, the repo's `main` then, while `head` was the same code: `bulk-red` R 60, `bulk-green` G 40, and `elf-tribe` at 100 under Lathril, best fit, each built with `--twice` by all four versions (identical on rebuild). `shipped` gave the same name, archetype, colors, commander, cards in order with their reasons, basics, and explanation as `head` (Red Artifacts, Green Landfall, Lathril Elf tribe); `shipped-web` the same as `head-web`, `explanation.web` included apart from its timings (Red Midrange, Green Aggro, Lathril Tokens). The worktree has no `node_modules`, so its loader could only run through the hook. Build times matched too: about 210 and 75 ms for `bulk-red` (first build, then the repeat), 700 and 460 ms for Lathril with `shipped`, and 1,100 and 850 ms with `shipped-web`.
 
 ## Build times
 

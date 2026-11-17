@@ -19,6 +19,7 @@ The code is `packages/pipeline/src/review/requests.ts`; the pure parts are teste
 | `--sizes <list>`       | `60,100,40,20`                  | Deck sizes.                                                                          |
 | `--versions <ids>`     | `head,head-web,v26.0.30,random` | One pair of job files per version. Prototypes are added here by name.                |
 | `--bestfit-only <ids>` | `head-web,random`               | Versions that get only the best-fit requests. `none` turns it off.                   |
+| `--bestfit`            | off                             | Best fit only, for every version, where the scan can build the size (below).         |
 | `--two-color`          | on                              | The two-color slice on plain pools at 60 and 40 (rule 1). `--no-two-color` drops it. |
 | `--out <dir>`          | `data/review/jobs`              | Output folder.                                                                       |
 | `--force`              | off                             | Replace job files that exist with other jobs.                                        |
@@ -26,6 +27,8 @@ The code is `packages/pipeline/src/review/requests.ts`; the pure parts are teste
 The command needs no network and reads no clock. The data pack, the config, and the pools decide the requests, so a new pack or config can change them; `index.json` records the data and config versions.
 
 **One set of pools.** `--prefix h1` keeps only pools whose id starts with `h1-`: the plain and theme pools `review:pools -- --seed-prefix h1` made (`docs/review/pools.md`). Public and owner pools have no prefix, so they drop out. `--plain <n>` then counts that set's plain pools, a prefixed theme pool's enriched style is read from its id as usual (`h1-theme-graveyard-01` is Graveyard), and `index.json` records the prefix in its scope. Without `--prefix`, every pool on disk is used, prefixed sets included, so give `--prefix` or `--out` to keep a new round's job files apart from the first round's. A pool kind is refused as a prefix, as `review:pools` refuses it: `--prefix plain` would also pick `plain-01` to `plain-30`, and `--prefix public` every public pool. A run with no new flags matched every file in `data/review/jobs/` byte for byte on 2026-11-11.
+
+**Best fit only.** `--bestfit` asks every version for best fit alone (it overrides `--bestfit-only`), with the colors and commanders the rules below pick, and leaves out a color set whose scan says the size cannot be built in it (`possible` false on `scanPool`, or on the commander's `scanCandidates` at 100), since every version would decline it. The command prints how many it left out, and `index.json` records `"bestfit": true` in its scope. The styles each scan finds viable are not requested. Without the flag nothing changes.
 
 ## The rules
 
@@ -194,3 +197,18 @@ The generation itself takes about a minute (mostly listing commanders on the 3,0
 ```sh
 npm run review:requests -- --plain 2 --pools plain,public --out data/review/scratch/jobs-test
 ```
+
+## h2: best fit for builder phase 2, step 3
+
+The requests for step 3's panel (`docs/builder-phase2.md`): best fit only on the held-out `h2-` pools (`docs/review/pools.md`), for the new first option (`head`), the shipped core best fit and web first option (`shipped`, `shipped-web`, `docs/review/runner.md`), and random piles. Written on 2026-11-17 with data `2026-11-03.s2` and config `t5.c4.r2.a10.s8.l4.w12.k2.h5.n2.qdi9pv.p1wyug0e.g1hono2u`; not built yet.
+
+```sh
+npm run review:requests -- --prefix h2 --sizes 60,100,40 --versions head,shipped,shipped-web,random --bestfit --out data/review/jobs-h2
+```
+
+- At 60 and 40: every mono color on all 30 pools, and the two-color slice (all ten pairs) on the 12 plain pools. The scan could build every one of them, so none was left out.
+- At 100: the two commanders the rules pick on each of the 30 pools (rule 3, the theme pools' color swap included); every pool had two.
+- Per version: 270 requests at 60 (150 mono, 120 two-color), 60 at 100, and 270 at 40 (150 mono, 120 two-color), 600 in all. `random` gets seeds 1 and 2, so 1,200 piles.
+- Files in `data/review/jobs-h2/`: `main-<version>.json` (60 and 100) and `small-<version>.json` (40) for each of the four versions, and `index.json`.
+
+The commanders at 100 come from the current core's `commanderCandidates`, so a later config or builder change could pick others: keep these files as they are rather than writing them again during step 3.
