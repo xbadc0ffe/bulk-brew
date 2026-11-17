@@ -1,5 +1,5 @@
 {
-  "version": "4",
+  "version": "5",
   "basics": {
     "names": { "W": "Plains", "U": "Island", "B": "Swamp", "R": "Mountain", "G": "Forest" }
   },
@@ -37,6 +37,7 @@
   },
   "colors": {
     "castChance": { "main": 0.9, "secondary": 0.85, "splash": 0.75 },
+    "sourceCover": { "100": 0.65, "60": 0.8, "40": 0.55, "20": 1 },
     "splashShare": 0.35,
     "minCardsPerColor": { "100": 8, "60": 4, "40": 3, "20": 2 },
     "nonbasicMaxShare": { "2": 0.6, "3": 0.7, "4": 0.75, "5": 0.8 },

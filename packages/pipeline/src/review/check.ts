@@ -36,8 +36,10 @@ import {
   type CardIndex,
   type CardRecord,
   type Color,
+  type ColorPlan,
   type ColorRole,
   type DataPack,
+  type DeckSize,
   type Settings,
   type SpellCopies,
 } from '@bulk-brew/core';
@@ -63,7 +65,8 @@ export const THRESHOLDS = {
   landSlack: { 100: 2, 60: 2, 40: 1, 20: 1 },
   /**
    * sources-short: castability (the builder's formula) below this. Not the core's per-color
-   * colorWants gap, which is reported but flags most real two-color precons.
+   * colorWants gap, which is reported: fitted so the median real multi-color deck is short
+   * in no color (npm run sources:fit), it still flags 35% to 49% of them by size.
    */
   castabilityMin: 0.6,
   /** curve-top-heavy: more than this share of spells cost five or more... */
@@ -92,7 +95,7 @@ export const THRESHOLDS = {
 } as const;
 
 /** Bump when a check changes, so stored results are recomputed. */
-export const CHECKER_VERSION = '4';
+export const CHECKER_VERSION = '5';
 
 export const FLAGS = [
   'size',
@@ -161,7 +164,7 @@ export interface ManaResult {
   /** The core's colorPlan over the deck's own spells. */
   colorPlan: { main: Color; role: Partial<Record<Color, ColorRole>> } | null;
   sources: Partial<Record<Color, number>>;
-  /** The core's colorWants: sources each color needs for its most demanding spell. */
+  /** The core's colorWants: sources each color needs to cast its spells on curve (the `sourceCover` share of them). */
   wantedSources: Partial<Record<Color, number>>;
   /** Largest shortfall of sources below what a color wants; 0 when none is short. */
   sourceGap: number;
@@ -426,6 +429,62 @@ function explainedCastability(explanation: unknown): number | null {
 }
 
 /**
+ * A deck's colored sources as the core's chooseManaBase counts them (basics,
+ * then lands by landColors; in a multi-color deck a fetch land counts for a
+ * color only when a basic of it is there), the core's colorPlan and colorWants
+ * over `spells` (pass the commander among them), and the largest shortfall of
+ * a color below its want, 0 when none is short. `cover` overrides the land
+ * rules' sourceCover; `npm run sources:fit` measures real decks with it.
+ */
+export function sourceCheck(
+  spells: SpellCopies[],
+  landCards: readonly { card: CardRecord; qty: number }[],
+  basics: readonly [Color, number][],
+  colors: Color[],
+  size: DeckSize,
+  config: BulkBrewConfig,
+  cover?: number,
+): {
+  plan: ColorPlan;
+  sources: Partial<Record<Color, number>>;
+  wanted: Partial<Record<Color, number>>;
+  gap: number;
+} {
+  const lands = sum(landCards.map((e) => e.qty)) + sum(basics.map(([, n]) => n));
+  const multi = colors.length > 1;
+  const sources: Partial<Record<Color, number>> = {};
+  const basicFor = new Map<Color, number>();
+  for (const c of colors) sources[c] = 0;
+  for (const [c, n] of basics) {
+    if (!colors.includes(c)) continue;
+    sources[c]! += n;
+    basicFor.set(c, (basicFor.get(c) ?? 0) + n);
+  }
+  for (const e of landCards) {
+    if (!isBasicLand(e.card)) continue;
+    for (const c of landColors(e.card, colors, size, config))
+      basicFor.set(c, (basicFor.get(c) ?? 0) + e.qty);
+  }
+  for (const e of landCards) {
+    const fetch = isFetchLand(e.card);
+    for (const c of landColors(e.card, colors, size, config)) {
+      if (fetch && multi && !(basicFor.get(c) ?? 0)) continue;
+      sources[c]! += e.qty;
+    }
+  }
+  const cands: Candidate[] = spells.map((s) => ({
+    facts: s.facts,
+    available: s.qty,
+    preferred: s.qty,
+  }));
+  const plan = colorPlan(cands, colors, config);
+  const wanted = colorWants(spells, plan, size, lands, config, cover);
+  let gap = 0;
+  for (const c of colors) gap = Math.max(gap, (wanted[c] ?? 0) - (sources[c] ?? 0));
+  return { plan, sources, wanted, gap };
+}
+
+/**
  * Land count against the core's land formula, color sources against the
  * core's colorWants, and castability by the builder's formula. The builder's
  * castability function is private, so it is recomputed here from the same
@@ -463,39 +522,16 @@ export function checkMana(d: ReviewDeck, ctx: CheckContext, list: Entry[]): Mana
   };
   if (colors.length === 0) return result;
 
-  // Sources as the core's chooseManaBase counts them: basics, then lands by landColors;
-  // in a multi-color deck a fetch land counts for a color only when a basic of it is there.
-  const multi = colors.length > 1;
-  const sources: Partial<Record<Color, number>> = {};
-  const basicFor = new Map<Color, number>();
-  for (const c of colors) sources[c] = 0;
-  for (const [c, n] of basics) {
-    if (!colors.includes(c)) continue;
-    sources[c]! += n;
-    basicFor.set(c, (basicFor.get(c) ?? 0) + n);
-  }
-  for (const e of landCards) {
-    if (!isBasicLand(e.card)) continue;
-    for (const c of landColors(e.card, colors, size, ctx.config))
-      basicFor.set(c, (basicFor.get(c) ?? 0) + e.qty);
-  }
-  for (const e of landCards) {
-    const fetch = isFetchLand(e.card);
-    for (const c of landColors(e.card, colors, size, ctx.config)) {
-      if (fetch && multi && !(basicFor.get(c) ?? 0)) continue;
-      sources[c]! += e.qty;
-    }
-  }
-
-  const cands: Candidate[] = spells.map((s) => ({
-    facts: s.facts,
-    available: s.qty,
-    preferred: s.qty,
-  }));
-  const cp = colorPlan(cands, colors, ctx.config);
-  const wanted = colorWants(spells, cp, size, lands, ctx.config);
-  let gap = 0;
-  for (const c of colors) gap = Math.max(gap, (wanted[c] ?? 0) - (sources[c] ?? 0));
+  // The commander is cast every game, so the color plan and the wants count it, as the builder does.
+  const commander = list
+    .filter((e) => e.facts.spell && e.commander)
+    .map((e) => ({ facts: e.facts, qty: 1 }));
+  const {
+    plan: cp,
+    sources,
+    wanted,
+    gap,
+  } = sourceCheck([...spells, ...commander], landCards, basics, colors, size, ctx.config);
 
   // The builder's castability (builder.ts), on the finished deck.
   const chance = ctx.config.landRules.colors.castChance;

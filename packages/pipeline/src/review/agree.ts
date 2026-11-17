@@ -10,8 +10,6 @@
 // --dev adds the development pools: eval/pools, plain-01 to plain-10, and the
 // theme pools without an h1- or h2- prefix. Exits 1 on any disagreement.
 
-import { readdirSync } from 'node:fs';
-import path from 'node:path';
 import {
   checkAgreement,
   COLORS,
@@ -21,28 +19,10 @@ import {
   type AgreementRequest,
   type DeckSize,
 } from '@bulk-brew/core';
-import { arg, flag, ROOT } from '../corpus.ts';
-import { createContext, loadPool } from './build.ts';
+import { arg, flag } from '../corpus.ts';
+import { createContext, devPools, loadPool } from './build.ts';
 
 const VALUE_FLAGS = new Set(['--sizes', '--commanders']);
-
-/** The development pools: never the held-out h1-, h2-, or plain-11 to plain-30 pools. */
-function devPools(): string[] {
-  return [
-    ...readdirSync(path.join(ROOT, 'eval', 'pools'))
-      .filter((f) => f.endsWith('.txt'))
-      .sort()
-      .map((f) => `eval/pools/${f}`),
-    ...Array.from(
-      { length: 10 },
-      (_, i) => `data/review/pools/plain/plain-${String(i + 1).padStart(2, '0')}.json`,
-    ),
-    ...readdirSync(path.join(ROOT, 'data', 'review', 'pools', 'theme'))
-      .filter((f) => f.endsWith('.json') && !/^h\d+-/.test(f))
-      .sort()
-      .map((f) => `data/review/pools/theme/${f}`),
-  ];
-}
 
 function positional(): string[] {
   const out: string[] = [];
