@@ -126,7 +126,18 @@ function main(): number {
   for (const card of cards) read.set(card, cardNeeds(card, config));
   const readMs = performance.now() - t0;
 
-  const abilities = { all: 0, clean: 0, bulk: 0, bulkClean: 0, real: 0, realClean: 0 };
+  // "Read" excludes the clean abilities that leaned on the game-state fallback.
+  const abilities = {
+    all: 0,
+    clean: 0,
+    read: 0,
+    bulk: 0,
+    bulkClean: 0,
+    bulkRead: 0,
+    real: 0,
+    realClean: 0,
+    realRead: 0,
+  };
   const reasons = new Map<string, number>();
   const unparsedShapes = new Map<string, Shape>();
   const cardKinds: Record<string, number> = {};
@@ -152,6 +163,11 @@ function main(): number {
         abilities.clean++;
         if (!card.unset) abilities.realClean++;
         if (isBulk(card) && !card.unset) abilities.bulkClean++;
+        if (!a.gameState?.length) {
+          abilities.read++;
+          if (!card.unset) abilities.realRead++;
+          if (isBulk(card) && !card.unset) abilities.bulkRead++;
+        }
       } else {
         const why = a.unparsed.split(':')[0]!;
         reasons.set(why, (reasons.get(why) ?? 0) + 1);
@@ -268,23 +284,38 @@ function main(): number {
   lines.push('');
   lines.push(
     table(
-      ['Cards', 'Abilities', 'Parsed cleanly', 'Share'],
+      ['Cards', 'Abilities', 'Parsed cleanly', 'Share', 'No game-state fallback', 'Share'],
       [
-        ['Whole pack', abilities.all, abilities.clean, pct(abilities.clean, abilities.all)],
+        [
+          'Whole pack',
+          abilities.all,
+          abilities.clean,
+          pct(abilities.clean, abilities.all),
+          abilities.read,
+          pct(abilities.read, abilities.all),
+        ],
         [
           'Without Un-sets',
           abilities.real,
           abilities.realClean,
           pct(abilities.realClean, abilities.real),
+          abilities.realRead,
+          pct(abilities.realRead, abilities.real),
         ],
         [
           'Commons and uncommons (no Un-sets)',
           abilities.bulk,
           abilities.bulkClean,
           pct(abilities.bulkClean, abilities.bulk),
+          abilities.bulkRead,
+          pct(abilities.bulkRead, abilities.bulk),
         ],
       ],
     ),
+  );
+  lines.push('');
+  lines.push(
+    'Parsed cleanly: every part of the ability was read, by a template or by the game-state fallback. No game-state fallback: every part was read by a template that names what it reads.',
   );
   lines.push('');
   lines.push(

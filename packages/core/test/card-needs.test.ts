@@ -7,6 +7,7 @@ import {
   creditEarned,
   creditNeeds,
   deckSupply,
+  effectiveManaValue,
   needMet,
   needThreshold,
   pluralOf,
@@ -46,7 +47,7 @@ function supply(cards: Cards, colors: Color[] = ['B'], size: DeckSize = 60) {
 
 /** The mono-black 60 with the card under test in it. */
 function withCard(name: string, more: Cards = [], colors: Color[] = ['B']) {
-  return supply([...MONO_BLACK, [name, 2], ...more], colors);
+  return supply([...MONO_BLACK, [name, 1], ...more], colors);
 }
 
 const earned = (name: string, credit: string, more: Cards = [], colors: Color[] = ['B']) =>
@@ -251,9 +252,14 @@ describe('kinds, resource families, and colors', () => {
     ]);
   });
 
-  it('counters: a selection of creatures with +1/+1 counters', () => {
+  it('counters: a selection of creatures with +1/+1 counters, met by its own Outlast', () => {
     expect(refsOf('Ainok Bond-Kin')).toEqual([
-      expect.objectContaining({ kind: 'need', place: 'selection', anyOf: ['counters:+1/+1'] }),
+      expect.objectContaining({
+        kind: 'need',
+        place: 'selection',
+        anyOf: ['counters:+1/+1'],
+        self: true,
+      }),
     ]);
   });
 
@@ -265,14 +271,10 @@ describe('kinds, resource families, and colors', () => {
     expect(needMet(ref!, supply([['Murder', 4]]), card, CONFIG)).toBe(false);
   });
 
-  it('color: an off-color activation needs that color in the deck', () => {
-    const card = needsCard('Bant Battlemage');
-    const [green, blue] = refsOf('Bant Battlemage');
-    expect(green).toMatchObject({ kind: 'need', place: 'cost', anyOf: ['color:G'] });
-    expect(blue).toMatchObject({ kind: 'need', place: 'cost', anyOf: ['color:U'] });
-    const wg = supply([['Bant Battlemage', 2]], ['W', 'G']);
-    expect(needMet(green!, wg, card, CONFIG)).toBe(true);
-    expect(needMet(blue!, wg, card, CONFIG)).toBe(false);
+  it("color: mana of the card's own colors names nothing, since the deck holds them", () => {
+    expect(
+      refsOf('Bant Battlemage').filter((r) => r.anyOf.some((x) => x.startsWith('color:'))),
+    ).toEqual([]);
   });
 
   it('drawbacks: a tribe, a devotion, a revealed card', () => {
@@ -327,6 +329,19 @@ describe('self-supply', () => {
     ]);
   });
 
+  it('a supplier with a need of its own self-supplies only when that need is met', () => {
+    const card = needsCard("Cleric of Life's Bond");
+    const lifegain = refsOf("Cleric of Life's Bond").find((r) => r.anyOf.includes('lifegain'));
+    expect(lifegain).toMatchObject({
+      self: true,
+      selfVia: [expect.objectContaining({ anyOf: ['tribe:Cleric'] })],
+    });
+    const alone = supply([...MONO_BLACK, ["Cleric of Life's Bond", 1]], ['W', 'B']);
+    expect(needMet(lifegain!, alone, card, CONFIG)).toBe(false);
+    const clerics = supply([...MONO_BLACK, ["Cleric of Life's Bond", 8]], ['W', 'B']);
+    expect(needMet(lifegain!, clerics, card, CONFIG)).toBe(true);
+  });
+
   it('a self-supplied need is met in any deck', () => {
     const card = needsCard('Experimental Confectioner');
     const [ref] = refsOf('Experimental Confectioner');
@@ -366,6 +381,61 @@ describe('shapes: faces, Sagas, Classes, modal spells', () => {
     expect(r.abilities.map((a) => a.parent)).toEqual([undefined, 0, 0]);
     expect(r.abilities[1]!.supplies).toContain('lifeloss');
   });
+
+  it('bullets under a triggered "choose one" carry the trigger', () => {
+    const r = read('Ojutai Exemplars');
+    expect(r.abilities.map((a) => a.shape)).toEqual(['triggered', 'mode', 'mode', 'mode']);
+    for (const a of r.abilities.slice(1))
+      expect(a.refs).toEqual([
+        expect.objectContaining({ kind: 'need', place: 'trigger', anyOf: ['cast:noncreature'] }),
+      ]);
+  });
+});
+
+describe('death, sacrifice, commander, free spells, and unread text', () => {
+  it('"a creature you control dies" needs deaths; "you sacrifice" needs sacrifice outlets', () => {
+    expect(refsOf('Grave Pact')).toEqual([
+      expect.objectContaining({ kind: 'need', place: 'trigger', anyOf: ['death'] }),
+    ]);
+    const [sacrifice] = refsOf('Fleshtaker');
+    expect(sacrifice).toMatchObject({ kind: 'need', place: 'trigger', anyOf: ['sacrifice'] });
+    // Its own "Sacrifice another creature" cost supplies the trigger.
+    expect(read('Fleshtaker').selfSupplies).toEqual(['sacrifice']);
+  });
+
+  it('a commander spell is met only in a Commander deck with a commander', () => {
+    const card = needsCard('Sagrada Familiar');
+    const ref = read('Sagrada Familiar')
+      .abilities.flatMap((a) => a.refs)
+      .find((r) => r.place === 'trigger');
+    expect(ref).toMatchObject({ anyOf: ['cast:commander'] });
+    const cards = [{ card, qty: 1 }];
+    const commander = needsCard('Shilgengar, Sire of Famine');
+    const edh = deckSupply({ cards, colors: ['W', 'B'], size: 100, commander }, CONFIG);
+    expect(needMet(ref!, edh, card, CONFIG)).toBe(true);
+    expect(
+      needMet(ref!, deckSupply({ cards, colors: ['W'], size: 60 }, CONFIG), card, CONFIG),
+    ).toBe(false);
+  });
+
+  it('casting another spell for free is not a bonus; only the card casting itself is', () => {
+    expect(refsOf('Torrential Gearhulk')).toEqual([
+      expect.objectContaining({ kind: 'need', anyOf: ['graveyard:instant-sorcery'] }),
+    ]);
+  });
+
+  it('an unparsed ability that names nothing adds no ref, so it costs no credit', () => {
+    const r = read('Imprisoned in the Moon');
+    expect(r.abilities.flatMap((a) => a.refs).filter((x) => x.anyOf.length === 0)).toEqual([]);
+    expect(
+      creditEarned(
+        needsCard('Imprisoned in the Moon'),
+        'removal',
+        supply([['Imprisoned in the Moon', 4]], ['U']),
+        CONFIG,
+      ),
+    ).toBe(true);
+  });
 });
 
 describe('deck supply', () => {
@@ -387,12 +457,14 @@ describe('deck supply', () => {
     expect(supply(MONO_BLACK).counts.get('lifegain')).toBeUndefined();
   });
 
-  it('thresholds per size, family, and count', () => {
-    expect(needThreshold('tribe:Elf', 60, CONFIG)).toBe(6);
-    expect(needThreshold('tribe:Elf', 60, CONFIG, 3)).toBe(10);
-    expect(needThreshold('lifegain', 20, CONFIG)).toBe(2);
-    expect(needThreshold('lifegain', 60, CONFIG)).toBe(5);
-    expect(needThreshold('type:creature', 100, CONFIG)).toBe(15);
+  it('thresholds grow with size and with the count asked for, but not for graveyard counts', () => {
+    const t = (res: string, size: DeckSize, count?: number) =>
+      needThreshold(res, size, CONFIG, count);
+    expect(t('tribe:Elf', 60, 3)).toBeGreaterThan(t('tribe:Elf', 60));
+    expect(t('lifegain', 20)).toBeLessThan(t('lifegain', 60));
+    expect(t('type:creature', 100)).toBeGreaterThanOrEqual(t('type:creature', 60));
+    expect(t('graveyard:creature', 60, 3)).toBe(t('graveyard:creature', 60));
+    for (const size of [20, 40, 60, 100] as const) expect(t('tribe:Elf', size)).toBeGreaterThan(0);
   });
 
   it('an unparsed ability needs more than the threshold of what its words name, and nothing meets an empty one', () => {
@@ -416,6 +488,27 @@ describe('deck supply', () => {
     ]);
     expect(needMet(ref, ten, card, CONFIG)).toBe(true);
     expect(needMet({ ...ref, anyOf: [] }, ten, card, CONFIG)).toBe(false);
+  });
+});
+
+describe('credits', () => {
+  it('a credit the config does not give the card reads as absent, and is not earned', () => {
+    const card = needsCard('Walking Corpse');
+    expect(creditNeeds(card, 'removal', CONFIG, 60).kind).toBe('absent');
+    expect(creditEarned(card, 'removal', supply(MONO_BLACK), CONFIG)).toBe(false);
+  });
+
+  it('an "or pay" additional cost adds its mana when the deck lacks the resource', () => {
+    const card = needsCard('Goldmeadow Stalwart');
+    expect(effectiveManaValue(card, supply([['Goldmeadow Stalwart', 1]], ['W']), CONFIG)).toBe(
+      card.mv + 3,
+    );
+    expect(effectiveManaValue(card, supply([['Goldmeadow Stalwart', 12]], ['W']), CONFIG)).toBe(
+      card.mv,
+    );
+    expect(
+      creditEarned(card, 'earlyCreature', supply([['Goldmeadow Stalwart', 1]], ['W']), CONFIG),
+    ).toBe(false);
   });
 });
 

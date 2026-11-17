@@ -15,7 +15,7 @@ import {
   type CompiledRule,
   type ThemeSize,
 } from './theme-rules.ts';
-import type { CardRecord, Color, DeckSize } from './types.ts';
+import type { CardRecord, CardType, Color, DeckSize } from './types.ts';
 
 // ---------------------------------------------------------------- the model
 
@@ -52,6 +52,17 @@ export interface NeedRef {
   text: string;
   /** A drawback: what happens to its owner when the resource is missing. */
   harm?: string;
+  /** The card cannot be the object (a spell it reduces, a card it searches for), so its own types do not meet it. */
+  notSelf?: boolean;
+  /** "A legendary creature": the card type a supertype applies to, for self-supply and counting. */
+  head?: string;
+  /** An additional cost payable with mana instead ("or pay {1}"): the mana it costs when unmet. */
+  orPay?: number;
+  /**
+   * Self-supplied only through another ability that has needs of its own (the
+   * counters a "whenever you gain life" trigger puts): met when those are.
+   */
+  selfVia?: NeedRef[];
 }
 
 /** One sentence of an ability, with every ref that governs it. */
@@ -151,6 +162,19 @@ export interface NeedTemplate {
   optional?: boolean;
   /** Match only when the object names a resource ("Goblin creatures get", not "Those creatures are"). */
   typed?: boolean;
+  /**
+   * A broad reading of game state ("it's ...", "~ is ..."): taken only when the
+   * words name no resource, and then noted as game state rather than read.
+   */
+  catchAll?: boolean;
+  /** The card itself cannot be the object ("artifact spells you cast cost less", a library search). */
+  notSelf?: boolean;
+  /** Case-sensitive, for templates that need a capitalized type word. */
+  case?: boolean;
+  /** {counter} names what the phrase puts, while {obj} names what it needs ("put a counter on target artifact"). */
+  counterSupplies?: boolean;
+  /** Adds alternatives to the sentence's previous ref ("for each Assassin you control and each Assassin card in your graveyard"). */
+  join?: boolean;
 }
 
 /** A keyword ability with a dependency ("Affinity for artifacts", "Champion a Faerie"). */
@@ -170,6 +194,8 @@ export interface CreditPattern {
   bodyKeywords?: string[];
   /** A regular expression for the clause that earns it. */
   clause?: string;
+  /** A weaker clause, used only when no clause matches `clause` (surveil for card advantage). */
+  weakClause?: string;
   /** Use another role's pattern. */
   role?: string;
   /** Not tied to a clause and never gated (a penalty, not a credit). */
@@ -213,6 +239,10 @@ export interface CardNeedsConfig {
   };
   /** Keyword abilities with a dependency; every other keyword is unconditional. */
   keywords: Record<string, KeywordNeed>;
+  /** What a keyword's reminder text makes ("Adapt" puts +1/+1 counters on the creature). */
+  keywordSupplies: Record<string, string[]>;
+  /** Keyword actions: a line of one is an effect, not a keyword ability ("Proliferate."). */
+  keywordActions: string[];
   /** Effects that harm the card's owner: an "unless" over one is a drawback. */
   harmful: string[];
   /** A clause that only changes power and toughness. */
@@ -248,6 +278,8 @@ export interface CardNeedsConfig {
     families: Record<string, SizeTable>;
     /** Added for each counted item beyond the first ("three or more"). */
     perCount: SizeTable;
+    /** `perCount` by family, where a count grows from play rather than from cards (graveyard). */
+    perCountFamilies: Record<string, SizeTable>;
     /** Unparsed abilities need this many times the supply. */
     unparsedScale: number;
   };
@@ -297,10 +329,24 @@ interface Compiled {
   selfNoun: RegExp;
   keywordNames: string[];
   creatureKeywordRe: RegExp;
-  roleClauses: Map<string, CreditPattern & { re?: RegExp }>;
-  strengthClauses: Map<string, CreditPattern & { re?: RegExp }>;
+  roleClauses: Map<string, CompiledPattern>;
+  strengthClauses: Map<string, CompiledPattern>;
   themeTags: Map<string, RegExp>;
+  keywordActions: Set<string>;
 }
+
+type CompiledPattern = CreditPattern & { re?: RegExp; weak?: RegExp };
+
+const PLACES: readonly NeedPlace[] = [
+  'condition',
+  'trigger',
+  'cost',
+  'selection',
+  'count',
+  'replacement',
+  'additionalCost',
+  'unparsed',
+];
 
 const COLOR_WORDS: Record<string, Color> = {
   white: 'W',
@@ -323,6 +369,8 @@ export function pluralOf(word: string, plurals: Record<string, string>): string 
 }
 
 function compileRe(src: string, flags: string, where: string, problems: string[]): RegExp {
+  const unknown = src.match(/\{[a-z]+\}/g)?.filter((p) => !PLACEHOLDERS.some(([k]) => k === p));
+  if (unknown?.length) problems.push(`${where}: unknown placeholder ${unknown.join(', ')}`);
   try {
     return new RegExp(expand(src), flags);
   } catch (err) {
@@ -365,6 +413,11 @@ function compileTemplates(
       'counter',
       'optional',
       'typed',
+      'catchAll',
+      'notSelf',
+      'case',
+      'counterSupplies',
+      'join',
       'note',
     ]);
     for (const k of Object.keys(t)) if (!known.has(k)) problems.push(`${at}: unknown key "${k}"`);
@@ -378,6 +431,23 @@ function compileTemplates(
       problems.push(`${at}: "obj" needs {obj}, {tok}, or a group named obj in "re"`);
     if (t.kind !== undefined && !['need', 'bonus', 'drawback'].includes(t.kind))
       problems.push(`${at}: kind must be need, bonus, or drawback`);
+    if (t.place !== undefined && !PLACES.includes(t.place))
+      problems.push(`${at}: place must be one of ${PLACES.join(', ')}`);
+    for (const k of [
+      'ignore',
+      'supply',
+      'negated',
+      'event',
+      'counter',
+      'optional',
+      'typed',
+      'catchAll',
+      'notSelf',
+      'case',
+      'counterSupplies',
+    ] as const)
+      if (t[k] !== undefined && typeof t[k] !== 'boolean')
+        problems.push(`${at}: "${k}" must be true or false`);
     for (const k of ['res', 'ubiquitous', 'also', 'supplies'] as const) {
       const v = t[k];
       if (v !== undefined && (!Array.isArray(v) || v.some((x) => typeof x !== 'string' || !x)))
@@ -396,7 +466,8 @@ function compileTemplates(
       problems.push(`${at}: give "res", "obj", "counter", "supplies", or "ignore"`);
     const src =
       anchor === 'start' ? `^(?:${t.re})(?=, |$)` : anchor === 'whole' ? `^(?:${t.re})$` : t.re;
-    out.push({ t, re: compileRe(src, anchor === 'none' ? 'gi' : 'i', at, problems) });
+    const flags = (anchor === 'none' ? 'g' : '') + (t.case ? '' : 'i');
+    out.push({ t, re: compileRe(src, flags, at, problems) });
   });
   return out;
 }
@@ -431,21 +502,31 @@ function compileNeeds(cfg: CardNeedsConfig, problems: string[]): Compiled {
   for (const [id, src] of Object.entries(cfg.mentions ?? {}))
     mentions.push({ id, re: compileRe(src, 'gi', `mentions.${id}`, problems) });
   const clauses = (table: Record<string, CreditPattern> | undefined, where: string) => {
-    const out = new Map<string, CreditPattern & { re?: RegExp }>();
+    const out = new Map<string, CompiledPattern>();
     for (const [id, p] of Object.entries(table ?? {})) {
-      const known = new Set(['body', 'bodyKeywords', 'clause', 'role', 'always']);
+      const known = new Set(['body', 'bodyKeywords', 'clause', 'weakClause', 'role', 'always']);
       for (const k of Object.keys(p ?? {}))
         if (!known.has(k)) problems.push(`${where}.${id}: unknown key "${k}"`);
+      if (
+        p.bodyKeywords !== undefined &&
+        (!Array.isArray(p.bodyKeywords) || p.bodyKeywords.some((k) => typeof k !== 'string'))
+      )
+        problems.push(`${where}.${id}.bodyKeywords: must be a list of keywords`);
       const re = p.clause ? compileRe(p.clause, 'i', `${where}.${id}.clause`, problems) : undefined;
+      const weak = p.weakClause
+        ? compileRe(p.weakClause, 'i', `${where}.${id}.weakClause`, problems)
+        : undefined;
       if (!p.body && !p.bodyKeywords && !p.clause && !p.role && !p.always)
         problems.push(`${where}.${id}: give "body", "bodyKeywords", "clause", "role", or "always"`);
-      out.set(id, re ? { ...p, re } : { ...p });
+      out.set(id, { ...p, ...(re ? { re } : {}), ...(weak ? { weak } : {}) });
     }
     return out;
   };
   const themeTags = new Map<string, RegExp>();
-  for (const [tag, src] of Object.entries(cfg.credits?.themeTags ?? {}))
+  for (const [tag, src] of Object.entries(cfg.credits?.themeTags ?? {})) {
+    if (!/^[a-z0-9-]+$/.test(tag)) problems.push(`credits.themeTags: "${tag}" is not a tag slug`);
     themeTags.set(tag, compileRe(src, 'i', `credits.themeTags.${tag}`, problems));
+  }
   const selfNouns = (v.selfNouns ?? []).map(escapeRe).join('|');
   const kw = (v.creatureKeywords ?? []).map((k) => escapeRe(k.toLowerCase())).join('|');
   return {
@@ -468,6 +549,7 @@ function compileNeeds(cfg: CardNeedsConfig, problems: string[]): Compiled {
     roleClauses: clauses(cfg.credits?.roles, 'credits.roles'),
     strengthClauses: clauses(cfg.credits?.strength, 'credits.strength'),
     themeTags,
+    keywordActions: new Set((cfg.keywordActions ?? []).map((k) => k.toLowerCase())),
   };
 }
 
@@ -517,33 +599,66 @@ export function checkCardNeeds(data: unknown, config?: BulkBrewConfig): string[]
     }
     for (const k of ['plurals', 'groups', 'numbers'] as const)
       if (!isObject(v[k])) problems.push(`vocabulary.${k}: must be an object`);
-    for (const [g, list] of Object.entries(v.groups ?? {}))
+    for (const [g, list] of Object.entries(v.groups ?? {})) {
+      if (!Array.isArray(list)) {
+        problems.push(`vocabulary.groups.${g}: must be a list of creature types`);
+        continue;
+      }
       for (const t of list)
         if (!v.creatureTypes?.includes(t))
           problems.push(`vocabulary.groups.${g}: "${t}" is not a creature type`);
+    }
   }
+  if (
+    !Array.isArray(cfg.keywordActions) ||
+    cfg.keywordActions.some((k) => typeof k !== 'string' || !k)
+  )
+    problems.push('"keywordActions" must be a list of keywords');
+  if (!isObject(cfg.keywordSupplies)) problems.push('"keywordSupplies" must be an object');
+  for (const [kw, list] of Object.entries(cfg.keywordSupplies ?? {}))
+    if (!Array.isArray(list) || list.some((r) => typeof r !== 'string' || !RESOURCE_RE.test(r)))
+      problems.push(`keywordSupplies.${kw}: must be a list of resource ids`);
   if (!isObject(cfg.templates)) problems.push('"templates" must be an object');
   if (!Array.isArray(cfg.harmful)) problems.push('"harmful" must be a list of expressions');
   for (const [kw, k] of Object.entries(cfg.keywords ?? {})) {
+    if (!/^[A-Z][\w' -]*$/.test(kw)) problems.push(`keywords: "${kw}" is not a keyword as printed`);
+    for (const key of Object.keys(k ?? {}))
+      if (!['kind', 'place', 'res', 'obj'].includes(key))
+        problems.push(`keywords.${kw}: unknown key "${key}"`);
     if (!['need', 'bonus', 'drawback'].includes(k?.kind))
       problems.push(`keywords.${kw}: kind must be need, bonus, or drawback`);
+    if (!PLACES.includes(k?.place))
+      problems.push(`keywords.${kw}: unknown place "${String(k?.place)}"`);
     if (!k?.res && !k?.obj) problems.push(`keywords.${kw}: give "res" or "obj"`);
+    for (const r of k?.res ?? [])
+      if (!RESOURCE_RE.test(r)) problems.push(`keywords.${kw}: bad resource "${r}"`);
   }
   const t = cfg.thresholds;
   if (!isObject(t)) problems.push('"thresholds" must be an object');
   else {
     checkSizeTable('thresholds.base', t.base, problems);
     checkSizeTable('thresholds.perCount', t.perCount, problems);
-    for (const [k, table] of Object.entries(t.families ?? {}))
-      checkSizeTable(`thresholds.families.${k}`, table, problems);
+    for (const key of ['families', 'perCountFamilies'] as const) {
+      if (!isObject(t[key])) problems.push(`thresholds.${key}: must be an object`);
+      for (const [k, table] of Object.entries(t[key] ?? {})) {
+        if (!RESOURCE_RE.test(k))
+          problems.push(`thresholds.${key}: "${k}" is not a family or resource id`);
+        checkSizeTable(`thresholds.${key}.${k}`, table, problems);
+      }
+    }
     if (typeof t.unparsedScale !== 'number' || !(t.unparsedScale >= 1))
       problems.push('thresholds.unparsedScale: must be a number of 1 or more');
   }
   const styles = config ? Object.keys(config.themeRules?.styles ?? {}) : undefined;
   for (const [r, rule] of Object.entries(cfg.supply ?? {})) {
+    if (!RESOURCE_RE.test(r)) problems.push(`supply: "${r}" is not a resource id`);
     for (const k of Object.keys(rule ?? {}))
       if (!['theme', 'text', 'freeCount'].includes(k))
         problems.push(`supply.${r}: unknown key "${k}"`);
+    if (rule.freeCount !== undefined && !(Number.isInteger(rule.freeCount) && rule.freeCount >= 0))
+      problems.push(`supply.${r}.freeCount: must be a whole number of 0 or more`);
+    if (rule.text !== undefined && typeof rule.text !== 'boolean')
+      problems.push(`supply.${r}.text: must be true or false`);
     if (rule.theme !== undefined && styles && !styles.includes(rule.theme))
       problems.push(`supply.${r}: "${rule.theme}" is not a style in the theme rules`);
   }
@@ -593,10 +708,14 @@ interface ObjReading {
   owner: 'you' | 'opp' | 'any';
   other: boolean;
   count?: number;
+  /** "A legendary creature": the card type the supertype applies to. */
+  head?: string;
+  /** A qualifier the vocabulary does not read; the part is left unparsed. */
+  unread?: string;
 }
 
 const OPP_RE =
-  /\b(?:an opponent controls|opponents control|you don't control|target opponent controls|that player controls|defending player controls|target player controls|its controller controls|each opponent controls|your opponents control|they control|an opponent owns|you don't own|opponent's|opponents'|that player's|target player's|their owner's|its owner's)\b/i;
+  /\b(?:an opponent controls|opponents control|you don't control|target opponent controls|that player controls|defending player controls|target player controls|its controller controls|each opponent controls|your opponents control|they control|an opponent owns|you don't own|opponent's|opponents'|that player's|target player's|their owner's|its owner's|attacks you|attack you)\b/i;
 const YOURS_RE = /\b(?:you control|you own|your|under your control|you've)\b/i;
 
 function numberOf(word: string | undefined, c: Compiled): number | undefined {
@@ -607,6 +726,9 @@ function numberOf(word: string | undefined, c: Compiled): number | undefined {
 }
 
 const ARTIFACT_RES = 'type:artifact';
+const CARD_TYPE_WORDS = 'creature|artifact|enchantment|land|planeswalker|battle';
+const COLOR_RE =
+  /\b(non-?)?(white|blue|black|red|green)\b((?:,? (?:and\/or|or|and) (?:white|blue|black|red|green)\b)*)(?= (?:and\/or |or |and )?(?:\w+ )?(?:creatures?|permanents?|spells?|cards?|sources?|artifacts?|enchantments?)\b)/i;
 
 function lowerTypes(p: string, mode: ObjMode, out: string[]): void {
   const push = (r: string) => {
@@ -631,10 +753,42 @@ function lowerTypes(p: string, mode: ObjMode, out: string[]): void {
   }
 }
 
+/** Whether a phrase lets every deck's creatures, lands, or permanents count ("a creature or Vehicle"). */
+function ubiquitousAlternative(p: string, c: Compiled): boolean {
+  const qualified = (word: string | undefined) => {
+    if (!word) return false;
+    if (
+      /^(?:artifact|enchantment|legendary|snow|historic|basic|nonbasic|token|attacking|blocking|tapped|untapped)$/i.test(
+        word,
+      )
+    )
+      return true;
+    c.typeRe.lastIndex = 0;
+    return c.typeRe.test(word) || COLOR_RE.test(`${word} creature`);
+  };
+  for (const m of p.matchAll(/(\S+) (?:creature|land|permanent)s?(?: cards?)? (?:or|and\/or)\b/gi))
+    if (!qualified(m[1])) return true;
+  if (
+    /^(?:an? |another |target |other )*(?:creature|land|permanent)s?(?: cards?)? (?:or|and\/or)\b/i.test(
+      p,
+    )
+  )
+    return true;
+  for (const m of p.matchAll(
+    /\b(?:or|and\/or) (?:an? |other )?(?:(\S+) )?(creature|land|permanent)s?\b/gi,
+  ))
+    if (!qualified(m[1]) || m[1] === undefined) return true;
+  return false;
+}
+
 function resolveObj(phrase: string, given: ObjMode, c: Compiled): ObjReading {
-  const p = phrase.trim();
-  // "Spells you've cast" and "cards in your graveyard" say where they are themselves.
+  // A card named by name is one card, not a resource; "~" is the card itself.
+  const p = phrase
+    .trim()
+    .replace(/\s+named\s.*$/i, '')
+    .replace(/,$/, '');
   let mode = given;
+  // "Spells you've cast" and "cards in your graveyard" say where they are themselves.
   if (
     mode === 'yours' &&
     /\bspells?\b/i.test(p) &&
@@ -646,22 +800,55 @@ function resolveObj(phrase: string, given: ObjMode, c: Compiled): ObjReading {
   const other = /\b(?:another|other)\b/i.test(p) && !/\bother than\b/i.test(p);
   const lead = /^(?:at least |exactly )?(\w+)(?: or more)?\b/i.exec(p);
   const count = /^(?:another|other)\b/i.test(p) ? 1 : numberOf(lead?.[1], c);
+  const base = { owner, other, ...(count !== undefined ? { count } : {}) };
+  if (/^(?:~|it|them|that card|this card|~'s)$/i.test(p)) return { res: [], ...base };
   const typed: string[] = [];
   const push = (r: string) => {
     if (!typed.includes(r)) typed.push(r);
   };
-  for (const m of p.matchAll(c.typeRe)) if (!m[1]) push(c.typeRes.get(m[2]!)!);
+  const dropTypes = new Set<string>();
+  for (const m of p.matchAll(c.typeRe)) {
+    if (m[1]) continue;
+    push(c.typeRes.get(m[2]!)!);
+    // "A Basri planeswalker", "an Equipment artifact": the subtype says it all.
+    const after = new RegExp(`^ (${CARD_TYPE_WORDS})s?\\b`, 'i').exec(
+      p.slice(m.index! + m[0].length),
+    );
+    if (after) dropTypes.add(`type:${after[1]!.toLowerCase()}`);
+  }
   if (c.groupRe)
     for (const m of p.matchAll(c.groupRe)) {
       if (m[1]) continue;
       for (const t of c.cfg.vocabulary.groups[m[2]!.toLowerCase()] ?? []) push(`tribe:${t}`);
     }
   lowerTypes(p, mode, typed);
+  for (const t of dropTypes) {
+    const i = typed.indexOf(t);
+    if (i >= 0 && typed.length > 1) typed.splice(i, 1);
+  }
+  // A supertype applies to the card type after it: "a legendary creature".
+  let head: string | undefined;
+  const sup = new RegExp(
+    `\\b(?:legendary|snow|historic)(?: (?:${CARD_TYPE_WORDS}))?(?: or (?:${CARD_TYPE_WORDS}))? (${CARD_TYPE_WORDS})s?\\b`,
+    'i',
+  ).exec(p);
+  if (sup) {
+    head = sup[1]!.toLowerCase();
+    const t = `type:${head}`;
+    if (typed.includes(t) && t !== 'type:creature') typed.splice(typed.indexOf(t), 1);
+  }
   // Qualifiers that name a resource.
   let m: RegExpExecArray | null;
   if (/\+1\/\+1 counters? on (?:it|them|~)/i.test(p)) push('counters:+1/+1');
   else if (/-1\/-1 counters? on (?:it|them|~)/i.test(p)) push('counters:-1/-1');
-  else if ((m = /with (?:a|an|one or more|\w+ or more) (\w+) counters? on (?:it|them)/i.exec(p)))
+  else if (/\bexperience counters?\b/i.test(p)) push('experience');
+  else if (
+    (m =
+      /(?:with (?:(?:a|an|one or more|\w+ or more) )?|\b)([a-z]+) counters? on (?:it|them|~)/i.exec(
+        p,
+      )) &&
+    !/^(?:a|an|or|more|the|of|no)$/i.test(m[1]!)
+  )
     push(`counters:${m[1]!.toLowerCase()}`);
   else if (
     /with (?:a|one or more|\w+ or more)? ?counters? on (?:it|them)|\bcounters? on ~/i.test(p)
@@ -678,15 +865,23 @@ function resolveObj(phrase: string, given: ObjMode, c: Compiled): ObjReading {
   if (/\benchanted (?:creatures?|permanents?)\b/i.test(p) && YOURS_RE.test(p)) push('subtype:Aura');
   if ((m = c.creatureKeywordRe.exec(p))) push(`keyword:${m[1]!.toLowerCase()}`);
   if (/\bcommanders?\b/i.test(p)) push('commander');
+  // Colors of permanents and spells, and the qualifiers of spells cast.
+  if ((m = COLOR_RE.exec(p)) && !m[1])
+    for (const w of `${m[2]} ${m[3] ?? ''}`.match(/white|blue|black|red|green/gi) ?? [])
+      push(`colored:${COLOR_WORDS[w.toLowerCase()]}`);
+  if (/\bmulticolored\b/i.test(p) && !/\bnon-?multicolored\b/i.test(p)) push('colored:multi');
+  let unread: string | undefined;
+  if (/\bkicked\b/i.test(p)) {
+    if (mode === 'cast') push('kicked');
+    else unread = 'kicked';
+  }
+  if ((m = /\bmana value (\d+) or greater\b/i.exec(p)) && mode === 'cast') push(`mv:${m[1]}`);
   const token = /\btokens?\b/i.test(p) && !/\bnontoken\b/i.test(p);
-  // A ubiquitous alternative ("a creature or enchantment") asks for nothing.
-  const anyAlternative =
-    /(?:^|\b(?:an?|or) )(?:creature|land|permanent)s?(?: cards?)? or\b|\bor (?:an? )?(?:creature|land|permanent)s?\b/i.test(
-      p,
-    );
-  if (anyAlternative && mode !== 'graveyard' && mode !== 'cast' && mode !== 'token')
-    return { res: [], owner, other, ...(count !== undefined ? { count } : {}) };
-  const head = /\b(creature|land|permanent|card|spell)s?\b/i.exec(p)?.[1]?.toLowerCase();
+  const extra = { ...(head ? { head } : {}), ...(unread ? { unread } : {}) };
+  const anyAlt = ubiquitousAlternative(p, c);
+  if (anyAlt && mode !== 'graveyard' && mode !== 'cast' && mode !== 'token')
+    return { res: [], ...base, ...extra };
+  const noun = /\b(creature|land|permanent|card|spell)s?\b/i.exec(p)?.[1]?.toLowerCase();
   let res: string[];
   switch (mode) {
     case 'graveyard': {
@@ -697,14 +892,15 @@ function resolveObj(phrase: string, given: ObjMode, c: Compiled): ObjReading {
             ? 'graveyard:land'
             : `graveyard:${r}`,
       );
-      if (res.length === 0)
-        res = [
-          head === 'creature'
+      // "A creature or Lesson card": the creature card is an alternative too.
+      if (res.length === 0 || (anyAlt && /\bcreature\b/i.test(p)))
+        res.push(
+          noun === 'creature' || /\bcreature\b/i.test(p)
             ? 'graveyard:creature'
-            : head === 'land'
+            : noun === 'land'
               ? 'graveyard:land'
               : 'graveyard:any',
-        ];
+        );
       break;
     }
     case 'cast':
@@ -713,7 +909,9 @@ function resolveObj(phrase: string, given: ObjMode, c: Compiled): ObjReading {
           ? 'spells'
           : r.startsWith('type:')
             ? `cast:${r.slice(5)}`
-            : `cast:${r}`,
+            : r.startsWith('colored:')
+              ? r
+              : `cast:${r}`,
       );
       break;
     case 'card':
@@ -728,9 +926,9 @@ function resolveObj(phrase: string, given: ObjMode, c: Compiled): ObjReading {
       res = typed;
       if (/\bbasic lands?\b/i.test(p) && !/\bnonbasic\b/i.test(p)) res.push('land:basic');
       if (res.length === 0 && token) res.push('tokens');
-      if (res.length === 0 && head === 'creature' && (count ?? 1) >= 2) res.push('creatures');
+      if (res.length === 0 && noun === 'creature' && (count ?? 1) >= 2) res.push('creatures');
   }
-  return { res, owner, other, ...(count !== undefined ? { count } : {}) };
+  return { res: [...new Set(res)], ...base, ...extra };
 }
 
 // ---------------------------------------------------------------- reading
@@ -740,7 +938,10 @@ interface Ctx {
   card: CardRecord;
   names: RegExp[];
   hasBody: boolean;
-  colors: Set<string>;
+  /** The card's color identity: mana outside it is a need. */
+  identity: Set<string>;
+  /** How many lines of text the card has ("gets +N/+N as long as" alone is a need). */
+  lines: number;
 }
 
 /** The card's own names (full, faces, short "Lo and Li" before a comma) as "~", longest first. */
@@ -775,7 +976,14 @@ function sentences(text: string): { text: string; start: number }[] {
   for (let i = 0; i < text.length; i++) {
     const ch = text[i];
     if (ch === '"' || ch === '“' || ch === '”') quote = !quote;
-    if (ch === '.' && !quote && (i + 1 === text.length || text[i + 1] === ' ')) {
+    if (
+      ch === '.' &&
+      !quote &&
+      (i + 1 === text.length || text[i + 1] === ' ') &&
+      !/(?:^|[\s.])(?:[A-WYZ]|Lt|Dr|Mr|Mrs|Ms|St|Jr|Sr|Capt|Cmdr|Gen|Sgt|Col|vs)$/.test(
+        text.slice(start, i),
+      )
+    ) {
       const s = text.slice(start, i + 1);
       if (s.trim()) out.push({ text: s, start });
       start = i + 2;
@@ -816,10 +1024,21 @@ interface Found {
   unparsed: string[];
   /** Parts read as game state by the fallback (no resource word in them). */
   gameState: string[];
+  /** Where in the sentence each supply and ref was read, so an earlier supply feeds a later need. */
+  supplyAt: [number, string[]][];
+  refAt: Map<NeedRef, number>;
 }
 
 function newFound(): Found {
-  return { refs: [], supplies: [], optional: [], unparsed: [], gameState: [] };
+  return {
+    refs: [],
+    supplies: [],
+    optional: [],
+    unparsed: [],
+    gameState: [],
+    supplyAt: [],
+    refAt: new Map(),
+  };
 }
 
 /** Whether words name no resource, so an unread part is game state. */
@@ -852,61 +1071,113 @@ function harmOf(main: string, c: Compiled): string | undefined {
   return undefined;
 }
 
-/** The resources a matched template names, or undefined when it names none. */
+/** What a matched template names: its resources and how the card relates to them. */
+interface TemplateRead {
+  res: string[];
+  other: boolean;
+  count?: number;
+  owner?: ObjReading['owner'];
+  head?: string;
+  notSelf?: boolean;
+  unread?: string;
+}
+
+/** Player counters are not counters on permanents. */
+const PLAYER_COUNTERS = /^(?:experience|poison|rad|energy|ticket)$/i;
+
+function counterRes(kind: string | undefined): string {
+  const k = (kind ?? '').toLowerCase();
+  if (k === '' || k === 'a' || k === 'one' || k === 'an') return 'counters:any';
+  if (k === 'experience') return 'experience';
+  return `counters:${k}`;
+}
+
+/** The resources a matched template names. */
 function templateRefs(
   t: NeedTemplate,
   m: RegExpMatchArray,
   c: Compiled,
   mode: ObjMode,
-): { res: string[]; other: boolean; count?: number; owner?: ObjReading['owner'] } {
+): TemplateRead {
   const g = m.groups ?? {};
   let res: string[] = [...(t.res ?? [])];
   let other = false;
   let count: number | undefined = numberOf(g.n, c);
   let owner: ObjReading['owner'] | undefined;
-  if (t.counter) {
-    const k = (g.counter ?? '').toLowerCase();
-    res.push(k === '' || k === 'a' || k === 'one' ? 'counters:any' : `counters:${k}`);
-  }
+  let head: string | undefined;
+  let unread: string | undefined;
+  const objMode = t.obj ?? mode;
+  if (t.counter && !t.counterSupplies) res.push(counterRes(g.counter));
   if (t.obj && g.obj !== undefined) {
-    const o = resolveObj(g.obj, t.obj ?? mode, c);
+    const o = resolveObj(g.obj, objMode, c);
     owner = o.owner;
     other = o.other;
+    head = o.head;
+    unread = o.unread;
     if (count === undefined) count = o.count;
+    // "You control" or "your" may sit outside the object ("a creature you control dies").
+    if (owner === 'any' && (YOURS_RE.test(m[0]) || /^\s*(?:whenever |when )?you\b/i.test(m[0])))
+      owner = 'you';
     if (o.owner === 'opp') return { res: [], other, owner };
     let objRes = o.res;
-    if (objRes.length === 0 && t.ubiquitous && o.owner === 'you') objRes = [...t.ubiquitous];
+    if (objRes.length === 0 && t.ubiquitous && owner === 'you') objRes = [...t.ubiquitous];
     res.push(...objRes);
-    if (t.also && objRes.length) {
-      const builtIn = c.cfg.vocabulary.builtInSacrifice.map((s) => `subtype:${s}`);
-      if (!o.res.some((r) => builtIn.includes(r))) res.push(...t.also);
-    } else if (t.also && !t.ubiquitous) res.push(...t.also);
-  } else if (t.also) res.push(...t.also);
-  if (g.color) {
-    const col = COLOR_WORDS[g.color.toLowerCase()];
-    res = res.map((r) => r.replace('{C}', col ?? 'C'));
   }
-  return { res, other, ...(count !== undefined ? { count } : {}), ...(owner ? { owner } : {}) };
+  if (g.color) {
+    const cols = [g.color, g.color2]
+      .filter((x): x is string => !!x)
+      .map((x) => COLOR_WORDS[x.toLowerCase()] ?? 'C')
+      .sort()
+      .join('');
+    res = res.map((r) => r.replace('{C}', cols));
+  }
+  const notSelf = t.notSelf || objMode === 'card' || objMode === 'cast';
+  return {
+    res,
+    other,
+    ...(count !== undefined ? { count } : {}),
+    ...(owner ? { owner } : {}),
+    ...(head ? { head } : {}),
+    ...(notSelf ? { notSelf } : {}),
+    ...(unread ? { unread } : {}),
+  };
+}
+
+/** The ref fields a template read carries. */
+function refExtra(r: TemplateRead): Partial<NeedRef> {
+  return {
+    ...(r.count !== undefined && r.count > 1 ? { count: r.count } : {}),
+    ...(r.other ? { other: true } : {}),
+    ...(r.head ? { head: r.head } : {}),
+    ...(r.notSelf ? { notSelf: true } : {}),
+  };
 }
 
 function supplyOfTemplate(t: NeedTemplate, m: RegExpMatchArray, c: Compiled): string[] {
   const out = [...(t.supplies ?? [])];
-  if (t.supply && m.groups?.obj !== undefined) {
-    const o = resolveObj(m.groups.obj, t.obj ?? 'token', c);
+  const g = m.groups ?? {};
+  if (t.supply && g.obj !== undefined) {
+    const o = resolveObj(g.obj, t.obj ?? 'token', c);
     out.push(...o.res);
     if ((t.obj ?? 'token') === 'token') {
       if (o.res.some((r) => r.startsWith('subtype:') && isArtifactSubtype(r, c)))
         out.push(ARTIFACT_RES);
     }
   }
-  if (t.counter) {
-    const k = (m.groups?.counter ?? '').toLowerCase();
-    out.push('counters:any');
-    if (k && k !== 'a' && k !== 'one') out.push(`counters:${k}`);
+  if ((t.counter && (t.supply || t.supplies)) || t.counterSupplies) {
+    const k = (g.counter ?? '').toLowerCase();
+    if (PLAYER_COUNTERS.test(k)) {
+      if (k === 'experience') out.push('experience');
+    } else {
+      out.push('counters:any');
+      if (k && k !== 'a' && k !== 'one') out.push(`counters:${k}`);
+    }
   }
+  // Milling three or more feeds the card's own graveyard needs of any kind.
+  const milled = /\bmills? (\w+) cards?\b/i.exec(m[0]);
+  if (milled && (numberOf(milled[1], c) ?? 0) >= 3) out.push('graveyard:*');
   return out;
 }
-
 function isArtifactSubtype(r: string, c: Compiled): boolean {
   return c.cfg.vocabulary.artifactTypes.includes(r.slice('subtype:'.length));
 }
@@ -928,23 +1199,31 @@ function splitCostVerbs(part: string, sep: string): string[] {
 /** Read a cost: each part must match a cost template. */
 function readCost(cost: string, f: Found, ctx: Ctx, place: NeedPlace, alternative: boolean): void {
   const c = ctx.c;
-  // Off-color mana: a symbol none of whose colors the card's cost has.
   for (const sym of cost.matchAll(/\{([^}]+)\}/g)) {
+    // Snow mana comes from snow permanents.
+    if (sym[1] === 'S') addRef(f, 'need', 'cost', ['type:snow'], sym[0], { notSelf: true });
+    // Mana outside the card's color identity, which no deck it can join holds.
     const parts = sym[1]!.split('/');
     const colored = parts.filter((p) => /^[WUBRG]$/.test(p));
-    if (colored.length && !colored.some((p) => ctx.colors.has(p)) && !parts.includes('2'))
+    if (colored.length && !colored.some((p) => ctx.identity.has(p)) && !parts.includes('2'))
       addRef(
         f,
         'need',
         'cost',
         colored.map((p) => `color:${p}`),
         sym[0],
-        {},
       );
   }
   const parts = splitTop(cost, ', ').flatMap((p) => splitCostVerbs(p, ' and '));
-  const alts = parts.flatMap((p) => splitCostVerbs(p.replace(/^and /i, ''), ' or '));
-  const isAlt = alternative || alts.length > parts.length;
+  const alts = parts.flatMap((p) => splitCostVerbs(p.replace(/^(?:and|or) /i, ''), ' or '));
+  // "A, B, or C" and "A or B" are choices.
+  const isAlt = alternative || alts.length > parts.length || /, or /.test(cost);
+  // "Behold a Dragon or pay {1}": the mana the other choice costs.
+  let orPay = 0;
+  for (const a of alts) {
+    const pay = /^pay ((?:\{\d+\})+)\.?$/i.exec(a.trim());
+    if (pay) for (const d of pay[1]!.matchAll(/\d+/g)) orPay += Number(d[0]);
+  }
   for (const raw of alts) {
     const part = raw.trim().replace(/\.$/, '');
     if (!part) continue;
@@ -957,10 +1236,12 @@ function readCost(cost: string, f: Found, ctx: Ctx, place: NeedPlace, alternativ
       f.supplies.push(...supplyOfTemplate(tpl.t, m, c));
       if (tpl.t.supply || (tpl.t.supplies && !tpl.t.res && !tpl.t.obj && !tpl.t.counter)) break;
       const r = templateRefs(tpl.t, m, c, 'yours');
-      addRef(f, isAlt ? 'bonus' : (tpl.t.kind ?? 'need'), place, r.res, part, {
-        ...(r.count !== undefined && r.count > 1 ? { count: r.count } : {}),
-        ...(r.other ? { other: true } : {}),
-      });
+      if (r.unread) f.unparsed.push(`unread qualifier ${r.unread}: ${shape(part, ctx)}`);
+      // Paying while casting: the card is not yet where it could count itself.
+      const extra = refExtra(r);
+      if (place === 'additionalCost') extra.notSelf = true;
+      if (isAlt && orPay && place === 'additionalCost') extra.orPay = orPay;
+      addRef(f, isAlt ? 'bonus' : (tpl.t.kind ?? 'need'), place, r.res, part, extra);
       break;
     }
     if (!hit) {
@@ -970,39 +1251,48 @@ function readCost(cost: string, f: Found, ctx: Ctx, place: NeedPlace, alternativ
   }
 }
 
+/** A catch-all template reads only words that name no resource; those are noted as game state. */
+function catchAllHit(tpl: Template, text: string, f: Found, what: string, ctx: Ctx): boolean {
+  if (!tpl.t.catchAll) return false;
+  if (gameState(text, ctx.c)) f.gameState.push(`${what}: ${shape(text, ctx)}`);
+  return true;
+}
+
 /** Read a trigger event; returns the effect text after it. */
 function readTrigger(sentence: string, f: Found, ctx: Ctx): string {
   const lead = /^(When|Whenever|At)\s+/i.exec(sentence)!;
   const pos = lead[0].length;
   const c = ctx.c;
-  {
-    const rest = sentence.slice(pos);
-    let hit: { tpl: Template; m: RegExpExecArray } | undefined;
-    for (const tpl of c.trigger) {
-      const m = tpl.re.exec(rest);
-      if (m) {
-        hit = { tpl, m };
-        break;
-      }
-    }
-    if (!hit) {
-      const end = rest.indexOf(', ');
-      const event = end >= 0 ? rest.slice(0, end) : rest;
-      if (gameState(event, c)) f.gameState.push(`trigger: ${shape(event, ctx)}`);
-      else f.unparsed.push(`trigger: ${shape(event, ctx)}`);
-      return end >= 0 ? rest.slice(end + 2) : '';
-    }
-    const { tpl, m } = hit;
-    if (!tpl.t.ignore) {
-      f.supplies.push(...(tpl.t.supplies ?? []));
-      const r = templateRefs(tpl.t, m, c, 'yours');
-      addRef(f, tpl.t.kind ?? 'need', 'trigger', r.res, m[0], {
-        ...(r.count !== undefined && r.count > 1 ? { count: r.count } : {}),
-        ...(r.other ? { other: true } : {}),
-      });
-    }
-    return sentence.slice(pos + m[0].length).replace(/^, /, '');
+  const rest = sentence.slice(pos);
+  let hit: { tpl: Template; m: RegExpExecArray } | undefined;
+  for (const tpl of c.trigger) {
+    const m = tpl.re.exec(rest);
+    if (!m) continue;
+    // A catch-all takes only an event that names no resource.
+    if (tpl.t.catchAll && !gameState(m[0], c)) continue;
+    hit = { tpl, m };
+    break;
   }
+  if (!hit) {
+    const end = rest.indexOf(', ');
+    const event = end >= 0 ? rest.slice(0, end) : rest;
+    if (gameState(event, c)) f.gameState.push(`trigger: ${shape(event, ctx)}`);
+    else f.unparsed.push(`trigger: ${shape(event, ctx)}`);
+    return end >= 0 ? rest.slice(end + 2) : '';
+  }
+  const { tpl, m } = hit;
+  if (catchAllHit(tpl, m[0], f, 'trigger', ctx)) {
+    // Noted as game state.
+  } else if (!tpl.t.ignore) {
+    f.supplies.push(...(tpl.t.supplies ?? []));
+    const r = templateRefs(tpl.t, m, c, 'yours');
+    if (r.unread) f.unparsed.push(`unread qualifier ${r.unread}: ${shape(m[0], ctx)}`);
+    addRef(f, tpl.t.kind ?? 'need', 'trigger', r.res, m[0], refExtra(r));
+    // "Whenever you discard a Spirit card": the discard as well as the Spirit.
+    const also = (tpl.t.also ?? []).filter((x) => !r.res.includes(x));
+    if (also.length) addRef(f, tpl.t.kind ?? 'need', 'trigger', also, m[0]);
+  }
+  return sentence.slice(pos + m[0].length).replace(/^, /, '');
 }
 
 /** Read one condition body; returns the refs' resources or reports it unparsed. */
@@ -1016,30 +1306,44 @@ function readCondition(
 ): void {
   const c = ctx.c;
   const text = body.trim();
+  // "It's blocking and you control a snow land": each part is its own condition.
+  const parts = text.split(/ and (?=you control |there (?:is|are) |you have )/i);
+  if (parts.length > 1) {
+    for (const p of parts) readCondition(p, marker, main, sentence, f, ctx);
+    return;
+  }
   for (const tpl of c.condition) {
     const m = tpl.re.exec(text);
     if (!m) continue;
+    if (tpl.t.catchAll && !gameState(text, c)) continue;
+    if (catchAllHit(tpl, text, f, `condition: ${marker}`, ctx)) return;
     if (tpl.t.ignore) return;
     const r = templateRefs(tpl.t, m, c, 'yours');
     if (r.owner === 'opp') return;
+    if (r.unread) f.unparsed.push(`unread qualifier ${r.unread}: ${shape(text, ctx)}`);
     const harm = harmOf(main, c);
     let kind: RefKind;
     const instead = /\binstead\b/i.test(sentence) && !tpl.t.event;
+    const costCheck = c.bonusSentence.test(sentence);
     if (tpl.t.kind) kind = tpl.t.kind;
-    else if (instead || c.bonusSentence.test(sentence)) kind = 'bonus';
+    else if (instead || costCheck) kind = 'bonus';
     else if (marker === 'unless') kind = harm ? 'drawback' : 'need';
-    else if (tpl.t.negated) kind = harm ? 'drawback' : 'need';
-    else if (marker === 'as long as') {
+    else if (tpl.t.negated) {
+      // "If you don't control a Food, create a Food" asks for nothing.
+      if (!harm) return;
+      kind = 'drawback';
+    } else if (marker === 'as long as') {
       if (harm) kind = 'drawback';
-      else if (c.statOnly.test(main.trim()) && ctx.hasBody) kind = 'bonus';
+      else if (c.statOnly.test(main.trim()) && ctx.hasBody && ctx.lines > 1) kind = 'bonus';
       else kind = 'need';
     } else if (/\b(?:also|additionally|as well)\b/i.test(main)) kind = 'bonus';
     else kind = 'need';
     const place: NeedPlace = instead ? 'replacement' : 'condition';
-    const extra = (count: number | undefined, other: boolean): Partial<NeedRef> => ({
-      ...(count !== undefined && count > 1 ? { count } : {}),
-      ...(other ? { other: true } : {}),
+    const extra = (read: { count?: number; other: boolean; head?: string }): Partial<NeedRef> => ({
+      ...refExtra({ res: [], ...read }),
       ...(kind === 'drawback' && harm ? { harm } : {}),
+      // A cost reduction is checked while the card is cast: it cannot count itself.
+      ...(costCheck || r.notSelf ? { notSelf: true } : {}),
     });
     // "You control an artifact and an enchantment" asks for both: one ref each.
     const obj = m.groups?.obj;
@@ -1047,11 +1351,11 @@ function readCondition(
     if (both.length > 1) {
       for (const part of both) {
         const o = resolveObj(part, tpl.t.obj!, c);
-        addRef(f, kind, place, o.res, `${marker} ${text}`, extra(o.count, o.other));
+        addRef(f, kind, place, o.res, `${marker} ${text}`, extra(o));
       }
       return;
     }
-    addRef(f, kind, place, r.res, `${marker} ${text}`, extra(r.count, r.other));
+    addRef(f, kind, place, r.res, `${marker} ${text}`, extra(r));
     return;
   }
   if (gameState(text, c)) f.gameState.push(`condition: ${marker} ${shape(text, ctx)}`);
@@ -1065,22 +1369,38 @@ function splitBoth(obj: string): string[] {
 
 const MARKER = /(^|[\s,—])(if|unless|as long as|only if)\s+/gi;
 
+/** An effect on every deck's creatures before " and ": what follows it is extra ("and a loyalty counter on each planeswalker"). */
+const UNCONDITIONAL_BEFORE =
+  /\b(?:each creature you control|creatures you control|target creature(?: you control)?|each creature|~)\b[^.]*\band\b[^.]*$/i;
+
 /** Read one sentence of effect text. */
 function readSentence(raw: string, ctx: Ctx, prev: Found | undefined, abilityLevel: Found): Found {
   const c = ctx.c;
   const f = newFound();
   let s = raw.replace(/^(?:then|and),? /i, '').trim();
-  // Quoted abilities a card grants are read as abilities of their own.
-  s = s.replace(/"([^"]*)"/g, (_all, inner: string) => {
+  // Quoted abilities a card grants are read as abilities of their own, except a
+  // tax it puts on every player and the abilities of a token it makes (which
+  // only make the token better).
+  s = s.replace(/"([^"]*)"/g, (all, inner: string, at: number) => {
+    const before = s.slice(0, at);
+    if (/\bcosts? an additional $/i.test(before)) return `"${blank(inner)}"`;
     const sub = readAbilityText(inner, ctx, 'static');
-    f.refs.push(...sub.refs);
+    const onToken = /\bcreates?\b[^."]*\btokens?\b[^."]*$/i.test(before);
+    const quiet =
+      /\b(?:your opponents|an opponent|each opponent|each player|target opponent) (?:control|controls)\b[^."]*$/i.test(
+        before,
+      );
+    if (!quiet)
+      for (const ref of sub.refs)
+        f.refs.push(onToken && ref.kind === 'need' ? { ...ref, kind: 'bonus' } : ref);
     f.supplies.push(...sub.supplies);
     f.unparsed.push(...sub.unparsed);
     f.gameState.push(...sub.gameState);
+    void all;
     return `"${blank(inner)}"`;
   });
   // "If you do" depends on the optional action before it; "If you don't" on its absence.
-  const link = /^(?:if|when) you (do|don't|can't|didn't|did)\b,? ?/i.exec(s);
+  const link = /^(?:if|when) you (do|don't|can't|didn't|did)(?=,|\.|\s*$),? ?/i.exec(s);
   if (link && prev) {
     const negative = link[1]!.toLowerCase() !== 'do' && link[1]!.toLowerCase() !== 'did';
     const harm = harmOf(s.slice(link[0].length), c);
@@ -1101,28 +1421,43 @@ function readSentence(raw: string, ctx: Ctx, prev: Found | undefined, abilityLev
   // Conditions.
   let work = s;
   let conditions = link ? 1 : 0;
+  const condRefs: NeedRef[] = [];
   for (const m of [...s.matchAll(MARKER)]) {
     const marker = m[2]!.toLowerCase();
     const at = m.index! + m[1]!.length;
     const bodyStart = m.index! + m[0].length;
     const rest = s.slice(bodyStart);
-    let end = rest.search(/,(?! or | and )|\.|;|—| instead\b/);
+    // A comma ends the condition unless a list goes on ("an artifact, or an enchantment").
+    let end = rest.search(
+      /,(?! (?:or|and|and\/or) (?:an?|another|two|three|four|five|\w+ or more)\b)|\.|;|—| instead\b/,
+    );
     if (end < 0) end = rest.length;
     const body = rest.slice(0, end);
     if (work.slice(at, bodyStart + end).includes(BLANK)) continue;
     const main = s.slice(0, at) + s.slice(bodyStart + end);
     const sub = newFound();
     readCondition(body, marker, main, s, sub, ctx);
-    target.refs.push(...sub.refs);
+    condRefs.push(...sub.refs);
     f.unparsed.push(...sub.unparsed);
     f.gameState.push(...sub.gameState);
     work = work.slice(0, at) + blank(work.slice(at, bodyStart + end)) + work.slice(bodyStart + end);
     conditions++;
   }
+  // Parallel conditions on land types, each with its own effect ("from white if you
+  // control a Plains, from blue if you control an Island"): any one does something.
+  const lands = condRefs.filter((r) => r.anyOf.every((x) => x.startsWith('land:')));
+  if (
+    lands.length > 1 &&
+    lands.length === condRefs.length &&
+    new Set(lands.map((r) => r.kind)).size === 1
+  )
+    target.refs.push({ ...lands[0]!, anyOf: [...new Set(lands.flatMap((r) => r.anyOf))] });
+  else target.refs.push(...condRefs);
   // "Instead" belongs to the condition that chose it.
   if (conditions > 0) work = work.replace(/\binstead\b/gi, (w) => blank(w));
   // Effect templates, in order; each match is blanked so later ones see the rest.
   const bonus = c.bonusSentence.test(s);
+  const firstEffectRef = f.refs.length;
   for (const tpl of c.effect) {
     tpl.re.lastIndex = 0;
     const hits = [...work.matchAll(tpl.re)];
@@ -1133,17 +1468,24 @@ function readSentence(raw: string, ctx: Ctx, prev: Found | undefined, abilityLev
       if (tpl.t.typed && templateRefs(tpl.t, m, c, tpl.t.obj ?? 'yours').res.length === 0) continue;
       work = work.slice(0, m.index!) + blank(m[0]) + work.slice(m.index! + m[0].length);
       if (tpl.t.ignore) continue;
-      f.supplies.push(...supplyOfTemplate(tpl.t, m, c));
+      const made = supplyOfTemplate(tpl.t, m, c);
+      f.supplies.push(...made);
+      if (made.length) f.supplyAt.push([m.index!, made]);
       if (tpl.t.supply || (tpl.t.supplies && !tpl.t.res && !tpl.t.obj && !tpl.t.counter)) continue;
       const r = templateRefs(tpl.t, m, c, tpl.t.obj ?? 'yours');
+      if (r.unread) f.unparsed.push(`unread qualifier ${r.unread}: ${shape(m[0], ctx)}`);
       const place = tpl.t.place ?? 'selection';
       let kind: RefKind = tpl.t.kind ?? 'need';
       if (bonus) kind = 'bonus';
       else if (place === 'count' && countHasBase(s, ctx)) kind = 'bonus';
-      const ref = addRef(f, kind, place, r.res, m[0], {
-        ...(r.count !== undefined && r.count > 1 ? { count: r.count } : {}),
-        ...(r.other ? { other: true } : {}),
-      });
+      else if (kind === 'need' && UNCONDITIONAL_BEFORE.test(s.slice(0, m.index!))) kind = 'bonus';
+      const last = f.refs.length > firstEffectRef ? f.refs[f.refs.length - 1] : undefined;
+      if (tpl.t.join && last) {
+        last.anyOf = [...new Set([...last.anyOf, ...r.res])];
+        continue;
+      }
+      const ref = addRef(f, kind, place, r.res, m[0], refExtra(r));
+      if (ref) f.refAt.set(ref, m.index!);
       if (ref && tpl.t.optional) {
         f.refs.pop();
         f.optional.push(ref);
@@ -1172,10 +1514,25 @@ function sentenceAround(work: string, _at: number): string {
   return work.replace(new RegExp(`${BLANK}+`, 'g'), '…');
 }
 
-/** A count scales an effect above a base: the card's own stats, or "an additional" amount. */
+/**
+ * A count scales an effect above a base: "an additional" amount, the card's
+ * own body ("~ gets +1/+1 for each", "enters with a +1/+1 counter for each"),
+ * or another effect beside it ("for each Gate you control and have vigilance").
+ */
 function countHasBase(s: string, ctx: Ctx): boolean {
-  if (/\b(?:additional|plus)\b[^.]*\bfor each\b/i.test(s)) return true;
-  if (ctx.hasBody && /^~ gets [+-][\dX]+\/[+-][\dX]+[^.]*\bfor each\b/i.test(s)) return true;
+  if (/\b(?:additional|plus)\b[^.]*\b(?:for each|number of)\b/i.test(s)) return true;
+  if (/\band (?:have|has|gains?|get|gets) \w+/i.test(s) && /\bfor each\b/i.test(s)) return true;
+  if (!ctx.hasBody) return false;
+  if (/^(?:~|it) gets [+-][\dX]+\/[+-][\dX]+[^.]*\b(?:for each|where x is|equal to)\b/i.test(s))
+    return true;
+  if (/(?:^|\s)~ enters with\b[^.]*\bcounters? on it\b[^.]*\b(?:for each|equal to)\b/i.test(s))
+    return true;
+  if (
+    /\bput (?:a number of|x|that many) [^.]*\bcounters? on (?:it|~)\b[^.]*\b(?:for each|equal to)\b/i.test(
+      s,
+    )
+  )
+    return true;
   return false;
 }
 
@@ -1207,7 +1564,9 @@ interface AbilityRead {
 }
 
 function isCostPrefix(prefix: string): boolean {
-  if (prefix.includes('"')) return false;
+  // A trigger or a nested quote ("... and '{R}: ...'") is not a cost.
+  if (prefix.includes('"') || prefix.includes("'{") || /^(?:When|Whenever|At)\b/i.test(prefix))
+    return false;
   if (/\{/.test(prefix)) return true;
   if (/^[+-]?(?:\d+|X)$/.test(prefix)) return true;
   return /^(?:sacrifice|discard|exile|pay|tap|untap|remove|return|put|collect evidence|forage|reveal|mill|behold|exert|blight)\b/i.test(
@@ -1279,8 +1638,31 @@ function readAbilityText(text: string, ctx: Ctx, fallback: AbilityShape): Abilit
     out.gameState.push(...found.gameState);
     prev = found;
   }
-  out.refs = [...level.refs, ...out.sentences.flatMap((s) => s.found.refs)];
+  // A trigger whose effect only harms its owner ("whenever you lose life,
+  // discard that many cards") rewards nothing: the event is no need.
+  if (
+    shapeOf === 'triggered' &&
+    out.sentences.length > 0 &&
+    out.sentences.every((x) => x.found.refs.length === 0 && purelyHarmful(x.text, ctx.c))
+  )
+    level.refs.splice(0, level.refs.length, ...level.refs.filter((r) => r.place !== 'trigger'));
+  out.refs = [...level.refs, ...out.sentences.flatMap((x) => x.found.refs)];
   return out;
+}
+
+/** An effect that only harms its owner: a harmful clause and nothing a player wants. */
+function purelyHarmful(text: string, c: Compiled): boolean {
+  void c;
+  // Harm to its owner, with nothing aimed at an opponent or a target and nothing gained.
+  if (
+    !/\b(?:you lose \w+ life|discard (?:a|that many|\w+) cards?|sacrifice (?:a|an|~|it|that many|\w+) ?\w*|you lose the game|deals? \w+ damage to you)\b/i.test(
+      text,
+    )
+  )
+    return false;
+  return !/\b(?:draws?|create|creates|gains?|return|search|target|each opponent|an opponent|each player|deals? (?:\w+ )?damage to (?:any|target|each opponent|each creature)|put (?:a|an|\w+) \+1\/\+1)\b/i.test(
+    text,
+  );
 }
 
 const KEYWORD_PART =
@@ -1300,8 +1682,8 @@ function keywordParts(line: string): string[] {
 }
 
 /** Whether a line is a list of keyword abilities ("Flying, trample", "Ward—Discard a card."). */
-function keywordLine(line: string, card: CardRecord): boolean {
-  const kws = card.keywords.map((k) => k.toLowerCase());
+function keywordLine(line: string, card: CardRecord, c: Compiled): boolean {
+  const kws = card.keywords.map((k) => k.toLowerCase()).filter((k) => !c.keywordActions.has(k));
   if (kws.length === 0) return false;
   return keywordParts(line).every((part) => {
     const lower = part.toLowerCase();
@@ -1352,29 +1734,42 @@ function keywordRefs(line: string, f: Found, ctx: Ctx): void {
   }
 }
 
+/** What the card's keywords make by their reminder text ("Adapt 2": +1/+1 counters; "Amass Zombies 2": a Zombie Army). */
+function keywordSupply(text: string, card: CardRecord, c: Compiled): string[] {
+  const out: string[] = [];
+  const have = new Set(card.keywords.map((k) => k.toLowerCase()));
+  for (const [kw, list] of Object.entries(c.cfg.keywordSupplies)) {
+    if (!have.has(kw.toLowerCase())) continue;
+    if (!new RegExp(`\\b${escapeRe(kw)}\\b`, 'i').test(text)) continue;
+    out.push(...list);
+  }
+  const amass = /\bamass ([A-Z][\w'-]*) /.exec(text);
+  const army = amass && c.typeRes.get(amass[1]!);
+  if (army) out.push(army);
+  return out;
+}
+
+const TRIGGERED_MODAL =
+  /\bchoose (?:one|two|three|one or more|one or both|any number|up to \w+)(?: or both| or more)?(?: that hasn't been chosen(?: this turn)?)? —$/i;
+
 function readCard(card: CardRecord, config: BulkBrewConfig): CardNeeds {
   const c = compiledFor(config);
+  const all = lines(card);
   const ctx: Ctx = {
     c,
     card,
     names: selfNames(card),
     hasBody: card.power !== undefined || card.types.includes('planeswalker'),
-    // Off-color mana is read against the cost a nonland card is cast for; lands have only their identity.
-    colors: new Set(
-      card.types.includes('land')
-        ? card.identity
-        : [
-            ...(card.manaCost ?? ''),
-            ...(card.faces ?? []).flatMap((f) => [...(f.manaCost ?? '')]),
-          ].filter((ch) => 'WUBRG'.includes(ch)),
-    ),
+    identity: new Set(card.identity),
+    lines: all.length,
   };
   const abilities: CardAbility[] = [];
   /** What the earlier sentences of a ref's own ability make. */
   const earlier = new Map<NeedRef, Set<string>>();
   let level: number | undefined;
   let header: number | undefined;
-  for (const l of lines(card)) {
+  let headerRefs: NeedRef[] = [];
+  for (const l of all) {
     let text = l.text;
     let shapeOf: AbilityShape | undefined;
     let parent: number | undefined;
@@ -1395,9 +1790,10 @@ function readCard(card: CardRecord, config: BulkBrewConfig): CardNeeds {
       shapeOf = 'mode';
       text = text.slice(2);
       parent = header;
-    } else if (/^\+ (?:\{[^}]+\})+ — /.test(text)) {
+    } else if (/^\+ (?:\{[^}]+\})+ — /.test(text) || /^(?:\{P\})+ — /.test(text)) {
+      // Spree and Season modes.
       shapeOf = 'mode';
-      text = text.replace(/^\+ (?:\{[^}]+\})+ — /, '');
+      text = text.replace(/^(?:\+ )?(?:\{[^}]+\})+ — /, '');
       parent = header;
     } else header = undefined;
     // Ability words ("Infusion — ") name nothing; a braced prefix is a keyword line.
@@ -1410,7 +1806,8 @@ function readCard(card: CardRecord, config: BulkBrewConfig): CardNeeds {
     const n = normalize(text, ctx);
     const f = newFound();
     let read: AbilityRead | undefined;
-    if (!shapeOf && !lv && (keyword || keywordLine(n, card))) {
+    let isHeader = false;
+    if (!shapeOf && !lv && (keyword || keywordLine(n, card, c))) {
       shapeOf = 'keyword';
       keywordRefs(n, f, ctx);
       // Keyword actions and lifelink on a keyword line still supply ("Investigate.").
@@ -1430,14 +1827,20 @@ function readCard(card: CardRecord, config: BulkBrewConfig): CardNeeds {
       const modal =
         /^Choose (?:one|two|three|one or more|any number|up to \w+)\b[^.—]*(?:—|\.)\s*/i.exec(n);
       if (modal) {
-        header = abilities.length;
+        isHeader = true;
         shapeOf = 'modal';
         read = readAbilityText(n.slice(modal[0].length).trim() || '.', ctx, 'modal');
-      } else read = readAbilityText(n, ctx, fallback);
+      } else {
+        read = readAbilityText(n, ctx, fallback);
+        // "Whenever you cast a spell, choose one —": the bullets share the trigger.
+        isHeader = !shapeOf && TRIGGERED_MODAL.test(n);
+      }
       shapeOf = shapeOf ?? read.shape;
     }
-    const refs = read ? read.refs : f.refs;
-    const levelRefs = read?.level.refs ?? [];
+    // A bullet carries its header's trigger, cost, and conditions.
+    const inherited = shapeOf === 'mode' && parent !== undefined ? headerRefs : [];
+    const refs = [...inherited, ...(read ? read.refs : f.refs)];
+    const levelRefs = [...inherited, ...(read?.level.refs ?? [])];
     // Clause offsets come from the printed line, sentence for sentence, so theme rules map onto them.
     const printed = sentences(l.text);
     const same = read !== undefined && printed.length === read.sentences.length;
@@ -1454,6 +1857,24 @@ function readCard(card: CardRecord, config: BulkBrewConfig): CardNeeds {
           };
         })
       : [];
+    // "Return target multicolored card ... If that card was all colors, draw": the
+    // later sentence acts on the earlier one's object, so it shares its needs.
+    if (read && same)
+      for (let i = 1; i < clauses.length; i++) {
+        if (
+          !/^If (?:that card|that creature|that permanent|it|they|those cards)\b/i.test(
+            read.sentences[i]!.text,
+          )
+        )
+          continue;
+        const prev = clauses[i - 1]!.refs.filter(
+          (r) => r.kind === 'need' && r.place === 'selection',
+        );
+        if (!prev.length) continue;
+        const cl = clauses[i]!;
+        cl.refs = [...new Set([...cl.refs, ...prev])];
+        cl.kind = kindOf(cl.refs);
+      }
     if (read && clauses.length === 0)
       clauses.push({
         start: l.start,
@@ -1474,12 +1895,22 @@ function readCard(card: CardRecord, config: BulkBrewConfig): CardNeeds {
     if (read) {
       const before = new Set<string>();
       for (const s of read.sentences) {
-        for (const ref of s.found.refs) earlier.set(ref, new Set(before));
+        for (const ref of s.found.refs) {
+          const at = s.found.refAt.get(ref);
+          const set = new Set(before);
+          if (at !== undefined)
+            for (const [where, made] of s.found.supplyAt)
+              if (where < at) for (const x of made) set.add(x);
+          earlier.set(ref, set);
+        }
         for (const x of s.found.supplies) before.add(x);
       }
     }
     const unparsed = read ? read.unparsed : f.unparsed;
     const state = read ? read.gameState : f.gameState;
+    const supplies = [
+      ...new Set([...(read ? read.supplies : f.supplies), ...keywordSupply(n, card, c)]),
+    ];
     const ab: CardAbility = {
       face: l.face,
       text: l.text,
@@ -1490,7 +1921,7 @@ function readCard(card: CardRecord, config: BulkBrewConfig): CardNeeds {
       refs,
       clauses,
       kind: kindOf(refs),
-      supplies: [...new Set(read ? read.supplies : f.supplies)],
+      supplies,
       ...(level !== undefined && (lv || card.layout === 'class' || card.layout === 'leveler')
         ? { level }
         : {}),
@@ -1498,55 +1929,105 @@ function readCard(card: CardRecord, config: BulkBrewConfig): CardNeeds {
       ...(unparsed.length ? { unparsed: unparsed[0]! } : {}),
       ...(state.length ? { gameState: state } : {}),
     };
-    // A clause in an unparsed ability needs what its words name.
+    // A clause in an unparsed ability needs what its words name, apart from what
+    // the ability makes itself; when its words name nothing, only the report knows.
     if (ab.unparsed) {
-      const named = namedResources(n, c);
-      const ref: NeedRef = {
-        kind: 'need',
-        place: 'unparsed',
-        anyOf: named,
-        self: false,
-        text: ab.unparsed,
-      };
-      ab.refs = [...ab.refs, ref];
-      for (const cl of ab.clauses) {
-        cl.refs = [...cl.refs, ref];
-        cl.kind = 'need';
+      const named = namedResources(n, c).filter((r) => !supplies.includes(r));
+      if (named.length) {
+        const ref: NeedRef = {
+          kind: 'need',
+          place: 'unparsed',
+          anyOf: named,
+          self: false,
+          text: ab.unparsed,
+        };
+        ab.refs = [...ab.refs, ref];
+        for (const cl of ab.clauses) {
+          cl.refs = [...cl.refs, ref];
+          cl.kind = 'need';
+        }
+        ab.kind = 'need';
       }
-      ab.kind = 'need';
+    }
+    if (isHeader) {
+      header = abilities.length;
+      headerRefs = read?.level.refs ?? [];
     }
     abilities.push(ab);
   }
+  backReferences(abilities);
   // Self-supply: the card's types, what its other abilities make, and what an
   // earlier sentence of the same ability makes (a sentence that needs what it
-  // makes itself would be circular).
+  // makes itself would be circular). An ability supplies only once its own
+  // needs are met, so the pass repeats until nothing changes.
   const typeSupplies = new Set(typesSupply(card, c));
   const supplies = new Set<string>(typeSupplies);
   for (const a of abilities) for (const s of a.supplies) supplies.add(s);
   const selfSupplies = new Set<string>();
-  for (const a of abilities) {
-    const textSupply = new Set<string>();
-    for (const b of abilities) {
-      if (b === a) continue;
-      for (const s of b.supplies) textSupply.add(s);
-    }
-    for (const ref of a.refs) {
-      if (ref.place === 'unparsed') continue;
-      // Being the type counts once: not for "another", nor for "three or more".
-      const byType = !ref.other && (ref.count ?? 1) <= 1;
-      const hit = ref.anyOf.find(
-        (r) =>
-          textSupply.has(r) ||
-          earlier.get(ref)?.has(r) ||
-          (byType &&
-            !r.startsWith('cast:') &&
-            !r.startsWith('graveyard:') &&
-            typeSupplies.has(r)) ||
-          (byType && r.startsWith('tribe:') && typeSupplies.has('tribe:*')),
-      );
-      if (hit) {
-        ref.self = true;
-        selfSupplies.add(hit);
+  const pips = pipsOf(card);
+  // What another ability makes counts once that ability's own needs are met:
+  // a supplier with an open need supplies "via" that need (`selfVia`), which
+  // needMet checks in the deck.
+  const openNeeds = (a: CardAbility) => a.refs.filter((r) => r.kind === 'need' && !r.self);
+  for (let pass = 0; pass < 2; pass++) {
+    for (const a of abilities) {
+      const textSupply = new Map<string, NeedRef[]>();
+      for (const b of abilities) {
+        if (b === a) continue;
+        const via = openNeeds(b);
+        for (const s of b.supplies) {
+          const had = textSupply.get(s);
+          if (!had || via.length < had.length) textSupply.set(s, via);
+        }
+      }
+      for (const ref of a.refs) {
+        if (ref.place === 'unparsed' || (ref.self && !ref.selfVia)) continue;
+        // Being the object counts when the card can be it: not for "another", a
+        // spell it reduces, a card it searches for, or a type it is not ("a legendary creature").
+        const byType =
+          !ref.other && !ref.notSelf && (!ref.head || card.types.includes(ref.head as CardType));
+        const asType = (r: string) =>
+          byType &&
+          !r.startsWith('cast:') &&
+          !r.startsWith('graveyard:') &&
+          (typeSupplies.has(r) || (r.startsWith('tribe:') && typeSupplies.has('tribe:*')));
+        // Milling three or more feeds a graveyard need of a card type.
+        const milled = (r: string) =>
+          /^graveyard:(?:any|creature|land|instant-sorcery|artifact|enchantment)$/.test(r);
+        const sameAbility = (r: string) =>
+          !!earlier.get(ref)?.has(r) || (milled(r) && !!earlier.get(ref)?.has('graveyard:*'));
+        const fromOther = (r: string) =>
+          textSupply.get(r) ?? (milled(r) ? textSupply.get('graveyard:*') : undefined);
+        // "Five or more Vampires" is not met by the card's own one or its token maker alone.
+        const one = (ref.count ?? 1) <= 1;
+        let hit = ref.anyOf.find((r) => (sameAbility(r) || asType(r)) && one);
+        let via: NeedRef[] = [];
+        if (!hit && one) {
+          let best: [string, NeedRef[]] | undefined;
+          for (const r of ref.anyOf) {
+            const v = fromOther(r);
+            if (v && (!best || v.length < best[1].length)) best = [r, v];
+          }
+          if (best) [hit, via] = best;
+        }
+        if (hit) {
+          ref.self = true;
+          if (via.length) ref.selfVia = via.filter((v) => v !== ref);
+          else delete ref.selfVia;
+          selfSupplies.add(hit);
+          continue;
+        }
+        // The card is one of the N it counts: it supplies part of the need.
+        const part = ref.anyOf.find(
+          (r) =>
+            (asType(r) && r !== 'creatures') ||
+            sameAbility(r) ||
+            fromOther(r) !== undefined ||
+            (r.startsWith('devotion:') &&
+              byType &&
+              [...r.slice(9)].some((col) => (pips.get(col) ?? 0) > 0)),
+        );
+        if (part) selfSupplies.add(part);
       }
     }
   }
@@ -1559,6 +2040,34 @@ function readCard(card: CardRecord, config: BulkBrewConfig): CardNeeds {
       'unconditional',
     ),
   };
+}
+
+/**
+ * Lines that refer back to another: "When this land enters untapped" needs
+ * what lets the land enter untapped.
+ */
+function backReferences(abilities: CardAbility[]): void {
+  const tapped = abilities.find((a) =>
+    a.refs.some(
+      (r) => r.kind === 'drawback' && /enters? (?:the battlefield )?tapped/i.test(r.harm ?? ''),
+    ),
+  );
+  if (!tapped) return;
+  const cond = tapped.refs.filter((r) => r.kind === 'drawback');
+  for (const a of abilities) {
+    if (a === tapped || !/\benters? untapped\b/i.test(a.text)) continue;
+    const refs: NeedRef[] = cond.map(({ harm: _harm, ...r }) => ({
+      ...r,
+      kind: 'need',
+      place: 'condition',
+    }));
+    a.refs = [...a.refs, ...refs];
+    for (const cl of a.clauses) {
+      cl.refs = [...cl.refs, ...refs];
+      cl.kind = kindOf(cl.refs);
+    }
+    a.kind = kindOf(a.refs);
+  }
 }
 
 function kindOf(refs: readonly NeedRef[]): NeedKind {
@@ -1600,10 +2109,16 @@ function typesSupply(card: CardRecord, c: Compiled): string[] {
   }
   if (!card.types.includes('creature') && !card.types.includes('land')) out.add('type:noncreature');
   const front = card.typeLine.split('//')[0] ?? '';
-  if (/\bLegendary\b/.test(front)) out.add('type:legendary');
-  if (/\bSnow\b/.test(front)) out.add('type:snow');
+  const supers: string[] = [];
+  if (/\bLegendary\b/.test(front)) supers.push('legendary');
+  if (/\bSnow\b/.test(front)) supers.push('snow');
   if (/\bLegendary\b/.test(front) || card.types.includes('artifact') || /\bSaga\b/.test(front))
-    out.add('type:historic');
+    supers.push('historic');
+  for (const s of supers) {
+    out.add(`type:${s}`);
+    // "A legendary creature" counts the cards that are both.
+    for (const t of card.types) if (t !== 'kindred') out.add(`type:${s}&${t}`);
+  }
   for (const t of creatureTypes(card)) out.add(`tribe:${t}`);
   if (card.keywords.includes('Changeling')) out.add('tribe:*');
   for (const line of [card.typeLine, ...(card.faces ?? []).map((f) => f.typeLine)]) {
@@ -1614,7 +2129,16 @@ function typesSupply(card: CardRecord, c: Compiled): string[] {
       if (r && !r.startsWith('tribe:')) out.add(r);
     }
   }
+  // A Saga puts lore counters on itself.
+  if (/\bSaga\b/.test(front)) {
+    out.add('counters:lore');
+    out.add('counters:any');
+  }
   if (isCreature(card) && Number.parseInt(card.power ?? '', 10) >= 4) out.add('power');
+  if (card.colors.length > 1) out.add('colored:multi');
+  if (!card.types.includes('land')) for (const col of card.colors) out.add(`colored:${col}`);
+  if (card.keywords.some((k) => /^(?:multi)?kicker$/i.test(k))) out.add('kicked');
+  if (!card.types.includes('land')) out.add(`mv:${Math.min(Math.floor(card.mv), 16)}`);
   if (isCreature(card)) {
     out.add('creatures');
     for (const k of card.keywords) {
@@ -1655,11 +2179,14 @@ export interface CreditClause {
 
 export interface CreditReading {
   credit: string;
-  /** The least severe kind among the clauses that earn it; untied when no clause matched. */
-  kind: NeedKind | 'untied';
+  /**
+   * The least severe kind among the clauses that earn it; untied when no clause
+   * matched; absent when the config does not give the card this credit at all.
+   */
+  kind: NeedKind | 'untied' | 'absent';
   /** Alternatives: the credit is earned when one clause's needs are all met. */
   clauses: CreditClause[];
-  /** Drawbacks and required additional costs on the clause's face, which gate every credit. */
+  /** Drawbacks and required additional costs that harm what earns it. */
   gates: NeedRef[];
   /** Every resource the credit depends on. */
   resources: string[];
@@ -1680,12 +2207,46 @@ function bodyClause(card: CardRecord, p: CreditPattern): boolean {
   return false;
 }
 
+/**
+ * The refs a clause's credit waits on: its needs, and a condition or
+ * replacement in the clause itself that is only a bonus to the ability (the
+ * draw that happens only "instead" is earned only when the condition holds).
+ */
+function creditNeedRefs(cl: NeedClause, sentenceRefs: ReadonlySet<NeedRef>): NeedRef[] {
+  return cl.refs.filter(
+    (r) =>
+      r.kind === 'need' ||
+      (r.kind === 'bonus' &&
+        (r.place === 'condition' || r.place === 'replacement') &&
+        sentenceRefs.has(r)),
+  );
+}
+
+/** Refs that belong to a clause's own sentence, not its ability's trigger or cost. */
+function ownRefs(needs: CardNeeds): Map<NeedClause, Set<NeedRef>> {
+  const out = new Map<NeedClause, Set<NeedRef>>();
+  for (const a of needs.abilities) {
+    const shared =
+      a.clauses.length > 1
+        ? a.refs.filter((r) => a.clauses.every((cl) => cl.refs.includes(r)))
+        : [];
+    for (const cl of a.clauses) out.set(cl, new Set(cl.refs.filter((r) => !shared.includes(r))));
+  }
+  return out;
+}
+
 function clausesMatching(needs: CardNeeds, re: RegExp): CreditClause[] {
   const out: CreditClause[] = [];
+  const own = ownRefs(needs);
   needs.abilities.forEach((a, i) => {
     for (const cl of a.clauses) {
       if (!re.test(cl.text)) continue;
-      out.push({ ability: i, kind: cl.kind, needs: needRefs(cl.refs) });
+      const refs = creditNeedRefs(cl, own.get(cl)!);
+      out.push({
+        ability: i,
+        kind: refs.length && cl.kind !== 'need' ? 'need' : cl.kind,
+        needs: refs,
+      });
     }
   });
   return out;
@@ -1702,7 +2263,7 @@ function bodyCredit(): CreditClause {
 function patternClauses(
   card: CardRecord,
   needs: CardNeeds,
-  p: (CreditPattern & { re?: RegExp }) | undefined,
+  p: CompiledPattern | undefined,
   c: Compiled,
 ): CreditClause[] | 'always' {
   if (!p) return [];
@@ -1711,6 +2272,8 @@ function patternClauses(
   const out: CreditClause[] = [];
   if (bodyClause(card, p)) out.push(bodyCredit());
   if (p.re) out.push(...clausesMatching(needs, p.re));
+  // A weaker clause (surveil for card advantage) only when no strong one is there.
+  if (p.weak && !out.some((cl) => cl.ability >= 0)) out.push(...clausesMatching(needs, p.weak));
   return out;
 }
 
@@ -1723,6 +2286,7 @@ function themeClauses(
 ): CreditClause[] {
   const out: CreditClause[] = [];
   const weight = rule.rule.weight;
+  const own = ownRefs(needs);
   if (rule.text) {
     const text = ruleText(card);
     const re = new RegExp(rule.text.source, 'gim');
@@ -1731,10 +2295,16 @@ function themeClauses(
       const to = from + Math.max(1, m[0].length);
       needs.abilities.forEach((a, i) => {
         for (const cl of a.clauses)
-          if (cl.start < to && cl.end > from)
-            out.push({ ability: i, kind: cl.kind, needs: needRefs(cl.refs), weight });
+          if (cl.start < to && cl.end > from) {
+            const refs = creditNeedRefs(cl, own.get(cl)!);
+            out.push({
+              ability: i,
+              kind: refs.length && cl.kind !== 'need' ? 'need' : cl.kind,
+              needs: refs,
+              weight,
+            });
+          }
       });
-      if (out.length) break;
     }
     if (out.length) return dedupe(out);
   }
@@ -1769,9 +2339,9 @@ const creditCache = new WeakMap<CardRecord, WeakMap<BulkBrewConfig, Map<string, 
 /**
  * The clause a credit is tied to, its kind, and what it depends on. A credit
  * id is a role id (roles.json), `theme:<style>:<setup|payoff>` (theme rules,
- * read at `size` when given), or `strength:<label>` (card-strength.json
- * effects). It does not check that the card has the credit, only how it is
- * earned when it does.
+ * read at `size` when given, else at 60), or `strength:<label>`
+ * (card-strength.json effects). A credit the config does not give the card
+ * reads as absent.
  */
 export function creditNeeds(
   card: CardRecord,
@@ -1792,12 +2362,39 @@ export function creditNeeds(
   return out;
 }
 
+/** Whether the config gives the card a credit at all. */
+function creditGiven(
+  card: CardRecord,
+  credit: string,
+  config: BulkBrewConfig,
+  size: DeckSize | undefined,
+): boolean {
+  const theme = /^theme:([^:]+):(setup|payoff)$/.exec(credit);
+  if (theme) {
+    const style = themeRulesFor(config).styles.get(theme[1]!);
+    const m = style && matchCard(card, style, (size ?? 60) as ThemeSize);
+    return !!m && m.as !== 'excluded' && m.as === theme[2] && m.weight > 0;
+  }
+  if (credit.startsWith('strength:')) {
+    const e = config.cardStrength.effects.find((x) => x.label === credit.slice(9));
+    return !!e && cardMatches(card, e.match);
+  }
+  const role = config.roles.roles.find((r) => r.id === credit);
+  return !!role && cardMatches(card, role.match);
+}
+
+/** A drawback that only takes the body away ("isn't a creature", "can't block"). */
+const BODY_HARM =
+  /isn't a creature|can't (?:attack|block)|(?:doesn't|don't) untap|loses? (?:flying|all abilities|defender)/i;
+
 function readCredit(
   card: CardRecord,
   credit: string,
   config: BulkBrewConfig,
   size: DeckSize | undefined,
 ): CreditReading {
+  if (!creditGiven(card, credit, config, size))
+    return { credit, kind: 'absent', clauses: [], gates: [], resources: [] };
   const c = compiledFor(config);
   const needs = cardNeeds(card, config);
   let clauses: CreditClause[] | 'always';
@@ -1808,7 +2405,7 @@ function readCredit(
     const list: CreditClause[] = [];
     for (const r of rules) {
       if (r.rule.weight <= 0) continue;
-      if (!ruleMatches(card, r, ruleText(card), size as ThemeSize | undefined)) continue;
+      if (!ruleMatches(card, r, ruleText(card), (size ?? 60) as ThemeSize)) continue;
       list.push(...themeClauses(card, needs, r, c));
     }
     clauses = dedupe(list);
@@ -1822,24 +2419,43 @@ function readCredit(
   const faces = new Set(
     clauses.map((cl) => (cl.ability < 0 ? 0 : (needs.abilities[cl.ability]?.face ?? 0))),
   );
-  const gates = needs.abilities
-    .filter((a) => faces.has(a.face) || faces.size === 0)
-    .flatMap((a) =>
-      a.refs.filter(
-        (r) => r.kind === 'drawback' || (a.shape === 'additionalCost' && r.kind === 'need'),
-      ),
-    );
+  const abilitiesUsed = new Set(clauses.map((cl) => cl.ability));
+  const body = abilitiesUsed.has(-1);
+  // A drawback gates the credits it harms: a lost body only the body's credits.
+  const gates = needs.abilities.flatMap((a, i) =>
+    faces.has(a.face) || faces.size === 0
+      ? a.refs.filter(
+          (r) =>
+            (r.kind === 'drawback' &&
+              (!BODY_HARM.test(r.harm ?? '') || body || abilitiesUsed.has(i))) ||
+            (a.shape === 'additionalCost' && r.kind === 'need'),
+        )
+      : [],
+  );
   let kind: NeedKind | 'untied';
   if (clauses.length === 0) {
-    // Untied: the credit depends on every need the card has, the safe reading.
+    // Untied: the credit depends on every need the card has, the safe reading;
+    // modes and chapters are alternatives, each with what the rest needs.
     kind = 'untied';
-    clauses = [
-      {
-        ability: -1,
-        kind: needs.kind === 'drawback' ? 'unconditional' : needs.kind,
-        needs: needs.abilities.flatMap((a) => needRefs(a.refs)),
-      },
-    ];
+    const branch = (a: CardAbility) => a.shape === 'mode' || a.shape === 'chapter';
+    const shared = needs.abilities.filter((a) => !branch(a)).flatMap((a) => needRefs(a.refs));
+    const branches = needs.abilities.filter(branch);
+    const all = [...shared, ...branches.flatMap((a) => needRefs(a.refs))];
+    const severity: NeedKind = all.length
+      ? 'need'
+      : needs.kind === 'bonus'
+        ? 'bonus'
+        : 'unconditional';
+    clauses = branches.length
+      ? branches.map((a) => {
+          const own = [...shared, ...needRefs(a.refs)];
+          return {
+            ability: needs.abilities.indexOf(a),
+            kind: own.length ? 'need' : 'unconditional',
+            needs: own,
+          };
+        })
+      : [{ ability: -1, kind: severity, needs: all }];
   } else
     kind = clauses.reduce<NeedKind>(
       (k, cl) => (SEVERITY[cl.kind] < SEVERITY[k] ? cl.kind : k),
@@ -1910,13 +2526,19 @@ function computeSupply(card: CardRecord, config: BulkBrewConfig, size: DeckSize)
   const needs = cardNeeds(card, config);
   const set = new Set(needs.supplies);
   const styles = themeRulesFor(config).styles;
+  // Each style once, though several resources point at it.
+  const setupOf = new Map<string, boolean>();
   for (const [r, rule] of Object.entries(rules)) {
     if (!rule.theme) continue;
-    const style = styles.get(rule.theme);
     if (!rule.text) set.delete(r);
-    if (!style) continue;
-    const m = matchCard(card, style, size as ThemeSize);
-    if (m && m.as !== 'excluded' && ((m.as === 'setup' && m.weight > 0) || m.dual)) set.add(r);
+    let setup = setupOf.get(rule.theme);
+    if (setup === undefined) {
+      const style = styles.get(rule.theme);
+      const m = style && matchCard(card, style, size as ThemeSize);
+      setup = !!m && m.as !== 'excluded' && ((m.as === 'setup' && m.weight > 0) || m.dual);
+      setupOf.set(rule.theme, setup);
+    }
+    if (setup) set.add(r);
   }
   return [...set].sort();
 }
@@ -1985,20 +2607,46 @@ export function needThreshold(
 ): number {
   const t = config.cardNeeds.thresholds;
   const k = sizeKey(size);
-  const table = t.families[resource] ?? t.families[familyOf(resource)] ?? t.base;
-  return table[k] + Math.max(0, count - 1) * t.perCount[k];
+  const family = familyOf(resource);
+  const table = t.families[resource] ?? t.families[family] ?? t.base;
+  const per = t.perCountFamilies?.[resource] ?? t.perCountFamilies?.[family] ?? t.perCount;
+  return table[k] + Math.max(0, count - 1) * per[k];
+}
+
+const TYPE_WORDS = new Set([
+  'artifact',
+  'enchantment',
+  'creature',
+  'land',
+  'planeswalker',
+  'battle',
+  'noncreature',
+  'instant-sorcery',
+  'legendary',
+  'historic',
+  'snow',
+]);
+
+/** The resource a spell cast is counted by: cast:artifact by the deck's artifacts. */
+function castOf(resource: string): string {
+  if (resource === 'spells') return 'type:instant-sorcery';
+  if (!resource.startsWith('cast:')) return resource;
+  const inner = resource.slice(5);
+  if (inner.includes(':')) return inner;
+  return TYPE_WORDS.has(inner) ? `type:${inner}` : inner;
 }
 
 /** Copies of a resource in the deck, by the supply rules. */
 export function supplyCount(supply: DeckSupply, resource: string): number {
-  if (resource.startsWith('tribe:'))
-    return (supply.counts.get(resource) ?? 0) + (supply.counts.get('tribe:*') ?? 0);
-  if (resource.startsWith('cast:')) {
-    const inner = resource.slice(5);
-    return supplyCount(supply, inner.includes(':') ? inner : `type:${inner}`);
+  const r = castOf(resource);
+  if (r.startsWith('tribe:'))
+    return (supply.counts.get(r) ?? 0) + (supply.counts.get('tribe:*') ?? 0);
+  if (r.startsWith('mv:')) {
+    let n = 0;
+    for (let v = Number(r.slice(3)); v <= 16; v++) n += supply.counts.get(`mv:${v}`) ?? 0;
+    return n;
   }
-  if (resource === 'spells') return supply.counts.get('type:instant-sorcery') ?? 0;
-  return supply.counts.get(resource) ?? 0;
+  return supply.counts.get(r) ?? 0;
 }
 
 const BASIC_COLOR: Record<string, Color> = {
@@ -2009,15 +2657,21 @@ const BASIC_COLOR: Record<string, Color> = {
   Forest: 'G',
 };
 
+const SUPERTYPE_RES = /^type:(?:legendary|snow|historic)$/;
+
 function resourceMet(
-  r: string,
+  resource: string,
   supply: DeckSupply,
   card: CardRecord | undefined,
   config: BulkBrewConfig,
-  count: number,
+  ref: { count: number; other: boolean; head?: string | undefined },
   scale: number,
 ): boolean {
-  const own = card && cardSupply(card, config, supply.size).includes(r) ? 1 : 0;
+  // "A legendary creature" is counted by the cards that are both.
+  const r = ref.head && SUPERTYPE_RES.test(resource) ? `${resource}&${ref.head}` : castOf(resource);
+  const count = ref.count;
+  // The card is one of the N it counts, except for "another".
+  const own = ref.other && card && cardSupply(card, config, supply.size).includes(r) ? 1 : 0;
   const enough = (res: string, n = count) =>
     supplyCount(supply, res) - (res === r ? own : 0) >=
     scale * needThreshold(res, supply.size, config, n);
@@ -2028,10 +2682,13 @@ function resourceMet(
   if (r === 'commander' || r === 'format:multiplayer')
     return supply.size === 100 && (r !== 'commander' || supply.commander);
   if (r === 'type:land') return true;
+  if (r === 'domain') return supply.colors.length > 1;
   if (r.startsWith('devotion:')) {
     const t = config.cardNeeds.thresholds;
     const need = (t.families.devotion ?? t.base)[sizeKey(supply.size)] * scale;
-    return (supply.devotion.get(r.slice(9)) ?? 0) >= Math.max(need, count);
+    let have = 0;
+    for (const col of r.slice(9)) have += supply.devotion.get(col) ?? 0;
+    return have >= Math.max(need, count);
   }
   if (r.startsWith('graveyard:')) {
     const inner = r.slice(10);
@@ -2042,7 +2699,11 @@ function resourceMet(
     }
     // Cards reach the graveyard by being played: the deck's own cards of the kind.
     const of =
-      inner === 'creature' ? 'type:creature' : inner.includes(':') ? inner : `type:${inner}`;
+      inner === 'creature'
+        ? 'type:creature'
+        : inner.includes(':')
+          ? castOf(`cast:${inner}`)
+          : `type:${inner}`;
     return enough(of, 1) || enough(r);
   }
   if (r === 'creatures') return enough('type:creature', count);
@@ -2051,24 +2712,55 @@ function resourceMet(
 
 /**
  * Whether one ref is met in this deck: the card supplies it itself, or the
- * deck's other cards supply one of its resources to the threshold. Pass the
- * card the ref belongs to, so its own copy is not counted toward its need.
+ * deck's cards supply one of its resources to the threshold. Pass the card the
+ * ref belongs to: it counts toward "you control N" but not toward "another".
  */
 export function needMet(
   ref: NeedRef,
   supply: DeckSupply,
   card: CardRecord | undefined,
   config: BulkBrewConfig,
+  depth = 0,
 ): boolean {
-  if (ref.self) return true;
+  if (ref.self) {
+    if (!ref.selfVia) return true;
+    // Self-supplied through an ability with needs of its own.
+    if (depth < 3 && ref.selfVia.every((v) => needMet(v, supply, card, config, depth + 1)))
+      return true;
+  }
   const scale = ref.place === 'unparsed' ? config.cardNeeds.thresholds.unparsedScale : 1;
-  return ref.anyOf.some((r) => resourceMet(r, supply, card, config, ref.count ?? 1, scale));
+  const how = { count: ref.count ?? 1, other: !!ref.other, head: ref.head };
+  return ref.anyOf.some((r) => resourceMet(r, supply, card, config, how, scale));
 }
 
 /**
- * Whether a card earns a credit in this deck: every gate (drawback, required
- * additional cost) is met, and some clause that earns the credit has all its
- * needs met. Bonuses never gate.
+ * A card's mana value in this deck: an additional cost it can pay with a
+ * resource or with mana ("behold a Dragon or pay {1}") costs the mana when the
+ * deck does not supply the resource.
+ */
+export function effectiveManaValue(
+  card: CardRecord,
+  supply: DeckSupply,
+  config: BulkBrewConfig,
+): number {
+  let mv = card.mv;
+  for (const a of cardNeeds(card, config).abilities) {
+    if (a.shape !== 'additionalCost') continue;
+    const extra = Math.max(
+      0,
+      ...a.refs.map((r) => (r.orPay && !needMet(r, supply, card, config) ? r.orPay : 0)),
+    );
+    mv += extra;
+  }
+  return mv;
+}
+
+/**
+ * Whether a card earns a credit in this deck: the config gives it, every gate
+ * (a drawback over what earns it, a required additional cost) is met, and some
+ * clause that earns the credit has all its needs met. A role with a mana value
+ * limit ("Early creature": two or less) reads the card at its mana value in
+ * this deck.
  */
 export function creditEarned(
   card: CardRecord,
@@ -2077,6 +2769,12 @@ export function creditEarned(
   config: BulkBrewConfig,
 ): boolean {
   const reading = creditNeeds(card, credit, config, supply.size);
+  if (reading.kind === 'absent') return false;
+  const role = config.roles.roles.find((r) => r.id === credit);
+  if (role && role.match.some((cl) => cl.maxMv !== undefined || cl.minMv !== undefined)) {
+    const mv = effectiveManaValue(card, supply, config);
+    if (mv !== card.mv && !cardMatches({ ...card, mv }, role.match)) return false;
+  }
   if (!reading.gates.every((g) => needMet(g, supply, card, config))) return false;
   return reading.clauses.some((cl) => cl.needs.every((n) => needMet(n, supply, card, config)));
 }

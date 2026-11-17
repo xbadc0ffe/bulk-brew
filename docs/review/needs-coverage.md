@@ -1,130 +1,142 @@
 # Card needs: coverage over the pack
 
-Written by `npm run needs:report` (packages/pipeline/src/needs-report.ts). Pack 2026-11-03, 34168 cards; config t5.c4.r2.a10.s8.l4.w12.k2.h4.n1.q1lddk1e.p1wyug0e.g1hono2u. The full unparsed work list is in `data/review/needs/unparsed.md` (not committed).
+Written by `npm run needs:report` (packages/pipeline/src/needs-report.ts). Pack 2026-11-03, 34168 cards; config t5.c4.r2.a10.s8.l4.w12.k2.h5.n2.qdi9pv.p1wyug0e.g1hono2u. The full unparsed work list is in `data/review/needs/unparsed.md` (not committed).
 
 ## Abilities
 
-| Cards                              | Abilities | Parsed cleanly | Share |
-| ---------------------------------- | --------- | -------------- | ----- |
-| Whole pack                         | 64396     | 62625          | 97.2% |
-| Without Un-sets                    | 61827     | 60291          | 97.5% |
-| Commons and uncommons (no Un-sets) | 35734     | 35207          | 98.5% |
+| Cards                              | Abilities | Parsed cleanly | Share | No game-state fallback | Share |
+| ---------------------------------- | --------- | -------------- | ----- | ---------------------- | ----- |
+| Whole pack                         | 64396     | 62596          | 97.2% | 61326                  | 95.2% |
+| Without Un-sets                    | 61827     | 60275          | 97.5% | 59187                  | 95.7% |
+| Commons and uncommons (no Un-sets) | 35734     | 35221          | 98.6% | 34758                  | 97.3% |
 
-1670 cards have an unparsed ability. Why abilities were left unparsed (the first reason in each):
+Parsed cleanly: every part of the ability was read, by a template or by the game-state fallback. No game-state fallback: every part was read by a template that names what it reads.
 
-| Reason           | Abilities |
-| ---------------- | --------- |
-| unread type      | 385       |
-| condition        | 346       |
-| unread card type | 277       |
-| trigger          | 199       |
-| unread counters  | 159       |
-| unread graveyard | 91        |
-| cost             | 68        |
-| unread tokens    | 56        |
-| unread sacrifice | 39        |
-| unread commander | 31        |
-| unread number of | 29        |
-| unread instead   | 23        |
-| unread life      | 21        |
-| unread energy    | 18        |
-| unread discard   | 12        |
-| unread devotion  | 9         |
-| unread power     | 8         |
+1701 cards have an unparsed ability. Why abilities were left unparsed (the first reason in each):
 
-655 conditions, trigger events, and cost parts no template reads name no resource word or type, so the reader takes them as game state (`resourceWords` in config/card-needs.json). The most common:
+| Reason                  | Abilities |
+| ----------------------- | --------- |
+| condition               | 438       |
+| unread type             | 349       |
+| unread card type        | 262       |
+| trigger                 | 226       |
+| unread counters         | 157       |
+| unread graveyard        | 90        |
+| cost                    | 58        |
+| unread tokens           | 53        |
+| unread commander        | 32        |
+| unread number of        | 27        |
+| unread life             | 20        |
+| unread instead          | 19        |
+| unread sacrifice        | 19        |
+| unread energy           | 12        |
+| unread discard          | 12        |
+| unread devotion         | 9         |
+| unread qualifier kicked | 9         |
+| unread power            | 8         |
 
-| Read as game state                                                        | Cards | Commons and uncommons |
-| ------------------------------------------------------------------------- | ----- | --------------------- |
-| `cost: exile it`                                                          | 7     | 0                     |
-| `condition: if its mana value was N or less`                              | 6     | 6                     |
-| `condition: if you have the initiative`                                   | 6     | 5                     |
-| `condition: if you roll a N`                                              | 6     | 3                     |
-| `condition: if you have fewer than N cards in hand`                       | 6     | 0                     |
-| `condition: if a permanent you controlled left the battlefield this turn` | 5     | 5                     |
-| `condition: if a creature card was exiled this way`                       | 5     | 4                     |
-| `condition: if no N does`                                                 | 5     | 4                     |
+1392 conditions, trigger events, and cost parts no template reads name no resource word or type, so the reader takes them as game state (`resourceWords` in config/card-needs.json). The most common:
+
+| Read as game state                                                         | Cards | Commons and uncommons |
+| -------------------------------------------------------------------------- | ----- | --------------------- |
+| `condition: if: you would draw a card`                                     | 18    | 0                     |
+| `condition: if: a creature dealt damage this way would die this turn`      | 14    | 8                     |
+| `condition: if: a creature an opponent controls would die`                 | 10    | 1                     |
+| `condition: unless: their controller pays {M} for each of those creatures` | 9     | 5                     |
+| `condition: if: ~ would enter`                                             | 9     | 0                     |
+| `condition: if you don't put the card into your hand`                      | 8     | 6                     |
+| `trigger: a player taps a land for mana`                                   | 8     | 1                     |
+| `trigger: a player cycles a card`                                          | 7     | 7                     |
 
 Top unparsed shapes (names, numbers, types, and mana symbols normalized):
 
-| Shape                                                                           | Cards | Commons and uncommons | Examples                                                               |
-| ------------------------------------------------------------------------------- | ----- | --------------------- | ---------------------------------------------------------------------- |
-| `unread type: … TYPE ….`                                                        | 7     | 1                     | Earl of Squirrel; Hivestone; Rin and Seri, Inseparabler                |
-| `unread graveyard: Once during … … from your graveyard.`                        | 7     | 0                     | Danitha, New Benalia's Light; Edgar, Master Machinist; Gisa and Geralf |
-| `unread type: it assembles a TYPE.`                                             | 6     | 6                     | Garbage Elemental; Joyride Rigger; Overt Operative                     |
-| `trigger: a time counter is removed from ~ while it's exiled`                   | 6     | 0                     | Aeon Chronicler; Benalish Commander; Detritivore                       |
-| `trigger: enchanted TYPE is put into a graveyard`                               | 5     | 5                     | Genju of the Cedars; Genju of the Falls; Genju of the Fens             |
-| `trigger: the fourth plan counter is put on ~`                                  | 5     | 5                     | Claim the Kingdom; Death to Our Enemies; Political Triumph             |
-| `unread card type: Commander enchantment`                                       | 5     | 5                     | Taught by Bruce Tarl; Taught by Narset; Taught by Serra                |
-| `unread commander: Spell commander`                                             | 5     | 5                     | Clear, the Mind; Gather, the Townsfolk; Lava, Axe                      |
-| `condition: if a spell or ability an opponent controls causes you to discard ~` | 5     | 2                     | Dodecapod; Loxodon Smiter; Nullhide Ferox                              |
-| `condition: if a TYPE was beheld`                                               | 4     | 4                     | Dispelling Exhale; Hyperion's Atomic Vision; Osseous Exhale            |
-| `unread type: Return … TYPE you control to their owner's hand.`                 | 4     | 4                     | Barrel Down Sokenzan; Charge Across the Araba; Plow Through Reito      |
-| `unread instead: Excess damage … to … instead.`                                 | 4     | 3                     | Flame Spill; Gandalf's Sanction; Pigment Storm                         |
-| `condition: if a card left your graveyard this turn`                            | 4     | 2                     | Gau, Feral Youth; Living History; Primary Research                     |
-| `condition: if a land card was milled this way`                                 | 4     | 2                     | Loafing Giant; Locke, Treasure Hunter; Lorehold Excavation             |
-| `unread card type: … and sorcery spells.`                                       | 4     | 2                     | Abstract Paintmage; Daxiver, Izzet Electromancer; Resonating Lute      |
+| Shape                                                                           | Cards | Commons and uncommons | Examples                                                                               |
+| ------------------------------------------------------------------------------- | ----- | --------------------- | -------------------------------------------------------------------------------------- |
+| `trigger: a source you control deals noncombat damage to an opponent`           | 7     | 3                     | Asgardian Inspiration; Chandra's Incinerator; Chandra's Pyreling                       |
+| `unread type: … TYPE ….`                                                        | 7     | 1                     | Earl of Squirrel; Hivestone; Rin and Seri, Inseparabler                                |
+| `unread graveyard: Once during … … from your graveyard.`                        | 7     | 0                     | Danitha, New Benalia's Light; Edgar, Master Machinist; Gisa and Geralf                 |
+| `unread type: it assembles a TYPE.`                                             | 6     | 6                     | Garbage Elemental; Joyride Rigger; Overt Operative                                     |
+| `trigger: a time counter is removed from ~ while it's exiled`                   | 6     | 0                     | Aeon Chronicler; Benalish Commander; Detritivore                                       |
+| `trigger: enchanted TYPE is put into a graveyard`                               | 5     | 5                     | Genju of the Cedars; Genju of the Falls; Genju of the Fens                             |
+| `trigger: the fourth plan counter is put on ~`                                  | 5     | 5                     | Claim the Kingdom; Death to Our Enemies; Political Triumph                             |
+| `unread card type: Commander enchantment`                                       | 5     | 5                     | Taught by Bruce Tarl; Taught by Narset; Taught by Serra                                |
+| `unread commander: Spell commander`                                             | 5     | 5                     | Clear, the Mind; Gather, the Townsfolk; Lava, Axe                                      |
+| `condition: if a spell or ability an opponent controls causes you to discard ~` | 5     | 2                     | Dodecapod; Loxodon Smiter; Nullhide Ferox                                              |
+| `condition: only if ~ entered this turn or if you control a basic land`         | 5     | 0                     | Dark Fortress; Gathering Place; Gleaming Bastion                                       |
+| `unread type: Return … TYPE you control to their owner's hand.`                 | 4     | 4                     | Barrel Down Sokenzan; Charge Across the Araba; Plow Through Reito                      |
+| `condition: if a card left your graveyard this turn`                            | 4     | 2                     | Gau, Feral Youth; Living History; Primary Research                                     |
+| `unread type: ~ …, TYPE, TYPE, and TYPE.`                                       | 4     | 2                     | Burakos, Party Leader; Stonework Packbeast; Tajuru Paragon                             |
+| `unread graveyard: Cards in graveyards can't be the ….`                         | 4     | 1                     | Dennick, Pious Apprentice // Dennick, Pious Apparition; Ground Seal; Silent Gravestone |
 
 ## Cards
 
-The most severe kind among a card's abilities (an unparsed ability counts as a need). 2914 cards supply some need of their own.
+The most severe kind among a card's abilities (an unparsed ability counts as a need). 3079 cards supply some need of their own.
 
 | Cards | need | bonus | drawback | unconditional |
 | ----- | ---- | ----- | -------- | ------------- |
-| 34168 | 9463 | 642   | 224      | 23839         |
+| 34168 | 9270 | 765   | 227      | 23906         |
 
 Resource references by family and kind (an alternative counts once per resource):
 
 | Family                    | Refs | need | bonus | drawback |
 | ------------------------- | ---- | ---- | ----- | -------- |
-| tribe                     | 2524 | 2314 | 158   | 52       |
-| type                      | 1669 | 1456 | 172   | 41       |
-| counters                  | 1127 | 1091 | 29    | 7        |
-| color                     | 867  | 867  | 0     | 0        |
-| subtype                   | 818  | 741  | 66    | 11       |
-| land                      | 778  | 577  | 87    | 114      |
-| graveyard:any             | 704  | 556  | 128   | 20       |
-| graveyard:creature        | 676  | 655  | 21    | 0        |
-| spells                    | 352  | 318  | 33    | 1        |
-| tokens                    | 261  | 257  | 4     | 0        |
-| lifegain                  | 219  | 204  | 14    | 1        |
-| cast:noncreature          | 207  | 200  | 5     | 2        |
-| graveyard:instant-sorcery | 204  | 173  | 31    | 0        |
-| cast:tribe                | 185  | 180  | 5     | 0        |
-| discard                   | 144  | 80   | 64    | 0        |
-| commander                 | 139  | 113  | 26    | 0        |
-| power                     | 133  | 115  | 13    | 5        |
-| cast:subtype              | 132  | 103  | 29    | 0        |
-| keyword                   | 128  | 121  | 7     | 0        |
-| energy                    | 116  | 111  | 0     | 5        |
-| creatures                 | 116  | 102  | 11    | 3        |
-| graveyard:artifact        | 113  | 110  | 3     | 0        |
-| graveyard:tribe           | 109  | 108  | 1     | 0        |
-| graveyard:land            | 98   | 90   | 8     | 0        |
-| cast:artifact             | 81   | 80   | 1     | 0        |
-| graveyard:subtype         | 73   | 68   | 3     | 2        |
-| devotion                  | 54   | 29   | 3     | 22       |
+| tribe                     | 2634 | 2374 | 206   | 54       |
+| type                      | 1664 | 1446 | 180   | 38       |
+| counters                  | 1274 | 1211 | 51    | 12       |
+| subtype                   | 802  | 711  | 80    | 11       |
+| land                      | 786  | 561  | 111   | 114      |
+| graveyard:creature        | 727  | 692  | 35    | 0        |
+| graveyard:any             | 686  | 542  | 124   | 20       |
+| colored                   | 463  | 425  | 37    | 1        |
+| spells                    | 372  | 362  | 9     | 1        |
+| cast:noncreature          | 222  | 211  | 9     | 2        |
+| lifegain                  | 219  | 200  | 18    | 1        |
+| graveyard:instant-sorcery | 207  | 182  | 25    | 0        |
+| tokens                    | 205  | 201  | 4     | 0        |
+| cast:tribe                | 196  | 196  | 0     | 0        |
+| death                     | 164  | 164  | 0     | 0        |
+| commander                 | 163  | 136  | 27    | 0        |
+| discard                   | 146  | 82   | 64    | 0        |
+| cast:subtype              | 133  | 106  | 27    | 0        |
+| power                     | 130  | 113  | 12    | 5        |
+| keyword                   | 123  | 114  | 9     | 0        |
+| energy                    | 118  | 113  | 0     | 5        |
+| graveyard:artifact        | 114  | 110  | 4     | 0        |
+| graveyard:tribe           | 113  | 107  | 6     | 0        |
+| graveyard:land            | 110  | 98   | 12    | 0        |
+| cast:artifact             | 85   | 85   | 0     | 0        |
+| graveyard:subtype         | 74   | 68   | 4     | 2        |
+| sacrifice                 | 64   | 63   | 1     | 0        |
+| devotion                  | 57   | 30   | 5     | 22       |
 | graveyard:enchantment     | 54   | 53   | 1     | 0        |
-| cast:enchantment          | 28   | 28   | 0     | 0        |
+| creatures                 | 44   | 39   | 3     | 2        |
+| cast:mv                   | 43   | 43   | 0     | 0        |
+| cast:enchantment          | 29   | 28   | 1     | 0        |
+| action                    | 29   | 29   | 0     | 0        |
 | cast:historic             | 26   | 26   | 0     | 0        |
-| lifeloss                  | 20   | 20   | 0     | 0        |
-| cast:legendary            | 17   | 16   | 1     | 0        |
-| graveyard:planeswalker    | 16   | 14   | 2     | 0        |
+| domain                    | 26   | 23   | 3     | 0        |
+| graveyard:colored         | 20   | 20   | 0     | 0        |
+| experience                | 17   | 14   | 3     | 0        |
+| cast:legendary            | 17   | 17   | 0     | 0        |
+| lifeloss                  | 17   | 16   | 1     | 0        |
+| graveyard:planeswalker    | 15   | 14   | 1     | 0        |
 | graveyard:legendary       | 14   | 14   | 0     | 0        |
-| cast:planeswalker         | 11   | 11   | 0     | 0        |
+| cast:kicked               | 12   | 12   | 0     | 0        |
 | format                    | 10   | 0    | 0     | 10       |
 | graveyard:historic        | 8    | 6    | 1     | 1        |
+| cast:planeswalker         | 8    | 7    | 1     | 0        |
 | cast:land                 | 8    | 7    | 1     | 0        |
 | cast:commander            | 6    | 6    | 0     | 0        |
+| exile                     | 5    | 5    | 0     | 0        |
+| cast:counters             | 4    | 4    | 0     | 0        |
+| cast:keyword              | 3    | 3    | 0     | 0        |
 | graveyard:battle          | 3    | 3    | 0     | 0        |
 | cast:power                | 3    | 3    | 0     | 0        |
-| cast:keyword              | 2    | 2    | 0     | 0        |
-| cast:counters             | 2    | 2    | 0     | 0        |
 | graveyard:snow            | 2    | 2    | 0     | 0        |
-| sacrifice                 | 2    | 2    | 0     | 0        |
+| color                     | 1    | 1    | 0     | 0        |
 | graveyard:keyword         | 1    | 1    | 0     | 0        |
 | cast:snow                 | 1    | 1    | 0     | 0        |
-| death                     | 1    | 1    | 0     | 0        |
+| cast:experience           | 1    | 1    | 0     | 0        |
 
 ## Credits
 
@@ -132,91 +144,91 @@ Role credits (cards the roles.json matchers give the role, Un-sets left out) by 
 
 | Role              | Cards | need | bonus | drawback | unconditional | untied |
 | ----------------- | ----- | ---- | ----- | -------- | ------------- | ------ |
-| removal           | 4706  | 510  | 2     | 2        | 3742          | 450    |
-| sweeper           | 839   | 71   | 1     | 0        | 680           | 87     |
-| cardAdvantage     | 4962  | 883  | 2     | 0        | 3916          | 161    |
-| cheapInteraction  | 2365  | 132  | 2     | 1        | 2021          | 209    |
+| removal           | 4706  | 468  | 20    | 2        | 3769          | 447    |
+| sweeper           | 839   | 68   | 4     | 0        | 680           | 87     |
+| cardAdvantage     | 4962  | 907  | 2     | 0        | 3892          | 161    |
+| cheapInteraction  | 2365  | 106  | 8     | 1        | 2041          | 209    |
 | finisher          | 5036  | 0    | 0     | 0        | 5036          | 0      |
 | commanderFinisher | 1574  | 0    | 0     | 0        | 1574          | 0      |
-| ramp              | 813   | 101  | 0     | 0        | 636           | 76     |
+| ramp              | 813   | 88   | 0     | 0        | 649           | 76     |
 | earlyCreature     | 4864  | 0    | 0     | 0        | 4864          | 0      |
-| evasiveThreat     | 3839  | 45   | 0     | 8        | 3779          | 7      |
+| evasiveThreat     | 3839  | 43   | 0     | 8        | 3781          | 7      |
 
 Theme credits (the theme rules at 60 cards, each card once per style):
 
 | Credit              | Cards | need | bonus | drawback | unconditional | untied |
 | ------------------- | ----- | ---- | ----- | -------- | ------------- | ------ |
-| aristocrats:payoff  | 359   | 37   | 0     | 0        | 297           | 25     |
-| aristocrats:setup   | 2682  | 567  | 6     | 1        | 2108          | 0      |
-| artifacts:payoff    | 453   | 299  | 87    | 1        | 43            | 23     |
-| artifacts:setup     | 4440  | 125  | 0     | 0        | 4312          | 3      |
+| aristocrats:payoff  | 359   | 147  | 0     | 0        | 187           | 25     |
+| aristocrats:setup   | 2682  | 529  | 14    | 1        | 2138          | 0      |
+| artifacts:payoff    | 453   | 310  | 77    | 1        | 42            | 23     |
+| artifacts:setup     | 4440  | 125  | 4     | 0        | 4308          | 3      |
 | auras:payoff        | 1612  | 56   | 12    | 7        | 1534          | 3      |
-| auras:setup         | 1165  | 76   | 1     | 0        | 1088          | 0      |
-| bigCreatures:payoff | 2917  | 74   | 3     | 0        | 2840          | 0      |
-| bigCreatures:setup  | 1542  | 193  | 1     | 0        | 1113          | 235    |
-| burn:payoff         | 269   | 167  | 0     | 0        | 101           | 1      |
-| burn:setup          | 747   | 84   | 1     | 0        | 662           | 0      |
-| counters:payoff     | 250   | 196  | 9     | 0        | 28            | 17     |
-| counters:setup      | 2339  | 510  | 1     | 0        | 1738          | 90     |
-| enchantments:payoff | 128   | 108  | 8     | 0        | 0             | 12     |
+| auras:setup         | 1165  | 71   | 4     | 0        | 1090          | 0      |
+| bigCreatures:payoff | 2917  | 68   | 3     | 0        | 2846          | 0      |
+| bigCreatures:setup  | 1542  | 183  | 1     | 0        | 1123          | 235    |
+| burn:payoff         | 269   | 173  | 3     | 0        | 92            | 1      |
+| burn:setup          | 747   | 70   | 6     | 0        | 671           | 0      |
+| counters:payoff     | 250   | 202  | 7     | 0        | 24            | 17     |
+| counters:setup      | 2339  | 513  | 22    | 0        | 1714          | 90     |
+| enchantments:payoff | 128   | 109  | 6     | 0        | 1             | 12     |
 | enchantments:setup  | 3679  | 4    | 0     | 0        | 3675          | 0      |
-| energy:payoff       | 112   | 67   | 0     | 0        | 45            | 0      |
-| energy:setup        | 31    | 10   | 0     | 0        | 21            | 0      |
-| flyers:payoff       | 87    | 35   | 1     | 0        | 51            | 0      |
-| flyers:setup        | 3971  | 60   | 0     | 8        | 3903          | 0      |
+| energy:payoff       | 112   | 66   | 0     | 0        | 46            | 0      |
+| energy:setup        | 31    | 5    | 0     | 0        | 26            | 0      |
+| flyers:payoff       | 150   | 32   | 1     | 0        | 117           | 0      |
+| flyers:setup        | 3959  | 53   | 1     | 8        | 3897          | 0      |
 | goad:payoff         | 11    | 0    | 0     | 0        | 11            | 0      |
-| goad:setup          | 147   | 16   | 0     | 0        | 131           | 0      |
-| graveyard:payoff    | 2082  | 1019 | 99    | 15       | 623           | 326    |
-| graveyard:setup     | 2083  | 217  | 5     | 5        | 1726          | 130    |
-| groupHug:payoff     | 65    | 0    | 0     | 0        | 65            | 0      |
-| groupHug:setup      | 287   | 21   | 1     | 0        | 265           | 0      |
-| landfall:payoff     | 209   | 21   | 0     | 0        | 188           | 0      |
-| landfall:setup      | 504   | 98   | 1     | 0        | 337           | 68     |
-| lifegain:payoff     | 195   | 172  | 12    | 0        | 11            | 0      |
-| lifegain:setup      | 1980  | 377  | 1     | 0        | 1597          | 5      |
+| goad:setup          | 147   | 15   | 0     | 1        | 131           | 0      |
+| graveyard:payoff    | 2082  | 1041 | 74    | 16       | 625           | 326    |
+| graveyard:setup     | 2083  | 196  | 2     | 5        | 1750          | 130    |
+| groupHug:payoff     | 65    | 1    | 0     | 0        | 64            | 0      |
+| groupHug:setup      | 287   | 19   | 1     | 0        | 267           | 0      |
+| landfall:payoff     | 209   | 19   | 0     | 0        | 190           | 0      |
+| landfall:setup      | 504   | 92   | 1     | 0        | 343           | 68     |
+| lifegain:payoff     | 195   | 178  | 5     | 0        | 12            | 0      |
+| lifegain:setup      | 1980  | 401  | 3     | 0        | 1571          | 5      |
 | mill:payoff         | 65    | 12   | 0     | 0        | 53            | 0      |
-| mill:setup          | 243   | 33   | 1     | 0        | 209           | 0      |
-| spells:payoff       | 462   | 349  | 1     | 0        | 107           | 5      |
-| spells:setup        | 7438  | 62   | 2     | 0        | 7369          | 5      |
-| tappers:payoff      | 70    | 3    | 0     | 0        | 67            | 0      |
-| tappers:setup       | 444   | 12   | 0     | 0        | 219           | 213    |
-| tokens:payoff       | 768   | 73   | 1     | 0        | 684           | 10     |
-| tokens:setup        | 1629  | 414  | 5     | 1        | 1209          | 0      |
+| mill:setup          | 243   | 35   | 0     | 0        | 208           | 0      |
+| spells:payoff       | 462   | 346  | 3     | 0        | 108           | 5      |
+| spells:setup        | 7438  | 64   | 0     | 0        | 7369          | 5      |
+| tappers:payoff      | 70    | 1    | 1     | 0        | 68            | 0      |
+| tappers:setup       | 444   | 6    | 0     | 0        | 225           | 213    |
+| tokens:payoff       | 768   | 63   | 10    | 0        | 685           | 10     |
+| tokens:setup        | 1629  | 404  | 13    | 1        | 1211          | 0      |
 
 ## Tag cross-check
 
-- 6677 cards carry a dependency tag (`lifegain-matters`, `counters-matter`, `typal-*`, `synergy-*`, `*-matter(s)`) but the reader finds no reference at all: `synergy-*` 2739, `*-matter(s)` 4132, `typal-*` 511, `lifegain-matters` 29, `counters-matter` 220.
-- 1239 cards have a need the reader finds (not self-supplied) and carry no such tag; by family: color 332, graveyard:creature 288, land 124, graveyard:any 117, type 113, graveyard:artifact 43, graveyard:instant-sorcery 43, graveyard:land 41, counters 39, subtype 31, graveyard:enchantment 26, spells 22.
+- 6202 cards carry a dependency tag (`lifegain-matters`, `counters-matter`, `typal-*`, `synergy-*`, `*-matter(s)`) but the reader finds no reference at all: `synergy-*` 2343, `*-matter(s)` 4065, `typal-*` 455, `lifegain-matters` 30, `counters-matter` 159.
+- 997 cards have a need the reader finds (not self-supplied) and carry no such tag; by family: graveyard:creature 283, type 139, graveyard:any 120, land 98, death 69, counters 44, graveyard:artifact 41, graveyard:instant-sorcery 41, subtype 33, graveyard:land 32, spells 27, graveyard:enchantment 26.
 
 Top tags on cards the reader calls unconditional:
 
 | Tag                    | Cards | Commons and uncommons | Examples                                                                                       |
 | ---------------------- | ----- | --------------------- | ---------------------------------------------------------------------------------------------- |
-| power-matters          | 930   | 525                   | Abyssal Hunter; Access Tunnel; Adaptive Snapjaw                                                |
-| attacking-matters      | 734   | 418                   | Accorder Paladin; Adeline, Resplendent Cathar; Admiral's Order                                 |
-| mana-value-matters     | 474   | 202                   | Aang, at the Crossroads // Aang, Destined Savior; Abundant Maw; Accelerated Mutation           |
-| typal-creature         | 394   | 240                   | Accursed Duneyard; Adaptive Automaton; Aether Shockwave                                        |
-| lands-matter           | 312   | 169                   | Admonition Angel; Adventuring Gear; Aesi, Tyrant of Gyre Strait                                |
-| name-matters           | 260   | 124                   | 1996 World Champion; Academic Probation; Accumulated Knowledge                                 |
-| hand-size-matters      | 239   | 94                    | Adamaro, First to Desire; Akki Underling; Alrund, God of the Cosmos // Hakka, Whispering Raven |
-| counters-matter        | 220   | 126                   | Afiya Grove; Ambitious Augmenter; Ammit Eternal                                                |
-| creature-count-matters | 203   | 104                   | Adeline, Resplendent Cathar; Advice from the Fae; Ajani, Wise Counselor                        |
-| synergy-artifact       | 199   | 128                   | A Realm Reborn; Aang and Katara; Aang's Iceberg                                                |
+| power-matters          | 939   | 529                   | Abyssal Hunter; Access Tunnel; Adaptive Snapjaw                                                |
+| attacking-matters      | 758   | 431                   | Accorder Paladin; Adeline, Resplendent Cathar; Admiral's Order                                 |
+| mana-value-matters     | 449   | 187                   | Aang, at the Crossroads // Aang, Destined Savior; Abundant Maw; Accelerated Mutation           |
+| typal-creature         | 347   | 207                   | Accursed Duneyard; Adaptive Automaton; Aether Shockwave                                        |
+| lands-matter           | 303   | 167                   | Admonition Angel; Adventuring Gear; Aesi, Tyrant of Gyre Strait                                |
+| name-matters           | 285   | 122                   | 1996 World Champion; Academic Probation; Accumulated Knowledge                                 |
+| hand-size-matters      | 236   | 94                    | Adamaro, First to Desire; Akki Underling; Alrund, God of the Cosmos // Hakka, Whispering Raven |
+| creature-count-matters | 208   | 107                   | Adeline, Resplendent Cathar; Advice from the Fae; Ajani, Wise Counselor                        |
+| synergy-artifact       | 195   | 127                   | A Realm Reborn; Aang and Katara; Aang's Iceberg                                                |
+| synergy-blocker-self   | 174   | 137                   | Abomination; Abu Ja'far; Aether Membrane                                                       |
 
 Top needs on cards with no dependency tag:
 
-| First need                           | Cards | Commons and uncommons | Examples                                                                        |
-| ------------------------------------ | ----- | --------------------- | ------------------------------------------------------------------------------- |
-| selection: graveyard:creature        | 244   | 155                   | Adun Oakenshield; Aid the Fallen; Altar of Bhaal // Bone Offering               |
-| selection: graveyard:any             | 89    | 56                    | Acolyte of Affliction; Aegis Sculptor; Aether Helix                             |
-| cost: color:R                        | 66    | 58                    | Akroan Phalanx; Angelfire Crusader; Atarka Monument                             |
-| cost: color:W                        | 65    | 54                    | Abzan Banner; Aegis Automaton; Auriok Replica                                   |
-| cost: color:B                        | 63    | 58                    | Archers' Parapet; Armorer Guildmage; Augmenting Automaton                       |
-| cost: color:U                        | 61    | 53                    | Aether Spellbomb; Agent of Horizons; Ana Disciple                               |
-| cost: color:G                        | 53    | 50                    | Aerie Mystics; Bant Battlemage; Beast Walkers                                   |
-| selection: graveyard:instant-sorcery | 41    | 36                    | Anarchist; Archaeomancer; Ardent Dustspeaker                                    |
-| selection: type:artifact             | 41    | 30                    | Animating Faerie // Bring to Life; Arms Race; Ashe, Princess of Dalmasca        |
-| selection: graveyard:land            | 37    | 16                    | Aftermath Analyst; Altanak, the Thrice-Called; Carnivorous Cultivator // Enroot |
+| First need                           | Cards | Commons and uncommons | Examples                                                                   |
+| ------------------------------------ | ----- | --------------------- | -------------------------------------------------------------------------- |
+| selection: graveyard:creature        | 227   | 145                   | Adun Oakenshield; Aid the Fallen; Altar of Bhaal // Bone Offering          |
+| selection: graveyard:any             | 84    | 51                    | Aegis Sculptor; Aether Helix; Auroral Procession                           |
+| trigger: death                       | 69    | 29                    | Abzan Ascendancy; Agent Venom; Anafenza, Unyielding Lineage                |
+| selection: graveyard:instant-sorcery | 39    | 35                    | Anarchist; Archaeomancer; Ardent Dustspeaker                               |
+| selection: type:artifact             | 34    | 24                    | Animating Faerie // Bring to Life; Arms Race; Ashe, Princess of Dalmasca   |
+| selection: counters:any              | 30    | 27                    | Adaptive Sporesinger; Atomize; Blightbelly Rat                             |
+| selection: graveyard:land            | 28    | 8                     | Altanak, the Thrice-Called; Carnivorous Cultivator // Enroot; Cartographer |
+| cost: graveyard:creature             | 26    | 14                    | Ashnod, Flesh Mechanist; Back from the Brink; Balduvian Dead               |
+| cost: type:snow                      | 25    | 21                    | Adarkar Windform; Ascendant Spirit; Boreal Centaur                         |
+| selection: graveyard:artifact        | 24    | 19                    | Archaeomender; Argivian Restoration; Bringer of the White Dawn             |
 
 ## Lands that enter tapped
 
@@ -232,4 +244,4 @@ Lands the pack marks `entersTapped` (Un-sets left out): how `landEntry` in lands
 
 ## Speed
 
-Reading: 231 ms per 1,000 cards (7.9 s for the pack, fresh cache). Credits: 74463 role and theme credits in 6.3 s.
+Reading: 271 ms per 1,000 cards (9.3 s for the pack, fresh cache). Credits: 74514 role and theme credits in 7.0 s.
