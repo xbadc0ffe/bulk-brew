@@ -1404,11 +1404,13 @@ function themeCoreOnce(ctx: GrowContext, plan: ThemePlan, loose: boolean): CoreR
     return cur(ctx, d).slots[slot]! < (targets[slot] ?? 0) ? 1 : ctx.k.fullSlot;
   };
   // A theme card enters on its job only when the deck pays for it, the theme's own resources aside.
+  // The loose try takes it as the scan's pool count does, without checking its drawbacks against
+  // the few cards picked so far (Frightcrawler's threshold); the finished-deck check holds it to them.
   const open = (c: GrowCard, as: Job['as']) =>
     have(d, c) < c.max &&
     jobOf(c)?.as === as &&
     jobOpen(ctx, d, c, plan.index) &&
-    supported(ctx, d, c);
+    (loose || supported(ctx, d, c));
   const rich = plan.poolMargin.setup >= 2 && plan.poolMargin.payoff >= 2;
   const payoffTargets = sideTargets(plan.floor, PAYOFF_KEYS, rich ? ctx.k.richSeed : 1);
   for (;;) {
@@ -1427,7 +1429,11 @@ function themeCoreOnce(ctx: GrowContext, plan: ThemePlan, loose: boolean): CoreR
   const payoffNeed = plan.floor[b.payoff] ?? 0;
   const scale =
     payoffNeed > 0 ? Math.max(1, floorValue(cur(ctx, d).plan, b.payoff) / payoffNeed) : 1;
-  const setupTargets = sideTargets(plan.floor, SETUP_KEYS, scale);
+  // Repeatable setup counts toward a floor of repeatable setup or payoffs (Burn's), as the scan counts it.
+  const setupTargets = {
+    ...sideTargets(plan.floor, SETUP_KEYS, scale),
+    ...sideTargets(plan.floor, ['repeatableOrPayoff'], 1),
+  };
   for (;;) {
     if (met(cur(ctx, d).plan, setupTargets)) break;
     const pick = best(
@@ -2315,13 +2321,16 @@ const FEED_ROUNDS = 10;
 /**
  * Feed a theme card whose job the finished deck does not pay for. The theme
  * core counts a job the pool pays for (its second, loose try, as the scan
- * counts the pool), but nothing put that supply in the deck: for the clause
- * of the job's credit with the fewest unmet needs, each unmet need takes the
- * best pool card that supplies it (more copies of the card itself when it
- * supplies its own need) in place of the weakest curve copy that does not.
- * Kept when the card then earns its reason, the plan's floors are no
- * worse, and every other copy that held still holds; otherwise every swap is
- * undone and the card goes as before.
+ * counts the pool), but nothing put that supply in the deck. Each unmet gate
+ * (a drawback, a required cost such as Goblin Grenade's Goblin) and each unmet
+ * need of the credit's clause with the fewest unmet takes the best pool card
+ * that supplies it (more copies of the card itself when it supplies its own
+ * need). It replaces a curve copy, other plans' cards before the plan's own
+ * and the weakest first, or else a card picked for a role the deck holds above
+ * its minimum; never the card, a supplier of any of its gates or needs, or a
+ * copy another card that holds needs. Kept when the card then earns its
+ * reason and the plan's floors are no worse; otherwise every swap is undone
+ * and the card goes as before.
  */
 function feedNeeds(
   ctx: GrowContext,
@@ -2341,20 +2350,27 @@ function feedNeeds(
     ctx.size,
   );
   const unmet = (r: NeedRef) => !needMet(r, d.supply, card, ctx.config);
-  // A gate (a drawback, a required cost) is not a need a supplier can feed.
-  if (reading.kind === 'absent' || reading.gates.some(unmet)) return false;
-  let refs: NeedRef[] | undefined;
+  if (reading.kind === 'absent') return false;
+  // Every unmet gate (a drawback, a required cost such as a Goblin to sacrifice) and the
+  // unmet needs of the clause closest to holding: each is a resource a supplier can feed.
+  let needs: NeedRef[] | undefined;
   for (const cl of reading.clauses) {
     const u = cl.needs.filter(unmet);
-    if (!refs || u.length < refs.length) refs = u;
+    if (!needs || u.length < needs.length) needs = u;
   }
-  if (!refs?.length) return false;
+  const refs = [...reading.gates.filter(unmet), ...(needs ?? [])];
+  if (!refs.length) return false;
   const before = honestPlan(ctx, plan, d);
   // Copies that hold now must still hold after: a feed never starves another card's need.
   const holds = (x: GrowCard) =>
     supported(ctx, d, x, 0, true) && whyEarned(ctx, plan, d, x, d.why.get(x.id)!);
   const fine = ctx.cards.filter((x) => x !== c && have(d, x) > 0 && holds(x));
   const done: { out: GrowCard; outWhy: string; inn: GrowCard; at: number }[] = [];
+  const quotas = shapeFor(ctx, plan).quotas;
+  // A supplier of any ref stays, those brought in for an earlier ref among them.
+  const fed = new Set(refs.flatMap((r) => refSupplies(r)));
+  const feeds = (x: GrowCard) =>
+    cardSupply(x.facts.card, ctx.config, ctx.size).some((r) => fed.has(r));
   for (const ref of refs) {
     const res = new Set(refSupplies(ref));
     const supplies = (x: GrowCard) =>
@@ -2370,25 +2386,47 @@ function feedNeeds(
         (s) => s.value * planPull(ctx, plan, d, s),
       );
       if (!inn) break;
-      // The weakest curve copy that is neither the card nor a supplier of the need.
-      let at = -1;
-      let low = Infinity;
-      d.curveCopies.forEach((id, i) => {
-        const x = ctx.byId.get(id)!;
-        if (x === c || x === inn || supplies(x)) return;
-        const v = x.q * planPull(ctx, plan, d, x);
-        if (v <= low) {
-          low = v;
-          at = i;
+      // The copy that goes: never the card or a supplier. First a curve copy,
+      // cards of other plans before the plan's own, then a card picked for a role the deck
+      // holds above its minimum; the weakest first. Never one another card's needs hold on.
+      const value = (x: GrowCard) => x.q * planPull(ctx, plan, d, x);
+      const curve = d.curveCopies
+        .map((id, at) => ({ x: ctx.byId.get(id)!, at }))
+        .filter(({ x }) => x !== c && !feeds(x))
+        .map((o) => ({ ...o, mine: o.x.jobs[plan.index] ? 1 : 0, v: value(o.x) }))
+        .sort((p, q) => p.mine - q.mine || p.v - q.v || q.at - p.at);
+      const roleCards = ctx.cards
+        .filter(
+          (x) =>
+            have(d, x) > 0 &&
+            x !== c &&
+            !feeds(x) &&
+            !x.jobs[plan.index] &&
+            ctx.roleIds.has(d.why.get(x.id)!) &&
+            !d.curveCopies.includes(x.id),
+        )
+        .map((x) => ({ x, at: -1, v: value(x) }))
+        .sort((p, q) => p.v - q.v);
+      const roles = new Map(cur(ctx, d).roles);
+      const keepsRoles = () =>
+        Object.entries(quotas).every(
+          ([r, q]) => (cur(ctx, d).roles.get(r) ?? 0) >= Math.min(q.min, roles.get(r) ?? 0),
+        );
+      let swap: (typeof done)[number] | undefined;
+      for (const { x: out, at } of [...curve, ...roleCards]) {
+        const outWhy = d.why.get(out.id)!;
+        remove(ctx, d, out);
+        add(ctx, d, inn, curveWhy(inn.slot));
+        if ((at >= 0 || keepsRoles()) && fine.every((x) => have(d, x) === 0 || holds(x))) {
+          swap = { out, outWhy, inn, at };
+          break;
         }
-      });
-      if (at < 0) break;
-      const out = ctx.byId.get(d.curveCopies[at]!)!;
-      const outWhy = d.why.get(out.id)!;
-      remove(ctx, d, out);
-      add(ctx, d, inn, curveWhy(inn.slot));
-      d.curveCopies.splice(at, 1, inn.id);
-      done.push({ out, outWhy, inn, at });
+        remove(ctx, d, inn);
+        add(ctx, d, out, outWhy);
+      }
+      if (!swap) break;
+      if (swap.at >= 0) d.curveCopies.splice(swap.at, 1, inn.id);
+      done.push(swap);
     }
   }
   if (
@@ -2402,7 +2440,7 @@ function feedNeeds(
   for (const x of done.reverse()) {
     remove(ctx, d, x.inn);
     add(ctx, d, x.out, x.outWhy);
-    d.curveCopies.splice(x.at, 1, x.out.id);
+    if (x.at >= 0) d.curveCopies.splice(x.at, 1, x.out.id);
   }
   return false;
 }

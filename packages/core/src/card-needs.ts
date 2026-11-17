@@ -298,7 +298,11 @@ const NUM_WORDS =
   'an?|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|twenty|x|\\d+';
 
 const PLACEHOLDERS: [string, string][] = [
-  ['{obj}', '(?<obj>[^,.;:"¤•]+?)'],
+  // A list of one-word kinds ("a Kraken, Leviathan, Octopus, or Serpent") is one object; else up to a comma.
+  [
+    '{obj}',
+    String.raw`(?<obj>(?:(?:an? |another )?[\w'-]+, )+(?:or|and\/or) [^,.;:"¤•]+?|[^,.;:"¤•]+?)`,
+  ],
   ['{tok}', '(?<obj>[^.;:"¤•]*?)'],
   ['{n}', `(?<n>${NUM_WORDS})`],
   ['{num}', `(?:${NUM_WORDS})`],
@@ -741,8 +745,9 @@ function numberOf(word: string | undefined, c: Compiled): number | undefined {
 
 const ARTIFACT_RES = 'type:artifact';
 const CARD_TYPE_WORDS = 'creature|artifact|enchantment|land|planeswalker|battle';
+// "Blue, black, or red" reads as "blue or black or red".
 const COLOR_RE =
-  /\b(non-?)?(white|blue|black|red|green)\b((?:,? (?:and\/or|or|and) (?:white|blue|black|red|green)\b)*)(?= (?:and\/or |or |and )?(?:\w+ )?(?:creatures?|permanents?|spells?|cards?|sources?|artifacts?|enchantments?)\b)/i;
+  /\b(non-?)?(white|blue|black|red|green)\b((?:(?:, (?:white|blue|black|red|green)\b)*,? (?:and\/or|or|and) (?:white|blue|black|red|green)\b)*)(?= (?:and\/or |or |and )?(?:\w+ )?(?:creatures?|permanents?|spells?|cards?|sources?|artifacts?|enchantments?)\b)/i;
 
 function lowerTypes(p: string, mode: ObjMode, out: string[]): void {
   const push = (r: string) => {
@@ -768,7 +773,9 @@ function lowerTypes(p: string, mode: ObjMode, out: string[]): void {
 }
 
 /** Whether a phrase lets every deck's creatures, lands, or permanents count ("a creature or Vehicle"). */
-function ubiquitousAlternative(p: string, c: Compiled): boolean {
+function ubiquitousAlternative(phrase: string, c: Compiled): boolean {
+  // A list ("an artifact, creature, or enchantment") reads as its alternatives joined by "or".
+  const p = phrase.replace(/,\s*(?:(?:or|and\/or)\s+)?(?=\S)/gi, ' or ');
   const qualified = (word: string | undefined) => {
     if (!word) return false;
     if (
@@ -891,6 +898,8 @@ function resolveObj(phrase: string, given: ObjMode, c: Compiled): ObjReading {
   }
   if ((m = /\bmana value (\d+) or greater\b/i.exec(p)) && mode === 'cast') push(`mv:${m[1]}`);
   const token = /\btokens?\b/i.test(p) && !/\bnontoken\b/i.test(p);
+  // "An artifact, enchantment, or token": a token is one of the alternatives.
+  const tokenAlt = /(?:,|\bor|\band\/or) (?:an? )?tokens?\b/i.test(p);
   const extra = { ...(head ? { head } : {}), ...(unread ? { unread } : {}) };
   const anyAlt = ubiquitousAlternative(p, c);
   if (anyAlt && mode !== 'graveyard' && mode !== 'cast' && mode !== 'token')
@@ -939,7 +948,7 @@ function resolveObj(phrase: string, given: ObjMode, c: Compiled): ObjReading {
     default:
       res = typed;
       if (/\bbasic lands?\b/i.test(p) && !/\bnonbasic\b/i.test(p)) res.push('land:basic');
-      if (res.length === 0 && token) res.push('tokens');
+      if ((res.length === 0 && token) || tokenAlt) res.push('tokens');
       if (res.length === 0 && noun === 'creature' && (count ?? 1) >= 2) res.push('creatures');
   }
   return { res: [...new Set(res)], ...base, ...extra };

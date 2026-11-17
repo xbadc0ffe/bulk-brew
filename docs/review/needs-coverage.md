@@ -1,29 +1,29 @@
 # Card needs: coverage over the pack
 
-Written by `npm run needs:report` (packages/pipeline/src/needs-report.ts). Pack 2026-11-03, 34168 cards; config t5.c4.r2.a10.s8.l4.w12.k2.h5.n3.qdi9pv.p1wyug0e.g1hono2u. The full unparsed work list is in `data/review/needs/unparsed.md` (not committed).
+Written by `npm run needs:report` (packages/pipeline/src/needs-report.ts). Pack 2026-11-03, 34168 cards; config t5.c4.r2.a10.s8.l4.w13.k2.h7.n4.qe3o2ik.p1wyug0e.g1hono2u. The full unparsed work list is in `data/review/needs/unparsed.md` (not committed).
 
 ## Abilities
 
 | Cards                              | Abilities | Parsed cleanly | Share | No game-state fallback | Share |
 | ---------------------------------- | --------- | -------------- | ----- | ---------------------- | ----- |
-| Whole pack                         | 64396     | 62601          | 97.2% | 61331                  | 95.2% |
-| Without Un-sets                    | 61827     | 60280          | 97.5% | 59192                  | 95.7% |
-| Commons and uncommons (no Un-sets) | 35734     | 35221          | 98.6% | 34758                  | 97.3% |
+| Whole pack                         | 64396     | 62636          | 97.3% | 61365                  | 95.3% |
+| Without Un-sets                    | 61827     | 60313          | 97.6% | 59225                  | 95.8% |
+| Commons and uncommons (no Un-sets) | 35734     | 35229          | 98.6% | 34766                  | 97.3% |
 
 Parsed cleanly: every part of the ability was read, by a template or by the game-state fallback. No game-state fallback: every part was read by a template that names what it reads.
 
-1696 cards have an unparsed ability. Why abilities were left unparsed (the first reason in each):
+1665 cards have an unparsed ability. Why abilities were left unparsed (the first reason in each):
 
 | Reason                  | Abilities |
 | ----------------------- | --------- |
-| condition               | 433       |
-| unread type             | 349       |
-| unread card type        | 262       |
-| trigger                 | 226       |
+| condition               | 434       |
+| unread type             | 336       |
+| unread card type        | 248       |
+| trigger                 | 218       |
 | unread counters         | 157       |
 | unread graveyard        | 90        |
 | cost                    | 58        |
-| unread tokens           | 53        |
+| unread tokens           | 52        |
 | unread commander        | 32        |
 | unread number of        | 27        |
 | unread life             | 20        |
@@ -70,38 +70,38 @@ Top unparsed shapes (names, numbers, types, and mana symbols normalized):
 
 ## Cards
 
-The most severe kind among a card's abilities (an unparsed ability counts as a need). 3079 cards supply some need of their own.
+The most severe kind among a card's abilities (an unparsed ability counts as a need). 3083 cards supply some need of their own.
 
 | Cards | need | bonus | drawback | unconditional |
 | ----- | ---- | ----- | -------- | ------------- |
-| 34168 | 9278 | 765   | 219      | 23906         |
+| 34168 | 9273 | 765   | 220      | 23910         |
 
 Resource references by family and kind (an alternative counts once per resource):
 
 | Family                    | Refs | need | bonus | drawback |
 | ------------------------- | ---- | ---- | ----- | -------- |
-| tribe                     | 2634 | 2374 | 206   | 54       |
-| type                      | 1664 | 1447 | 180   | 37       |
+| tribe                     | 2676 | 2416 | 206   | 54       |
+| type                      | 1658 | 1440 | 180   | 38       |
 | counters                  | 1274 | 1212 | 51    | 11       |
-| subtype                   | 802  | 713  | 80    | 9        |
+| subtype                   | 804  | 715  | 80    | 9        |
 | land                      | 786  | 562  | 111   | 113      |
-| graveyard:creature        | 727  | 692  | 35    | 0        |
+| graveyard:creature        | 728  | 693  | 35    | 0        |
 | graveyard:any             | 686  | 546  | 124   | 16       |
-| colored                   | 463  | 425  | 37    | 1        |
-| spells                    | 372  | 363  | 9     | 0        |
+| colored                   | 466  | 428  | 37    | 1        |
+| spells                    | 374  | 365  | 9     | 0        |
 | cast:noncreature          | 222  | 212  | 9     | 1        |
 | lifegain                  | 219  | 200  | 18    | 1        |
-| graveyard:instant-sorcery | 207  | 182  | 25    | 0        |
-| tokens                    | 205  | 201  | 4     | 0        |
-| cast:tribe                | 196  | 196  | 0     | 0        |
+| cast:tribe                | 210  | 210  | 0     | 0        |
+| graveyard:instant-sorcery | 209  | 184  | 25    | 0        |
+| tokens                    | 207  | 202  | 4     | 1        |
 | death                     | 164  | 164  | 0     | 0        |
 | commander                 | 163  | 136  | 27    | 0        |
 | discard                   | 146  | 82   | 64    | 0        |
-| cast:subtype              | 133  | 106  | 27    | 0        |
+| cast:subtype              | 137  | 110  | 27    | 0        |
 | power                     | 130  | 113  | 12    | 5        |
 | keyword                   | 123  | 114  | 9     | 0        |
 | energy                    | 118  | 113  | 0     | 5        |
-| graveyard:artifact        | 114  | 110  | 4     | 0        |
+| graveyard:artifact        | 115  | 111  | 4     | 0        |
 | graveyard:tribe           | 113  | 107  | 6     | 0        |
 | graveyard:land            | 110  | 98   | 12    | 0        |
 | cast:artifact             | 85   | 85   | 0     | 0        |
@@ -146,7 +146,7 @@ Role credits (cards the roles.json matchers give the role, Un-sets left out) by 
 | ----------------- | ----- | ---- | ----- | -------- | ------------- | ------ |
 | removal           | 4706  | 468  | 20    | 2        | 3769          | 447    |
 | sweeper           | 839   | 68   | 4     | 0        | 680           | 87     |
-| cardAdvantage     | 4962  | 907  | 2     | 0        | 3892          | 161    |
+| cardAdvantage     | 4962  | 905  | 2     | 0        | 3894          | 161    |
 | cheapInteraction  | 2365  | 106  | 8     | 1        | 2041          | 209    |
 | finisher          | 5036  | 0    | 0     | 0        | 5036          | 0      |
 | commanderFinisher | 1574  | 0    | 0     | 0        | 1574          | 0      |
@@ -160,32 +160,32 @@ Theme credits (the theme rules at 60 cards, each card once per style):
 | ------------------- | ----- | ---- | ----- | -------- | ------------- | ------ |
 | aristocrats:payoff  | 359   | 147  | 0     | 0        | 187           | 25     |
 | aristocrats:setup   | 2682  | 529  | 14    | 1        | 2138          | 0      |
-| artifacts:payoff    | 453   | 310  | 77    | 1        | 42            | 23     |
+| artifacts:payoff    | 453   | 308  | 77    | 1        | 44            | 23     |
 | artifacts:setup     | 4440  | 125  | 4     | 0        | 4308          | 3      |
 | auras:payoff        | 1612  | 63   | 12    | 0        | 1534          | 3      |
 | auras:setup         | 1165  | 71   | 4     | 0        | 1090          | 0      |
-| bigCreatures:payoff | 2917  | 68   | 3     | 0        | 2846          | 0      |
+| bigCreatures:payoff | 2917  | 67   | 3     | 0        | 2847          | 0      |
 | bigCreatures:setup  | 1542  | 183  | 1     | 0        | 1123          | 235    |
 | burn:payoff         | 269   | 173  | 3     | 0        | 92            | 1      |
 | burn:setup          | 747   | 70   | 6     | 0        | 671           | 0      |
-| counters:payoff     | 250   | 202  | 7     | 0        | 24            | 17     |
-| counters:setup      | 2339  | 513  | 22    | 0        | 1714          | 90     |
+| counters:payoff     | 249   | 202  | 7     | 0        | 24            | 16     |
+| counters:setup      | 2339  | 514  | 22    | 0        | 1713          | 90     |
 | enchantments:payoff | 128   | 109  | 6     | 0        | 1             | 12     |
 | enchantments:setup  | 3679  | 4    | 0     | 0        | 3675          | 0      |
 | energy:payoff       | 112   | 66   | 0     | 0        | 46            | 0      |
 | energy:setup        | 31    | 5    | 0     | 0        | 26            | 0      |
-| flyers:payoff       | 150   | 32   | 1     | 0        | 117           | 0      |
-| flyers:setup        | 3959  | 61   | 1     | 0        | 3897          | 0      |
+| flyers:payoff       | 379   | 54   | 2     | 0        | 323           | 0      |
+| flyers:setup        | 3730  | 53   | 1     | 0        | 3676          | 0      |
 | goad:payoff         | 11    | 0    | 0     | 0        | 11            | 0      |
 | goad:setup          | 147   | 15   | 0     | 1        | 131           | 0      |
 | graveyard:payoff    | 2082  | 1044 | 74    | 13       | 625           | 326    |
-| graveyard:setup     | 2083  | 196  | 2     | 5        | 1750          | 130    |
+| graveyard:setup     | 2084  | 196  | 2     | 5        | 1751          | 130    |
 | groupHug:payoff     | 65    | 1    | 0     | 0        | 64            | 0      |
 | groupHug:setup      | 287   | 19   | 1     | 0        | 267           | 0      |
 | landfall:payoff     | 209   | 19   | 0     | 0        | 190           | 0      |
 | landfall:setup      | 504   | 92   | 1     | 0        | 343           | 68     |
 | lifegain:payoff     | 195   | 178  | 5     | 0        | 12            | 0      |
-| lifegain:setup      | 1980  | 401  | 3     | 0        | 1571          | 5      |
+| lifegain:setup      | 1980  | 402  | 3     | 0        | 1570          | 5      |
 | mill:payoff         | 65    | 12   | 0     | 0        | 53            | 0      |
 | mill:setup          | 243   | 35   | 0     | 0        | 208           | 0      |
 | spells:payoff       | 462   | 346  | 3     | 0        | 108           | 5      |
@@ -197,8 +197,8 @@ Theme credits (the theme rules at 60 cards, each card once per style):
 
 ## Tag cross-check
 
-- 6207 cards carry a dependency tag (`lifegain-matters`, `counters-matter`, `typal-*`, `synergy-*`, `*-matter(s)`) but the reader finds no reference at all: `synergy-*` 2348, `*-matter(s)` 4065, `typal-*` 455, `lifegain-matters` 30, `counters-matter` 159.
-- 997 cards have a need the reader finds (not self-supplied) and carry no such tag; by family: graveyard:creature 283, type 139, graveyard:any 120, land 98, death 69, counters 44, graveyard:artifact 41, graveyard:instant-sorcery 41, subtype 33, graveyard:land 32, spells 27, graveyard:enchantment 26.
+- 6209 cards carry a dependency tag (`lifegain-matters`, `counters-matter`, `typal-*`, `synergy-*`, `*-matter(s)`) but the reader finds no reference at all: `synergy-*` 2351, `*-matter(s)` 4066, `typal-*` 454, `lifegain-matters` 30, `counters-matter` 159.
+- 996 cards have a need the reader finds (not self-supplied) and carry no such tag; by family: graveyard:creature 283, type 138, graveyard:any 120, land 98, death 69, counters 44, graveyard:artifact 41, graveyard:instant-sorcery 41, subtype 33, graveyard:land 32, spells 27, graveyard:enchantment 26.
 
 Top tags on cards the reader calls unconditional:
 
@@ -207,12 +207,12 @@ Top tags on cards the reader calls unconditional:
 | power-matters          | 939   | 529                   | Abyssal Hunter; Access Tunnel; Adaptive Snapjaw                                                |
 | attacking-matters      | 758   | 431                   | Accorder Paladin; Adeline, Resplendent Cathar; Admiral's Order                                 |
 | mana-value-matters     | 449   | 187                   | Aang, at the Crossroads // Aang, Destined Savior; Abundant Maw; Accelerated Mutation           |
-| typal-creature         | 347   | 207                   | Accursed Duneyard; Adaptive Automaton; Aether Shockwave                                        |
+| typal-creature         | 346   | 206                   | Accursed Duneyard; Adaptive Automaton; Aether Shockwave                                        |
 | lands-matter           | 303   | 167                   | Admonition Angel; Adventuring Gear; Aesi, Tyrant of Gyre Strait                                |
 | name-matters           | 285   | 122                   | 1996 World Champion; Academic Probation; Accumulated Knowledge                                 |
 | hand-size-matters      | 236   | 94                    | Adamaro, First to Desire; Akki Underling; Alrund, God of the Cosmos // Hakka, Whispering Raven |
 | creature-count-matters | 208   | 107                   | Adeline, Resplendent Cathar; Advice from the Fae; Ajani, Wise Counselor                        |
-| synergy-artifact       | 195   | 127                   | A Realm Reborn; Aang and Katara; Aang's Iceberg                                                |
+| synergy-artifact       | 197   | 128                   | A Realm Reborn; Aang and Katara; Aang's Iceberg                                                |
 | synergy-blocker-self   | 174   | 137                   | Abomination; Abu Ja'far; Aether Membrane                                                       |
 
 Top needs on cards with no dependency tag:
@@ -244,4 +244,4 @@ Lands the pack marks `entersTapped` (Un-sets left out): how `landEntry` in lands
 
 ## Speed
 
-Reading: 261 ms per 1,000 cards (8.9 s for the pack, fresh cache). Credits: 74514 role and theme credits in 7.1 s.
+Reading: 284 ms per 1,000 cards (9.7 s for the pack, fresh cache). Credits: 74514 role and theme credits in 7.3 s.

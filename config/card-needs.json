@@ -1,5 +1,5 @@
 {
-  "version": "3",
+  "version": "4",
   "vocabulary": {
     "creatureTypes": [
       "Advisor",
@@ -818,6 +818,10 @@
       {
         "re": "you lose life[^,]*",
         "res": ["lifeloss"]
+      },
+      {
+        "re": "you (?:cast or copy|copy|cast) (?<obj>(?:your first |an? )?(?:[\\w-]+, )+(?:or|and\\/or) [^,.;:\"¤•]+?)",
+        "obj": "cast"
       },
       {
         "re": "you (?:cast or copy|copy|cast) {obj}",
