@@ -1,5 +1,5 @@
 {
-  "version": "12",
+  "version": "13",
   "objective": {
     "curveDeviation": 1.0,
     "typeMixDeviation": 1.0,
@@ -63,7 +63,18 @@
     "fullSlot": 0.5,
     "setupPull": 0.25,
     "setupTarget": 1.5,
+    "payoffPull": 0.5,
+    "creatureFill": 0.5,
     "nearMargin": 0.5
+  },
+  "picker": {
+    "themeMargin": 1.2,
+    "depthFull": 1.5,
+    "depthWeight": 0.1,
+    "richnessZ": 1.65,
+    "castWeight": 1,
+    "colorCost": 0.1,
+    "scoreStep": 0.01
   },
   "castability": {
     "secondaryPip": 0.25,

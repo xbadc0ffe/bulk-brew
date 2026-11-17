@@ -38,7 +38,7 @@ Shares of nonland spells. A deck outside these bounds plays badly even with a go
 | 40   | 50% to 70% | at least 10%           | at most 25%            |
 | 20   | 55% to 80% | at least 8%            | at most 25%            |
 
-Preconstructed 60-card decks are about 64% creatures and draft decks about 61%, so the 60-card floor is 55% and the 40-card bounds sit around the middle of the draft decks. Composition archetypes override these: aggro wants 60% to 80% creatures, control 25% to 50% with at least a quarter instants and sorceries. The spells-matter theme sits in between on purpose.
+Preconstructed 60-card decks are about 64% creatures and draft decks about 61%, so the 60-card floor is 55% and the 40-card bounds sit around the middle of the draft decks. Composition archetypes override these: aggro wants 60% to 80% creatures, control 25% to 50% with at least a quarter instants and sorceries. The spells-matter theme sits in between on purpose. The grow builder fills a plain shape with creatures first to the middle of its range (`grow.creatureFill` in builder-weights.json): about 65% for Midrange, 70% for Aggro, and 37.5% for Control, so a bulk Control deck holds the ground with about 14 creatures at 60 (15 in black from the eval pool) as the theme guide's control decks do (9 to 17), not the 10 its minimum alone gave. A theme deck keeps the minimum and fills the rest with its own cards.
 
 ## Role quotas
 

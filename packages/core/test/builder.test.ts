@@ -187,7 +187,7 @@ describe('buildDeck', () => {
       const min = templateFor(CONFIG, 60).roles[role]?.min ?? 0;
       expect(count.have, role).toBeGreaterThanOrEqual(min);
     }
-    expect(r.deck.cards.some((c) => c.why?.includes('Tokens'))).toBe(true);
+    expect(r.deck.cards.some((c) => /^(Setup|Payoff): /.test(c.why ?? ''))).toBe(true);
   });
 
   it('keeps a picked style at its minimums through the swaps', () => {
@@ -202,10 +202,15 @@ describe('buildDeck', () => {
     }
   });
 
-  it('falls back with a note when the style is not viable', () => {
-    const r = build(60, 'lifegain');
+  it('falls back with a note when the style is not viable, or drops the plan at 60', () => {
+    // The classic builder (20 cards) builds the best fit instead.
+    const r = build(20, 'lifegain');
     expect(r.deck.archetype).not.toBe('lifegain');
     expect(r.explanation.notes.join(' ')).toMatch(/not viable/);
+    // At 60 a style not asked for by name is one plan of a list: the grow builder refuses it.
+    expect(() => build(60, 'lifegain')).toThrow(
+      'Not enough cards to build Lifegain: your bulk list has few cards that gain life (0 of 10).',
+    );
   });
 
   it('throws a plain-language error on a thin pool', () => {
@@ -309,8 +314,27 @@ describe('export', () => {
 });
 
 describe('best fit', () => {
-  it('without learned plans, picks the highest score among the archetypes it tried', () => {
-    const build60 = (style?: string) => build(60, style, HAND_CONFIG);
+  it('at 60 keeps the plan with the highest picker score, naming the runners-up', () => {
+    const r = build(60);
+    expect(r.explanation.builder).toBe('grow');
+    const pick = r.explanation.pick!;
+    expect(pick.ranked![0]!.style).toBe(r.deck.archetype);
+    const note = r.explanation.notes[0]!;
+    expect(note).toMatch(
+      /^Compared \d+ archetypes and kept .*, the best fit for this bulk list\. Next: /,
+    );
+    expect(note).not.toMatch(/\d+\.\d/);
+    // Each runner-up built on its own scores what best fit recorded for it, and no more.
+    for (const { style, score } of pick.ranked!.slice(1)) {
+      const other = build(60, style).explanation.pick!.score;
+      expect(Math.round(other * 1000) / 1000).toBe(score);
+      expect(other).toBeLessThanOrEqual(pick.score);
+    }
+    expect(build(60).deck).toEqual(r.deck);
+  });
+
+  it('without learned plans (20 cards), picks the highest score among the archetypes it tried', () => {
+    const build60 = (style?: string) => build(20, style, HAND_CONFIG);
     const r = build60();
     const score = r.explanation.score;
     expect(score).toBeDefined();
@@ -332,13 +356,13 @@ describe('best fit', () => {
     }
   });
 
-  it('with learned plans, picks the plan the pool leans to and fills its theme toward real decks', () => {
-    const r = build(60);
+  it('with learned plans (20 cards), picks the plan the pool leans to and fills its theme toward real decks', () => {
+    const r = build(20);
     const note = r.explanation.notes.find((n) => n.startsWith('Compared '));
     expect(note).toMatch(/the plan this bulk list leans to most/);
     expect(note).not.toMatch(/\d+\.\d/);
     // Deterministic: the same pool and config give the same plan and deck.
-    expect(build(60).deck).toEqual(r.deck);
+    expect(build(20).deck).toEqual(r.deck);
   });
 
   it('builds only the requested style when it is viable', () => {

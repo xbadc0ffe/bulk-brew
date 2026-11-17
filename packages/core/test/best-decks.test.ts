@@ -30,17 +30,30 @@ function runAll(size: DeckSize, pool: Pool) {
 }
 
 describe('bestDeckPlans', () => {
-  it('plans every viable style of every buildable color set, fewer colors first in each turn', () => {
+  it('plans what best fit compares in every buildable color set, fewer colors first in each turn', () => {
     const scans = scansFor(bigPool(), 60);
     const plans = bestDeckPlans(scans);
+    // The themes the rules call viable and the three plain shapes, always.
     const viable = [...scans.values()]
       .filter((s) => s.possible)
-      .reduce((n, s) => n + s.archetypes.filter((a) => a.viable).length, 0);
+      .reduce((n, s) => n + s.archetypes.filter((a) => a.rules?.viable).length + 3, 0);
     expect(plans.length).toBe(viable);
+    for (const shape of ['midrange', 'aggro', 'control'])
+      expect(plans.some((p) => p.style === shape)).toBe(true);
     expect(new Set(plans.map((p) => p.key)).size).toBe(plans.length);
     // The fixture is white with colorless cards, so white comes first.
     expect(plans[0]!.colors).toEqual(['W']);
     for (const p of plans) expect(scans.get(p.colors.join(''))!.possible).toBe(true);
+  });
+});
+
+describe('bestDeckPlans at 20', () => {
+  it('plans the styles the scan calls viable, as the classic builder builds them', () => {
+    const scans = scansFor(bigPool(), 20);
+    const viable = [...scans.values()]
+      .filter((s) => s.possible)
+      .reduce((n, s) => n + s.archetypes.filter((a) => a.viable).length, 0);
+    expect(bestDeckPlans(scans).length).toBe(viable);
   });
 });
 

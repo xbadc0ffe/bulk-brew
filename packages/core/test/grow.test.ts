@@ -484,18 +484,19 @@ describe('grow builder: the nearest rule', () => {
     );
     expect(r.explanation.notes[1]).toMatch(/^Aristocrats minimums met: /);
     expect(total(r.deck)).toBe(60);
-    // A style picked internally keeps the classic path and its own fallback.
-    const internal = build(f, 'graveyard', 60, { requireStyle: false });
-    expect(internal.explanation.builder).toBe('classic');
-    expect(internal.explanation.nearest).toBeUndefined();
+    // One plan of a list, not asked for by name: refused, so the list drops it.
+    expect(() => build(f, 'graveyard', 60, { requireStyle: false })).toThrow(
+      'Not enough cards to build Graveyard: your bulk list has few repeatable ways to fill the graveyard (1 of 2).',
+    );
   });
 
-  it('falls back to the classic best fit with the note when no kin can be built', () => {
+  it('falls back to best fit with the note when no kin can be built', () => {
     // Aristocrats' kin are Tokens (none here) and Graveyard (short).
     const f = fakePool(short);
     const r = build(f, 'aristocrats');
-    expect(r.explanation.builder).toBe('classic');
+    expect(r.explanation.builder).toBe('grow');
     expect(r.deck.archetype).not.toBe('aristocrats');
+    expect(r.deck.archetype).toBe(build(f, undefined).deck.archetype);
     expect(r.explanation.nearest?.requested).toBe('aristocrats');
     expect(r.explanation.nearest?.lacks).toContain(
       'few creatures to sacrifice and ways to sacrifice them',
@@ -515,30 +516,36 @@ describe('grow builder: the nearest rule', () => {
     expect(['midrange', 'aggro', 'control']).toContain(r.deck.archetype);
     expect(r.explanation.nearest?.lacks).toBe('few repeatable ways to fill the graveyard (1 of 2)');
     expect(r.explanation.notes[0]).toMatch(
-      /^Asked for Graveyard: .* Built (Midrange|Aggro|Control) instead\.$/,
+      /^Asked for Graveyard: .* Built (Midrange|Aggro|Control) instead, the best fit for this bulk list\.$/,
     );
   });
 
   it('answers with a shape of the classic builder when this one cannot fill a shape either', () => {
     const f = thinPool(2);
-    expect(build(f, undefined).deck.archetype).toBe('graveyard');
+    // Best fit: the plain shapes from the classic builder, scored by the picker like any plan.
+    const fit = build(f, undefined);
+    expect(fit.explanation.builder).toBe('classic');
+    expect(['midrange', 'aggro', 'control']).toContain(fit.deck.archetype);
+    expect(fit.explanation.pick?.ranked?.[0]?.style).toBe(fit.deck.archetype);
     const r = build(f, 'graveyard');
     // Its reanimation spells need creature cards to return: seven or eight creatures in the pool pay for none.
     expect(r.explanation.builder).toBe('classic');
-    expect(r.deck.archetype).toBe('midrange');
-    expect(r.deck.name).toBe('Blue Midrange 60');
+    expect(r.deck.archetype).toBe(fit.deck.archetype);
+    expect(r.deck.cards).toEqual(fit.deck.cards);
     expect(r.explanation.nearest).toEqual({
       requested: 'graveyard',
       lacks: 'few cards that use a full graveyard (0 of 6)',
     });
-    expect(r.explanation.notes[0]).toBe(
-      'Asked for Graveyard: your bulk list has few cards that use a full graveyard (0 of 6). Built Midrange instead.',
+    expect(r.explanation.notes[0]).toMatch(
+      /^Asked for Graveyard: your bulk list has few cards that use a full graveyard \(0 of 6\)\. Built (Midrange|Aggro|Control) instead, the best fit for this bulk list\.$/,
     );
     expect(r.deck.explanation).toBe(r.explanation);
     expect(total(r.deck)).toBe(60);
-    // With no shape either builder can fill, a refusal that says what the pool lacks.
+    // With no shape either builder can fill, best fit is the classic builder's own, and a
+    // request for the short style is refused with what the pool lacks.
     const thinner = thinPool(1);
     expect(build(thinner, undefined).deck.archetype).toBe('graveyard');
+    expect(build(thinner, undefined).explanation.pick).toBeUndefined();
     expect(() => build(thinner, 'graveyard')).toThrow(BuildError);
     expect(() => build(thinner, 'graveyard')).toThrow(
       'Not enough cards to build Graveyard: your bulk list has few cards that use a full graveyard (0 of 6).',
@@ -632,11 +639,16 @@ describe('grow builder: routing', () => {
       CONFIG,
     );
 
-  it('takes only styles the player asked for at 60, 40, and 100 without a secondary or a tribe', () => {
+  it('takes best fit and every style at 60, 40, and 100 but secondary styles and tribes', () => {
     expect(run({ style: 'tokens', requireStyle: true }).explanation.builder).toBe('grow');
     expect(run({ style: 'tokens', requireStyle: true, size: 40 }).explanation.builder).toBe('grow');
-    expect(run({}).explanation.builder).toBe('classic');
-    expect(run({ style: 'tokens' }).explanation.builder).toBe('classic');
+    expect(run({}).explanation.builder).toBe('grow');
+    expect(run({ size: 40 }).explanation.builder).toBe('grow');
+    expect(run({}).explanation.pick?.ranked?.length).toBeGreaterThan(1);
+    expect(run({ style: 'tokens' }).explanation.builder).toBe('grow');
+    // 20-card packets keep the classic builder, best fit included.
+    expect(run({ size: 20 }).explanation.builder).toBe('classic');
+    expect(run({ size: 20 }).explanation.pick).toBeUndefined();
     expect(run({ style: 'tokens', requireStyle: true, size: 20 }).explanation.builder).toBe(
       'classic',
     );

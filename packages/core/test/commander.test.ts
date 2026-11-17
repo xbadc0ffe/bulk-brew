@@ -218,13 +218,10 @@ describe('Commander builds', () => {
   });
 
   it('answers a style the pool cannot build with a note, or refuses it on the classic path', () => {
-    const loose = buildDeck(
-      { ...request, commander: 'lead', style: 'tokens' },
-      pool,
-      index,
-      CONFIG,
-    );
-    expect(loose.deck.archetype).not.toBe('tokens');
+    // One plan of a list (a Build page option): the grow builder drops it.
+    expect(() =>
+      buildDeck({ ...request, commander: 'lead', style: 'tokens' }, pool, index, CONFIG),
+    ).toThrow(/Not enough cards to build Tokens/);
     // Asked for by the player: the nearest deck the pool can build, labelled for what it is.
     const asked = buildDeck(
       { ...request, commander: 'lead', style: 'tokens', requireStyle: true },

@@ -12,9 +12,11 @@ import {
   addOption,
   byStylePromise,
   colorSubsets,
+  pickerStyles,
   sameOptions,
   type DeckOption,
 } from './options.ts';
+import { planOrder } from './grow.ts';
 import type { CardIndex } from './pack.ts';
 import { scanPool } from './scan.ts';
 import {
@@ -42,23 +44,27 @@ export interface BestDeckPlan {
 
 /**
  * Plans for a 60, 40, or 20-card size, from scans keyed by color letters
- * such as "WU". Builds take turns by style rank: every color set's most
- * promising style, then each one's next. Inside a turn fewer colors go first,
- * since mono-color decks build strongest.
+ * such as "WU". At 60 and 40 each color set plans what best fit compares
+ * there (pickerStyles: the themes the rules call viable and the three plain
+ * shapes); at 20 the styles the scan calls viable. Builds take turns by style
+ * rank: every color set's most promising style, then each one's next. Inside
+ * a turn fewer colors go first, since mono-color decks build strongest.
  */
 export function bestDeckPlans(scans: ReadonlyMap<string, ScanReport>): BestDeckPlan[] {
   const perSubset: BestDeckPlan[][] = [];
   for (const subset of fewestColorsFirst()) {
     const scan = scans.get(subset.join(''));
     if (!scan?.possible) continue;
-    const styles = scan.archetypes.filter((a) => a.viable).sort(byStylePromise);
+    const styles =
+      scan.size === 20
+        ? scan.archetypes
+            .filter((a) => a.viable)
+            .sort(byStylePromise)
+            .map((a) => a.archetype)
+        : pickerStyles(scan);
     if (styles.length === 0) continue;
     perSubset.push(
-      styles.map((a) => ({
-        key: `${subset.join('')}:${a.archetype}`,
-        colors: subset,
-        style: a.archetype,
-      })),
+      styles.map((style) => ({ key: `${subset.join('')}:${style}`, colors: subset, style })),
     );
   }
   const plans: BestDeckPlan[] = [];
@@ -206,7 +212,7 @@ export function bestDeckSearch(
   };
 }
 
-/** Ranks a commander's deck in with the others: by deck score, a few per style, capped. */
+/** Ranks a commander's deck in with the others: by the plan picker's score, a few per style, capped. */
 function addCommanderDeck(
   list: readonly DeckOption[],
   key: string,
@@ -218,11 +224,14 @@ function addCommanderDeck(
   const option: DeckOption = {
     key,
     result,
-    rank: result.explanation.score?.total ?? 0,
+    rank: result.explanation.pick?.score ?? result.explanation.score?.total ?? 0,
     allColors: true,
   };
   const ranked = [...list, option].sort(
-    (a, b) => b.rank - a.rank || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0),
+    (a, b) =>
+      b.rank - a.rank ||
+      planOrder(a.result.deck.archetype) - planOrder(b.result.deck.archetype) ||
+      (a.key < b.key ? -1 : a.key > b.key ? 1 : 0),
   );
   const perStyle = new Map<string, number>();
   return ranked

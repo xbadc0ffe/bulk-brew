@@ -1,13 +1,16 @@
-// The grow builder (seed and grow), for styles the player asks for by name at
-// 60, 40, and 100 cards: a theme the rules describe, or Aggro, Midrange, or
-// Control. It builds the way a person does: check the plan against honest
-// counts (config/theme-rules.json), seed the payoffs the pool supports, grow
-// setup to what they demand, add interaction and card advantage to the role
-// minimums, fill the curve slot by slot, then build the mana. A style the pool
-// cannot support is answered with a note and the nearest deck it can build.
-// Ported from the review prototype b-grow (docs/review/proto-b.md); its
-// constants live in config/builder-weights.json under `grow`. Deterministic:
-// candidates are walked in card id order and ties go to strength, then id.
+// The grow builder (seed and grow), for every deck at 60, 40, and 100 cards
+// but tribes and secondary styles: best fit, a theme the rules describe, or
+// Aggro, Midrange, or Control. It builds the way a person does: check the plan
+// against honest counts (config/theme-rules.json), seed the payoffs the pool
+// supports, grow setup to what they demand, add interaction and card advantage
+// to the role minimums, fill the curve slot by slot, then build the mana. A
+// style the pool cannot support is answered with a note and the nearest deck
+// it can build. The plan picker (pickScore) scores every finished deck with
+// one number, which ranks best fit, the Build page's options, and the Analyze
+// pane alike. Ported from the review prototype b-grow (docs/review/proto-b.md);
+// its constants live in config/builder-weights.json under `grow` and `picker`.
+// Deterministic: candidates are walked in card id order and ties go to
+// strength, then id.
 
 import {
   buildClassic,
@@ -43,7 +46,7 @@ import {
   type Candidate,
   type CardFacts,
 } from './candidates.ts';
-import { creditsFor } from './deck-credits.ts';
+import { creditsFor, unsupportedCards } from './deck-credits.ts';
 import { cardStrength } from './strength.ts';
 import {
   castChance,
@@ -73,7 +76,7 @@ import {
   type ManaBase,
 } from './lands.ts';
 import type { CardIndex } from './pack.ts';
-import { scanPossible, secondaryLabel, tribeOf } from './scan.ts';
+import { commanderTribes, scanPossible, secondaryLabel, tribeOf } from './scan.ts';
 import {
   matchCard,
   themeRulesFor,
@@ -92,12 +95,35 @@ import type {
   Deck,
   DeckCard,
   DeckSize,
+  PickScore,
   Pool,
   Settings,
 } from './types.ts';
 
-/** The plain shapes, Midrange first so the templates' default shape wins a best-fit tie. */
+/**
+ * The plain shapes in the picker's tie order: plans whose scores tie (to
+ * `picker.scoreStep`) go to Midrange, the templates' default shape, then
+ * Aggro, then Control, then the themes by style id.
+ */
 export const PLAIN_SHAPES = ['midrange', 'aggro', 'control'] as const;
+
+/** A plan's place among plans whose scores tie: the plain shapes in order, then every theme. */
+export function planOrder(style: string): number {
+  const i = (PLAIN_SHAPES as readonly string[]).indexOf(style);
+  return i >= 0 ? i : PLAIN_SHAPES.length;
+}
+
+/** Best score first; a tie goes by planOrder, then style id. */
+export function byPlanScore(
+  a: { style: string; score: number },
+  b: { style: string; score: number },
+): number {
+  return (
+    b.score - a.score ||
+    planOrder(a.style) - planOrder(b.style) ||
+    (a.style < b.style ? -1 : a.style > b.style ? 1 : 0)
+  );
+}
 /** Roles whose cards do something in any game, so an off-plan theme job does not gate them. */
 const SPELL_JOBS = ['removal', 'sweeper', 'cardAdvantage', 'cheapInteraction', 'ramp'];
 const EPS = 1e-9;
@@ -487,6 +513,13 @@ interface CardGate {
   always: ReadonlySet<string>;
   /** Per style: its job holds in every deck, the theme's own resources taken as met. */
   jobsAlways: readonly boolean[];
+  /**
+   * Per style: a creature whose payoff job the card needs reader finds needs
+   * nothing, no resource of the theme taken as met (a flying carrier for
+   * Auras, a big body for Big creatures): a body any deck can play, so the
+   * off-plan gate lets it in.
+   */
+  bodies: readonly boolean[];
   /** A drawback, or credits that may all go unearned: check the card against the deck. */
   check: boolean;
   /** Roles and jobs hold in every deck. */
@@ -574,6 +607,13 @@ function gateWith(
     if (j && !ok) fixed = false;
     return ok;
   });
+  const creature = card.types.includes('creature');
+  const bodies = jobs.map(
+    (j, i) =>
+      creature &&
+      j?.as === 'payoff' &&
+      creditEarned(card, themeCredit(styles[i]!, 'payoff'), base, config),
+  );
   const effects: string[] = [];
   for (const e of config.cardStrength.effects) {
     const credit = strengthCredit(e.label);
@@ -584,7 +624,7 @@ function gateWith(
     (a) => a.shape === 'additionalCost' && a.refs.some((r) => r.orPay),
   );
   const check = cardSupport(card, base, config) !== undefined;
-  return { always, jobsAlways, check, fixed, effects, orPay };
+  return { always, jobsAlways, bodies, check, fixed, effects, orPay };
 }
 
 type Plan =
@@ -632,6 +672,8 @@ export interface GrowContext {
   candidates: Candidate[];
   /** Mean value of the pool's best copies per curve slot (1 to 7) and kind (0 noncreature, 1 creature). */
   levels: number[][];
+  /** Every usable copy's value per curve slot and kind, best first: the picker's quality compares rank for rank. */
+  peers: number[][][];
   /** Spell slots before the land formula adjusts them. */
   slots0: number;
   roleLabels: Map<string, string>;
@@ -691,10 +733,7 @@ function mean(v: readonly number[]): number {
   return v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0;
 }
 
-/**
- * The pool's cards for a request: legality, copies, cast chance, and jobs.
- * Exported with chooseBestFit for phase 2's plan picker.
- */
+/** The pool's cards for a request: legality, copies, cast chance, and jobs. */
 export function growContext(
   request: BuildRequest,
   pool: Pool,
@@ -763,6 +802,7 @@ export function growContext(
     for (let i = 0; i < c.max; i++) groups[c.slot]![c.facts.creature ? 1 : 0]!.push(c.value);
   const all = cards.flatMap((c) => Array<number>(c.max).fill(c.value)).sort((a, b) => b - a);
   const fallback = mean(all.slice(0, slots0)) || 1;
+  // Sorts each group in place, best first; the picker reads them as peers.
   const levels = groups.map((kinds) =>
     kinds.map((v) => mean(v.sort((a, b) => b - a).slice(0, top)) || fallback),
   );
@@ -785,6 +825,7 @@ export function growContext(
     byId: new Map(cards.map((c) => [c.id, c])),
     candidates,
     levels,
+    peers: groups,
     slots0,
     roleLabels: new Map(config.roles.roles.map((r) => [r.id, r.label])),
     roleIds: new Map(config.roles.roles.map((r) => [r.label, r.id])),
@@ -1155,9 +1196,11 @@ function offPlanFloor(ctx: GrowContext, i: number): ThemeFloor | undefined {
  * enters only when the setup already in the deck covers it. A card that is
  * not setup for the plan and fills no spell role also needs, for each other
  * style: as a payoff at weight 1 or more (it does little without its
- * resource), that style's setup covering it; as setup for a style whose setup
- * does nothing without its own payoffs (Ruin Crab's opponent mill), a payoff
- * of that style in the deck and no more setup than the floors' ratio.
+ * resource), that style's setup covering it, unless it is a creature whose
+ * payoff job needs nothing (a body any deck plays, such as Vampire Nighthawk
+ * as an Auras carrier); as setup for a style whose setup does nothing
+ * without its own payoffs (Ruin Crab's opponent mill), a payoff of that style
+ * in the deck and no more setup than the floors' ratio.
  */
 function gateOpen(ctx: GrowContext, plan: Plan, d: GrowDeck, c: GrowCard): boolean {
   const x = cur(ctx, d);
@@ -1171,7 +1214,7 @@ function gateOpen(ctx: GrowContext, plan: Plan, d: GrowDeck, c: GrowCard): boole
     const j = c.jobs[i];
     if (!j || (plan.kind === 'theme' && i === plan.index)) continue;
     if (j.as === 'payoff') {
-      if (j.weight < ctx.k.offPlanGateWeight) continue;
+      if (j.weight < ctx.k.offPlanGateWeight || c.gate.bodies[i]) continue;
       const floor = offPlanFloor(ctx, i);
       if (floor && !covered(x.tallies[i]!, floor, j)) return false;
     } else if (ctx.defs.compiled[i]!.setupNeedsPayoff) {
@@ -1191,18 +1234,35 @@ function planGateOnly(ctx: GrowContext, plan: Plan, d: GrowDeck, c: GrowCard): b
   );
 }
 
-/** Extra value for the plan's setup in the role and curve fills, fading out above the floor. */
-function setupPull(ctx: GrowContext, plan: Plan, d: GrowDeck, c: GrowCard): number {
+/** 1 at a floor, fading to 0 at `target` times it. */
+function fadeAbove(have: number, floor: number, target: number): number {
+  const top = floor * target;
+  return Math.min(1, Math.max(0, (top - have) / (top - floor)));
+}
+
+/**
+ * Extra value for the plan's own cards in the role and curve fills, so the
+ * deck gets some depth above its floors: setup fading out above the setup
+ * floor, and payoffs the setup already covers fading out above the payoff
+ * floor (a theme with no payoff floor pulls them only while covered). A
+ * payoff the setup cannot feed gets no pull; the gate keeps it out anyway.
+ */
+function planPull(ctx: GrowContext, plan: Plan, d: GrowDeck, c: GrowCard): number {
   if (plan.kind !== 'theme') return 1;
   const job = planJob(plan, c.jobs);
-  if (job?.as !== 'setup' || !openPlanJob(ctx, plan, d, c)) return 1;
+  if (!job || !openPlanJob(ctx, plan, d, c)) return 1;
   const b = balance(plan.floor);
-  const floor = plan.floor[b.setup] ?? 0;
-  if (floor <= 0) return 1;
-  const target = floor * ctx.k.setupTarget;
-  const have = floorValue(cur(ctx, d).plan, b.setup);
-  const fade = Math.min(1, Math.max(0, (target - have) / (target - floor)));
-  return 1 + ctx.k.setupPull * Math.min(1, job.weight) * fade;
+  const x = cur(ctx, d).plan;
+  if (job.as === 'setup') {
+    const floor = plan.floor[b.setup] ?? 0;
+    if (floor <= 0) return 1;
+    const fade = fadeAbove(floorValue(x, b.setup), floor, ctx.k.setupTarget);
+    return 1 + ctx.k.setupPull * Math.min(1, job.weight) * fade;
+  }
+  if (!covered(x, plan.floor, job)) return 1;
+  const floor = plan.floor[b.payoff] ?? 0;
+  const fade = floor > 0 ? fadeAbove(floorValue(x, b.payoff), floor, ctx.k.setupTarget) : 1;
+  return 1 + ctx.k.payoffPull * Math.min(1, job.weight) * fade;
 }
 
 /** The highest score among cards passing the filter; ties by strength, then card id. */
@@ -1344,7 +1404,7 @@ interface Shape {
   typeMix: TypeMix;
 }
 
-function shapeFor(ctx: GrowContext, plan: Plan): Shape {
+function shapeFor(ctx: GrowContext, plan: { archetype: Archetype }): Shape {
   const t = ctx.template;
   const a = plan.archetype;
   const profile = t.size === 20 || t.size === 100 ? t.curveProfile : a.curveProfile;
@@ -1353,6 +1413,17 @@ function shapeFor(ctx: GrowContext, plan: Plan): Shape {
     shape: curveProfileFor(ctx.config, profile).shape,
     typeMix: { ...t.typeMix, ...(a.typeMixOverrides ?? {}) },
   };
+}
+
+/**
+ * The creature share the curve fill takes creatures first to. A plain shape
+ * aims into its range (`grow.creatureFill`), so Control holds the ground with
+ * creatures as bulk control decks do; a theme keeps its minimum, leaving the
+ * rest to its own cards.
+ */
+function creatureShare(ctx: GrowContext, plan: { kind: string }, mix: TypeMix): number {
+  if (plan.kind !== 'plain') return mix.creatureMin;
+  return mix.creatureMin + ctx.k.creatureFill * (mix.creatureMax - mix.creatureMin);
 }
 
 /**
@@ -1371,7 +1442,7 @@ function fillRoles(ctx: GrowContext, plan: Plan, d: GrowDeck, shape: Shape, slot
           earnsRole(ctx, d, c, role) &&
           supported(ctx, d, c) &&
           gateOpen(ctx, plan, d, c),
-        (c) => c.value * setupPull(ctx, plan, d, c),
+        (c) => c.value * planPull(ctx, plan, d, c),
       );
       if (!pick) break;
       add(ctx, d, pick, ctx.roleLabels.get(role) ?? role);
@@ -1408,6 +1479,7 @@ function fillCurve(
   const creatureMax = Math.floor(mix.creatureMax * slots);
   const permanentMax = Math.floor(mix.noncreaturePermanentMax * slots);
   const spellMin = Math.ceil(mix.instantSorceryMin * slots);
+  const creatureFirst = creatureShare(ctx, plan, mix);
   const empty = new Set<number>();
   // 0 slot rules, 1 any slot, 2 type mix caps off, 3 copy guideline off, 4 off-plan gate off,
   // 5 cards the deck does not support (the finished-deck check swaps them out where it can).
@@ -1416,7 +1488,7 @@ function fillCurve(
   while (d.spells < slots) {
     const left = slots - d.spells;
     const mustSpell = spellMin - d.instantsAndSorceries >= left;
-    const wantCreature = d.creatures < mix.creatureMin * (d.spells + 1);
+    const wantCreature = d.creatures < creatureFirst * (d.spells + 1);
     const typeOk = (c: GrowCard) => {
       if (level >= 2) return true;
       if (mustSpell && !c.facts.instantOrSorcery) return false;
@@ -1446,7 +1518,7 @@ function fillCurve(
     }
     const inSlot = (c: GrowCard) => slot < 0 || c.slot === slot;
     // Within a slot, strength; across slots, quality among peers, so price does not decide.
-    const score = (c: GrowCard) => (slot >= 0 ? c.value : c.q) * setupPull(ctx, plan, d, c);
+    const score = (c: GrowCard) => (slot >= 0 ? c.value : c.q) * planPull(ctx, plan, d, c);
     const pick =
       (wantCreature
         ? best(ctx.cards, (c) => base(c) && inSlot(c) && c.facts.creature, score)
@@ -1483,219 +1555,420 @@ function spellCopies(ctx: GrowContext, d: GrowDeck): { facts: CardFacts; qty: nu
   return ctx.cards.filter((c) => have(d, c) > 0).map((c) => ({ facts: c.facts, qty: have(d, c) }));
 }
 
+// ---------------------------------------------------------------- the plan picker (phase 2)
+
 /**
- * The plain shape's template fit: the share of its role minimums, curve
- * targets, and creature floor that the filled deck reaches.
+ * The finished deck against its shape's template: the share of the role
+ * minimums, the curve slots within the template's tolerance, and the
+ * creature count the curve fill aims for, that the deck reaches. Roles count
+ * only where earned, the commander included. Role targets stay out: the
+ * fill builds to the minimums, and a shape with small targets would reach
+ * them more easily than one with large ones.
  */
-function templateFit(ctx: GrowContext, d: GrowDeck, shape: Shape, slots: number): number {
+function shapeFit(
+  ctx: GrowContext,
+  plan: { kind: string; archetype: Archetype },
+  d: GrowDeck,
+): number {
+  const shape = shapeFor(ctx, plan);
+  const x = cur(ctx, d);
+  const slots = d.spells;
   let got = 0;
   let want = 0;
-  const x = cur(ctx, d);
   for (const [role, q] of Object.entries(shape.quotas)) {
     got += Math.min(x.roles.get(role) ?? 0, q.min);
     want += q.min;
   }
-  // A slot within the template's curve tolerance counts as on target.
   const targets = curveTargets(shape.shape, slots);
   const tol = ctx.template.tolerances.curve;
   for (let s = 1; s <= 7; s++) {
     got += Math.min(x.slots[s]! + tol, targets[s] ?? 0);
     want += targets[s] ?? 0;
   }
-  const creatures = Math.ceil(shape.typeMix.creatureMin * slots);
+  const creatures = Math.round(creatureShare(ctx, plan, shape.typeMix) * slots);
   got += Math.min(d.creatures, creatures);
   want += creatures;
   return want > 0 ? got / want : 1;
 }
 
 /**
- * What a plan costs in card quality: each copy's quality among its peers,
- * capped at the pool's standard (1), so weak cards a plan forces in count
- * against it and skimming a few stars from a lightly used kind does not.
+ * What a plan costs in card quality. Each copy is compared with the pool's
+ * copies of the same mana value and kind (a creature or a spell) rank for
+ * rank: the deck's best two-drop creature with the pool's best, its tenth
+ * with the pool's tenth. A deck that plays the best cards for each slot it
+ * uses scores 1 however many it needs (an Aggro deck's dozen cheap
+ * creatures), while a weak card a plan forces in over better ones of its
+ * slot and kind costs it. A copy beyond the pool's usual copies (a thin
+ * pool's last relaxation) is compared with the slot's last peer.
  */
-function meanQuality(ctx: GrowContext, d: GrowDeck): number {
+function deckQuality(ctx: GrowContext, d: GrowDeck): number {
+  const mine: number[][][] = Array.from({ length: 8 }, () => [[], []]);
+  for (const c of ctx.cards)
+    for (let i = have(d, c); i > 0; i--) mine[c.slot]![c.facts.creature ? 1 : 0]!.push(c.value);
   let total = 0;
   let n = 0;
-  for (const c of ctx.cards) {
-    const k = have(d, c);
-    if (k === 0) continue;
-    total += Math.min(1, c.q) * k;
-    n += k;
-  }
+  for (let s = 1; s <= 7; s++)
+    for (const kind of [0, 1]) {
+      const peers = ctx.peers[s]![kind]!;
+      mine[s]![kind]!.sort((a, b) => b - a).forEach((v, i) => {
+        const ref = peers[Math.min(i, peers.length - 1)] ?? 0;
+        total += ref > EPS ? Math.min(1, v / ref) : 1;
+        n++;
+      });
+    }
   return n > 0 ? total / n : 0;
 }
 
-// ---------------------------------------------------------------- best fit (phase 2)
+/** The payoff measure a floor counts: payoff weight, payoff cards, or repeatable setup or payoff cards (Burn). */
+function payoffMeasure(floor: ThemeFloor): PayoffKey {
+  if (floor.payoffWeight !== undefined) return 'payoffWeight';
+  if (floor.payoff !== undefined) return 'payoff';
+  return floor.repeatableOrPayoff !== undefined ? 'repeatableOrPayoff' : 'payoff';
+}
 
 /**
  * How far the pool's setup and payoff stand above what plain bulk of the same
- * cards' colors holds (config/theme-bulk.json), the smaller of the two; 1
- * when no baseline is bundled.
+ * cards' colors holds (config/theme-bulk.json), the smaller of the two, each
+ * side in the measure its floor counts; 1 when no baseline is bundled. A
+ * ratio of counts is noisy: a side counts above 1 only beyond its own noise,
+ * `picker.richnessZ` over the square root of the theme cards plain bulk of
+ * these colors would hold (distinct cards, not copies), so a theme a few
+ * dozen cards carry in this pool cannot lead on chance (plain bulk reads up
+ * to about 1.3 to 1.8 by chance where the expected count is small).
  */
 function richness(ctx: GrowContext, plan: ThemePlan, pool: Tally): number {
   const bulk = ctx.config.themeBulk?.styles[plan.style];
   if (!bulk) return 1;
   const expected = emptyTally();
+  const distinct = emptyTally();
   for (const c of ctx.cards) {
     const per = bulk[colorClassOf(c.facts.card)];
-    expected.setupUnits += per.setupUnits * c.max;
-    expected.setupWeight += per.setupWeight * c.max;
-    expected.repeatable += per.repeatable * c.max;
-    expected.payoffUnits += per.payoffUnits * c.max;
-    expected.payoffWeight += per.payoffWeight * c.max;
+    for (const [t, n] of [
+      [expected, c.max],
+      [distinct, 1],
+    ] as const) {
+      t.setupUnits += per.setupUnits * n;
+      t.setupWeight += per.setupWeight * n;
+      t.repeatable += per.repeatable * n;
+      t.payoffUnits += per.payoffUnits * n;
+      t.payoffWeight += per.payoffWeight * n;
+    }
   }
+  const z = ctx.config.builderWeights.picker.richnessZ;
   const b = balance(plan.floor);
-  const sides: FloorKey[] = [b.setup];
-  if (Number.isFinite(plan.poolMargin.payoff)) sides.push(b.payoff);
+  const sides: [FloorKey, number][] = [[b.setup, distinct.setupUnits]];
+  if (Number.isFinite(plan.poolMargin.payoff)) {
+    const k = payoffMeasure(plan.floor);
+    sides.push([k, k === 'repeatableOrPayoff' ? floorValue(distinct, k) : distinct.payoffUnits]);
+  }
   let r = Infinity;
-  for (const k of sides) {
+  for (const [k, cards] of sides) {
     const e = floorValue(expected, k);
-    r = Math.min(r, e > 0 ? floorValue(pool, k) / e : Infinity);
+    // Plain bulk of these colors holds none: no evidence the pool is richer.
+    if (e <= 0) {
+      r = Math.min(r, 1);
+      continue;
+    }
+    const ratio = floorValue(pool, k) / e;
+    r = Math.min(r, ratio <= 1 ? ratio : Math.max(1, ratio - z / Math.sqrt(Math.max(cards, EPS))));
   }
   return Math.min(r, ctx.k.richnessCap);
 }
 
-export interface GrowPlanScore {
+/** A tribe the commander names: the classic builder builds it, the picker scores it. */
+interface TribePlan {
+  kind: 'tribe';
   style: string;
-  kind: 'plain' | 'theme';
-  viable: boolean;
-  /** Theme: min(margin / marginFull, 1). Plain: template fit. */
-  margin: number;
-  /** Theme: min(richness over plain bulk, cap); plain shapes 1. */
-  richness: number;
-  /** Mean quality of the plan's deck among each card's peers. */
-  quality: number;
-  score: number;
-  note?: string;
+  archetype: Archetype;
 }
 
-export interface GrowBestFit {
-  style: string;
-  kind: 'plain' | 'theme';
-  reason: string;
-  scores: GrowPlanScore[];
-}
-
-// Stable sorts: a tie keeps the order tried (Midrange first, then the styles' order).
-function byScore(a: { score: number }, b: { score: number }): number {
-  return b.score > a.score + EPS ? 1 : a.score > b.score + EPS ? -1 : 0;
+/** How far a side stands above its floor: 0 at the floor, 1 at `picker.depthFull` times it. */
+function deepShare(ctx: GrowContext, have: number, need: number): number {
+  if (need <= 0) return 1;
+  const full = ctx.config.builderWeights.picker.depthFull;
+  return Math.min(1, Math.max(0, (have / need - 1) / (full - 1)));
 }
 
 /**
- * The plain shapes, best first: each filled without lands and scored by its
- * template fit times the mean quality of its spells among their peers.
+ * A theme deck's depth: each side (setup, and payoff where the floors ask
+ * for payoffs) left at its bare floor costs `picker.depthWeight` of the
+ * score, nothing once it reaches `picker.depthFull` times the floor. The
+ * phase 1 panel found decks at their floors decent only about half the time,
+ * failing on thin payoffs.
  */
-function rankPlains(ctx: GrowContext, scores?: GrowPlanScore[]): { plan: Plan; score: number }[] {
-  const plains: { plan: Plan; score: number }[] = [];
+function themeDepth(ctx: GrowContext, plan: ThemePlan, t: Tally): number {
+  const w = ctx.config.builderWeights.picker.depthWeight;
+  const b = balance(plan.floor);
+  let depth = 1 - w * (1 - deepShare(ctx, floorValue(t, b.setup), plan.floor[b.setup] ?? 0));
+  const p = payoffMeasure(plan.floor);
+  const payoffNeed = plan.floor[p] ?? 0;
+  if (payoffNeed > 0) depth -= w * (1 - deepShare(ctx, floorValue(t, p), payoffNeed));
+  return depth;
+}
+
+/** The deck's spells and lands as a GrowDeck of this request, so any finished deck is scored the same way. */
+function deckFor(ctx: GrowContext, plan: Plan | TribePlan, deck: Deck): GrowDeck {
+  const d = newDeck(ctx, plan.kind === 'tribe' ? plainShell(plan) : plan);
+  for (const dc of deck.cards) {
+    if (dc.cardId === ctx.commander?.card.id) continue;
+    const c = ctx.byId.get(dc.cardId);
+    if (c) for (let i = 0; i < dc.qty; i++) add(ctx, d, c, dc.why ?? FILLER_WHY);
+    else {
+      const card = ctx.index.get(dc.cardId);
+      if (card) addSupply(d.supply, card, dc.qty, ctx.config);
+    }
+  }
+  changed(d);
+  return d;
+}
+
+/** A tribe counts no theme jobs of the rules; its deck is read as a plain plan. */
+function plainShell(plan: TribePlan): Plan {
+  return { kind: 'plain', style: plan.style, archetype: plan.archetype };
+}
+
+function round3(n: number): number {
+  return Math.round(n * 1000) / 1000;
+}
+
+/**
+ * The share of the deck's spells (the commander included) its mana base
+ * casts on curve: each copy's chance to have the sources its pips ask for by
+ * the turn of its mana value, given the land drops, from the lands the deck
+ * records per color. 1 for a deck of one color, whose every land makes it.
+ * Quality is measured within one color set's own pool, so this is what keeps
+ * a deck of more colors from ranking above a one-color deck on as good cards.
+ */
+function castShare(ctx: GrowContext, deck: Deck): number {
+  const lands = deck.explanation?.lands;
+  const colors = deck.colors ?? [deck.color];
+  if (!lands?.sources || colors.length < 2) return 1;
+  const size = ctx.size;
+  const onDraw = isCommanderSize(size) ? 1 : 0;
+  const memo = new Map<string, number>();
+  let total = 0;
+  let n = 0;
+  for (const dc of deck.cards) {
+    const card = ctx.index.get(dc.cardId);
+    if (!card || !factsFor(ctx.index, ctx.config, card).spell) continue;
+    const dem = pipDemand(card, colors);
+    const turn = Math.max(1, Math.min(10, Math.ceil(card.mv)));
+    const seen = Math.min(size, 7 + turn - 1 + onDraw);
+    let p = 1;
+    for (const c of colors) {
+      const pips = dem[c] ?? 0;
+      if (pips === 0) continue;
+      const src = Math.min(lands.count, lands.sources[c] ?? 0);
+      const key = `${src}:${pips}:${turn}`;
+      let q = memo.get(key);
+      if (q === undefined)
+        memo.set(key, (q = castChance(size, lands.count, src, seen, turn, pips)));
+      p *= q;
+    }
+    total += p * dc.qty;
+    n += dc.qty;
+  }
+  return n > 0 ? total / n : 1;
+}
+
+/**
+ * The plan picker's one score for a finished deck, whatever built it:
+ * quality times fit times the share of supported copies, times the share of
+ * spells its mana casts on curve to `picker.castWeight`, times
+ * (1 - `picker.colorCost`) for each color the request's color set has past
+ * the first (none under a commander). A theme multiplies
+ * in its pool margin (full at `grow.marginFull`), its richness over plain
+ * bulk (capped), its depth above the floors, and the commander's lead, and
+ * is divided by `picker.themeMargin`, so it ranks above a plain shape only
+ * by that clear margin and never on richness noise. A tribe the commander
+ * names (classic builder) takes the commander's lead. The score is rounded
+ * to `picker.scoreStep`, below which the parts do not tell decks apart, and
+ * plans that tie go by planOrder (Midrange first).
+ */
+function pickScore(ctx: GrowContext, plan: Plan | TribePlan, deck: Deck): PickScore {
+  const d = deckFor(ctx, plan, deck);
+  const quality = deckQuality(ctx, d);
+  const fit = shapeFit(ctx, plan, d);
+  let unsupported = 0;
+  for (const u of unsupportedCards(deck, ctx.index, ctx.config)) unsupported += u.qty;
+  const clean = d.spells > 0 ? Math.max(0, 1 - unsupported / d.spells) : 0;
+  const picker = ctx.config.builderWeights.picker;
+  const cast = castShare(ctx, deck);
+  const out: PickScore = {
+    score: 0,
+    quality: round3(quality),
+    fit: round3(fit),
+    clean: round3(clean),
+    cast: round3(cast),
+  };
+  // Quality, fit, depth, and margin are measured within the color set's own pool, which grows
+  // with every color the set adds: across sets (the Analyze pane, the options of smaller
+  // subsets) each extra color costs colorCost. A commander's colors are not a choice.
+  const extra = ctx.commander ? 0 : ctx.colors.length - 1;
+  const colorFactor = (1 - picker.colorCost) ** extra;
+  if (extra > 0) out.colors = round3(colorFactor);
+  let score = quality * fit * clean * cast ** picker.castWeight * colorFactor;
+  if (plan.kind === 'theme') {
+    const k = ctx.k;
+    const margin = Math.min(1, plan.poolMargin.margin / k.marginFull);
+    const rich = richness(ctx, plan, poolTally(ctx, plan.index));
+    const depth = themeDepth(ctx, plan, honestPlan(ctx, plan, d));
+    const cmd = ctx.commander;
+    const lead = cmd && planJob(plan, cmd.jobs)?.as === 'payoff' ? k.commanderPlan : 1;
+    score *= (margin * rich * depth * lead) / picker.themeMargin;
+    Object.assign(out, {
+      margin: round3(margin),
+      richness: round3(rich),
+      depth: round3(depth),
+      ...(lead > 1 ? { lead } : {}),
+    });
+  } else if (plan.kind === 'tribe') {
+    score *= ctx.k.commanderPlan;
+    out.lead = ctx.k.commanderPlan;
+  }
+  out.score =
+    picker.scoreStep > 0 ? Math.round(score / picker.scoreStep) * picker.scoreStep : score;
+  return out;
+}
+
+/** A result with the picker's score in its explanation. */
+function withPick(r: BuildResult, pick: PickScore): BuildResult {
+  const explanation: BuildExplanation = { ...r.explanation, pick };
+  return { deck: { ...r.deck, explanation }, explanation };
+}
+
+/**
+ * One plan of the picker's list, built and scored, or undefined when the
+ * pool cannot fill it. A theme comes from the grow builder only; a plain
+ * shape too thin for this builder's fill comes from the classic builder, as
+ * a shape asked for by name does; a tribe always from the classic builder.
+ */
+function planResult(
+  ctx: GrowContext,
+  plan: Plan | TribePlan,
+  pool: Pool,
+  lead: readonly string[],
+): BuildResult | undefined {
+  if (plan.kind === 'theme') {
+    const t = tryTheme(ctx, plan.style);
+    return 'built' in t ? finish(ctx, t.plan, t.built, lead) : undefined;
+  }
+  if (plan.kind === 'plain') {
+    const built = buildPlan(ctx, plan, undefined);
+    if (!('lacks' in built)) return finish(ctx, plan, built, lead);
+  }
+  const { requireStyle: _required, ...rest } = ctx.request;
+  try {
+    // A tribe is built as one plan of a list, a shape as asked for by name.
+    const r = buildClassic(
+      {
+        ...rest,
+        style: plan.style,
+        ...(plan.kind === 'plain' ? { requireStyle: true } : {}),
+      },
+      pool,
+      ctx.index,
+      ctx.config,
+    );
+    return withPick(r, pickScore(ctx, plan, r.deck));
+  } catch (err) {
+    if (err instanceof BuildError) return undefined;
+    throw err;
+  }
+}
+
+interface Ranked {
+  style: string;
+  score: number;
+  result: BuildResult;
+}
+
+/**
+ * Every plan the request can build, finished and ranked by pickScore: the
+ * three plain shapes, each theme the rules call viable (the pool meets its
+ * floors), and under a commander the tribes it names that the pool supports.
+ * These are exactly the plans the Build page's options and the Analyze pane
+ * plan, so their first option is this list's first deck.
+ */
+function rankPlans(ctx: GrowContext, pool: Pool): Ranked[] {
+  const plans: (Plan | TribePlan)[] = [];
   for (const style of PLAIN_SHAPES) {
     const plan = plainPlan(ctx, style);
-    if (!plan) continue;
-    const d = newDeck(ctx, plan);
-    const shape = fillSpells(ctx, plan, d, ctx.slots0, new Set());
-    const fit = templateFit(ctx, d, shape, ctx.slots0);
-    const quality = meanQuality(ctx, d);
-    const score = fit * quality;
-    scores?.push({
-      style,
-      kind: 'plain',
-      viable: true,
-      margin: round2(fit),
-      richness: 1,
-      quality: round2(quality),
-      score: round2(score),
-    });
-    plains.push({ plan, score });
+    if (plan) plans.push(plan);
   }
-  return plains.sort(byScore);
+  for (const style of ctx.defs.styles) {
+    const plan = themePlan(ctx, style);
+    if (plan && plan.poolMargin.margin >= 1 - EPS) plans.push(plan);
+  }
+  if (ctx.commander)
+    for (const t of commanderTribes(ctx.commander.card, ctx.candidates, ctx.config, ctx.size))
+      if (t.viable) plans.push({ kind: 'tribe', style: t.archetype.id, archetype: t.archetype });
+  const out: Ranked[] = [];
+  for (const plan of plans) {
+    const result = planResult(ctx, plan, pool, []);
+    if (result?.explanation.pick)
+      out.push({ style: plan.style, score: result.explanation.pick.score, result });
+  }
+  return out.sort(byPlanScore);
+}
+
+function labelOf(config: BulkBrewConfig, style: string): string {
+  return archetypeOf(config, style)?.label ?? secondaryLabel(config, style);
 }
 
 /**
- * Best fit by the grow builder's own measure, ported from the prototype but
- * not wired to buildDeck in this phase (today's best fit stays); kept for
- * phase 2's plan picker. Each plan's deck is built without lands and scored
- * by the mean quality of its spells among their peers. A theme multiplies
- * that by min(margin / marginFull, 1) and by its richness over plain bulk
- * (capped); a plain shape by its template fit. A theme must beat the best
- * plain shape. Returns the plans to try in order: the themes that beat the
- * best plain shape, best first, then the plain shapes, best first. Tribes
- * keep today's builder and are not among them.
+ * Best fit: the first deck of the picker's list. With nothing the grow
+ * builder can fill and no classic shape either, the classic builder's own
+ * best fit is the last resort.
  */
-export function chooseBestFit(ctx: GrowContext): GrowBestFit[] {
-  const k = ctx.k;
-  const scores: GrowPlanScore[] = [];
-  const plains = rankPlains(ctx, scores);
-  const themes: { plan: ThemePlan; score: number }[] = [];
-  for (const style of ctx.defs.styles) {
-    const plan = themePlan(ctx, style);
-    if (!plan) continue;
-    const out = { style, kind: 'theme' as const, richness: 0, quality: 0, score: 0 };
-    if (plan.poolMargin.margin < 1) {
-      scores.push({ ...out, viable: false, margin: round2(plan.poolMargin.margin) });
-      continue;
-    }
-    const core = themeCore(ctx, plan);
-    if (!core.ok) {
-      scores.push({
-        ...out,
-        viable: false,
-        margin: round2(plan.poolMargin.margin),
-        note: lacksSentence(ctx.defs.compiled[plan.index]!.lacks, core.short),
-      });
-      continue;
-    }
-    // Quality of the whole deck the plan would build, as for the plain shapes.
-    const full = cloneDeck(core.deck);
-    fillSpells(ctx, plan, full, ctx.slots0, new Set());
-    const quality = meanQuality(ctx, full);
-    // With no payoff floor of its own (none, or one repeatable setup can meet)
-    // there is no engine to balance: it competes as a plain shape.
-    const oneSided = !(plan.floor.payoff || plan.floor.payoffWeight);
-    const margin = Math.min(1, plan.poolMargin.margin / k.marginFull);
-    const rich = oneSided ? 1 : richness(ctx, plan, poolTally(ctx, plan.index));
-    const cmd = ctx.commander;
-    const led = cmd && planJob(plan, cmd.jobs)?.as === 'payoff' ? k.commanderPlan : 1;
-    const score = margin * rich * quality * led;
-    const notes = [
-      oneSided ? 'no payoff floor, scored as a plain shape' : '',
-      led > 1 ? 'the commander rewards it' : '',
-    ].filter(Boolean);
-    scores.push({
-      ...out,
-      viable: true,
-      margin: round2(margin),
-      richness: round2(rich),
-      quality: round2(quality),
-      score: round2(score),
-      ...(notes.length ? { note: notes.join('; ') } : {}),
-    });
-    themes.push({ plan, score });
-  }
-  scores.sort((a, b) => b.score - a.score || (a.style < b.style ? -1 : 1));
-  themes.sort(byScore);
-  const bestPlain = plains[0];
-  if (!bestPlain) return [];
-  const bestTheme = themes[0];
-  const out: GrowBestFit[] = themes
-    .filter((t) => t.score > bestPlain.score + EPS)
-    .map((t) => ({
-      style: t.plan.style,
-      kind: 'theme',
-      scores,
-      reason: `${t.plan.style} scored ${round2(t.score)}, above the best plain shape (${bestPlain.plan.style}, ${round2(bestPlain.score)})`,
-    }));
-  for (const p of plains)
-    out.push({
-      style: p.plan.style,
-      kind: 'plain',
-      scores,
-      reason:
-        out.length > 0
-          ? `${p.plan.style} scored ${round2(p.score)}`
-          : bestTheme
-            ? `the best theme (${bestTheme.plan.style}, ${round2(bestTheme.score)}) did not beat ${p.plan.style} (${round2(p.score)})`
-            : `no theme meets its floors in these colors; ${p.plan.style} fits the template best`,
-    });
-  return out;
+function bestFit(ctx: GrowContext, pool: Pool): BuildResult {
+  const ranked = rankPlans(ctx, pool);
+  const top = ranked[0];
+  if (!top) return buildClassic(ctx.request, pool, ctx.index, ctx.config);
+  const rest = ranked.slice(1).map((r) => labelOf(ctx.config, r.style));
+  const shown = rest.slice(0, 3);
+  if (rest.length > 3) shown.push(`${rest.length - 3} more`);
+  const label = labelOf(ctx.config, top.style);
+  const note =
+    ranked.length > 1
+      ? `Compared ${ranked.length} archetypes and kept ${label}, the best fit for this bulk list. Next: ${shown.join(', ')}.`
+      : `Built ${label}, the only archetype this bulk list fills.`;
+  const r = top.result;
+  const explanation: BuildExplanation = {
+    ...r.explanation,
+    notes: [note, ...r.explanation.notes],
+    pick: {
+      ...r.explanation.pick!,
+      ranked: ranked.map((x) => ({ style: x.style, score: round3(x.score) })),
+    },
+  };
+  return { deck: { ...r.deck, explanation }, explanation };
+}
+
+/**
+ * A tribe deck from the classic builder, scored by the plan picker so it
+ * ranks with the grow builder's decks of the same request (a 100-card
+ * request under a commander that names the tribe).
+ */
+export function scoreTribeDeck(
+  request: BuildRequest,
+  result: BuildResult,
+  pool: Pool,
+  index: CardIndex,
+  config: BulkBrewConfig,
+): BuildResult {
+  const tribe = tribeOf(request.style);
+  if (!tribe || !isCommanderSize(request.size)) return result;
+  const ctx = growContext(request, pool, index, config);
+  const archetype =
+    (ctx.commander &&
+      commanderTribes(ctx.commander.card, ctx.candidates, config, ctx.size).find(
+        (t) => t.archetype.id === request.style,
+      )?.archetype) ??
+    undefined;
+  if (!archetype) return result;
+  const plan: TribePlan = { kind: 'tribe', style: archetype.id, archetype };
+  return withPick(result, pickScore(ctx, plan, result.deck));
 }
 
 // ---------------------------------------------------------------- steps 6 and 7
@@ -1744,7 +2017,7 @@ function fitSpells(
       const c = ctx.byId.get(id)!;
       // Weakest among its peers, not by raw strength, which would cut cheap cards
       // first and raise the land count again. The latest copy goes on a tie.
-      const q = c.q * setupPull(ctx, plan, d, c);
+      const q = c.q * planPull(ctx, plan, d, c);
       if (q <= low && keepsCover(c)) {
         low = q;
         at = i;
@@ -1894,7 +2167,7 @@ function replacementFor(
     const pick = best(
       ctx.cards,
       (c) => c.facts.roles.includes(role) && ok(c) && earnsRole(ctx, d, c, role),
-      (c) => c.value * setupPull(ctx, plan, d, c),
+      (c) => c.value * planPull(ctx, plan, d, c),
     );
     if (pick) return { c: pick, why };
   }
@@ -1914,10 +2187,10 @@ function replacementFor(
   const inSlot = best(
     ctx.cards,
     (c) => ok(c) && c.slot === out.slot,
-    (c) => c.value * setupPull(ctx, plan, d, c),
+    (c) => c.value * planPull(ctx, plan, d, c),
   );
   if (inSlot) return { c: inSlot, why: curveWhy(out.slot) };
-  const any = best(ctx.cards, ok, (c) => c.q * setupPull(ctx, plan, d, c));
+  const any = best(ctx.cards, ok, (c) => c.q * planPull(ctx, plan, d, c));
   return any ? { c: any, why: curveWhy(any.slot) } : undefined;
 }
 
@@ -2141,21 +2414,23 @@ function finish(
     dataVersion: index.dataVersion,
     explanation,
   };
+  explanation.pick = pickScore(ctx, plan, deck);
   return { deck, explanation };
 }
 
 // ---------------------------------------------------------------- routing and the nearest rule
 
 /**
- * Whether buildDeck sends a request here: a style the player asked for by
- * name (`requireStyle`), no secondary style, 60, 40, or 100 cards, and a
- * theme the rules describe at that size or a plain shape. Tribes, best fit,
- * 20-card packets, and styles picked internally keep the classic builder.
+ * Whether buildDeck sends a request here: 60, 40, or 100 cards with no
+ * secondary style, and best fit (no style), a plain shape, or a theme the
+ * rules describe at that size. Tribes, secondary styles, and 20-card packets
+ * keep the classic builder.
  */
 export function growBuilds(request: BuildRequest, config: BulkBrewConfig): boolean {
   const { style, size } = request;
-  if (!style || request.requireStyle !== true || request.secondary) return false;
   if (size !== 60 && size !== 40 && size !== 100) return false;
+  if (request.secondary) return false;
+  if (!style) return true;
   if (tribeOf(style)) return false;
   if ((PLAIN_SHAPES as readonly string[]).includes(style))
     return archetypeOf(config, style)?.kind === 'composition';
@@ -2185,13 +2460,18 @@ function tryTheme(ctx: GrowContext, style: string): ThemeTry {
 }
 
 /**
- * The grow builder for a request growBuilds accepts. A theme the pool
- * supports is built to its floors. One it cannot support gets the nearest
- * deck: the first style of its `kin` list in the rules that the pool can
- * build, else the classic best fit, or a plain shape when that best fit
- * would carry the asked-for name, with a note saying what the pool lacks.
- * A plain shape is built as its curve, roles, and type mix; on a pool too
- * thin for this builder's fill it goes to the classic builder, as before.
+ * The grow builder for a request growBuilds accepts.
+ *
+ * - No style: best fit, the first deck of the plan picker's list.
+ * - A style without `requireStyle` is one plan of a list (a Build page
+ *   option, an Analyze deck): built as the picker builds it, or a BuildError
+ *   when the pool cannot fill it, so the list drops it.
+ * - A style the player asked for: a theme the pool supports is built to its
+ *   floors. One it cannot support gets the nearest deck: the first style of
+ *   its `kin` list in the rules that the pool can build, else best fit, with
+ *   a note saying what the pool lacks. A plain shape is built as its curve,
+ *   roles, and type mix; on a pool too thin for this builder's fill it comes
+ *   from the classic builder.
  */
 export function buildGrowDeck(
   request: BuildRequest,
@@ -2205,20 +2485,29 @@ export function buildGrowDeck(
     throw new BuildError(
       `Not enough ${colorsLabel(ctx.colors)} cards for a ${ctx.size}-card deck: ${scan.notes.join('; ')}.`,
     );
-  const style = request.style!;
+  const style = request.style;
+  if (!style) return bestFit(ctx, pool);
+  const asked = request.requireStyle === true;
+  const label = archetypeOf(config, style)!.label;
   if ((PLAIN_SHAPES as readonly string[]).includes(style)) {
-    const plan = plainPlan(ctx, style)!;
-    const built = buildPlan(ctx, plan, undefined);
-    if ('lacks' in built) return buildClassic(request, pool, index, config);
-    return finish(ctx, plan, built, [`Built ${plan.archetype.label} as asked.`]);
+    const r = planResult(
+      ctx,
+      plainPlan(ctx, style)!,
+      pool,
+      asked ? [`Built ${label} as asked.`] : [],
+    );
+    if (!r) throw new BuildError(`Not enough cards for a ${ctx.size}-card ${label} deck.`);
+    return r;
   }
 
-  const asked = tryTheme(ctx, style);
-  const label = archetypeOf(config, style)!.label;
-  if ('built' in asked) return finish(ctx, asked.plan, asked.built, [`Built ${label} as asked.`]);
+  const theme = tryTheme(ctx, style);
+  if ('built' in theme)
+    return finish(ctx, theme.plan, theme.built, asked ? [`Built ${label} as asked.`] : []);
+  if (!asked)
+    throw new BuildError(`Not enough cards to build ${label}: your bulk list has ${theme.lacks}.`);
 
-  const nearest = { requested: style, lacks: asked.lacks };
-  const why = `Asked for ${label}: your bulk list has ${asked.lacks}.`;
+  const nearest = { requested: style, lacks: theme.lacks };
+  const why = `Asked for ${label}: your bulk list has ${theme.lacks}.`;
   const defs = ctx.defs;
   for (const kin of defs.compiled[defs.styles.indexOf(style)]!.kin) {
     if (!defs.styles.includes(kin)) continue;
@@ -2232,40 +2521,14 @@ export function buildGrowDeck(
         nearest,
       );
   }
-  // No kin to build: today's best fit, same colors, settings, and commander.
-  const { style: _style, requireStyle: _required, ...rest } = request;
-  const fit = buildClassic(rest, pool, index, config);
-  if (fit.deck.archetype === style) {
-    // Today's matchers read the pool as the very style the rules find short, so that
-    // deck would carry the asked-for name without the cards. The plain shape this
-    // pool fills best is the nearest honest deck.
-    for (const { plan } of rankPlains(ctx)) {
-      const shape = buildPlan(ctx, plan, undefined);
-      if (!('lacks' in shape))
-        return finish(ctx, plan, shape, [`${why} Built ${plan.archetype.label} instead.`], nearest);
-    }
-    // Too thin for this builder's fill: the classic builder's shapes, as for a shape asked
-    // for by name. Never the classic deck under the asked-for name.
-    for (const shape of PLAIN_SHAPES) {
-      let classic: BuildResult;
-      try {
-        classic = buildClassic({ ...rest, style: shape, requireStyle: true }, pool, index, config);
-      } catch (err) {
-        if (err instanceof BuildError) continue;
-        throw err;
-      }
-      return withNote(
-        classic,
-        nearest,
-        `${why} Built ${archetypeOf(config, shape)!.label} instead.`,
-      );
-    }
-    throw new BuildError(`Not enough cards to build ${label}: your bulk list has ${asked.lacks}.`);
-  }
+  // No kin to build: best fit, which never holds the style the pool falls short of.
+  const fit = rankPlans(ctx, pool).find((r) => r.style !== style)?.result;
+  if (!fit)
+    throw new BuildError(`Not enough cards to build ${label}: your bulk list has ${theme.lacks}.`);
   return withNote(
     fit,
     nearest,
-    `${why} Built ${secondaryLabel(config, fit.deck.archetype)} instead, the best fit for this bulk list.`,
+    `${why} Built ${labelOf(config, fit.deck.archetype)} instead, the best fit for this bulk list.`,
   );
 }
 

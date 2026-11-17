@@ -7,7 +7,7 @@ import { BuildError, buildDeck } from './builder.ts';
 import { listCandidates } from './candidates.ts';
 import { normalizeColors } from './colors.ts';
 import type { BulkBrewConfig } from './config.ts';
-import { growBuilds } from './grow.ts';
+import { growBuilds, PLAIN_SHAPES, planOrder } from './grow.ts';
 import type { CardIndex } from './pack.ts';
 import { commanderTribes, scanPool } from './scan.ts';
 import {
@@ -75,11 +75,47 @@ export function byStylePromise(a: ArchetypeReport, b: ArchetypeReport): number {
 }
 
 /**
- * Plan the builds for a request. Each color subset lists its viable styles,
- * themes first by how deep they run, then the plain shapes; the plan takes
- * one from each subset in turn (subsets that use every picked color first),
- * so smaller color sets get built too. Capped at `buildOptions.maxBuilds`.
- * A picked primary that the grow builder takes is planned wherever the theme
+ * Whether the grow builder's plan picker ranks a request's options: 60, 40,
+ * and 100 cards without a secondary style. Then every option carries the
+ * picker's score (`explanation.pick`), the same score best fit ranks by.
+ */
+export function pickerRanks(req: OptionsRequest, config: BulkBrewConfig): boolean {
+  return growBuilds(
+    {
+      size: req.size,
+      colors: req.colors,
+      ...(req.primary ? { style: req.primary, requireStyle: true } : {}),
+      ...(req.secondary ? { secondary: req.secondary } : {}),
+      settings: req.settings,
+    },
+    config,
+  );
+}
+
+/**
+ * The styles the plan picker compares in one color set, as best fit does:
+ * each theme the rules call viable, by how deep it runs, then the three
+ * plain shapes, always.
+ */
+export function pickerStyles(scan: ScanReport): string[] {
+  return [
+    ...scan.archetypes
+      .filter((a) => a.kind === 'synergy' && a.rules?.viable)
+      .sort(byStylePromise)
+      .map((a) => a.archetype),
+    ...PLAIN_SHAPES,
+  ];
+}
+
+/**
+ * Plan the builds for a request. Each color subset lists its styles, themes
+ * first by how deep they run, then the plain shapes. With no style picked at
+ * 60, 40, and 100 these are the plans best fit compares (pickerStyles): the
+ * set of every picked color is planned in full first, so best fit is among
+ * the options, and the smaller sets take turns with what is left of
+ * `buildOptions.maxBuilds`. Otherwise (20 cards, a secondary style) the plan
+ * takes one style from each subset in turn by the scan's old viability. A
+ * picked primary that the grow builder takes is planned wherever the theme
  * rules describe it, whatever the pool holds: the build then answers with the
  * style, or with the nearest deck and a note saying what the pool lacks.
  */
@@ -96,29 +132,21 @@ export function planOptions(
   const perSubset: OptionPlan[][] = [];
   // A commander fixes the colors; other decks try every subset of the picked ones.
   const subsets = lead ? [picked] : colorSubsets(picked);
-  // Each plan is built with requireStyle when a primary is picked; plan by the builder that runs.
-  const grows =
-    req.primary !== undefined &&
-    growBuilds(
-      {
-        size: req.size,
-        colors: picked,
-        style: req.primary,
-        requireStyle: true,
-        ...(req.secondary ? { secondary: req.secondary } : {}),
-        settings: req.settings,
-      },
-      config,
-    );
+  // Plan by the builder that runs: the grow builder answers a picked primary with requireStyle.
+  const grows = pickerRanks({ ...req, colors: picked }, config);
+  const bestFitList = grows && !req.primary;
   const plannable = (a: ArchetypeReport) => (grows && a.rules ? true : a.viable);
+  let fullFirst = false;
   for (const subset of subsets) {
     const scan =
       scans?.get(subset.join('')) ?? scanPool(pool, index, config, req.settings, req.size, subset);
     if (!scan.possible) continue;
-    const styles = scan.archetypes
-      .filter((a) => (req.primary ? a.archetype === req.primary && plannable(a) : a.viable))
-      .sort(byStylePromise)
-      .map((a) => a.archetype);
+    const styles = bestFitList
+      ? pickerStyles(scan)
+      : scan.archetypes
+          .filter((a) => (req.primary ? a.archetype === req.primary && plannable(a) : a.viable))
+          .sort(byStylePromise)
+          .map((a) => a.archetype);
     // A tribe the commander's text names leads its options, ahead of the other themes.
     if (lead) {
       const cands = listCandidates(pool, index, config, req.settings, subset, req.size).filter(
@@ -130,12 +158,15 @@ export function planOptions(
       styles.unshift(...tribes);
     }
     if (styles.length === 0) continue;
+    if (subset.length === picked.length) fullFirst = bestFitList;
     perSubset.push(
       styles.map((style) => ({ key: `${subset.join('')}:${style}`, colors: subset, style })),
     );
   }
   const plans: OptionPlan[] = [];
   const max = config.builderWeights.buildOptions.maxBuilds;
+  // Best fit's own plans, every one of them, before the smaller color sets.
+  if (fullFirst) plans.push(...perSubset.shift()!.slice(0, max));
   for (let round = 0; plans.length < max; round++) {
     let any = false;
     for (const list of perSubset) {
@@ -180,9 +211,13 @@ export function buildOption(
 export interface DeckOption {
   key: string;
   result: BuildResult;
-  /** Deck score plus the bonus for using every picked color. */
+  /** The plan picker's score (else the deck score) plus the bonus for every picked color. */
   rank: number;
-  /** True when the option uses every picked color. */
+  /**
+   * True when the option uses every picked color: for a deck the picker
+   * scored, when it was built for every picked color, as best fit is; for
+   * other decks, when its spells use them all.
+   */
   allColors: boolean;
 }
 
@@ -208,7 +243,14 @@ function overlap(a: BuildResult, b: BuildResult, index: CardIndex): number {
 /**
  * Add a finished option to a ranked list: drop it when a stronger option
  * shares most of its cards, drop weaker near copies of it, keep the list
- * sorted by rank (then key), and cap it at `buildOptions.maxOptions`.
+ * sorted by rank (then the picker's plan order, then key), and cap it at
+ * `buildOptions.maxOptions`. A near copy of another style the picker ranked
+ * stays, so every buildable style keeps its option. A deck
+ * the plan picker scored ranks by that score, the one best fit ranks by, and
+ * gets the all-colors bonus when it was built for every picked color
+ * (`colors`, the plan's), so the first option is the best fit for the
+ * request; other decks rank by deck score and get the bonus when their
+ * spells use every picked color.
  */
 export function addOption(
   list: readonly DeckOption[],
@@ -217,21 +259,34 @@ export function addOption(
   req: OptionsRequest,
   index: CardIndex,
   config: BulkBrewConfig,
+  colors?: readonly Color[],
 ): DeckOption[] {
   const cfg = config.builderWeights.buildOptions;
   const picked = normalizeColors(req.colors);
+  const pick = result.explanation.pick;
   const deckColors = result.deck.colors ?? [result.deck.color];
-  const allColors = Boolean(req.commander) || deckColors.length === picked.length;
+  const allColors =
+    Boolean(req.commander) ||
+    (pick && colors
+      ? picked.length > 0 && normalizeColors(colors).join('') === picked.join('')
+      : picked.length > 0 && deckColors.length === picked.length);
   const rank =
-    (result.explanation.score?.total ?? 0) +
+    (pick?.score ?? result.explanation.score?.total ?? 0) +
     (allColors ? cfg.allColorsBonus : 0) +
     (result.explanation.secondary?.met ? cfg.secondaryBonus : 0);
   const option: DeckOption = { key, result, rank, allColors };
   const byRank = (a: DeckOption, b: DeckOption) =>
-    b.rank - a.rank || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0);
+    b.rank - a.rank || tieOrder(a) - tieOrder(b) || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0);
   const kept: DeckOption[] = [];
   for (const other of list) {
-    if (overlap(other.result, result, index) < cfg.duplicateShare) {
+    // Every buildable style stays in the list (owner decision), so another style the
+    // picker ranked stays however many cards it shares, as plain shapes and
+    // a commander's plans often do.
+    const otherStyle =
+      pick !== undefined &&
+      other.result.explanation.pick !== undefined &&
+      other.result.deck.archetype !== result.deck.archetype;
+    if (otherStyle || overlap(other.result, result, index) < cfg.duplicateShare) {
       kept.push(other);
       continue;
     }
@@ -250,6 +305,11 @@ export function addOption(
         return n <= cfg.maxPerStyle;
       });
   return varied.slice(0, cfg.maxOptions);
+}
+
+/** Where an option goes among options of equal rank: the picker's plan order (Midrange first), as best fit breaks ties. */
+function tieOrder(o: DeckOption): number {
+  return o.result.explanation.pick ? planOrder(o.result.deck.archetype) : 0;
 }
 
 /** Whether two ranked lists hold the same options in the same order. */
@@ -336,7 +396,7 @@ export function deckOptionSearch(
       let changed = false;
       try {
         const result = buildOption(p, req, pool, index, config);
-        const next = addOption(state.options, p.key, result, req, index, config);
+        const next = addOption(state.options, p.key, result, req, index, config, p.colors);
         changed = !sameOptions(next, state.options);
         state.options = next;
       } catch (err) {

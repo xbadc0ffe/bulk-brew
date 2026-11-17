@@ -438,8 +438,10 @@ export interface BuilderWeightsConfig {
     brackets: Record<string, number>;
     weight: PerSize<number>;
   };
-  /** The grow builder (grow.ts): styles asked for by name at 60, 40, and 100 cards. */
+  /** The grow builder (grow.ts): every deck at 60, 40, and 100 cards but tribes and secondary styles. */
   grow: GrowWeights;
+  /** The plan picker (grow.ts): one score for best fit, the Build page's options, and the Analyze pane. */
+  picker: PickerWeights;
   /**
    * Pick penalties, in card strength points, for spells that strain a
    * multi-color mana base: pips of a secondary or splash color, double pips,
@@ -475,8 +477,30 @@ export interface GrowWeights {
   setupPull: number;
   /** The setup pull fades to nothing at this multiple of the setup floor. */
   setupTarget: number;
+  /** Extra value for the plan's payoffs the setup covers in the role and curve fills, fading out at `setupTarget` times the payoff floor. */
+  payoffPull: number;
+  /** A plain shape takes creatures first until this share of the way from its creature minimum to its maximum (0 is the minimum). */
+  creatureFill: number;
   /** A style whose pool reaches this share of its floors is offered as short (note and nearest deck); below it, left out. */
   nearMargin: number;
+}
+
+/** The plan picker's constants (pickScore in grow.ts): how finished decks of different plans compare. */
+export interface PickerWeights {
+  /** A theme leads a plain shape only when its score is this many times the shape's, so richness noise on plain bulk does not pick it. */
+  themeMargin: number;
+  /** A theme's setup or payoff counts as deep at this multiple of its floor. */
+  depthFull: number;
+  /** The share of its score a theme deck gives up for each side (setup, payoff) left at the bare floor. */
+  depthWeight: number;
+  /** Richness counts above 1 only beyond this many standard errors of its count (z over the square root of the expected theme cards). */
+  richnessZ: number;
+  /** The share of spells the mana casts on curve counts to this power (0 leaves it out). */
+  castWeight: number;
+  /** Each color a request's color set has past the first costs this share of the score (not under a commander). */
+  colorCost: number;
+  /** Scores are rounded to this step; plans within it tie and the tie goes to Midrange, Aggro, Control, then themes. 0 keeps them whole. */
+  scoreStep: number;
 }
 
 export interface StrengthEffect {
@@ -1150,6 +1174,8 @@ export function validateConfig(c: BulkBrewConfig): string[] {
     ['fullSlot', 0, 1],
     ['setupPull', 0, 2],
     ['setupTarget', 1, 5],
+    ['payoffPull', 0, 2],
+    ['creatureFill', 0, 1],
     ['nearMargin', 0, 1],
   ];
   if (!gw || typeof gw !== 'object') problems.push('builderWeights.grow: missing');
@@ -1160,6 +1186,25 @@ export function validateConfig(c: BulkBrewConfig): string[] {
   // setupTarget is the fade's upper end; at 1 the pull would divide by zero.
   if (isNum(gw?.setupTarget) && gw.setupTarget <= 1)
     problems.push('builderWeights.grow.setupTarget: must be above 1');
+
+  const pw = bw.picker;
+  const pickerRanges: [keyof PickerWeights, number, number][] = [
+    ['themeMargin', 1, 3],
+    ['depthFull', 1, 5],
+    ['depthWeight', 0, 0.5],
+    ['richnessZ', 0, 5],
+    ['castWeight', 0, 3],
+    ['colorCost', 0, 0.5],
+    ['scoreStep', 0, 0.1],
+  ];
+  if (!pw || typeof pw !== 'object') problems.push('builderWeights.picker: missing');
+  else
+    for (const [k, lo, hi] of pickerRanges)
+      if (!isNum(pw[k]) || pw[k] < lo || pw[k] > hi)
+        problems.push(`builderWeights.picker.${k}: must be a number from ${lo} to ${hi}`);
+  // depthFull is the depth's upper end; at 1 every theme would be deep at its floor.
+  if (isNum(pw?.depthFull) && pw.depthFull <= 1)
+    problems.push('builderWeights.picker.depthFull: must be above 1');
 
   const cast = bw.castability;
   for (const k of [

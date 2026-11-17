@@ -158,7 +158,7 @@ describe('deckOptionSearch', () => {
     for (const plan of plans) {
       try {
         const result = buildOption(plan, req, pool, index, CONFIG);
-        list = addOption(list, plan.key, result, req, index, CONFIG);
+        list = addOption(list, plan.key, result, req, index, CONFIG, plan.colors);
       } catch (err) {
         if (!(err instanceof BuildError)) throw err;
       }

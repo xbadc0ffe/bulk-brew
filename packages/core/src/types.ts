@@ -212,7 +212,12 @@ export interface BuildRequest {
   size: DeckSize;
   /** One to five colors. The builder uses every one of them. */
   colors: Color[];
-  /** Preferred archetype id. Used when viable, otherwise the strongest viable one. */
+  /**
+   * Archetype id. Without `requireStyle` it is one plan of a list (a Build
+   * page option, an Analyze deck): at 60, 40, and 100 the grow builder builds
+   * it or throws a BuildError when the pool cannot; at 20 the classic builder
+   * uses it when viable, otherwise the strongest viable one.
+   */
   style?: string;
   /**
    * The player asked for this style; a style the pool cannot support is
@@ -287,6 +292,38 @@ export interface BuildExplanation {
   notes: string[];
   /** Absent on decks built before deck scores existed. */
   score?: DeckScore;
+  /**
+   * The plan picker's score (`pickScore` in grow.ts): one number that ranks
+   * the finished decks of every plan at 60, 40, and 100 cards, for best fit,
+   * the Build page's options, and the Analyze pane. Internal, never shown.
+   * Absent on 20-card packets, decks with a secondary style, and older decks.
+   */
+  pick?: PickScore;
+}
+
+/** The parts of the plan picker's score; `score` is their product, rounded to `picker.scoreStep`. */
+export interface PickScore {
+  score: number;
+  /** Mean quality of the spells among the pool's cards of the same mana value and kind, rank for rank. */
+  quality: number;
+  /** Share of the shape's role minimums and targets, curve, and creature count the deck reaches. */
+  fit: number;
+  /** Share of the spell copies the deck supports. */
+  clean: number;
+  /** Share of the spells (commander included) the mana base casts on curve; 1 in one color. */
+  cast?: number;
+  /** The color set's factor, (1 - picker.colorCost) per color past the first; absent for one color or a commander. */
+  colors?: number;
+  /** Themes: the pool's margin over the floors, counted in full at `grow.marginFull`. */
+  margin?: number;
+  /** Themes: setup and payoff over plain bulk of the same colors, capped. */
+  richness?: number;
+  /** Themes: setup and payoff depth above the floors. */
+  depth?: number;
+  /** A theme or tribe the commander rewards. */
+  lead?: number;
+  /** Best fit only: every plan it compared, best first. */
+  ranked?: { style: string; score: number }[];
 }
 
 export interface BuildResult {

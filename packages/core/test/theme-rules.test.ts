@@ -281,7 +281,7 @@ describe('the shipped rules', () => {
     // Text, keywords, and power as the pack gives them.
     const cards = [
       card({ name: 'Wind Drake', keywords: ['Flying'], text: 'Flying' }),
-      // Its own trigger pays off only its own body, so it stays an evasive attacker.
+      // Its own combat damage trigger is a weight-1 payoff over its evasive body, counted once.
       card({
         name: 'Nightveil Specter',
         keywords: ['Flying'],
@@ -397,11 +397,11 @@ describe('the shipped rules', () => {
     ];
     expect(Object.fromEntries(cards.map((c) => [c.name, as(c)]))).toEqual({
       'Wind Drake': 'setup 2',
-      'Nightveil Specter': 'setup 2 both',
-      'Shadowmage Infiltrator': 'setup 1 both',
-      'Thieving Magpie': 'setup 1 both',
-      'Gregor, Shrewd Magistrate': 'setup 1 both',
-      "Suq'Ata Assassin": 'setup 1 both',
+      'Nightveil Specter': 'payoff 1 both',
+      'Shadowmage Infiltrator': 'payoff 1 both',
+      'Thieving Magpie': 'payoff 1 both',
+      'Gregor, Shrewd Magistrate': 'payoff 1 both',
+      "Suq'Ata Assassin": 'payoff 1 both',
       // A team trigger pays off the rest, so it is a payoff even on an evasive body.
       'Coastal Piracy': 'payoff 2',
       'Gix, Yawgmoth Praetor': 'payoff 2',

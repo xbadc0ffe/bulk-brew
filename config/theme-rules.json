@@ -1,5 +1,5 @@
 {
-  "version": "5",
+  "version": "6",
   "styles": {
     "tokens": {
       "resource": "creature tokens that stay on the battlefield, counted in bodies",
@@ -1750,7 +1750,7 @@
           "notKeywords": ["Defender"],
           "notText": "can't attack",
           "minPower": 1,
-          "priority": -1
+          "priority": 1
         },
         {
           "job": "evasive attacker with its own combat damage trigger",
@@ -1761,7 +1761,7 @@
           "notKeywords": ["Defender"],
           "notText": "can't attack",
           "minPower": 1,
-          "priority": -1
+          "priority": 1
         },
         {
           "job": "evasive attacker with its own combat damage trigger",
@@ -1771,7 +1771,7 @@
           "notKeywords": ["Defender"],
           "notText": "can't attack",
           "minPower": 1,
-          "priority": -1
+          "priority": 1
         }
       ],
       "minimums": {

@@ -1,7 +1,7 @@
 {
-  "version": "di9pv",
+  "version": "pscuep",
   "dataVersion": "2026-11-03",
-  "rulesVersion": "5",
+  "rulesVersion": "6",
   "styles": {
     "aristocrats": {
       "W": {
@@ -413,53 +413,53 @@
     },
     "flyers": {
       "W": {
-        "setupUnits": 0.14858,
-        "setupWeight": 0.256502,
-        "repeatable": 0.14858,
-        "payoffUnits": 0.001794,
-        "payoffWeight": 0.001794
+        "setupUnits": 0.145889,
+        "setupWeight": 0.252317,
+        "repeatable": 0.145889,
+        "payoffUnits": 0.004484,
+        "payoffWeight": 0.004484
       },
       "U": {
-        "setupUnits": 0.221878,
-        "setupWeight": 0.356368,
-        "repeatable": 0.225906,
-        "payoffUnits": 0.003719,
-        "payoffWeight": 0.006508
+        "setupUnits": 0.213976,
+        "setupWeight": 0.345987,
+        "repeatable": 0.21723,
+        "payoffUnits": 0.012395,
+        "payoffWeight": 0.015184
       },
       "B": {
-        "setupUnits": 0.131531,
-        "setupWeight": 0.225395,
-        "repeatable": 0.132442,
-        "payoffUnits": 0.000304,
-        "payoffWeight": 0.000608
+        "setupUnits": 0.125152,
+        "setupWeight": 0.214156,
+        "repeatable": 0.126063,
+        "payoffUnits": 0.006683,
+        "payoffWeight": 0.006987
       },
       "R": {
-        "setupUnits": 0.052153,
-        "setupWeight": 0.087629,
-        "repeatable": 0.054275,
-        "payoffUnits": 0.001516,
-        "payoffWeight": 0.001516
+        "setupUnits": 0.05094,
+        "setupWeight": 0.085506,
+        "repeatable": 0.053062,
+        "payoffUnits": 0.002729,
+        "payoffWeight": 0.002729
       },
       "G": {
-        "setupUnits": 0.020846,
-        "setupWeight": 0.027284,
-        "repeatable": 0.021766,
-        "payoffUnits": 0.000307,
-        "payoffWeight": 0.000307
+        "setupUnits": 0.02054,
+        "setupWeight": 0.026977,
+        "repeatable": 0.021459,
+        "payoffUnits": 0.000613,
+        "payoffWeight": 0.000613
       },
       "M": {
-        "setupUnits": 0.141399,
-        "setupWeight": 0.242471,
-        "repeatable": 0.14242,
-        "payoffUnits": 0.005105,
-        "payoffWeight": 0.006636
+        "setupUnits": 0.135528,
+        "setupWeight": 0.232517,
+        "repeatable": 0.136294,
+        "payoffUnits": 0.01123,
+        "payoffWeight": 0.012762
       },
       "C": {
-        "setupUnits": 0.054822,
-        "setupWeight": 0.086969,
-        "repeatable": 0.055109,
-        "payoffUnits": 0.000574,
-        "payoffWeight": 0.001148
+        "setupUnits": 0.053674,
+        "setupWeight": 0.085247,
+        "repeatable": 0.053961,
+        "payoffUnits": 0.001722,
+        "payoffWeight": 0.002296
       }
     },
     "goad": {

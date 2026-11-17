@@ -42,7 +42,7 @@ import {
 } from './lands.ts';
 // A cycle: grow.ts reuses this file's reporting and checks, and buildDeck routes to it.
 // Both use the other's exports only inside functions, never at load time.
-import { buildGrowDeck, growBuilds } from './grow.ts';
+import { buildGrowDeck, growBuilds, scoreTribeDeck } from './grow.ts';
 import {
   colorsLabel,
   identityWithin,
@@ -1748,12 +1748,13 @@ export function spellReport(
 }
 
 /**
- * Build one deck. A style the player asked for (`requireStyle`) at 60, 40,
- * or 100 cards, a theme the rules describe or a plain shape, without a
- * secondary style, goes to the grow builder (grow.ts); everything else, best
- * fit included, to the classic builder below. Throws BuildError with a
- * plain-language message when the pool cannot make a deck of the requested
- * size and color.
+ * Build one deck. At 60, 40, and 100 cards without a secondary style, best
+ * fit, a theme the rules describe, and a plain shape go to the grow builder
+ * (grow.ts), whose plan picker ranks every plan. Tribes, secondary styles,
+ * and 20-card packets go to the classic builder below; a tribe a commander
+ * names is scored by the picker too, so it ranks with that commander's other
+ * decks. Throws BuildError with a plain-language message when the pool
+ * cannot make a deck of the requested size and color.
  */
 export function buildDeck(
   request: BuildRequest,
@@ -1762,13 +1763,16 @@ export function buildDeck(
   config: BulkBrewConfig,
 ): BuildResult {
   if (growBuilds(request, config)) return buildGrowDeck(request, pool, index, config);
-  return buildClassic(request, pool, index, config);
+  const result = buildClassic(request, pool, index, config);
+  if (isCommanderSize(request.size) && !request.secondary && tribeOf(request.style))
+    return scoreTribeDeck(request, result, pool, index, config);
+  return result;
 }
 
 /**
  * The classic builder: scan, pick archetypes, fill in passes, improve by
- * swaps. Best fit at every size, 20-card packets, secondary styles, tribes,
- * and styles the player did not ask for by name.
+ * swaps. 20-card packets, secondary styles, and tribes, plus a plain shape
+ * the grow builder cannot fill on a thin pool.
  */
 export function buildClassic(
   request: BuildRequest,
