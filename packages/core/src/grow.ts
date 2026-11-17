@@ -28,6 +28,7 @@ import {
 } from './builder.ts';
 import { themeSynergyLines } from './deck-themes.ts';
 import { withoutLearned } from './learned.ts';
+import { canBeCommander } from './matchers.ts';
 import {
   addSupply,
   cardNeeds,
@@ -542,7 +543,14 @@ export function poolSupply(
   const unheld = new Set<string>();
   for (const c of cands) {
     if (c.facts.card.id === commander?.id) continue;
-    if (everyCard || !c.facts.spell || holdable(c.facts.card, base, config))
+    // Without a named commander (the commander list's scan) a card that could lead is held:
+    // as the commander every deck of it holds it.
+    if (
+      everyCard ||
+      !c.facts.spell ||
+      (!commander && isCommanderSize(size) && canBeCommander(c.facts.card)) ||
+      holdable(c.facts.card, base, config)
+    )
       addSupply(supply, c.facts.card, c.preferred, config);
     else unheld.add(c.facts.card.id);
   }
@@ -2592,8 +2600,10 @@ function feedNeeds(
   const refs = [...reading.gates.filter(unmet), ...(needs ?? [])];
   if (!refs.length) return false;
   const before = honestPlan(ctx, plan, d);
-  // Short of the floors without this job: a role minimum yields to them as a last resort.
-  const floorsNeedIt = !met(before, minimum);
+  // A 20-card half short of the floors without this job: a role minimum yields to them as a
+  // last resort, and the feed then holds only when the floors are met.
+  const floorsNeedIt = ctx.size === 20 && !met(before, minimum);
+  let belowMinimum = false;
   // Copies that hold now must still hold after: a feed never starves another card's need.
   const holds = (x: GrowCard) =>
     supported(ctx, d, x, 0, true) && whyEarned(ctx, plan, d, x, d.why.get(x.id)!);
@@ -2662,6 +2672,7 @@ function feedNeeds(
         add(ctx, d, inn, curveWhy(inn.slot));
         if ((at >= 0 || !keep || keepsRoles()) && fine.every((x) => have(d, x) === 0 || holds(x))) {
           swap = { out, outWhy, inn, at };
+          if (!keep) belowMinimum = true;
           break;
         }
         remove(ctx, d, inn);
@@ -2675,7 +2686,9 @@ function feedNeeds(
   if (
     done.length > 0 &&
     earned() &&
-    noWorse(before, honestPlan(ctx, plan, d), minimum) &&
+    (belowMinimum
+      ? met(honestPlan(ctx, plan, d), minimum)
+      : noWorse(before, honestPlan(ctx, plan, d), minimum)) &&
     fine.every((x) => have(d, x) === 0 || holds(x))
   )
     return true;

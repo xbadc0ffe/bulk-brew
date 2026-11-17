@@ -1,7 +1,7 @@
 // Card records copied verbatim from the data pack (2026-11-03, schema 2) for the
 // agreement of the scan and the builder at 20 cards: a packet whose theme needs a
 // feed (cut from a development pool, d5b-tribe-dragon-18 in green) and a planeswalker
-// payoff whose other planeswalker no counters deck holds. Tests read card facts from
+// payoff whose other planeswalker no counters deck holds, and a commander that earns nothing alone (Tippy-Toe). Tests read card facts from
 // here and never make them up.
 import type { CardRecord } from '../src/types.ts';
 
@@ -598,5 +598,45 @@ export const PACKET_CARDS: CardRecord[] = [
     img: '2e781bfd-f8cb-4d20-b977-4359f3a21311',
     produces: ['G'],
     rarity: 'common',
+  },
+  {
+    id: '6a1bce89-0c11-4d8d-aacb-c0a5a5effffc',
+    name: 'Tippy-Toe, Terrific Partner',
+    layout: 'normal',
+    mv: 4,
+    typeLine: 'Legendary Creature — Squirrel Hero',
+    text: 'If you would create one or more tokens, instead create those tokens plus an additional Food token. (It\'s an artifact with "{2}, {T}, Sacrifice this token: You gain 3 life.")\nAt the beginning of your end step, if you gained life this turn, draw a card.',
+    colors: ['G'],
+    identity: ['G'],
+    keywords: ['Food'],
+    types: ['creature'],
+    tags: [
+      'card-advantage',
+      'draw',
+      'draw-engine',
+      'infusion',
+      'intervening-if-clause',
+      'lifegain',
+      'lifegain-matters',
+      'pure-draw',
+      'repeatable-artifact-tokens',
+      'repeatable-card-advantage',
+      'repeatable-draw',
+      'repeatable-food',
+      'repeatable-lifegain',
+      'repeatable-noncreature-tokens',
+      'repeatable-pure-draw',
+      'repeatable-token-generator',
+      'synergy-token',
+      'token-increaser',
+      'triggered-ability',
+      'unique-type-line',
+    ],
+    img: '6082ab9f-290e-4230-84a0-46c7f8ed712d',
+    manaCost: '{3}{G}',
+    power: '2',
+    toughness: '4',
+    rank: 8373,
+    rarity: 'uncommon',
   },
 ];

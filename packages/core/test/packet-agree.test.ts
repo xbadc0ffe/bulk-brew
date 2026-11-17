@@ -5,7 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildDeck } from '../src/builder.ts';
 import { listCandidates } from '../src/candidates.ts';
-import { growViability } from '../src/grow.ts';
+import { growViability, poolSupply } from '../src/grow.ts';
 import { CardIndex } from '../src/pack.ts';
 import { scanPool } from '../src/scan.ts';
 import type { Color, Pool } from '../src/types.ts';
@@ -76,5 +76,17 @@ describe('a theme the scan calls viable at 20 is built', () => {
       0,
     );
     expect(counters([gauntlet, ['Ugin, the Ineffable', 2]])).toBe(1);
+  });
+  it('holds a card that could be the commander in a Commander scan without one', () => {
+    // The commander list reads the color set's scan, where each commander is a candidate.
+    // Tippy-Toe earns nothing on its own, but as the commander every deck of it holds it,
+    // so its Squirrel counts toward the pool at 100 (not at 60, where no deck must hold it).
+    const pool = poolOf([['Tippy-Toe, Terrific Partner', 1]]);
+    const squirrels = (size: 60 | 100) =>
+      poolSupply(listCandidates(pool, index, CONFIG, SETTINGS, ['G'], size), CONFIG, size, [
+        'G',
+      ]).counts.get('tribe:Squirrel') ?? 0;
+    expect(squirrels(100)).toBe(1);
+    expect(squirrels(60)).toBe(0);
   });
 });
