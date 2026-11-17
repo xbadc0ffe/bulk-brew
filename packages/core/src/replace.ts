@@ -6,6 +6,13 @@
 import { deckThemes, landNote, spellSynergyLines, type DeckTheme } from './builder.ts';
 import { factsFor, listCandidates, type Candidate, type CardFacts } from './candidates.ts';
 import { templateFor, type BulkBrewConfig } from './config.ts';
+import {
+  creditsFor,
+  deckCredits,
+  earnedTheme,
+  swapSupply,
+  type DeckCredits,
+} from './deck-credits.ts';
 import { draftOnly, isFetch, landColors, planLandCount, scoreNonbasic } from './lands.ts';
 import type { CardIndex } from './pack.ts';
 import {
@@ -112,17 +119,25 @@ function jobContext(deck: Deck, config: BulkBrewConfig): JobContext {
 /**
  * Theme sides first, as the deck's Roles bars list them, then roles in config
  * order. Lands have none: the builders count roles and themes over spells only.
+ * A job counts only when the card earns it in the deck it plays in, whose
+ * credits are asked for only when the card has a job to check.
  */
-function jobsOf(cand: Candidate, ctx: JobContext): DeckJob[] {
+function jobsOf(cand: Candidate, ctx: JobContext, credits: () => DeckCredits): DeckJob[] {
   const out: DeckJob[] = [];
   if (!cand.facts.spell) return out;
+  const card = cand.facts.card;
   for (const t of ctx.themes) {
     const name = t.tribal ? t.id.slice('tribal:'.length) : t.label;
-    if (t.isEnabler(cand))
+    // The reader has no credit for a tribe; its cards count as the Roles bars count them.
+    const earned = (side: 'setup' | 'payoff') =>
+      t.tribal || earnedTheme(card, t.id, side, credits());
+    if (t.isEnabler(cand) && earned('setup'))
       out.push({ id: `${t.id}:enabler`, label: t.tribal ? `${name} creature` : `${name} enabler` });
-    if (t.isPayoff(cand)) out.push({ id: `${t.id}:payoff`, label: `${name} payoff` });
+    if (t.isPayoff(cand) && earned('payoff'))
+      out.push({ id: `${t.id}:payoff`, label: `${name} payoff` });
   }
-  for (const r of ctx.roles) if (cand.facts.roles.includes(r.id)) out.push(r);
+  for (const r of ctx.roles)
+    if (cand.facts.roles.includes(r.id) && credits().earned(card, r.id)) out.push(r);
   return out;
 }
 
@@ -145,7 +160,9 @@ function swappable(deck: Deck, cardId: string): DeckCard | undefined {
  * way to a basic of a deck color it makes (any deck color for a land that
  * makes none), as many as the pool has spare when basics are tracked.
  * Spells rank by the jobs they share with the card going out, then strength,
- * mana value, and creature or not; lands and basics by the land rules.
+ * mana value, and creature or not; lands and basics by the land rules. A job
+ * counts only when earned: the outgoing card's in the deck now, an option's
+ * in the deck after the swap.
  * Undefined for a card the deck does not hold, a basic land, or the commander.
  */
 export function replacementOptions(
@@ -163,7 +180,8 @@ export function replacementOptions(
   const colors = deckColorsOf(deck);
   const styles = deckStyles(deck);
   const ctx = jobContext(deck, config);
-  const outJobs = jobsOf(asCandidate(outFacts), ctx);
+  const now = deckCredits(deck, index, config);
+  const outJobs = jobsOf(asCandidate(outFacts), ctx, () => now);
   const outIds = new Set(outJobs.map((j) => j.id));
   const inDeck = new Map(deck.cards.map((c) => [c.cardId, c.qty]));
   const short = (qty: number) => WEIGHTS.short * (1 - qty / out.qty);
@@ -192,7 +210,14 @@ export function replacementOptions(
     const spare = cand.preferred - (inDeck.get(id) ?? 0);
     if (spare <= 0) continue;
     const qty = Math.min(out.qty, spare);
-    const jobs = jobsOf(cand, ctx);
+    // Its jobs as earned in the deck after the swap: the outgoing copies out, its copies in.
+    let after: DeckCredits | undefined;
+    const jobs = jobsOf(
+      cand,
+      ctx,
+      () =>
+        (after ??= creditsFor(swapSupply(now.supply, outCard, qty, f.card, qty, config), config)),
+    );
     const shared = jobs.filter((j) => outIds.has(j.id));
     const added = jobs.filter((j) => !outIds.has(j.id));
     let score = WEIGHTS.sharedJob * shared.length + WEIGHTS.newJob * added.length - short(qty);
@@ -334,6 +359,7 @@ function followSwap(
     const template = templateFor(config, deck.size);
     const move = (f: CardFacts, by: number) => {
       if (f.bucket >= 0) curve[f.bucket] = (curve[f.bucket] ?? 0) + by;
+      // The builder's own count; the Roles bars show what the cards earn (deckRoleCounts).
       for (const id of f.roles) {
         const r = roles[id];
         if (r) r.have += by;

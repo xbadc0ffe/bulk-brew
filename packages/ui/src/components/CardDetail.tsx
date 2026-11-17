@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useRef } from 'react';
-import type { BulkBrewConfig, CardIndex, CardRecord, PrintingHint } from '@bulk-brew/core';
+import {
+  deckCredits,
+  type BulkBrewConfig,
+  type CardIndex,
+  type CardRecord,
+  type Deck,
+  type PrintingHint,
+} from '@bulk-brew/core';
 import { CardArt } from './CardArt.tsx';
 import { Stepper, type Variant } from './controls.tsx';
 import { ManaCost, SymbolText } from '../ManaCost.tsx';
@@ -25,6 +32,8 @@ export interface CardDetailProps {
   onReplace?: (() => void) | undefined;
   /** Names of saved decks that use this card. */
   inDecks?: string[] | undefined;
+  /** The deck the card is shown in: its tags then show only what it earns there. */
+  deck?: Deck | undefined;
   variant?: Variant;
 }
 
@@ -107,11 +116,17 @@ export function CardDetail(props: CardDetailProps) {
     variant = 'desktop',
   } = props;
   const phone = variant === 'phone';
-  const major = useMemo(() => majorTags(index, config, DISPLAY_TAGS, card), [index, config, card]);
+  const credits = props.deck ? deckCredits(props.deck, index, config) : undefined;
+  const major = useMemo(
+    () => majorTags(index, config, DISPLAY_TAGS, card, credits),
+    [index, config, card, credits],
+  );
   const general = useMemo(() => {
     const seen = new Set<string>();
-    return cardTags(index, config, card).filter((t) => !seen.has(t.label) && seen.add(t.label));
-  }, [index, config, card]);
+    return cardTags(index, config, card, credits).filter(
+      (t) => !seen.has(t.label) && seen.add(t.label),
+    );
+  }, [index, config, card, credits]);
   const faces: FaceLike[] = card.faces && card.faces.length > 1 ? card.faces : [card];
   const closeButton = useRef<HTMLButtonElement>(null);
 

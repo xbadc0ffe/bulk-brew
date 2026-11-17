@@ -99,11 +99,14 @@ export function DiscardSwapsDialog(props: {
 /**
  * The card detail over the right side of a deck view's body, below its
  * header, so the header's actions stay in view. Its parent must be
- * positioned. With `onReplace`, the card gets a Replace button.
+ * positioned. The card's tags show what it earns in `deck`. With
+ * `onReplace`, the card gets a Replace button.
  */
 export function DeckCardPanel({
+  deck,
   onReplace,
 }: {
+  deck: Deck | undefined;
   onReplace?: ((cardId: string) => void) | undefined;
 }) {
   const { detail, index, config, settings, decks, pool } = useAppState();
@@ -124,6 +127,7 @@ export function DeckCardPanel({
         showArt={settings.settings.showArt}
         qty={pool.pool.entries[card.id]?.qty ?? 0}
         inDecks={inDecks.map((d) => d.name)}
+        deck={deck}
         onClose={detail.close}
         onReplace={onReplace ? () => onReplace(card.id) : undefined}
       />
@@ -223,6 +227,7 @@ export function DeckLayout(props: {
           </aside>
         </div>
         <DeckCardPanel
+          deck={deck}
           onReplace={
             replace && detail.current && canReplace(detail.current.cardId)
               ? (id) => setReplacing(replace.options(id))

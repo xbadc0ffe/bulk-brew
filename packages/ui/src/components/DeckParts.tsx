@@ -1,5 +1,8 @@
 import { useMemo, useState } from 'react';
 import {
+  deckCredits,
+  deckRoleCounts,
+  reasonEarned,
   SWAP_WHY_PREFIX,
   type BulkBrewConfig,
   type CardIndex,
@@ -150,15 +153,26 @@ function roleLabel(config: BulkBrewConfig, id: string): string {
   return config.roles.roles.find((r) => r.id === id)?.label ?? id;
 }
 
-/** How many copies the builder picked for each reason, most first. */
-function reasons(deck: Deck): { why: string; qty: number }[] {
+/** How many copies the builder picked for each reason, most first; a reason the deck does not earn is Other. */
+function reasons(
+  deck: Deck,
+  index: CardIndex | undefined,
+  config: BulkBrewConfig,
+): { why: string; qty: number }[] {
   const m = new Map<string, number>();
+  const credits = index ? deckCredits(deck, index, config) : undefined;
+  const holds = (why: string, cardId: string) => {
+    const card = index?.get(cardId);
+    return !card || !credits || reasonEarned(why, card, deck, credits, config);
+  };
   for (const c of deck.cards) {
     const why = !c.why
       ? 'Other'
       : c.why.startsWith(SWAP_WHY_PREFIX)
         ? 'Swapped in'
-        : c.why.replace(/^Curve: .*/, 'Curve');
+        : !holds(c.why, c.cardId)
+          ? 'Other'
+          : c.why.replace(/^Curve: .*/, 'Curve');
     m.set(why, (m.get(why) ?? 0) + c.qty);
   }
   return [...m]
@@ -191,10 +205,14 @@ export function DeckExplanation({
     () => (index ? deckStyleRows(deck, index, config) : []),
     [deck, index, config],
   );
+  const roleCounts = useMemo(
+    () => (index ? deckRoleCounts(deck, index, config) : deck.explanation?.roles),
+    [deck, index, config],
+  );
   const notes = notesOpen || detailed;
   const e = deck.explanation;
   // A role the deck size does not ask for (a target of 0) has nothing to show.
-  const roles = e ? Object.entries(e.roles).filter(([, c]) => c.want > 0) : [];
+  const roles = e && roleCounts ? Object.entries(roleCounts).filter(([, c]) => c.want > 0) : [];
   const phone = variant === 'phone';
   const info = archetypeInfo(config, deck.archetype);
   const label = phone ? 'text-[0.6875rem] tracking-[0.04em] text-fg-2 uppercase' : ui.sectionLabel;
@@ -275,7 +293,7 @@ export function DeckExplanation({
         <section className="flex flex-col gap-1.5">
           <h3 className={label}>Why the cards are here</h3>
           <ul className={`grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 ${small}`}>
-            {reasons(deck).map((r) => (
+            {reasons(deck, index, config).map((r) => (
               <li key={r.why} className="contents">
                 <span>{r.why}</span>
                 <span className="text-right font-mono tabular-nums">{r.qty}</span>

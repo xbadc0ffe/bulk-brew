@@ -145,6 +145,7 @@ export function pairPackets(
     name: `${a.name} + ${b.name}`,
     size: 40,
     color: a.color,
+    colors: [...new Set([...(a.colors ?? [a.color]), ...(b.colors ?? [b.color])])],
     archetype: `${a.archetype}+${b.archetype}`,
     cards: [...merged.values()],
     basics,
@@ -153,9 +154,7 @@ export function pairPackets(
     configVersion: a.configVersion,
     dataVersion: a.dataVersion,
   };
-  const text = deckToDecklist(deck, index, config).replace(
-    `// 40 cards, ${COLOR_LABELS[a.color]}`,
-    `// 40 cards, ${COLOR_LABELS[a.color]} and ${COLOR_LABELS[b.color]}`,
-  );
+  // The header names both colors from the deck's colors.
+  const text = deckToDecklist(deck, index, config);
   return { ok: true, deck, text };
 }

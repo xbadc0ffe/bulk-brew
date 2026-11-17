@@ -298,7 +298,8 @@ describe('export', () => {
     expect(ok.ok).toBe(true);
     if (ok.ok) {
       expect(ok.deck.size).toBe(40);
-      expect(ok.text).toContain('White and Blue');
+      expect(ok.deck.colors).toEqual(['W', 'U']);
+      expect(ok.text).toContain('// 40 cards, White and Blue\n');
       expect(ok.deck.basics).toEqual({ W: w.basics.W, U: 8 });
     }
     expect(pairPackets(w, w, index, CONFIG)).toMatchObject({ ok: false });

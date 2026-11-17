@@ -1,7 +1,9 @@
 import {
   archetypeById,
   COLORS,
+  deckCredits,
   primaryGroup,
+  reasonEarned,
   tribalArchetype,
   tribeOf,
   type BulkBrewConfig,
@@ -16,7 +18,7 @@ export interface DeckRow {
   key: string;
   qty: number;
   name: string;
-  /** Why the builder picked it, in lower case; absent for basics. */
+  /** Why the builder picked it, in lower case; absent for basics and a credit the deck does not earn. */
   why?: string | undefined;
   card?: CardRecord | undefined;
   printing?: PrintingHint | undefined;
@@ -68,14 +70,18 @@ export function deckGroups(deck: Deck, index: CardIndex, config: BulkBrewConfig)
     const name = config.landRules.basics.names[color];
     add('Lands', { key: `basic-${color}`, qty: n, name, card: index.find(name) });
   }
+  const credits = deckCredits(deck, index, config);
   for (const { dc, card } of sorted) {
     const lead = dc.cardId === deck.commander;
     add(lead ? 'Commander' : primaryGroup(card), {
       key: dc.cardId,
       qty: dc.qty,
       name: card.name,
-      // "Commander" would repeat the group's name.
-      why: dc.why && !lead ? lowerFirst(dc.why) : undefined,
+      // "Commander" would repeat the group's name; a role or theme the deck does not earn says nothing.
+      why:
+        dc.why && !lead && reasonEarned(dc.why, card, deck, credits, config)
+          ? lowerFirst(dc.why)
+          : undefined,
       card,
       printing: dc.printing,
     });

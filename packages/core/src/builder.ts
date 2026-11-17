@@ -53,6 +53,7 @@ import {
   sourcesNeeded,
 } from './colors.ts';
 import type { CardIndex } from './pack.ts';
+import { deckCredits, earnedTheme } from './deck-credits.ts';
 import {
   learnedAt,
   learnedPlanFor,
@@ -2103,12 +2104,18 @@ export function deckThemes(
 /**
  * Enablers and payoffs of the deck's primary archetype and of its secondary
  * one (a theme or a tribe), counted the way the builder counts them: spells
- * only, commander left out, against the minimums for the deck's size. Shapes
- * such as Aggro have no theme cards and give nothing.
+ * only, commander left out, against the minimums for the deck's size. A
+ * theme card counts only when it earns that theme side in this deck (see
+ * deck-credits.ts). Shapes such as Aggro have no theme cards and give nothing.
  */
 export function styleCounts(deck: Deck, index: CardIndex, config: BulkBrewConfig): StyleCount[] {
   const themes = deckThemes(deck, config);
   if (themes.length === 0) return [];
+  const credits = deckCredits(deck, index, config);
+  // The reader has no credit for a tribe: its members count by type, and its payoffs
+  // reward the members the deck is built around.
+  const earned = (t: DeckTheme, cand: Candidate, side: 'setup' | 'payoff') =>
+    t.tribal || earnedTheme(cand.facts.card, t.id, side, credits);
   const cands: { cand: Candidate; qty: number }[] = [];
   for (const dc of deck.cards) {
     const card = index.get(dc.cardId);
@@ -2121,8 +2128,8 @@ export function styleCounts(deck: Deck, index: CardIndex, config: BulkBrewConfig
     let e = 0;
     let p = 0;
     for (const { cand, qty } of cands) {
-      if (t.isEnabler(cand)) e += qty;
-      if (t.isPayoff(cand)) p += qty;
+      if (t.isEnabler(cand) && earned(t, cand, 'setup')) e += qty;
+      if (t.isPayoff(cand) && earned(t, cand, 'payoff')) p += qty;
     }
     return {
       id: t.id,

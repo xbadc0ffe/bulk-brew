@@ -1,11 +1,13 @@
 import {
   displayTagsFor,
   factsFor,
+  themeCredit,
   type BulkBrewConfig,
   type CardIndex,
   type CardRecord,
   type CardType,
   type Color,
+  type DeckCredits,
   type DisplayTagDef,
   type DisplayTagsConfig,
   type Pool,
@@ -144,19 +146,29 @@ const lowerFirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
 /**
  * General tags for a card: the config's role labels, then the styles it
  * enables or pays off. The short display tags and the raw Scryfall tags
- * are shown beside these in the card detail.
+ * are shown beside these in the card detail. With a deck's `credits`, only
+ * the roles and styles the card earns in that deck.
  */
-export function cardTags(index: CardIndex, config: BulkBrewConfig, card: CardRecord): CardTag[] {
+export function cardTags(
+  index: CardIndex,
+  config: BulkBrewConfig,
+  card: CardRecord,
+  credits?: DeckCredits,
+): CardTag[] {
   const facts = factsFor(index, config, card);
   const out: CardTag[] = [];
+  const has = (credit: string) => !credits || credits.earned(card, credit);
   const roleLabel = (id: string) => config.roles.roles.find((r) => r.id === id)?.label ?? id;
   const styleLabel = (id: string) =>
     config.archetypes.archetypes.find((a) => a.id === id)?.label ?? id;
-  for (const id of facts.roles) out.push({ id: `role:${id}`, label: lowerFirst(roleLabel(id)) });
+  for (const id of facts.roles)
+    if (has(id)) out.push({ id: `role:${id}`, label: lowerFirst(roleLabel(id)) });
   for (const id of facts.enablerOf)
-    out.push({ id: `style:${id}`, label: lowerFirst(styleLabel(id)) });
+    if (has(themeCredit(id, 'setup')))
+      out.push({ id: `style:${id}`, label: lowerFirst(styleLabel(id)) });
   for (const id of facts.payoffOf)
-    out.push({ id: `style:${id}`, label: `${lowerFirst(styleLabel(id))} payoff` });
+    if (has(themeCredit(id, 'payoff')))
+      out.push({ id: `style:${id}`, label: `${lowerFirst(styleLabel(id))} payoff` });
   return out;
 }
 
@@ -165,13 +177,22 @@ const majorCache = new WeakMap<
   WeakMap<DisplayTagsConfig, Map<string, DisplayTagDef[]>>
 >();
 
-/** The short display tags for a card, cached per index and tag config. */
+/**
+ * The short display tags for a card, cached per index and tag config. With a
+ * deck's `credits`, a tag from a role or style shows only when the card earns
+ * it in that deck; that reading is left to the caller to memoize.
+ */
 export function majorTags(
   index: CardIndex,
   config: BulkBrewConfig,
   displayTags: DisplayTagsConfig,
   card: CardRecord,
+  credits?: DeckCredits,
 ): DisplayTagDef[] {
+  if (credits)
+    return displayTagsFor(card, factsFor(index, config, card), displayTags, (credit) =>
+      credits.earned(card, credit),
+    );
   let byTags = majorCache.get(index);
   if (!byTags) majorCache.set(index, (byTags = new WeakMap()));
   let byId = byTags.get(displayTags);

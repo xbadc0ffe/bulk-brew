@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { CardIndex } from '@bulk-brew/core';
+import { CardIndex, deckCredits, type Color, type Deck } from '@bulk-brew/core';
 import {
   cardTags,
   colorKey,
+  majorTags,
   nextSort,
   poolFacets,
   poolRows,
@@ -10,7 +11,9 @@ import {
   typeParts,
 } from '../src/data/poolView.ts';
 import { DISPLAY_TAGS } from '../src/data/config.ts';
+import { deckGroups } from '../src/data/deckGroups.ts';
 import { bigPool, CONFIG_BUNDLE as CONFIG, PACK } from '../../core/test/builder-fixtures.ts';
+import { NEEDS_CARD, needsCard } from '../../core/test/needs-cards.ts';
 
 const index = new CardIndex(PACK);
 const pool = bigPool();
@@ -72,6 +75,87 @@ describe('poolRows filters', () => {
     expect(f.types.map((t) => t.id)).toContain('creature');
     expect(f.subtypes.map((s) => s.id)).toContain('Human');
     expect(f.tags.map((t) => t.label)).toContain('Removal');
+  });
+});
+
+describe('tags in a deck', () => {
+  const needsIndex = new CardIndex({
+    schema: 2,
+    version: '2026-11-03',
+    builtAt: '2026-11-03T00:00:00Z',
+    cardCount: Object.keys(NEEDS_CARD).length,
+    cards: Object.values(NEEDS_CARD),
+  });
+  const yathan = needsCard('Yathan Tombguard');
+  const deckOf = (cards: [string, number][], colors: Color[]): Deck => ({
+    id: 'test',
+    name: 'Test',
+    size: 60,
+    color: colors[0]!,
+    ...(colors.length > 1 ? { colors } : {}),
+    archetype: 'counters',
+    cards: [
+      ...cards.map(([name, qty]) => ({ cardId: needsCard(name).id, qty })),
+      // As a builder records it: picked for the role.
+      { cardId: yathan.id, qty: 2, why: 'Card advantage' },
+    ],
+    basics: { B: 24 },
+    committed: false,
+    createdAt: '',
+    configVersion: '',
+    dataVersion: '',
+  });
+  const black: [string, number][] = [
+    ['Walking Corpse', 4],
+    ['Typhoid Rats', 4],
+    ['Vampire Interloper', 4],
+    ['Murder', 2],
+  ];
+  const counters: [string, number][] = [
+    ['Luminarch Aspirant', 4],
+    ['Hunger of the Howlpack', 2],
+  ];
+  const tags = (deck?: Deck) => {
+    const credits = deck ? deckCredits(deck, needsIndex, CONFIG) : undefined;
+    return {
+      general: cardTags(needsIndex, CONFIG, yathan, credits).map((t) => t.label),
+      major: majorTags(needsIndex, CONFIG, DISPLAY_TAGS, yathan, credits).map((t) => t.label),
+    };
+  };
+
+  it('shows every credit outside a deck', () => {
+    expect(tags().general).toEqual([
+      'card advantage',
+      'evasive threat',
+      'evasion',
+      '+1/+1 counters payoff',
+    ]);
+    expect(tags().major).toContain('Draw');
+  });
+
+  it('shows only what the card earns in a deck with no counters', () => {
+    const { general, major } = tags(deckOf(black, ['B']));
+    expect(general).not.toContain('card advantage');
+    expect(general).not.toContain('+1/+1 counters payoff');
+    expect(general).toContain('evasive threat');
+    expect(major).not.toContain('Draw');
+    expect(major).toContain('Evasion');
+  });
+
+  it('keeps card advantage in a deck with counters', () => {
+    const { general, major } = tags(deckOf([...black, ...counters], ['B', 'W', 'G']));
+    expect(general).toContain('card advantage');
+    expect(general).toContain('+1/+1 counters payoff');
+    expect(major).toContain('Draw');
+  });
+
+  it('leaves out a row reason the deck does not earn', () => {
+    const why = (deck: Deck) =>
+      deckGroups(deck, needsIndex, CONFIG)
+        .flatMap((g) => g.rows)
+        .find((r) => r.card?.id === yathan.id)!.why;
+    expect(why(deckOf(black, ['B']))).toBeUndefined();
+    expect(why(deckOf([...black, ...counters], ['B', 'W', 'G']))).toBe('card advantage');
   });
 });
 
