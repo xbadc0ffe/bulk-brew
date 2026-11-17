@@ -79,7 +79,7 @@ export function DeckScreen(props: {
             index={index}
             config={config}
             showArt={settings.settings.showArt}
-            onOpenCard={detail.open}
+            onOpenCard={(id, printing) => detail.open(id, printing, undefined, deck)}
             variant="phone"
           />
         </>

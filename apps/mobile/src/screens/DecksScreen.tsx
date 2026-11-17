@@ -344,7 +344,11 @@ function PairPackets(props: { packet: Deck; onBack(): void; onMerged(id: string)
   const [confirm, setConfirm] = useState(false);
   const [error, setError] = useState<string>();
   const other = others.find((d) => d.id === otherId);
-  const pair = other && index ? pairPackets(packet, other, index, config) : undefined;
+  // One merged deck per pair, so the card detail reads its supply once.
+  const pair = useMemo(
+    () => (other && index ? pairPackets(packet, other, index, config) : undefined),
+    [packet, other, index, config],
+  );
 
   return (
     <Pushed
@@ -389,7 +393,7 @@ function PairPackets(props: { packet: Deck; onBack(): void; onMerged(id: string)
           index={index}
           config={config}
           showArt={settings.settings.showArt}
-          onOpenCard={detail.open}
+          onOpenCard={(id, printing) => detail.open(id, printing, undefined, pair.deck)}
           variant="phone"
         />
       )}

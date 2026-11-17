@@ -59,6 +59,7 @@ function DetailSheet() {
         config={config}
         showArt={settings.settings.showArt}
         inDecks={inDecks.map((d) => d.name)}
+        deck={open?.deck}
         onClose={detail.close}
         onQtyChange={entry ? (q) => pool.actions.setQty(card.id, q) : undefined}
         onRemove={

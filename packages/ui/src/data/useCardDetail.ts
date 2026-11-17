@@ -1,15 +1,25 @@
 import { useCallback, useRef, useState } from 'react';
-import type { PrintingHint } from '@bulk-brew/core';
+import type { Deck, PrintingHint } from '@bulk-brew/core';
 
 export interface OpenCard {
   cardId: string;
   printing?: PrintingHint | undefined;
+  /** The deck the card was opened from, so its tags show what it earns there. */
+  deck?: Deck | undefined;
 }
 
 export interface CardDetailState {
   current: OpenCard | undefined;
-  /** `opener` takes focus on close; by default the element that has focus now. */
-  open(cardId: string, printing?: PrintingHint | undefined, opener?: HTMLElement | null): void;
+  /**
+   * `opener` takes focus on close; by default the element that has focus now.
+   * `deck` is the deck view the card was opened from, if any.
+   */
+  open(
+    cardId: string,
+    printing?: PrintingHint | undefined,
+    opener?: HTMLElement | null,
+    deck?: Deck | undefined,
+  ): void;
   /** Close and return focus to the element that opened the card. */
   close(): void;
   /** Close and leave focus where it is, for another control that was just used. */
@@ -26,10 +36,15 @@ export function useCardDetail(): CardDetailState {
   const opener = useRef<HTMLElement | null>(null);
 
   const open = useCallback(
-    (cardId: string, printing?: PrintingHint | undefined, from?: HTMLElement | null) => {
+    (
+      cardId: string,
+      printing?: PrintingHint | undefined,
+      from?: HTMLElement | null,
+      deck?: Deck | undefined,
+    ) => {
       const active = document.activeElement;
       opener.current = from !== undefined ? from : active instanceof HTMLElement ? active : null;
-      setCurrent(printing ? { cardId, printing } : { cardId });
+      setCurrent({ cardId, ...(printing ? { printing } : {}), ...(deck ? { deck } : {}) });
     },
     [],
   );

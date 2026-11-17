@@ -29,4 +29,5 @@ export * from './learned.ts';
 export * from './plan.ts';
 export * from './theme-rules.ts';
 export * from './card-needs.ts';
+export * from './deck-credits.ts';
 export * from './replace.ts';

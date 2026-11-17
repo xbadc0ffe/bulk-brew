@@ -4,6 +4,7 @@
 
 import type { BulkBrewConfig, Matcher } from './config.ts';
 import type { CardFacts } from './candidates.ts';
+import { themeCredit } from './card-needs.ts';
 import { cardMatches } from './matchers.ts';
 import type { CardRecord } from './types.ts';
 
@@ -25,18 +26,29 @@ export interface DisplayTagsConfig {
   tags: DisplayTagDef[];
 }
 
-/** Display tags that apply to a card, in config order. */
+/**
+ * Display tags that apply to a card, in config order. With `earned` (a deck
+ * view), a tag the card has through a role or a style shows only when it
+ * earns one of them there; one it has through its Scryfall tags alone still
+ * shows, as there is no credit to check.
+ */
 export function displayTagsFor(
   card: CardRecord,
   facts: CardFacts,
   tags: DisplayTagsConfig,
+  earned?: (credit: string) => boolean,
 ): DisplayTagDef[] {
-  return tags.tags.filter(
-    (t) =>
-      (t.roles?.some((r) => facts.roles.includes(r)) ?? false) ||
-      (t.styles?.some((s) => facts.enablerOf.includes(s) || facts.payoffOf.includes(s)) ?? false) ||
-      (t.match ? cardMatches(card, t.match) : false),
-  );
+  return tags.tags.filter((t) => {
+    const credits = [
+      ...(t.roles?.filter((r) => facts.roles.includes(r)) ?? []),
+      ...(t.styles ?? []).flatMap((s) => [
+        ...(facts.enablerOf.includes(s) ? [themeCredit(s, 'setup')] : []),
+        ...(facts.payoffOf.includes(s) ? [themeCredit(s, 'payoff')] : []),
+      ]),
+    ];
+    if (credits.length > 0) return !earned || credits.some(earned);
+    return t.match ? cardMatches(card, t.match) : false;
+  });
 }
 
 /** Every Tagger slug the display tags reference, for checking against the pack. */
