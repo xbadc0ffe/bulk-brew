@@ -1915,24 +1915,41 @@ function richness(ctx: GrowContext, plan: ThemePlan, pool: Tally): number {
  * makes Elf tokens and taps Elves, all of its text, so it leads its Elf tribe
  * in full; its own combat damage trigger, an Evasion payoff, is half of its
  * text. A theme only its body serves (an evasive carrier's keyword) leads
- * only a commander with no other text.
+ * only a commander with no other text. The payoff job is the one the pool
+ * pays for, whatever else it needs beside the theme's own resource (Adeliz's
+ * Wizards need instants and sorceries too).
  */
 function commanderLead(ctx: GrowContext, plan: Plan): number {
   const cmd = ctx.commander;
-  const job = plan.kind === 'theme' ? cmd?.jobs[plan.index] : undefined;
+  const job = plan.kind === 'theme' ? cmd?.paid[plan.index] : undefined;
   if (!cmd || job?.as !== 'payoff') return 1;
-  const needs = cardNeeds(cmd.card, ctx.config);
+  const central = commanderTextShare(ctx.config, cmd.card, plan.style, ctx.size);
+  return 1 + (ctx.k.commanderPlan - 1) * central * Math.min(1, job.weight);
+}
+
+/**
+ * How central a theme is to a card's own text: the share of its text
+ * abilities (keyword lines aside, a modal bullet as its ability) whose clauses
+ * do the theme's work, setup or payoff (themeAbilities). A card with no text
+ * besides its body and keywords counts 1 when they do the work, else 0.
+ */
+export function commanderTextShare(
+  config: BulkBrewConfig,
+  card: CardRecord,
+  style: string,
+  size: DeckSize,
+): number {
+  const needs = cardNeeds(card, config);
   const root = (i: number) => needs.abilities[i]?.parent ?? i;
   const text = new Set<number>();
   needs.abilities.forEach((a, i) => {
     if (a.shape !== 'keyword') text.add(root(i));
   });
-  const work = themeAbilities(cmd.card, plan.style, ctx.config, ctx.size);
+  const work = themeAbilities(card, style, config, size);
   const read = new Set(work.abilities.map(root).filter((i) => text.has(i)));
   // A keyword line does a theme's work as the body does.
   const body = work.body || work.abilities.some((i) => !text.has(root(i)));
-  const central = text.size > 0 ? read.size / text.size : body ? 1 : 0;
-  return 1 + (ctx.k.commanderPlan - 1) * central * Math.min(1, job.weight);
+  return text.size > 0 ? read.size / text.size : body ? 1 : 0;
 }
 
 /** How far a side stands above its floor: 0 at the floor, 1 at `picker.depthFull` times it. */

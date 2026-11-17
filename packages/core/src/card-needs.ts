@@ -1189,6 +1189,10 @@ function supplyOfTemplate(t: NeedTemplate, m: RegExpMatchArray, c: Compiled): st
     if ((t.obj ?? 'token') === 'token') {
       if (o.res.some((r) => r.startsWith('subtype:') && isArtifactSubtype(r, c)))
         out.push(ARTIFACT_RES);
+      // A creature token "with changeling" is every creature type (CR 702.73a).
+      const after = m.input?.slice((m.index ?? 0) + m[0].length) ?? '';
+      if (/\bcreature tokens?\b/i.test(g.obj) && /^[^.;]*?\bwith changeling\b/i.test(after))
+        out.push('tribe:*');
     }
   }
   if ((t.counter && (t.supply || t.supplies)) || t.counterSupplies) {
@@ -2127,6 +2131,10 @@ function namedResources(text: string, c: Compiled): string[] {
   return [...out];
 }
 
+/** A line that makes the card itself every creature type, not an equipped or enchanted creature. */
+const EVERY_TYPE =
+  /^(?!(?:equipped|enchanted|each|other|another|target|all)\b)[^\n.,]*\bis every creature type\b/im;
+
 /** What a card supplies by being what it is: types, supertypes, subtypes, body. */
 function typesSupply(card: CardRecord, c: Compiled): string[] {
   const out = new Set<string>();
@@ -2147,7 +2155,9 @@ function typesSupply(card: CardRecord, c: Compiled): string[] {
     for (const t of card.types) if (t !== 'kindred') out.add(`type:${s}&${t}`);
   }
   for (const t of creatureTypes(card)) out.add(`tribe:${t}`);
-  if (card.keywords.includes('Changeling')) out.add('tribe:*');
+  // Changeling, or a creature whose own text says it is every creature type (Mistform Ultimus).
+  if (card.keywords.includes('Changeling') || (isCreature(card) && EVERY_TYPE.test(ruleText(card))))
+    out.add('tribe:*');
   for (const line of [card.typeLine, ...(card.faces ?? []).map((f) => f.typeLine)]) {
     const sub = line.split('//')[0]!.split('—')[1];
     if (!sub) continue;

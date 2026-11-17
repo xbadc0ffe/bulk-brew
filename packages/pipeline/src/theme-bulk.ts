@@ -79,8 +79,9 @@ function addMatch(sum: Map<ColorClass, ThemeTally>, card: CardRecord, style: Com
 /**
  * The tribes of every creature type a commander in the pack names
  * (`namedTribes`), summed over the bulk cards as the styles are. Every tribe
- * rule reads the type's word in the type line or text, or the Changeling
- * keyword, so a card that names neither is skipped without reading it.
+ * rule reads the type's word in the type line or text, the Changeling
+ * keyword, "every creature type", or "with changeling", so a card with none
+ * of them is skipped without reading it.
  */
 function tribeSums(
   pack: DataPack,
@@ -102,8 +103,9 @@ function tribeSums(
   });
   for (const card of pack.cards) {
     if (!isBulkCard(card)) continue;
-    const every = card.keywords.includes('Changeling');
     const hay = `${card.typeLine}\n${ruleText(card)}`.toLowerCase();
+    const every =
+      card.keywords.includes('Changeling') || /every creature type|with changeling/.test(hay);
     for (const t of tribes)
       if (every || t.words.some((w) => hay.includes(w))) addMatch(t.sum, card, t.style);
   }

@@ -1,5 +1,5 @@
 {
-  "version": "8",
+  "version": "9",
   "styles": {
     "tokens": {
       "resource": "creature tokens that stay on the battlefield, counted in bodies",
@@ -2903,6 +2903,18 @@
         "job": "makes {type} creature tokens",
         "weight": 1,
         "text": "\\bcreates? [^.\\n]*\\b{type}\\b[^.\\n]*\\bcreature tokens?\\b"
+      },
+      {
+        "job": "creature that is every creature type",
+        "weight": 1,
+        "types": ["creature"],
+        "text": "^(?!(?:equipped|enchanted|each|other|another|target|all)\\b)[^\\n.,]*\\bis every creature type\\b"
+      },
+      {
+        "job": "makes changeling creature tokens",
+        "weight": 1,
+        "text": "\\bcreates? [^.\\n]*\\bcreature tokens? with changeling\\b",
+        "notText": "\\b(?:its|their) controller creates?\\b"
       }
     ],
     "payoff": [

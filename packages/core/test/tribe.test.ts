@@ -8,6 +8,7 @@ import { buildDeck } from '../src/builder.ts';
 import { factsFor } from '../src/candidates.ts';
 import {
   cardNeeds,
+  cardSupply,
   creditEarned,
   creditNeeds,
   deckSupply,
@@ -27,7 +28,7 @@ import { checkThemeRules, matchCard } from '../src/theme-rules.ts';
 import type { CardRecord, Color, DataPack, Pool } from '../src/types.ts';
 import { CONFIG } from './config.test.ts';
 import { SETTINGS } from './builder-fixtures.ts';
-import { READER_CARDS, TRIBE_CARDS } from './tribe-cards.ts';
+import { MORE_CARDS, READER_CARDS, TRIBE_CARDS } from './tribe-cards.ts';
 
 const named = (name: string) => TRIBE_CARDS.find((c) => c.name === name)!;
 const LATHRIL = named('Lathril, Blade of the Elves');
@@ -129,6 +130,27 @@ describe('the tribe rules', () => {
     }
   });
 
+  it('count a creature that is every creature type and changeling tokens for every tribe', () => {
+    const more = (name: string) => MORE_CARDS.find((c) => c.name === name)!;
+    for (const type of ['Elf', 'Dragon', 'Time Lord']) {
+      const style = themeStyleOf(CONFIG, `tribal:${type}`)!;
+      expect(matchCard(more('Mistform Ultimus'), style, 100)).toMatchObject({
+        as: 'setup',
+        job: 'creature that is every creature type',
+      });
+      // Its creatures are every type, and it makes changeling Shapeshifters.
+      expect(matchCard(more('Maskwood Nexus'), style, 100)).toMatchObject({
+        as: 'setup',
+        job: 'makes changeling creature tokens',
+      });
+      // The token goes to the exiled creature's controller.
+      expect(matchCard(more('Crib Swap'), style, 100)).toBeUndefined();
+    }
+    // The reader supplies every type for them too, so a payoff of any type can count them.
+    for (const name of ['Mistform Ultimus', 'Maskwood Nexus', 'Irregular Cohort'])
+      expect(cardSupply(more(name), CONFIG, 100)).toContain('tribe:*');
+  });
+
   it('read a lord, a reward, and the type a token maker makes', () => {
     const elf = themeStyleOf(CONFIG, 'tribal:Elf')!;
     expect(matchCard(named('Imperious Perfect'), elf, 100)).toMatchObject({
@@ -228,6 +250,23 @@ describe("Lathril's Elf tribe", () => {
     );
     expect(r.issues).toEqual([]);
     expect(r.plans).toContain('tribal:Elf');
+  });
+
+  it('lets a payoff of the type cover the other payoffs, as the rules say (payoffSupplies)', () => {
+    const tribes = CONFIG.themeRules.tribes!;
+    const without: typeof CONFIG = {
+      ...CONFIG,
+      themeRules: { ...CONFIG.themeRules, tribes: { ...tribes, payoffSupplies: false } },
+    };
+    const payoffs = (config: typeof CONFIG) =>
+      buildDeck(
+        { ...request, style: 'tribal:Elf', requireStyle: true },
+        pool,
+        index,
+        config,
+      ).explanation.theme!.floors.find((f) => f.floor === 'payoff')!.have;
+    // Most Elf payoffs are Elves: each covers the others, so the deck holds more of them.
+    expect(payoffs(CONFIG)).toBeGreaterThan(payoffs(without));
   });
 
   it('gives each card one job per tribe, aligned with the theme styles', () => {
