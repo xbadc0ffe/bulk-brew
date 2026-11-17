@@ -8,14 +8,7 @@
 import { BuildError, buildDeck } from './builder.ts';
 import { commanderCandidates } from './commander.ts';
 import type { BulkBrewConfig } from './config.ts';
-import {
-  addOption,
-  byStylePromise,
-  colorSubsets,
-  pickerStyles,
-  sameOptions,
-  type DeckOption,
-} from './options.ts';
+import { addOption, colorSubsets, pickerStyles, sameOptions, type DeckOption } from './options.ts';
 import { planOrder } from './grow.ts';
 import type { CardIndex } from './pack.ts';
 import { scanPool } from './scan.ts';
@@ -44,24 +37,18 @@ export interface BestDeckPlan {
 
 /**
  * Plans for a 60, 40, or 20-card size, from scans keyed by color letters
- * such as "WU". At 60 and 40 each color set plans what best fit compares
- * there (pickerStyles: the themes the rules call viable and the three plain
- * shapes); at 20 the styles the scan calls viable. Builds take turns by style
- * rank: every color set's most promising style, then each one's next. Inside
- * a turn fewer colors go first, since mono-color decks build strongest.
+ * such as "WU": each color set plans what best fit compares there
+ * (pickerStyles: the themes the rules call viable and the three plain
+ * shapes). Builds take turns by style rank: every color set's most promising
+ * style, then each one's next. Inside a turn fewer colors go first, since
+ * mono-color decks build strongest.
  */
 export function bestDeckPlans(scans: ReadonlyMap<string, ScanReport>): BestDeckPlan[] {
   const perSubset: BestDeckPlan[][] = [];
   for (const subset of fewestColorsFirst()) {
     const scan = scans.get(subset.join(''));
     if (!scan?.possible) continue;
-    const styles =
-      scan.size === 20
-        ? scan.archetypes
-            .filter((a) => a.viable)
-            .sort(byStylePromise)
-            .map((a) => a.archetype)
-        : pickerStyles(scan);
+    const styles = pickerStyles(scan);
     if (styles.length === 0) continue;
     perSubset.push(
       styles.map((style) => ({ key: `${subset.join('')}:${style}`, colors: subset, style })),
@@ -119,8 +106,8 @@ export interface BestDeckSearch {
  * A search for one deck size. Each step is one scan or one build, so a step
  * takes as long as the slowest build. The deck score can favor decks with
  * more colors, so the best decks are kept for each color limit and the
- * shell lets the player pick one. Options are ranked by deck score with
- * no picked colors, so no deck gets the all-colors bonus, and at most a few
+ * shell lets the player pick one. Options are ranked by the plan picker's
+ * score with no picked colors, so no deck gets the all-colors bonus, and at most a few
  * share a style. At 60, 40, and 20 a deck that shares most of its cards with
  * a stronger one is dropped, as on the Build page; commanders of the same
  * colors draw on the same cards, so at 100 each commander keeps its deck.

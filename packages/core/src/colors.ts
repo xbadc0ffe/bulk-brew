@@ -108,7 +108,7 @@ export function pipDemand(
   return out;
 }
 
-function lnChoose(n: number, k: number): number {
+export function lnChoose(n: number, k: number): number {
   if (k < 0 || k > n) return -Infinity;
   let s = 0;
   for (let i = 1; i <= k; i++) s += Math.log((n - k + i) / i);

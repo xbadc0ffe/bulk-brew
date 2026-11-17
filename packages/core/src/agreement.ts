@@ -67,7 +67,7 @@ export interface AgreementReport {
 }
 
 export interface AgreementRequest {
-  size: 60 | 40 | 100;
+  size: 60 | 40 | 20 | 100;
   colors: Color[];
   /** Commander card id at 100. */
   commander?: string;
@@ -232,7 +232,7 @@ export function planDisagreements(input: PlanInputs): Disagreement[] {
 }
 
 /**
- * Check one request at 60, 40, or 100 cards (no style, no secondary): the
+ * Check one request at 60, 40, 20, or 100 cards (no style, no secondary): the
  * plans every surface lists (planDisagreements), and each planned deck as
  * built (deckDisagreements).
  */

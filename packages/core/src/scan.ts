@@ -339,9 +339,8 @@ export function scanCandidates(
   const tribes = tribesOf(cands);
   // What the pool could supply, read once for the theme rules' view and the shapes' role counts.
   const supply = poolSupply(cands, config, size, colors, commander?.card);
-  // The theme rules' view, for the sizes the grow builder builds; the old fields stay as they were.
-  const rules =
-    size === 20 ? undefined : growViability(cands, config, size, commander, colors, supply);
+  // The theme rules' view, as the grow builder counts the pool; the old fields stay as they were.
+  const rules = growViability(cands, config, size, commander, colors, supply);
   const archetypes = config.archetypes.archetypes.map((a) => {
     const report =
       a.kind === 'synergy'

@@ -11,8 +11,9 @@ import {
 /**
  * Viable; short (the theme rules find the pool short of the style's floors,
  * but close enough to ask: the builder answers with the nearest deck and a
- * note); a near miss (the old scan's few cards short, where the rules do not
- * apply, such as 20 cards); or not enough.
+ * note); a near miss (the old scan's few cards short, only for a style the
+ * theme rules give no floors at the size, which no style has today); or not
+ * enough.
  */
 export type Viability = 'viable' | 'short' | 'near' | 'none';
 
@@ -57,11 +58,12 @@ function shortfall(report: ArchetypeReport): number | undefined {
 }
 
 /**
- * Where the scan carries the rules' view (60, 40, and 100 cards), it decides
- * alone, as the builder plans: viable when the size can be built and a
- * theme's pool meets its floors, short when a theme reaches
- * `builderWeights.grow.nearMargin` of them. Elsewhere (20 cards) the old
- * scan decides: viable, a near miss (a few cards short), or not enough.
+ * The rules' view decides, as the builder plans: viable when the size can be
+ * built and a theme's pool meets its floors, short when a theme reaches
+ * `builderWeights.grow.nearMargin` of them. Every scan carries it for every
+ * plain shape and every theme the rules give floors at the size; a theme
+ * without floors there (none today) falls back to the old scan: viable, a
+ * near miss (a few cards short), or not enough.
  */
 export function archetypeViability(
   report: ArchetypeReport,

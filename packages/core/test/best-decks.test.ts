@@ -49,12 +49,15 @@ describe('bestDeckPlans', () => {
 });
 
 describe('bestDeckPlans at 20', () => {
-  it('plans the styles the scan calls viable, as the classic builder builds them', () => {
+  it('plans what best fit compares, as at the other sizes', () => {
     const scans = scansFor(bigPool(), 20);
     const viable = [...scans.values()]
       .filter((s) => s.possible)
-      .reduce((n, s) => n + s.archetypes.filter((a) => a.viable).length, 0);
-    expect(bestDeckPlans(scans).length).toBe(viable);
+      .reduce((n, s) => n + s.archetypes.filter((a) => a.rules?.viable).length, 0);
+    const plans = bestDeckPlans(scans);
+    expect(plans.length).toBe(viable);
+    for (const shape of ['midrange', 'aggro', 'control'])
+      expect(plans.some((p) => p.style === shape)).toBe(true);
   });
 });
 

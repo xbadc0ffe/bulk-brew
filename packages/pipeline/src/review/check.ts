@@ -604,20 +604,24 @@ function themeEntry(
   style: string,
   rules: ThemeRules,
   cards: { card: CardRecord; qty: number }[],
+  size: ReviewSize,
 ): ThemeEntry {
   const s = rules.styles.get(style);
-  return s ? countTheme(cards, s) : { style, covered: false };
+  return s ? countTheme(cards, s, size) : { style, covered: false };
 }
 
 export function checkThemes(d: ReviewDeck, ctx: CheckContext, list: Entry[]): ThemeSection | null {
   if (!ctx.themes) return null;
   const cards = themeCards(d, ctx, list);
   const requested = d.request.style;
+  const size = d.request.size;
   return {
     rules: ctx.themes.version,
-    archetype: themeEntry(d.deck.archetype, ctx.themes, cards),
+    archetype: themeEntry(d.deck.archetype, ctx.themes, cards, size),
     requested:
-      requested && requested !== d.deck.archetype ? themeEntry(requested, ctx.themes, cards) : null,
+      requested && requested !== d.deck.archetype
+        ? themeEntry(requested, ctx.themes, cards, size)
+        : null,
   };
 }
 
@@ -641,8 +645,9 @@ export function checkDead(d: ReviewDeck, ctx: CheckContext, list: Entry[]): Dead
       (t) => inTribe(e.card, t) || e.card.tags.includes(`typal-${t.toLowerCase()}`),
     );
     if (tribal) continue;
+    // A rule bound to sizes matches only when the size is given.
     const job = styles.some((s) => {
-      const m = matchCard(e.card, s);
+      const m = matchCard(e.card, s, d.request.size);
       return m !== undefined && m.as !== 'excluded';
     });
     if (job) continue;

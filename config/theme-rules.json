@@ -1,5 +1,5 @@
 {
-  "version": "7",
+  "version": "8",
   "styles": {
     "tokens": {
       "resource": "creature tokens that stay on the battlefield, counted in bodies",
@@ -627,12 +627,14 @@
         {
           "job": "counts your graveyard",
           "weight": 1,
+          "sizes": [40, 60, 100],
           "anyTags": ["cards-in-graveyard-matter", "threshold", "undergrowth"],
           "text": "your graveyard|all graveyards|each graveyard|cards in graveyards"
         },
         {
           "job": "body needs a full graveyard",
           "weight": 1,
+          "sizes": [40, 60, 100],
           "allTags": ["lhurgoyf"],
           "anyTags": ["cards-in-graveyard-matter", "threshold", "undergrowth"],
           "text": "your graveyard|all graveyards|each graveyard|cards in graveyards",
@@ -641,6 +643,7 @@
         {
           "job": "body needs a full graveyard",
           "weight": 1,
+          "sizes": [40, 60, 100],
           "allTags": ["cda-power"],
           "anyTags": ["cards-in-graveyard-matter", "threshold", "undergrowth"],
           "text": "your graveyard|all graveyards|each graveyard|cards in graveyards",
@@ -649,6 +652,7 @@
         {
           "job": "body needs a full graveyard",
           "weight": 1,
+          "sizes": [40, 60, 100],
           "allTags": ["restricted-attacker"],
           "anyTags": ["cards-in-graveyard-matter", "threshold", "undergrowth"],
           "text": "your graveyard|all graveyards|each graveyard|cards in graveyards",
@@ -925,7 +929,7 @@
       ],
       "minimums": {
         "20": {
-          "setup": 3,
+          "setup": 4,
           "payoff": 3
         },
         "40": {
@@ -1103,6 +1107,7 @@
         {
           "job": "threshold",
           "weight": 1,
+          "sizes": [40, 60, 100],
           "text": "gained \\d+ or more life",
           "notTags": ["removal"],
           "priority": 2
@@ -1152,7 +1157,7 @@
           "job": "life total",
           "weight": 0.5,
           "text": "you have \\d+ or more life|more life than (an|each|that) (opponent|player)",
-          "sizes": [20, 40, 60],
+          "sizes": [40, 60],
           "priority": 1
         }
       ],
@@ -1276,6 +1281,7 @@
         {
           "job": "count",
           "weight": 1,
+          "sizes": [40, 60, 100],
           "anyTags": [
             "artifact-count-matters",
             "metalcraft",
@@ -1289,6 +1295,7 @@
         {
           "job": "count",
           "weight": 1,
+          "sizes": [40, 60, 100],
           "text": "for each artifact (and\\/or [a-z]+ )?you control|(two|three) or more artifacts|number of artifacts you control|artifact creatures you control get|number of artifact creatures you control",
           "notTags": ["hate-artifact"],
           "notTypes": ["land"],
@@ -2245,6 +2252,7 @@
         {
           "job": "count",
           "weight": 1,
+          "sizes": [40, 60, 100],
           "anyTags": ["ethereal-armor", "affinity-for-enchantments"],
           "notTags": ["hate-enchantment", "removal-enchantment", "synergy-shrine"],
           "notTypes": ["land"],
@@ -2253,6 +2261,7 @@
         {
           "job": "count",
           "weight": 1,
+          "sizes": [40, 60, 100],
           "text": "for each (other )?enchantment|number of enchantments you control",
           "notTags": ["hate-enchantment", "removal-enchantment", "synergy-shrine"],
           "notTypes": ["land"],
