@@ -510,7 +510,10 @@ export interface StyleViability {
 /**
  * What a pool could supply a deck: every copy the builder may use of each
  * candidate, lands included, and the commander. A credit whose needs this
- * cannot meet holds in no deck the pool builds.
+ * cannot meet holds in no deck the pool builds. A spell supplies it only
+ * when every deck of the request can hold it (`holdable`); `everyCard`
+ * counts every spell, for pricing a card's strength rather than counting
+ * the jobs the scan and the builder agree on.
  */
 export function poolSupply(
   cands: readonly Candidate[],
@@ -518,6 +521,7 @@ export function poolSupply(
   size: DeckSize,
   colors: readonly Color[],
   commander?: CardRecord,
+  everyCard = false,
 ): DeckSupply {
   const supply: DeckSupply = {
     size,
@@ -527,10 +531,44 @@ export function poolSupply(
     counts: new Map(),
     devotion: new Map(),
   };
-  for (const c of cands)
-    if (c.facts.card.id !== commander?.id) addSupply(supply, c.facts.card, c.preferred, config);
+  // What every deck of the request holds: its colors, size, and commander.
+  const base: DeckSupply = {
+    ...supply,
+    colors: [...colors],
+    counts: new Map(),
+    devotion: new Map(),
+  };
+  if (commander) addSupply(base, commander, 1, config);
+  const unheld = new Set<string>();
+  for (const c of cands) {
+    if (c.facts.card.id === commander?.id) continue;
+    if (everyCard || !c.facts.spell || holdable(c.facts.card, base, config))
+      addSupply(supply, c.facts.card, c.preferred, config);
+    else unheld.add(c.facts.card.id);
+  }
   if (commander) addSupply(supply, commander, 1, config);
+  unheldOf.set(supply, unheld);
   return supply;
+}
+
+/** The spells each pool supply leaves out as not holdable, so their own jobs can count themselves. */
+const unheldOf = new WeakMap<DeckSupply, ReadonlySet<string>>();
+
+/**
+ * Whether every deck of a request can hold a spell: no drawback it leaves
+ * unmet and a credit it earns with only the request's colors, size,
+ * commander, and the card itself. A spell that needs more to have a place
+ * (Kiora, Behemoth Beckoner, whose one credit wants big creatures) supplies
+ * nothing to the pool: the deck that would use its supply may not hold it,
+ * and the builder could not put it there to feed another card.
+ */
+function holdable(card: CardRecord, base: DeckSupply, config: BulkBrewConfig): boolean {
+  addSupply(base, card, 1, config);
+  try {
+    return cardSupport(card, base, config) === undefined;
+  } finally {
+    addSupply(base, card, -1, config);
+  }
 }
 
 /**
@@ -548,14 +586,18 @@ function poolJobs(
   supply: DeckSupply,
   from = 0,
 ): (Job | undefined)[] {
-  const styles = defs.styles;
-  if (jobs.some((j, i) => j && i >= from) && unmetDrawback(card, supply, config))
-    return jobs.map(() => undefined);
-  return jobs.map((j, i) =>
-    i >= from && j && creditEarned(card, themeCredit(styles[i]!, j.as), supply, config)
-      ? j
-      : undefined,
-  );
+  // A spell the pool supply leaves out still supplies itself where its job counts.
+  const self = unheldOf.get(supply)?.has(card.id) ? 1 : 0;
+  return withCopy(supply, card, self, config, () => {
+    const styles = defs.styles;
+    if (jobs.some((j, i) => j && i >= from) && unmetDrawback(card, supply, config))
+      return jobs.map(() => undefined);
+    return jobs.map((j, i) =>
+      i >= from && j && creditEarned(card, themeCredit(styles[i]!, j.as), supply, config)
+        ? j
+        : undefined,
+    );
+  });
 }
 
 /**
@@ -968,6 +1010,8 @@ export function growContext(
   };
   if (lead) addSupply(base, lead, 1, config);
   const supply = poolSupply(candidates, config, size, colors, lead);
+  // Strength and "or pay" prices read every card the pool holds; jobs only what a deck can hold.
+  const priceSupply = poolSupply(candidates, config, size, colors, lead, true);
   const cards: GrowCard[] = [];
   for (const cand of candidates) {
     const f = cand.facts;
@@ -977,10 +1021,10 @@ export function growContext(
     // Picks are scored on what the pool can pay for; the finished-deck check
     // holds the deck to the rest. An "or pay" cost is paid in mana where the
     // pool lacks the resource, for the curve, the cast chance, and strength.
-    const mv = gate.orPay ? effectiveManaValue(f.card, supply, config) : f.card.mv;
+    const mv = gate.orPay ? effectiveManaValue(f.card, priceSupply, config) : f.card.mv;
     const priced = mv === f.card.mv ? f.card : { ...f.card, mv };
     const unearned = gate.effects.filter(
-      (l) => !creditEarned(f.card, strengthCredit(l), supply, config),
+      (l) => !creditEarned(f.card, strengthCredit(l), priceSupply, config),
     );
     const strength =
       unearned.length || priced !== f.card
@@ -2510,7 +2554,10 @@ const FEED_ROUNDS = 10;
  * need). It replaces a curve copy, other plans' cards before the plan's own
  * and the weakest first, or else a card picked for a role the deck holds above
  * its minimum; never the card, a supplier of any of its gates or needs, or a
- * copy another card that holds needs. Kept when the card then earns its
+ * copy another card that holds needs. A role minimum yields only to the
+ * plan's floors: when the deck is short of them without the card's job, and
+ * nothing else can go, a role card may go below its minimum (a 20-card
+ * packet has few other copies to give). Kept when the card then earns its
  * reason and the plan's floors are no worse; otherwise every swap is undone
  * and the card goes as before. Without `c` it feeds the commander's own job,
  * which the theme core's loose try counted as the scan does.
@@ -2545,6 +2592,8 @@ function feedNeeds(
   const refs = [...reading.gates.filter(unmet), ...(needs ?? [])];
   if (!refs.length) return false;
   const before = honestPlan(ctx, plan, d);
+  // Short of the floors without this job: a role minimum yields to them as a last resort.
+  const floorsNeedIt = !met(before, minimum);
   // Copies that hold now must still hold after: a feed never starves another card's need.
   const holds = (x: GrowCard) =>
     supported(ctx, d, x, 0, true) && whyEarned(ctx, plan, d, x, d.why.get(x.id)!);
@@ -2603,11 +2652,15 @@ function feedNeeds(
           ([r, q]) => (cur(ctx, d).roles.get(r) ?? 0) >= Math.min(q.min, roles.get(r) ?? 0),
         );
       let swap: (typeof done)[number] | undefined;
-      for (const { x: out, at } of [...curve, ...roleCards]) {
+      const outs = [
+        ...[...curve, ...roleCards].map((o) => ({ ...o, keep: true })),
+        ...(floorsNeedIt ? roleCards.map((o) => ({ ...o, keep: false })) : []),
+      ];
+      for (const { x: out, at, keep } of outs) {
         const outWhy = d.why.get(out.id)!;
         remove(ctx, d, out);
         add(ctx, d, inn, curveWhy(inn.slot));
-        if ((at >= 0 || keepsRoles()) && fine.every((x) => have(d, x) === 0 || holds(x))) {
+        if ((at >= 0 || !keep || keepsRoles()) && fine.every((x) => have(d, x) === 0 || holds(x))) {
           swap = { out, outWhy, inn, at };
           break;
         }
