@@ -29,7 +29,7 @@ import {
   type Candidate,
   type CardFacts,
 } from './candidates.ts';
-import { canBeCommander, commanderCopies, inTribe } from './matchers.ts';
+import { canBeCommander, commanderCopies, inTribe, typalTag } from './matchers.ts';
 import {
   chooseManaBase,
   ManaBaseError,
@@ -42,7 +42,7 @@ import {
 } from './lands.ts';
 // A cycle: grow.ts reuses this file's reporting and checks, and buildDeck routes to it.
 // Both use the other's exports only inside functions, never at load time.
-import { buildGrowDeck, growBuilds, scoreTribeDeck } from './grow.ts';
+import { buildGrowDeck, growBuilds } from './grow.ts';
 import {
   colorsLabel,
   identityWithin,
@@ -59,7 +59,6 @@ import {
   learnedPlanFor,
   learnedSizeKey,
   learnedTheme,
-  withoutLearned,
   type LearnedPlan,
   type Spread,
 } from './learned.ts';
@@ -262,7 +261,7 @@ function themeOf(a: Archetype, config: BulkBrewConfig, size: DeckSize): PrimaryT
       : undefined;
   const type = tribeOf(a.id);
   if (type) {
-    const tag = `typal-${type.toLowerCase()}`;
+    const tag = typalTag(type);
     return {
       isEnabler: (c) => inTribe(c.facts.card, type),
       isPayoff: (c) => c.facts.card.tags.includes(tag),
@@ -318,7 +317,7 @@ function resolveSecondary(
     return { note: `Ignored the secondary archetype ${secondaryLabel(config, id)}.` };
   if (id.startsWith('tribal:')) {
     const type = id.slice(7);
-    const tag = `typal-${type.toLowerCase()}`;
+    const tag = typalTag(type);
     return {
       theme: {
         id,
@@ -1687,10 +1686,9 @@ export function checkBuiltDeck(
 
 /**
  * Build one deck. Without a secondary style, best fit, a theme the rules
- * describe, and a plain shape go to the grow builder (grow.ts), whose plan
- * picker ranks every plan. Tribes and secondary styles go to the classic
- * builder below; a tribe a commander names is scored by the picker too, so
- * it ranks with that commander's other decks. Throws BuildError with a
+ * describe, a plain shape, and at 100 a tribe the commander names go to the
+ * grow builder (grow.ts), whose plan picker ranks every plan. Secondary
+ * styles go to the classic builder below. Throws BuildError with a
  * plain-language message when the pool cannot make a deck of the requested
  * size and color.
  */
@@ -1701,23 +1699,13 @@ export function buildDeck(
   config: BulkBrewConfig,
 ): BuildResult {
   if (growBuilds(request, config)) return buildGrowDeck(request, pool, index, config);
-  // A tribe a commander names is one of best fit's plans, built as best fit builds it: without
-  // the learned plan data, so its option is best fit's deck card for card.
-  if (isCommanderSize(request.size) && !request.secondary && tribeOf(request.style))
-    return scoreTribeDeck(
-      request,
-      buildClassic(request, pool, index, withoutLearned(config)),
-      pool,
-      index,
-      config,
-    );
   return buildClassic(request, pool, index, config);
 }
 
 /**
  * The classic builder: scan, pick archetypes, fill in passes, improve by
- * swaps. Secondary styles and tribes, plus a plain shape the grow builder
- * cannot fill on a thin pool at 60, 40, and 100.
+ * swaps. Secondary styles (a tribe with one among them), plus a plain shape
+ * the grow builder cannot fill on a thin pool at 60, 40, and 100.
  */
 export function buildClassic(
   request: BuildRequest,

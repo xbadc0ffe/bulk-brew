@@ -1,24 +1,24 @@
 # Card needs: coverage over the pack
 
-Written by `npm run needs:report` (packages/pipeline/src/needs-report.ts). Pack 2026-11-03, 34168 cards; config t5.c4.r2.a10.s8.l4.w13.k2.h7.n4.qe3o2ik.p1wyug0e.g1hono2u. The full unparsed work list is in `data/review/needs/unparsed.md` (not committed).
+Written by `npm run needs:report` (packages/pipeline/src/needs-report.ts). Pack 2026-11-03, 34168 cards; config t5.c4.r2.a10.s8.l4.w13.k2.h8.n5.q1lphgr9.p1wyug0e.g1hono2u. The full unparsed work list is in `data/review/needs/unparsed.md` (not committed).
 
 ## Abilities
 
 | Cards                              | Abilities | Parsed cleanly | Share | No game-state fallback | Share |
 | ---------------------------------- | --------- | -------------- | ----- | ---------------------- | ----- |
-| Whole pack                         | 64396     | 62636          | 97.3% | 61365                  | 95.3% |
-| Without Un-sets                    | 61827     | 60313          | 97.6% | 59225                  | 95.8% |
+| Whole pack                         | 64396     | 62638          | 97.3% | 61367                  | 95.3% |
+| Without Un-sets                    | 61827     | 60315          | 97.6% | 59227                  | 95.8% |
 | Commons and uncommons (no Un-sets) | 35734     | 35229          | 98.6% | 34766                  | 97.3% |
 
 Parsed cleanly: every part of the ability was read, by a template or by the game-state fallback. No game-state fallback: every part was read by a template that names what it reads.
 
-1665 cards have an unparsed ability. Why abilities were left unparsed (the first reason in each):
+1664 cards have an unparsed ability. Why abilities were left unparsed (the first reason in each):
 
 | Reason                  | Abilities |
 | ----------------------- | --------- |
 | condition               | 434       |
-| unread type             | 336       |
-| unread card type        | 248       |
+| unread type             | 335       |
+| unread card type        | 247       |
 | trigger                 | 218       |
 | unread counters         | 157       |
 | unread graveyard        | 90        |
@@ -70,7 +70,7 @@ Top unparsed shapes (names, numbers, types, and mana symbols normalized):
 
 ## Cards
 
-The most severe kind among a card's abilities (an unparsed ability counts as a need). 3083 cards supply some need of their own.
+The most severe kind among a card's abilities (an unparsed ability counts as a need). 3085 cards supply some need of their own.
 
 | Cards | need | bonus | drawback | unconditional |
 | ----- | ---- | ----- | -------- | ------------- |
@@ -80,8 +80,8 @@ Resource references by family and kind (an alternative counts once per resource)
 
 | Family                    | Refs | need | bonus | drawback |
 | ------------------------- | ---- | ---- | ----- | -------- |
-| tribe                     | 2676 | 2416 | 206   | 54       |
-| type                      | 1658 | 1440 | 180   | 38       |
+| tribe                     | 2687 | 2427 | 206   | 54       |
+| type                      | 1659 | 1441 | 180   | 38       |
 | counters                  | 1274 | 1212 | 51    | 11       |
 | subtype                   | 804  | 715  | 80    | 9        |
 | land                      | 786  | 562  | 111   | 113      |
@@ -162,14 +162,14 @@ Theme credits (the theme rules at 60 cards, each card once per style):
 | aristocrats:setup   | 2682  | 529  | 14    | 1        | 2138          | 0      |
 | artifacts:payoff    | 453   | 308  | 77    | 1        | 44            | 23     |
 | artifacts:setup     | 4440  | 125  | 4     | 0        | 4308          | 3      |
-| auras:payoff        | 1612  | 63   | 12    | 0        | 1534          | 3      |
+| auras:payoff        | 1617  | 68   | 12    | 0        | 1534          | 3      |
 | auras:setup         | 1165  | 71   | 4     | 0        | 1090          | 0      |
 | bigCreatures:payoff | 2917  | 67   | 3     | 0        | 2847          | 0      |
 | bigCreatures:setup  | 1542  | 183  | 1     | 0        | 1123          | 235    |
 | burn:payoff         | 269   | 173  | 3     | 0        | 92            | 1      |
 | burn:setup          | 747   | 70   | 6     | 0        | 671           | 0      |
 | counters:payoff     | 249   | 202  | 7     | 0        | 24            | 16     |
-| counters:setup      | 2339  | 514  | 22    | 0        | 1713          | 90     |
+| counters:setup      | 2339  | 515  | 22    | 0        | 1712          | 90     |
 | enchantments:payoff | 128   | 109  | 6     | 0        | 1             | 12     |
 | enchantments:setup  | 3679  | 4    | 0     | 0        | 3675          | 0      |
 | energy:payoff       | 112   | 66   | 0     | 0        | 46            | 0      |
@@ -192,8 +192,8 @@ Theme credits (the theme rules at 60 cards, each card once per style):
 | spells:setup        | 7438  | 64   | 0     | 0        | 7369          | 5      |
 | tappers:payoff      | 70    | 1    | 1     | 0        | 68            | 0      |
 | tappers:setup       | 444   | 6    | 0     | 0        | 225           | 213    |
-| tokens:payoff       | 768   | 63   | 10    | 0        | 685           | 10     |
-| tokens:setup        | 1629  | 404  | 13    | 1        | 1211          | 0      |
+| tokens:payoff       | 774   | 69   | 10    | 0        | 685           | 10     |
+| tokens:setup        | 1626  | 404  | 13    | 1        | 1208          | 0      |
 
 ## Tag cross-check
 
@@ -244,4 +244,4 @@ Lands the pack marks `entersTapped` (Un-sets left out): how `landEntry` in lands
 
 ## Speed
 
-Reading: 284 ms per 1,000 cards (9.7 s for the pack, fresh cache). Credits: 74514 role and theme credits in 7.3 s.
+Reading: 287 ms per 1,000 cards (9.8 s for the pack, fresh cache). Credits: 74522 role and theme credits in 7.4 s.

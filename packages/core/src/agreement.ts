@@ -18,6 +18,7 @@ import {
   cardThemeSides,
   deckStyleRows,
   deckThemeFloors,
+  deckTribes,
   rulesCounted,
   themeJobLabel,
   themeSynergyLines,
@@ -25,7 +26,7 @@ import {
 import { pickerPlans, type PickerPlan } from './grow.ts';
 import { planOptions } from './options.ts';
 import type { CardIndex } from './pack.ts';
-import { scanPool, tribeOf } from './scan.ts';
+import { scanPool } from './scan.ts';
 import type { BuildResult, Color, Deck, FloorCount, Pool, ScanReport, Settings } from './types.ts';
 
 export type AgreementKind =
@@ -139,9 +140,12 @@ export function deckDisagreements(
       hidden += dc.qty;
       continue;
     }
-    const side = cardThemeSides(config, factsFor(index, config, card), deck.size).find(
-      (s) => s.style === style,
-    );
+    const side = cardThemeSides(
+      config,
+      factsFor(index, config, card),
+      deck.size,
+      deckTribes(deck, index, config),
+    ).find((s) => s.style === style);
     if (!side || themeJobLabel(side.as, side.job) !== why) wrong += dc.qty;
   }
   if (hidden)
@@ -192,14 +196,17 @@ const sameSet = (a: readonly string[], b: readonly string[]) =>
 export function planDisagreements(input: PlanInputs): Disagreement[] {
   const issues: Disagreement[] = [];
   const planned = input.builder.map((p) => p.style);
-  // The scan has no tribe rows; a commander's tribes come from its own text.
-  const untribed = planned.filter((s) => !tribeOf(s));
-  const viable = input.scan.archetypes.filter((a) => a.rules?.viable).map((a) => a.archetype);
-  if (!sameSet(viable, untribed))
-    issues.push({ kind: 'scan', detail: setDiff('scan', viable, untribed) });
+  // A commander's named tribes are the scan's lead tribes, counted by the tribe rules.
+  const rows = [
+    ...input.scan.archetypes.map((a) => ({ style: a.archetype, rules: a.rules })),
+    ...(input.scan.leadTribes ?? []),
+  ];
+  const viable = rows.filter((a) => a.rules?.viable).map((a) => a.style);
+  if (!sameSet(viable, planned))
+    issues.push({ kind: 'scan', detail: setDiff('scan', viable, planned) });
   for (const p of input.builder) {
     if (!p.floors) continue;
-    const r = input.scan.archetypes.find((a) => a.archetype === p.style)?.rules;
+    const r = rows.find((a) => a.style === p.style)?.rules;
     if (!r || !sameFloors(r.floors, p.floors))
       issues.push({
         kind: 'pool-counts',

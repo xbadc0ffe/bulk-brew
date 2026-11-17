@@ -1,6 +1,7 @@
 // The grow builder (seed and grow), for every deck at 60, 40, 20, and 100
-// cards but tribes and secondary styles: best fit, a theme the rules describe, or
-// Aggro, Midrange, or Control. It builds the way a person does: check the plan
+// cards but secondary styles: best fit, a theme the rules describe (under a
+// commander, the tribes it names too), or Aggro, Midrange, or Control. It
+// builds the way a person does: check the plan
 // against honest counts (config/theme-rules.json), seed the payoffs the pool
 // supports, grow setup to what they demand, add interaction and card advantage
 // to the role minimums, fill the curve slot by slot, then build the mana. A
@@ -36,12 +37,17 @@ import {
   creditNeeds,
   deckSupply,
   effectiveManaValue,
+  feedResources,
   needMet,
+  needThreshold,
   positiveCredits,
   refSupplies,
   strengthCredit,
+  themeAbilities,
   themeCredit,
   themeOwnResources,
+  themeStyleOf,
+  typalTypes,
   unmetDrawback,
   type DeckSupply,
   type NeedRef,
@@ -83,10 +89,11 @@ import {
   type ManaBase,
 } from './lands.ts';
 import type { CardIndex } from './pack.ts';
-import { commanderTribes, scanPossible, secondaryLabel, tribeOf } from './scan.ts';
+import { scanPossible, secondaryLabel, TRIBAL, tribalArchetype, tribeOf } from './scan.ts';
 import {
   matchCard,
   themeRulesFor,
+  tribeBulkOf,
   type CompiledStyle,
   type ThemeFloor,
   type ThemeLacks,
@@ -149,12 +156,24 @@ export interface Job {
   job: string;
   weight: number;
   repeatable: boolean;
+  /** It also met a job of the other side, as a lord of a type is a creature of it. */
+  dual: boolean;
 }
 
-type Tally = ThemeTally;
+interface Tally extends ThemeTally {
+  /** Payoff units that also met a setup job: they supply the other payoffs where the style says so. */
+  supplied: number;
+}
 
 function emptyTally(): Tally {
-  return { setupUnits: 0, setupWeight: 0, repeatable: 0, payoffUnits: 0, payoffWeight: 0 };
+  return {
+    setupUnits: 0,
+    setupWeight: 0,
+    repeatable: 0,
+    payoffUnits: 0,
+    payoffWeight: 0,
+    supplied: 0,
+  };
 }
 
 /** Count `copies` of a card's job for a style, each card once, as the floors measure it. */
@@ -168,30 +187,66 @@ function addJob(t: Tally, job: Job | undefined, copies: number): void {
   } else {
     t.payoffUnits += units;
     t.payoffWeight += job.weight * copies;
+    if (job.dual) t.supplied += units;
   }
 }
 
 // ---------------------------------------------------------------- definitions
 
 interface Defs {
-  /** Synergy archetype ids the rules describe, in config order. */
+  /** Synergy archetype ids the rules describe, in config order, then the request's tribes. */
   styles: readonly string[];
   compiled: readonly CompiledStyle[];
+  /** With tribes: the rules' own styles alone, which every request has and `styles` starts with. */
+  root?: Defs;
 }
 
-const defsCache = new WeakMap<BulkBrewConfig, Defs>();
+const defsCache = new WeakMap<BulkBrewConfig, Map<string, Defs>>();
 
-function defsFor(config: BulkBrewConfig): Defs {
-  let defs = defsCache.get(config);
+/**
+ * The themes a request plans with: the rules' styles, and after them the
+ * tribes given (style ids such as "tribal:Elf", a commander's named tribes).
+ */
+function defsFor(config: BulkBrewConfig, tribes: readonly string[] = []): Defs {
+  let byKey = defsCache.get(config);
+  if (!byKey) defsCache.set(config, (byKey = new Map()));
+  const key = tribes.join('|');
+  let defs = byKey.get(key);
   if (!defs) {
-    const rules = themeRulesFor(config);
-    const styles = config.archetypes.archetypes
-      .filter((a) => a.kind === 'synergy' && rules.styles.has(a.id))
-      .map((a) => a.id);
-    defs = { styles, compiled: styles.map((id) => rules.styles.get(id)!) };
-    defsCache.set(config, defs);
+    if (key) {
+      const root = defsFor(config);
+      const own = tribes.filter((id) => themeStyleOf(config, id) && !root.styles.includes(id));
+      defs = {
+        styles: [...root.styles, ...own],
+        compiled: [...root.compiled, ...own.map((id) => themeStyleOf(config, id)!)],
+        root,
+      };
+    } else {
+      const rules = themeRulesFor(config);
+      const styles = config.archetypes.archetypes
+        .filter((a) => a.kind === 'synergy' && rules.styles.has(a.id))
+        .map((a) => a.id);
+      defs = { styles, compiled: styles.map((id) => rules.styles.get(id)!) };
+    }
+    byKey.set(key, defs);
   }
   return defs;
+}
+
+/**
+ * The tribes a commander's text names, as theme style ids ("tribal:Elf"):
+ * each creature type whose Tagger tag it carries and whose tribe the rules
+ * give it a payoff job for. Such a tribe leads the commander's plans.
+ */
+export function namedTribes(config: BulkBrewConfig, card: CardRecord): string[] {
+  const out: string[] = [];
+  for (const type of typalTypes(card, config)) {
+    const id = `${TRIBAL}${type}`;
+    const style = themeStyleOf(config, id);
+    const m = style && matchCard(card, style, 100);
+    if (m && m.as === 'payoff' && m.weight > 0 && !out.includes(id)) out.push(id);
+  }
+  return out;
 }
 
 /** Floor alternatives for a style at a size, one of which a deck must meet. */
@@ -201,63 +256,77 @@ function floorsFor(defs: Defs, i: number, size: DeckSize): ThemeFloor[] | undefi
   return Array.isArray(entry) ? entry : [entry];
 }
 
-/** Synergy style ids the theme rules describe, in config order (the order of themeJobsOf). */
-export function themeStyles(config: BulkBrewConfig): readonly string[] {
-  return defsFor(config).styles;
+/**
+ * Synergy style ids the theme rules describe, in config order (the order of
+ * themeJobsOf), then the tribes given (style ids such as "tribal:Elf").
+ */
+export function themeStyles(
+  config: BulkBrewConfig,
+  tribes: readonly string[] = [],
+): readonly string[] {
+  return defsFor(config, tribes).styles;
 }
 
-/** A style's floor alternatives at a size; undefined when the rules give it none there. */
+/** A style's floor alternatives at a size, a tribe's too; undefined when the rules give it none there. */
 export function themeFloorsOf(
   config: BulkBrewConfig,
   style: string,
   size: DeckSize,
 ): ThemeFloor[] | undefined {
-  const defs = defsFor(config);
+  const defs = defsFor(config, tribeOf(style) ? [style] : []);
   const i = defs.styles.indexOf(style);
   return i < 0 ? undefined : floorsFor(defs, i, size);
 }
 
-// The scan has no card index, so jobs are cached per config and per card
+// The scan has no card index, so jobs are cached per definitions and per card
 // facts object, which factsFor already caches per index, config, and card.
-const jobsCache = new WeakMap<
-  BulkBrewConfig,
-  WeakMap<CardFacts, Map<number, (Job | undefined)[]>>
->();
+const jobsCache = new WeakMap<Defs, WeakMap<CardFacts, Map<number, (Job | undefined)[]>>>();
 
 /**
- * A card's job for each style the rules describe, aligned with themeStyles
- * (undefined: none, a rider, or excluded). Read-only: cached per card and size.
+ * A card's job for each style the rules describe and each tribe given,
+ * aligned with themeStyles (undefined: none, a rider, or excluded).
+ * Read-only: cached per card and size.
  */
 export function themeJobsOf(
   config: BulkBrewConfig,
   facts: CardFacts,
   size: DeckSize,
+  tribes: readonly string[] = [],
 ): readonly (Job | undefined)[] {
-  return jobsOf(config, facts, size);
+  return jobsOf(defsFor(config, tribes), facts, size);
 }
 
-function jobsOf(config: BulkBrewConfig, facts: CardFacts, size: DeckSize): (Job | undefined)[] {
-  let byFacts = jobsCache.get(config);
-  if (!byFacts) jobsCache.set(config, (byFacts = new WeakMap()));
+function jobsOf(defs: Defs, facts: CardFacts, size: DeckSize): (Job | undefined)[] {
+  let byFacts = jobsCache.get(defs);
+  if (!byFacts) jobsCache.set(defs, (byFacts = new WeakMap()));
   let bySize = byFacts.get(facts);
   if (!bySize) byFacts.set(facts, (bySize = new Map()));
   let jobs = bySize.get(size);
   if (!jobs) {
-    jobs = defsFor(config).compiled.map((style) => {
-      const m = matchCard(facts.card, style, size as ThemeSize);
-      // A rider weighs 0: it is not setup.
-      if (!m || m.as === 'excluded' || m.weight <= 0) return undefined;
-      return { as: m.as, job: m.job, weight: m.weight, repeatable: m.repeatable };
-    });
+    // The rules' own styles come from their cache; only the tribes are read here.
+    const root = defs.root;
+    jobs = root
+      ? [
+          ...jobsOf(root, facts, size),
+          ...defs.compiled.slice(root.styles.length).map((s) => jobIn(s, facts, size)),
+        ]
+      : defs.compiled.map((s) => jobIn(s, facts, size));
     bySize.set(size, jobs);
   }
   return jobs;
 }
 
+function jobIn(style: CompiledStyle, facts: CardFacts, size: DeckSize): Job | undefined {
+  const m = matchCard(facts.card, style, size as ThemeSize);
+  // A rider weighs 0: it is not setup.
+  if (!m || m.as === 'excluded' || m.weight <= 0) return undefined;
+  return { as: m.as, job: m.job, weight: m.weight, repeatable: m.repeatable, dual: m.dual };
+}
+
 // ---------------------------------------------------------------- floors
 
 /** A tally in the measure one floor counts. */
-function floorValue(t: Tally, key: FloorKey): number {
+function floorValue(t: ThemeTally, key: FloorKey): number {
   switch (key) {
     case 'setup':
       return t.setupUnits;
@@ -281,7 +350,7 @@ export interface Margin {
 }
 
 /** Have over need on one side of a floor; Infinity when the side has no floor. */
-function sideMargin(t: Tally, floor: ThemeFloor, keys: readonly FloorKey[]): number {
+function sideMargin(t: ThemeTally, floor: ThemeFloor, keys: readonly FloorKey[]): number {
   let m = Infinity;
   for (const k of keys) {
     const need = floor[k];
@@ -292,7 +361,7 @@ function sideMargin(t: Tally, floor: ThemeFloor, keys: readonly FloorKey[]): num
 }
 
 /** The smaller of the setup and payoff margins (a side without a floor does not count). */
-function themeMargin(t: Tally, floor: ThemeFloor): Margin {
+function themeMargin(t: ThemeTally, floor: ThemeFloor): Margin {
   const setup = sideMargin(t, floor, SETUP_KEYS);
   const payoff = sideMargin(t, floor, PAYOFF_KEYS);
   const margin = Math.min(setup, payoff);
@@ -301,7 +370,7 @@ function themeMargin(t: Tally, floor: ThemeFloor): Margin {
 
 /** The floor alternative a tally meets best. */
 export function bestFloor(
-  t: Tally,
+  t: ThemeTally,
   floors: readonly ThemeFloor[],
 ): { floor: ThemeFloor; margin: Margin } {
   let pick: { floor: ThemeFloor; margin: Margin } | undefined;
@@ -325,12 +394,17 @@ function balance(floor: ThemeFloor): { setup: SetupKey; payoff: PayoffKey; ratio
   return { setup, payoff, ratio: p > 0 ? s / p : 1 };
 }
 
-/** Whether the setup covers the payoffs plus `extra`; a card never counts toward its own need. */
-function covered(t: Tally, floor: ThemeFloor, extra: Job | undefined): boolean {
+/**
+ * Whether the setup covers the payoffs plus `extra`; a card never counts
+ * toward its own need. Where the style's payoffs supply it (`supplies`, a
+ * tribe), a payoff that is also setup covers the others, in setup units.
+ */
+function covered(t: Tally, floor: ThemeFloor, extra: Job | undefined, supplies = false): boolean {
   const b = balance(floor);
   const after = { ...t };
   addJob(after, extra, 1);
-  return floorValue(t, b.setup) + EPS >= b.ratio * floorValue(after, b.payoff);
+  const setup = floorValue(t, b.setup) + (supplies ? t.supplied : 0);
+  return setup + EPS >= b.ratio * floorValue(after, b.payoff);
 }
 
 /**
@@ -374,7 +448,7 @@ function shortOf(t: Tally, targets: Targets): StyleShort[] {
 }
 
 /** Every floor of an alternative, what the tally holds against what it asks, in floor order. */
-export function floorCounts(t: Tally, floor: ThemeFloor): FloorCount[] {
+export function floorCounts(t: ThemeTally, floor: ThemeFloor): FloorCount[] {
   const out: FloorCount[] = [];
   for (const k of FLOOR_KEYS) {
     const need = floor[k];
@@ -468,37 +542,89 @@ export function poolSupply(
  */
 function poolJobs(
   config: BulkBrewConfig,
+  defs: Defs,
   card: CardRecord,
   jobs: readonly (Job | undefined)[],
   supply: DeckSupply,
+  from = 0,
 ): (Job | undefined)[] {
-  const styles = defsFor(config).styles;
-  if (jobs.some((j) => j) && unmetDrawback(card, supply, config)) return jobs.map(() => undefined);
+  const styles = defs.styles;
+  if (jobs.some((j, i) => j && i >= from) && unmetDrawback(card, supply, config))
+    return jobs.map(() => undefined);
   return jobs.map((j, i) =>
-    j && creditEarned(card, themeCredit(styles[i]!, j.as), supply, config) ? j : undefined,
+    i >= from && j && creditEarned(card, themeCredit(styles[i]!, j.as), supply, config)
+      ? j
+      : undefined,
   );
 }
 
 /**
- * A card's theme jobs, per style in themeStyles order, that a pool's supply
- * could pay for: a commander's jobs as the builder credits them.
+ * A commander's jobs as the scan and the builder both count them: each job
+ * the pool pays for, and a tribe's only where it holds in every deck of the
+ * tribe (`base`: the commander, the colors, and the size), its own creature
+ * type taken as met. A tribe deck promises its members and nothing else, so
+ * a commander whose tribe job needs more (another type) does not count for it.
+ */
+function commanderJobs(
+  config: BulkBrewConfig,
+  defs: Defs,
+  card: CardRecord,
+  jobs: readonly (Job | undefined)[],
+  pool: DeckSupply,
+  base: DeckSupply,
+  from = 0,
+): (Job | undefined)[] {
+  const tribes = (defs.root ?? defs).styles.length;
+  return poolJobs(config, defs, card, jobs, pool, from).map((j, i) => {
+    if (!j || i < tribes) return j;
+    const style = defs.styles[i]!;
+    const own = themeOwnResources(config, style);
+    return creditEarned(card, themeCredit(style, j.as), base, config, own) ? j : undefined;
+  });
+}
+
+/** The supply every deck under a commander holds: the commander, its colors, and the size. */
+function commanderBase(
+  size: DeckSize,
+  colors: readonly Color[],
+  card: CardRecord,
+  config: BulkBrewConfig,
+): DeckSupply {
+  const base: DeckSupply = {
+    size,
+    colors: [...colors],
+    commander: true,
+    counts: new Map(),
+    devotion: new Map(),
+  };
+  addSupply(base, card, 1, config);
+  return base;
+}
+
+/**
+ * A card's theme jobs, per style in themeStyles order (the tribes given
+ * after the rules' styles), that a pool's supply could pay for: a
+ * commander's jobs as the builder credits them.
  */
 export function poolThemeJobs(
   config: BulkBrewConfig,
   facts: CardFacts,
   size: DeckSize,
   supply: DeckSupply,
+  tribes: readonly string[] = [],
 ): readonly (Job | undefined)[] {
-  return poolJobs(config, facts.card, jobsOf(config, facts, size), supply);
+  const defs = defsFor(config, tribes);
+  return poolJobs(config, defs, facts.card, jobsOf(defs, facts, size), supply);
 }
 
 /**
- * Each themed style the rules describe at this size, the pool against its
- * floors: every copy the builder may use of each spell candidate, plus the
- * commander's job when given and its needs met. A theme card counts only when
- * the pool could meet its needs (`colors` are the deck's, for needs such as
- * "you control a Forest"; `supply` is the pool's when the caller has it).
- * Cheap enough for the scan: no deck is built.
+ * Each themed style the rules describe at this size, and each tribe given
+ * (a commander's named tribes), the pool against its floors: every copy the
+ * builder may use of each spell candidate, plus the commander's job when
+ * given and its needs met. A theme card counts only when the pool could meet
+ * its needs (`colors` are the deck's, for needs such as "you control a
+ * Forest"; `supply` is the pool's when the caller has it). Cheap enough for
+ * the scan: no deck is built. `tribesOnly` leaves the rules' styles out.
  */
 export function growViability(
   cands: readonly Candidate[],
@@ -507,8 +633,11 @@ export function growViability(
   commander?: CardFacts,
   colors?: readonly Color[],
   supply?: DeckSupply,
+  tribes: readonly string[] = [],
+  tribesOnly = false,
 ): Record<string, StyleViability> {
-  const defs = defsFor(config);
+  const defs = defsFor(config, tribes);
+  const from = tribesOnly ? (defs.root ?? defs).styles.length : 0;
   const credit = config.builderWeights.grow.commanderCredit;
   const tallies = defs.styles.map(emptyTally);
   const deckColors =
@@ -516,16 +645,23 @@ export function growViability(
   const pool = supply ?? poolSupply(cands, config, size, deckColors, commander?.card);
   for (const c of cands) {
     if (!c.facts.spell || c.facts.card.id === commander?.card.id) continue;
-    poolJobs(config, c.facts.card, jobsOf(config, c.facts, size), pool).forEach((j, i) =>
+    poolJobs(config, defs, c.facts.card, jobsOf(defs, c.facts, size), pool, from).forEach((j, i) =>
       addJob(tallies[i]!, j, c.preferred),
     );
   }
   if (commander)
-    poolJobs(config, commander.card, jobsOf(config, commander, size), pool).forEach((j, i) =>
-      addJob(tallies[i]!, j, credit),
-    );
+    commanderJobs(
+      config,
+      defs,
+      commander.card,
+      jobsOf(defs, commander, size),
+      pool,
+      commanderBase(size, deckColors, commander.card, config),
+      from,
+    ).forEach((j, i) => addJob(tallies[i]!, j, credit));
   const out: Record<string, StyleViability> = {};
   defs.styles.forEach((style, i) => {
+    if (i < from) return;
     const floors = floorsFor(defs, i, size);
     if (!floors?.length) return;
     const t = tallies[i]!;
@@ -620,6 +756,7 @@ const gateCache = new WeakMap<CardRecord, WeakMap<BulkBrewConfig, Map<string, Ca
  */
 function readGate(
   config: BulkBrewConfig,
+  defs: Defs,
   card: CardRecord,
   roles: readonly string[],
   jobs: readonly (Job | undefined)[],
@@ -632,24 +769,28 @@ function readGate(
     if (!byConfig) gateCache.set(card, (byConfig = new WeakMap()));
     byKey = byConfig.get(config);
     if (!byKey) byConfig.set(config, (byKey = new Map()));
-    key = `${base.size}|${base.colors.join('')}|${base.commander}|${jobs.map((j) => (j ? j.as[0] : '-')).join('')}`;
+    const tribes = defs.styles.slice((defs.root ?? defs).styles.length).join('|');
+    key = `${base.size}|${base.colors.join('')}|${base.commander}|${jobs.map((j) => (j ? j.as[0] : '-')).join('')}|${tribes}`;
     const hit = byKey.get(key);
     if (hit) return hit;
   }
   // Needs are monotone in the supply: met with only the commander and this card, met always.
-  const gate = withCopy(base, card, 1, config, () => gateWith(config, card, roles, jobs, base));
+  const gate = withCopy(base, card, 1, config, () =>
+    gateWith(config, defs, card, roles, jobs, base),
+  );
   byKey?.set(key, gate);
   return gate;
 }
 
 function gateWith(
   config: BulkBrewConfig,
+  defs: Defs,
   card: CardRecord,
   roles: readonly string[],
   jobs: readonly (Job | undefined)[],
   base: DeckSupply,
 ): CardGate {
-  const styles = defsFor(config).styles;
+  const styles = defs.styles;
   const always = new Set<string>();
   const earns = (credit: string) => {
     const ok = creditEarned(card, credit, base, config);
@@ -721,7 +862,10 @@ export interface GrowContext {
   commander?: {
     card: CardRecord;
     facts: CardFacts;
+    /** Its jobs as the scan and the plans count them (commanderJobs). */
     jobs: readonly (Job | undefined)[];
+    /** Every job the pool pays for: the finished deck counts each one it earns. */
+    paid: readonly (Job | undefined)[];
     gate: CardGate;
   };
   /** The supply every deck of the request holds: its colors, size, and commander. */
@@ -813,7 +957,8 @@ export function growContext(
   // The commander's pips weigh in the color split: it is cast every game.
   const cast = castModel(listed, colors, size, template.baseLands);
   const candidates = listed.filter((c) => c.facts.card.id !== lead?.id);
-  const defs = defsFor(config);
+  // A commander's named tribes are themes of its requests, after the rules' own.
+  const defs = defsFor(config, lead ? namedTribes(config, lead) : []);
   const base: DeckSupply = {
     size,
     colors: [...colors],
@@ -827,8 +972,8 @@ export function growContext(
   for (const cand of candidates) {
     const f = cand.facts;
     if (!f.spell) continue;
-    const jobs = poolJobs(config, f.card, jobsOf(config, f, size), supply);
-    const gate = readGate(config, f.card, f.roles, jobs, base);
+    const jobs = poolJobs(config, defs, f.card, jobsOf(defs, f, size), supply);
+    const gate = readGate(config, defs, f.card, f.roles, jobs, base);
     // Picks are scored on what the pool can pay for; the finished-deck check
     // holds the deck to the rest. An "or pay" cost is paid in mana where the
     // pool lacks the resource, for the curve, the cast chance, and strength.
@@ -897,13 +1042,15 @@ export function growContext(
   if (lead) {
     const facts = factsFor(index, config, lead);
     // The commander's jobs count only when the deck meets its needs (see cur).
-    const jobs = poolJobs(config, lead, jobsOf(config, facts, size), supply);
+    const all = jobsOf(defs, facts, size);
+    const jobs = commanderJobs(config, defs, lead, all, supply, base);
     const empty: DeckSupply = { ...base, counts: new Map(), devotion: new Map() };
     ctx.commander = {
       card: lead,
       facts,
       jobs,
-      gate: readGate(config, lead, facts.roles, jobs, empty),
+      paid: poolJobs(config, defs, lead, all, supply),
+      gate: readGate(config, defs, lead, facts.roles, jobs, empty),
     };
   }
   return ctx;
@@ -994,6 +1141,8 @@ function supported(ctx: GrowContext, d: GrowDeck, c: GrowCard, extra = 1, honest
 }
 
 function archetypeOf(config: BulkBrewConfig, id: string): Archetype | undefined {
+  const type = tribeOf(id);
+  if (type) return tribalArchetype(type, config);
   return config.archetypes.archetypes.find((a) => a.id === id);
 }
 
@@ -1168,7 +1317,8 @@ function cur(ctx: GrowContext, d: GrowDeck): Derived {
       1,
       ctx.k.commanderCredit,
       undefined,
-      earnedBy(cmd.card, cmd.gate, false),
+      // The loose try counts the commander's jobs as the scan does, as it counts the cards'.
+      earnedBy(cmd.card, cmd.gate, d.loose),
     );
   d.derived = x;
   return x;
@@ -1269,7 +1419,7 @@ function offPlanFloor(ctx: GrowContext, i: number): ThemeFloor | undefined {
 function gateOpen(ctx: GrowContext, plan: Plan, d: GrowDeck, c: GrowCard): boolean {
   const x = cur(ctx, d);
   const own = planJob(plan, c.jobs);
-  if (plan.kind === 'theme' && own?.as === 'payoff' && !covered(x.plan, plan.floor, own))
+  if (plan.kind === 'theme' && own?.as === 'payoff' && !coversPlan(ctx, plan, x.plan, own))
     return false;
   // Setup and spell roles open the gate only when the deck pays for them.
   if (own?.as === 'setup' && openPlanJob(ctx, plan, d, c)) return true;
@@ -1280,7 +1430,8 @@ function gateOpen(ctx: GrowContext, plan: Plan, d: GrowDeck, c: GrowCard): boole
     if (j.as === 'payoff') {
       if (j.weight < ctx.k.offPlanGateWeight || c.gate.bodies[i]) continue;
       const floor = offPlanFloor(ctx, i);
-      if (floor && !covered(x.tallies[i]!, floor, j)) return false;
+      if (floor && !covered(x.tallies[i]!, floor, j, ctx.defs.compiled[i]!.payoffSupplies))
+        return false;
     } else if (ctx.defs.compiled[i]!.setupNeedsPayoff) {
       if (!fed(x.tallies[i]!, offPlanFloor(ctx, i), j)) return false;
     }
@@ -1294,8 +1445,13 @@ function planGateOnly(ctx: GrowContext, plan: Plan, d: GrowDeck, c: GrowCard): b
   return !(
     plan.kind === 'theme' &&
     own?.as === 'payoff' &&
-    !covered(cur(ctx, d).plan, plan.floor, own)
+    !coversPlan(ctx, plan, cur(ctx, d).plan, own)
   );
+}
+
+/** Whether a theme plan's setup covers its payoffs plus `extra` (covered, with the style's own rule). */
+function coversPlan(ctx: GrowContext, plan: ThemePlan, t: Tally, extra: Job | undefined): boolean {
+  return covered(t, plan.floor, extra, ctx.defs.compiled[plan.index]!.payoffSupplies);
 }
 
 /** 1 at a floor, fading to 0 at `target` times it. */
@@ -1323,7 +1479,7 @@ function planPull(ctx: GrowContext, plan: Plan, d: GrowDeck, c: GrowCard): numbe
     const fade = fadeAbove(floorValue(x, b.setup), floor, ctx.k.setupTarget);
     return 1 + ctx.k.setupPull * Math.min(1, job.weight) * fade;
   }
-  if (!covered(x, plan.floor, job)) return 1;
+  if (!coversPlan(ctx, plan, x, job)) return 1;
   const floor = plan.floor[b.payoff] ?? 0;
   const fade = floor > 0 ? fadeAbove(floorValue(x, b.payoff), floor, ctx.k.setupTarget) : 1;
   return 1 + ctx.k.payoffPull * Math.min(1, job.weight) * fade;
@@ -1447,7 +1603,7 @@ function themeCoreOnce(ctx: GrowContext, plan: ThemePlan, loose: boolean): CoreR
 
   // Setup ran out: drop the weakest seeded payoffs while above the floor and uncovered.
   const floorTargets = sideTargets(plan.floor, PAYOFF_KEYS, 1);
-  while (!covered(cur(ctx, d).plan, plan.floor, undefined)) {
+  while (!coversPlan(ctx, plan, cur(ctx, d).plan, undefined)) {
     const seeded = [...new Set(d.seedCopies)]
       .map((id) => ctx.byId.get(id)!)
       .sort((x, y) => x.value - y.value || (x.id < y.id ? -1 : 1));
@@ -1698,8 +1854,9 @@ function payoffMeasure(floor: ThemeFloor): PayoffKey {
 
 /**
  * How far the pool's setup and payoff stand above what plain bulk of the same
- * cards' colors holds (config/theme-bulk.json), the smaller of the two, each
- * side in the measure its floor counts; 1 when no baseline is bundled. A
+ * cards' colors holds (config/theme-bulk.json, a tribe's under `tribes`), the
+ * smaller of the two, each side in the measure its floor counts; 1 when no
+ * baseline is bundled. A
  * ratio of counts is noisy: a side counts above 1 only beyond its own noise,
  * `picker.richnessZ` over the square root of the theme cards plain bulk of
  * these colors would hold (distinct cards, not copies), so a theme a few
@@ -1707,7 +1864,10 @@ function payoffMeasure(floor: ThemeFloor): PayoffKey {
  * to about 1.3 to 1.8 by chance where the expected count is small).
  */
 function richness(ctx: GrowContext, plan: ThemePlan, pool: Tally): number {
-  const bulk = ctx.config.themeBulk?.styles[plan.style];
+  const type = tribeOf(plan.style);
+  const bulk = type
+    ? tribeBulkOf(ctx.config.themeBulk, type)
+    : ctx.config.themeBulk?.styles[plan.style];
   if (!bulk) return 1;
   const expected = emptyTally();
   const distinct = emptyTally();
@@ -1745,11 +1905,34 @@ function richness(ctx: GrowContext, plan: ThemePlan, pool: Tally): number {
   return Math.min(r, ctx.k.richnessCap);
 }
 
-/** A tribe the commander names: the classic builder builds it, the picker scores it. */
-interface TribePlan {
-  kind: 'tribe';
-  style: string;
-  archetype: Archetype;
+/**
+ * How far the commander leads a theme plan: 1 unless its own job for the
+ * theme is a payoff; then up to `grow.commanderPlan` by how central the theme
+ * is to its own text, not by how rare the theme's payoffs are in the pool:
+ * the share of its text abilities (keyword lines aside) that do the theme's
+ * work, setup or payoff, as the card needs reader ties the rules to their
+ * clauses (themeAbilities), times its payoff job's weight up to 1. Lathril
+ * makes Elf tokens and taps Elves, all of its text, so it leads its Elf tribe
+ * in full; its own combat damage trigger, an Evasion payoff, is half of its
+ * text. A theme only its body serves (an evasive carrier's keyword) leads
+ * only a commander with no other text.
+ */
+function commanderLead(ctx: GrowContext, plan: Plan): number {
+  const cmd = ctx.commander;
+  const job = plan.kind === 'theme' ? cmd?.jobs[plan.index] : undefined;
+  if (!cmd || job?.as !== 'payoff') return 1;
+  const needs = cardNeeds(cmd.card, ctx.config);
+  const root = (i: number) => needs.abilities[i]?.parent ?? i;
+  const text = new Set<number>();
+  needs.abilities.forEach((a, i) => {
+    if (a.shape !== 'keyword') text.add(root(i));
+  });
+  const work = themeAbilities(cmd.card, plan.style, ctx.config, ctx.size);
+  const read = new Set(work.abilities.map(root).filter((i) => text.has(i)));
+  // A keyword line does a theme's work as the body does.
+  const body = work.body || work.abilities.some((i) => !text.has(root(i)));
+  const central = text.size > 0 ? read.size / text.size : body ? 1 : 0;
+  return 1 + (ctx.k.commanderPlan - 1) * central * Math.min(1, job.weight);
 }
 
 /** How far a side stands above its floor: 0 at the floor, 1 at `picker.depthFull` times it. */
@@ -1777,8 +1960,8 @@ function themeDepth(ctx: GrowContext, plan: ThemePlan, t: Tally): number {
 }
 
 /** The deck's spells and lands as a GrowDeck of this request, so any finished deck is scored the same way. */
-function deckFor(ctx: GrowContext, plan: Plan | TribePlan, deck: Deck): GrowDeck {
-  const d = newDeck(ctx, plan.kind === 'tribe' ? plainShell(plan) : plan);
+function deckFor(ctx: GrowContext, plan: Plan, deck: Deck): GrowDeck {
+  const d = newDeck(ctx, plan);
   for (const dc of deck.cards) {
     if (dc.cardId === ctx.commander?.card.id) continue;
     const c = ctx.byId.get(dc.cardId);
@@ -1790,11 +1973,6 @@ function deckFor(ctx: GrowContext, plan: Plan | TribePlan, deck: Deck): GrowDeck
   }
   changed(d);
   return d;
-}
-
-/** A tribe counts no theme jobs of the rules; its deck is read as a plain plan. */
-function plainShell(plan: TribePlan): Plan {
-  return { kind: 'plain', style: plan.style, archetype: plan.archetype };
 }
 
 function round3(n: number): number {
@@ -1846,16 +2024,16 @@ function castShare(ctx: GrowContext, deck: Deck): number {
  * quality times fit times the share of supported copies, times the share of
  * spells its mana casts on curve to `picker.castWeight`, times
  * (1 - `picker.colorCost`) for each color the request's color set has past
- * the first (none under a commander). A theme multiplies
- * in its pool margin (full at `grow.marginFull`), its richness over plain
- * bulk (capped), its depth above the floors, and the commander's lead, and
- * is divided by `picker.themeMargin`, so it ranks above a plain shape only
- * by that clear margin and never on richness noise. A tribe the commander
- * names (classic builder) takes the commander's lead. The score is rounded
- * to `picker.scoreStep`, below which the parts do not tell decks apart, and
- * plans that tie go by planOrder (Midrange first).
+ * the first (none under a commander). A theme, a commander's tribe among
+ * them, multiplies in its pool margin (full at `grow.marginFull`), its
+ * richness over plain bulk (capped; a tribe's read from its type's own
+ * baseline), its depth above the floors, and the commander's lead
+ * (commanderLead), and is divided by `picker.themeMargin`, so it ranks above
+ * a plain shape only by that clear margin and never on richness noise. The
+ * score is rounded to `picker.scoreStep`, below which the parts do not tell
+ * decks apart, and plans that tie go by planOrder (Midrange first).
  */
-function pickScore(ctx: GrowContext, plan: Plan | TribePlan, deck: Deck): PickScore {
+function pickScore(ctx: GrowContext, plan: Plan, deck: Deck): PickScore {
   const d = deckFor(ctx, plan, deck);
   const quality = deckQuality(ctx, d);
   const fit = shapeFit(ctx, plan, d);
@@ -1883,18 +2061,14 @@ function pickScore(ctx: GrowContext, plan: Plan | TribePlan, deck: Deck): PickSc
     const margin = Math.min(1, plan.poolMargin.margin / k.marginFull);
     const rich = richness(ctx, plan, poolTally(ctx, plan.index));
     const depth = themeDepth(ctx, plan, honestPlan(ctx, plan, d));
-    const cmd = ctx.commander;
-    const lead = cmd && planJob(plan, cmd.jobs)?.as === 'payoff' ? k.commanderPlan : 1;
+    const lead = commanderLead(ctx, plan);
     score *= (margin * rich * depth * lead) / picker.themeMargin;
     Object.assign(out, {
       margin: round3(margin),
       richness: round3(rich),
       depth: round3(depth),
-      ...(lead > 1 ? { lead } : {}),
+      ...(lead > 1 ? { lead: round3(lead) } : {}),
     });
-  } else if (plan.kind === 'tribe') {
-    score *= ctx.k.commanderPlan;
-    out.lead = ctx.k.commanderPlan;
   }
   out.score =
     picker.scoreStep > 0 ? Math.round(score / picker.scoreStep) * picker.scoreStep : score;
@@ -1925,14 +2099,14 @@ function plainLacks(ctx: GrowContext, style: string): string {
 
 /**
  * One plan of the picker's list, built and scored, or undefined when the
- * pool cannot fill it. A theme comes from the grow builder only; a plain
- * shape too thin for this builder's fill comes from the classic builder, as
- * a shape asked for by name does (not at 20); a tribe always from the
- * classic builder.
+ * pool cannot fill it. A theme (a commander's tribe among them) comes from
+ * the grow builder only; a plain shape too thin for this builder's fill
+ * comes from the classic builder, as a shape asked for by name does (not at
+ * 20).
  */
 function planResult(
   ctx: GrowContext,
-  plan: Plan | TribePlan,
+  plan: Plan,
   pool: Pool,
   lead: readonly string[],
 ): BuildResult | undefined {
@@ -1940,21 +2114,14 @@ function planResult(
     const t = tryTheme(ctx, plan.style);
     return 'built' in t ? finish(ctx, t.plan, t.built, lead) : undefined;
   }
-  if (plan.kind === 'plain') {
-    const built = buildPlan(ctx, plan, undefined);
-    if (!('lacks' in built)) return finish(ctx, plan, built, lead);
-    if (!classicFallback(ctx)) return undefined;
-  }
-  const { requireStyle: _required, ...rest } = ctx.request;
+  const built = buildPlan(ctx, plan, undefined);
+  if (!('lacks' in built)) return finish(ctx, plan, built, lead);
+  if (!classicFallback(ctx)) return undefined;
   try {
-    // A tribe is built as one plan of a list, a shape as asked for by name. Both are plans
-    // of a grow best fit, so the classic builder reads no learned plan data for them.
+    // A shape as asked for by name. It is a plan of a grow best fit, so the classic
+    // builder reads no learned plan data for it.
     const r = buildClassic(
-      {
-        ...rest,
-        style: plan.style,
-        ...(plan.kind === 'plain' ? { requireStyle: true } : {}),
-      },
+      { ...ctx.request, style: plan.style, requireStyle: true },
       pool,
       ctx.index,
       withoutLearned(ctx.config),
@@ -1973,12 +2140,12 @@ interface Ranked {
 }
 
 /**
- * The plans best fit compares: the three plain shapes, each theme the rules
- * call viable (the pool meets its floors), and under a commander the tribes
- * it names that the pool supports.
+ * The plans best fit compares: the three plain shapes, and each theme the
+ * rules call viable (the pool meets its floors), under a commander the
+ * tribes it names among them.
  */
-function planList(ctx: GrowContext): (Plan | TribePlan)[] {
-  const plans: (Plan | TribePlan)[] = [];
+function planList(ctx: GrowContext): Plan[] {
+  const plans: Plan[] = [];
   for (const style of PLAIN_SHAPES) {
     const plan = plainPlan(ctx, style);
     if (plan) plans.push(plan);
@@ -1987,9 +2154,6 @@ function planList(ctx: GrowContext): (Plan | TribePlan)[] {
     const plan = themePlan(ctx, style);
     if (plan && plan.poolMargin.margin >= 1 - EPS) plans.push(plan);
   }
-  if (ctx.commander)
-    for (const t of commanderTribes(ctx.commander.card, ctx.candidates, ctx.config, ctx.size))
-      if (t.viable) plans.push({ kind: 'tribe', style: t.archetype.id, archetype: t.archetype });
   return plans;
 }
 
@@ -2020,7 +2184,7 @@ export function pickerPlans(
     p.kind === 'theme'
       ? {
           style: p.style,
-          kind: p.kind,
+          kind: tribeOf(p.style) ? 'tribe' : 'theme',
           floors: floorCounts(poolTally(ctx, p.index), p.floor),
         }
       : { style: p.style, kind: p.kind },
@@ -2029,10 +2193,10 @@ export function pickerPlans(
 
 /**
  * Every plan the request can build, finished and ranked by pickScore: the
- * three plain shapes, each theme the rules call viable (the pool meets its
- * floors), and under a commander the tribes it names that the pool supports.
- * These are exactly the plans the Build page's options and the Analyze pane
- * plan, so their first option is this list's first deck.
+ * three plain shapes and each theme the rules call viable (the pool meets its
+ * floors), under a commander the tribes it names among them. These are
+ * exactly the plans the Build page's options and the Analyze pane plan, so
+ * their first option is this list's first deck.
  */
 function rankPlans(ctx: GrowContext, pool: Pool): Ranked[] {
   const out: Ranked[] = [];
@@ -2081,32 +2245,6 @@ function bestFit(ctx: GrowContext, pool: Pool): BuildResult {
   return { deck: { ...r.deck, explanation }, explanation };
 }
 
-/**
- * A tribe deck from the classic builder, scored by the plan picker so it
- * ranks with the grow builder's decks of the same request (a 100-card
- * request under a commander that names the tribe).
- */
-export function scoreTribeDeck(
-  request: BuildRequest,
-  result: BuildResult,
-  pool: Pool,
-  index: CardIndex,
-  config: BulkBrewConfig,
-): BuildResult {
-  const tribe = tribeOf(request.style);
-  if (!tribe || !isCommanderSize(request.size)) return result;
-  const ctx = growContext(request, pool, index, config);
-  const archetype =
-    (ctx.commander &&
-      commanderTribes(ctx.commander.card, ctx.candidates, config, ctx.size).find(
-        (t) => t.archetype.id === request.style,
-      )?.archetype) ??
-    undefined;
-  if (!archetype) return result;
-  const plan: TribePlan = { kind: 'tribe', style: archetype.id, archetype };
-  return withPick(result, pickScore(ctx, plan, result.deck));
-}
-
 // ---------------------------------------------------------------- steps 6 and 7
 
 /** Main color by pips in the deck; a color carrying little next to it is a splash. */
@@ -2144,7 +2282,7 @@ function fitSpells(
     if (job?.as !== 'setup') return true;
     const after = { ...cur(ctx, d).plan };
     addJob(after, job, -1);
-    return covered(after, plan.floor, undefined);
+    return coversPlan(ctx, plan, after, undefined);
   };
   while (d.spells > slots) {
     let at = -1;
@@ -2277,8 +2415,10 @@ function honestPlan(ctx: GrowContext, plan: Plan, d: GrowDeck): Tally {
     if (j && n > 0 && earns(ctx, d, c.facts.card, c.gate, themeCredit(plan.style, j.as), 0))
       addJob(t, j, n);
   }
+  // The commander counts for any job the deck earns, as the deck views count it, though the plan
+  // counted a tribe job only where every deck of the tribe holds it.
   const cmd = ctx.commander;
-  const j = cmd?.jobs[plan.index];
+  const j = cmd?.paid[plan.index];
   if (cmd && j && earns(ctx, d, cmd.card, cmd.gate, themeCredit(plan.style, j.as), 0))
     addJob(t, j, ctx.k.commanderCredit);
   return t;
@@ -2340,7 +2480,7 @@ function noWorse(before: Tally, after: Tally, targets: Targets): boolean {
   );
 }
 
-/** Rounds of supply a feed may add for one need before it gives up. */
+/** Rounds of supply a feed may add for one need before it gives up, at least (more where the need asks more). */
 const FEED_ROUNDS = 10;
 
 /**
@@ -2355,25 +2495,27 @@ const FEED_ROUNDS = 10;
  * its minimum; never the card, a supplier of any of its gates or needs, or a
  * copy another card that holds needs. Kept when the card then earns its
  * reason and the plan's floors are no worse; otherwise every swap is undone
- * and the card goes as before.
+ * and the card goes as before. Without `c` it feeds the commander's own job,
+ * which the theme core's loose try counted as the scan does.
  */
 function feedNeeds(
   ctx: GrowContext,
   plan: ThemePlan,
   d: GrowDeck,
-  c: GrowCard,
+  c: GrowCard | undefined,
   why: string,
   minimum: Targets,
 ): boolean {
   const side = THEME_WHY.exec(why);
-  if (!side) return false;
-  const card = c.facts.card;
-  const reading = creditNeeds(
-    card,
-    themeCredit(plan.style, sideOf(side[1]!)),
-    ctx.config,
-    ctx.size,
-  );
+  const cmd = ctx.commander;
+  if (!side || (!c && !cmd)) return false;
+  const card = c ? c.facts.card : cmd!.card;
+  const credit = themeCredit(plan.style, sideOf(side[1]!));
+  const earned = () =>
+    c
+      ? supported(ctx, d, c, 0, true) && whyEarned(ctx, plan, d, c, why)
+      : earns(ctx, d, card, cmd!.gate, credit, 0);
+  const reading = creditNeeds(card, credit, ctx.config, ctx.size);
   const unmet = (r: NeedRef) => !needMet(r, d.supply, card, ctx.config);
   if (reading.kind === 'absent') return false;
   // Every unmet gate (a drawback, a required cost such as a Goblin to sacrifice) and the
@@ -2397,10 +2539,16 @@ function feedNeeds(
   const feeds = (x: GrowCard) =>
     cardSupply(x.facts.card, ctx.config, ctx.size).some((r) => fed.has(r));
   for (const ref of refs) {
-    const res = new Set(refSupplies(ref));
+    // One alternative at a time: Auras and Equipment split between meet neither.
+    const res = new Set(feedResources(ref, d.supply, ctx.poolSupply, card, ctx.config));
     const supplies = (x: GrowCard) =>
       cardSupply(x.facts.card, ctx.config, ctx.size).some((r) => res.has(r));
-    for (let n = 0; n < FEED_ROUNDS && unmet(ref); n++) {
+    // As many rounds as the need can ask for ("four or more Wizards" asks 14 at 100).
+    const rounds = Math.max(
+      FEED_ROUNDS,
+      ...[...res].map((r) => needThreshold(r, ctx.size, ctx.config, ref.count ?? 1)),
+    );
+    for (let n = 0; n < rounds && unmet(ref); n++) {
       const inn = best(
         ctx.cards,
         (s) =>
@@ -2456,8 +2604,7 @@ function feedNeeds(
   }
   if (
     done.length > 0 &&
-    supported(ctx, d, c, 0, true) &&
-    whyEarned(ctx, plan, d, c, why) &&
+    earned() &&
     noWorse(before, honestPlan(ctx, plan, d), minimum) &&
     fine.every((x) => have(d, x) === 0 || holds(x))
   )
@@ -2531,6 +2678,23 @@ function settle(ctx: GrowContext, plan: Plan, built: Built): Built | { lacks: st
         break;
       }
     }
+    // The commander's job the loose try counted, when the floors need it: feed it as a card's.
+    const cj = plan.kind === 'theme' ? ctx.commander?.paid[plan.index] : undefined;
+    if (
+      cj &&
+      minimum &&
+      plan.kind === 'theme' &&
+      !met(honestPlan(ctx, plan, d), minimum) &&
+      feedNeeds(
+        ctx,
+        plan,
+        d,
+        undefined,
+        `${cj.as === 'setup' ? 'Setup' : 'Payoff'}: ${cj.job}`,
+        minimum,
+      )
+    )
+      swapped = true;
     withLands(-1);
     if (!swapped) break;
     // New spells can ask for other colors or other lands.
@@ -2698,14 +2862,15 @@ function finish(
 
 /**
  * Whether buildDeck sends a request here: any size with no secondary style,
- * and best fit (no style), a plain shape, or a theme the rules describe at
- * that size. Tribes and secondary styles keep the classic builder.
+ * and best fit (no style), a plain shape, a theme the rules describe at that
+ * size, or at 100 a tribe (which only a commander that names it leads).
+ * Secondary styles and tribes below 100 keep the classic builder.
  */
 export function growBuilds(request: BuildRequest, config: BulkBrewConfig): boolean {
   const { style, size } = request;
   if (request.secondary) return false;
   if (!style) return true;
-  if (tribeOf(style)) return false;
+  if (tribeOf(style)) return isCommanderSize(size);
   if ((PLAIN_SHAPES as readonly string[]).includes(style))
     return archetypeOf(config, style)?.kind === 'composition';
   const defs = defsFor(config);
@@ -2762,7 +2927,16 @@ export function buildGrowDeck(
   const style = request.style;
   if (!style) return bestFit(ctx, pool);
   const asked = request.requireStyle === true;
-  const label = archetypeOf(config, style)!.label;
+  const label = labelOf(config, style);
+  // A tribe leads only a commander whose own text names it.
+  if (tribeOf(style) && !ctx.defs.styles.includes(style)) {
+    const why = ctx.commander
+      ? `${commanderShortName(ctx.commander.card.name)} does not reward the ${tribeOf(style)} tribe`
+      : 'a tribe leads only a Commander deck whose commander names it';
+    throw new BuildError(
+      `Not enough cards to build ${label}${ctx.commander ? ` under ${commanderShortName(ctx.commander.card.name)}` : ''}: ${why}.`,
+    );
+  }
   if ((PLAIN_SHAPES as readonly string[]).includes(style)) {
     const r = planResult(
       ctx,

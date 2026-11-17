@@ -17,8 +17,8 @@ import {
 import { creditEarned, type DeckSupply } from './card-needs.ts';
 import { factsFor, listCandidates, type Candidate, type CardFacts } from './candidates.ts';
 import { colorsLabel, isCommanderSize, normalizeColors } from './colors.ts';
-import { growViability, poolSupply, type StyleViability } from './grow.ts';
-import { creatureTypes, inTribe } from './matchers.ts';
+import { growViability, namedTribes, poolSupply, type StyleViability } from './grow.ts';
+import { creatureTypes, inTribe, typalTag } from './matchers.ts';
 import type { CardIndex } from './pack.ts';
 import {
   COLOR_LABELS,
@@ -262,9 +262,48 @@ function rulesView(
       floors: [],
     };
   if (!r) return undefined;
+  return themeView(r, possible, size);
+}
+
+function themeView(
+  r: StyleViability,
+  possible: boolean,
+  size: DeckSize,
+): NonNullable<ArchetypeReport['rules']> {
   return possible
     ? { viable: r.viable, margin: r.margin, lacks: r.lacks, floors: r.floors }
-    : { viable: false, margin: 0, lacks: impossible, floors: r.floors };
+    : { viable: false, margin: 0, lacks: tooFew(size), floors: r.floors };
+}
+
+/**
+ * The tribes a commander names, against the tribe rules' floors over the
+ * candidates (the commander left out of them and credited once), as the
+ * grow builder plans them.
+ */
+function leadTribesOf(
+  cands: readonly Candidate[],
+  config: BulkBrewConfig,
+  size: DeckSize,
+  colors: readonly Color[],
+  commander: CardFacts,
+  possible: boolean,
+  supply?: DeckSupply,
+): ScanReport['leadTribes'] {
+  const tribes = namedTribes(config, commander.card);
+  if (tribes.length === 0) return undefined;
+  const own = cands.filter((c) => c.facts.card.id !== commander.card.id);
+  const rules = growViability(own, config, size, commander, colors, supply, tribes, true);
+  return tribes.flatMap((style) =>
+    rules[style]
+      ? [
+          {
+            style,
+            label: secondaryLabel(config, style),
+            rules: themeView(rules[style], possible, size),
+          },
+        ]
+      : [],
+  );
 }
 
 /**
@@ -315,7 +354,19 @@ export function scanUnderCommander(
     const { rules: _old, ...rest } = report;
     return view ? { ...rest, rules: view } : rest;
   });
-  return { ...base, candidates: spells, colored, distinct, lands, notes, possible, archetypes };
+  const leadTribes = leadTribesOf(own, config, base.size, base.colors, commander, possible);
+  const { leadTribes: _none, ...shared } = base;
+  return {
+    ...shared,
+    candidates: spells,
+    colored,
+    distinct,
+    lands,
+    notes,
+    possible,
+    archetypes,
+    ...(leadTribes ? { leadTribes } : {}),
+  };
 }
 
 /**
@@ -340,6 +391,7 @@ export function scanCandidates(
   // What the pool could supply, read once for the theme rules' view and the shapes' role counts.
   const supply = poolSupply(cands, config, size, colors, commander?.card);
   // The theme rules' view, as the grow builder counts the pool; the old fields stay as they were.
+  // Under a commander, its named tribes get the same view (leadTribes).
   const rules = growViability(cands, config, size, commander, colors, supply);
   const archetypes = config.archetypes.archetypes.map((a) => {
     const report =
@@ -350,6 +402,10 @@ export function scanCandidates(
     if (view) report.rules = view;
     return report;
   });
+  const leadTribes =
+    commander && isCommanderSize(size)
+      ? leadTribesOf(cands, config, size, colors, commander, possible, supply)
+      : undefined;
   return {
     color,
     colors,
@@ -363,6 +419,7 @@ export function scanCandidates(
     possible,
     archetypes,
     tribes,
+    ...(leadTribes ? { leadTribes } : {}),
     notes,
   };
 }
@@ -383,7 +440,7 @@ export function tribesOf(cands: Candidate[]): TribeReport[] {
   const out: TribeReport[] = [];
   for (const [type, n] of members) {
     if (n + changelings < 3) continue;
-    const tag = `typal-${type.toLowerCase()}`;
+    const tag = typalTag(type);
     const payoffs = countCopies(cands, (c) => c.facts.card.tags.includes(tag));
     out.push({ type, members: n + changelings, payoffs });
   }
@@ -421,7 +478,9 @@ export const TRIBAL = 'tribal:';
  * A tribe as a Commander deck's primary style, shaped like a synergy
  * archetype: members are its enablers and cards that reward the type
  * (Tagger `typal-<type>`) its payoffs. It needs twice the secondary tribe
- * counts, as a secondary theme needs half of a primary's.
+ * counts, as a secondary theme needs half of a primary's. The classic
+ * builder reads these minimums; the grow builder reads the tribe rules'
+ * floors and takes only the label from here.
  */
 export function tribalArchetype(type: string, config: BulkBrewConfig): SynergyArchetype {
   const sec = config.builderWeights.secondary;
@@ -461,7 +520,9 @@ export interface CommanderTribe {
 /**
  * Tribes a commander's own text names (its Tagger `typal-<type>` tags, for
  * types the candidates hold) with their member and payoff copies against
- * the primary minimums. The commander is not one of the candidates.
+ * the primary minimums. The commander is not one of the candidates. This is
+ * the classic builder's count, for a tribe with a secondary style; the grow
+ * builder and the scan's `leadTribes` read the tribe rules.
  */
 export function commanderTribes(
   commander: CardRecord,
@@ -473,10 +534,10 @@ export function commanderTribes(
   if (tags.length === 0) return [];
   const types = new Map<string, string>();
   for (const c of cands)
-    if (c.facts.spell) for (const t of creatureTypes(c.facts.card)) types.set(t.toLowerCase(), t);
+    if (c.facts.spell) for (const t of creatureTypes(c.facts.card)) types.set(typalTag(t), t);
   const out: CommanderTribe[] = [];
   for (const tag of tags) {
-    const type = types.get(tag.slice(6));
+    const type = types.get(tag);
     if (!type) continue;
     const archetype = tribalArchetype(type, config);
     const want = minimumsFor(config, archetype, size);
