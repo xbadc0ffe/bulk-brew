@@ -9,7 +9,43 @@ import {
   type BuildResult,
   type Settings,
 } from '@bulk-brew/core';
+import { readdirSync, readFileSync } from 'node:fs';
+import path from 'node:path';
+import { hash32 } from '../../corpus.ts';
 import type { BuilderVersion, BuiltDeck, ReviewRequest } from '../version.ts';
+
+const coreHashes = new Map<string, string>();
+
+/**
+ * FNV-1a of packages/core/src (paths and text, line endings folded), so a deck's
+ * notes say which core built it, committed or not, and the runner rebuilds decks
+ * an older core made.
+ */
+export function coreSourceHash(root: string): string {
+  let h = coreHashes.get(root);
+  if (h) return h;
+  const dir = path.join(root, 'packages', 'core', 'src');
+  const files = (readdirSync(dir, { recursive: true }) as string[])
+    .map((f) => f.replace(/\\/g, '/'))
+    .filter((f) => f.endsWith('.ts'))
+    .sort();
+  const text = files
+    .map((f) => `${f}\n${readFileSync(path.join(dir, f), 'utf8').replace(/\r\n/g, '\n')}`)
+    .join('\n');
+  h = hash32(text).toString(16).padStart(8, '0');
+  coreHashes.set(root, h);
+  return h;
+}
+
+/** The notes head and head-web add to every deck: core, config, and learned data. */
+export function headNotes(ctx: {
+  root: string;
+  config: Parameters<typeof configVersion>[0];
+  index: { learnedVersion?: string | undefined };
+}): string {
+  const learned = ctx.index.learnedVersion;
+  return `Core ${coreSourceHash(ctx.root)}, config ${configVersion(ctx.config)}${learned ? `, learned data ${learned}` : ''}.`;
+}
 
 export function toBuildRequest(request: ReviewRequest, settings: Settings): BuildRequest {
   return {
@@ -48,8 +84,7 @@ const head: BuilderVersion = {
   label: 'Current builder (HEAD)',
   notes: 'buildDeck from the current core with config/ and data/learned.json. Ignores the seed.',
   prepare(ctx) {
-    const learned = ctx.index.learnedVersion;
-    return `Config ${configVersion(ctx.config)}${learned ? `, learned data ${learned}` : ''}.`;
+    return headNotes(ctx);
   },
   build(ctx) {
     const result = buildDeck(

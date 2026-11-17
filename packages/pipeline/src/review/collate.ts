@@ -20,6 +20,7 @@ import {
   type DeckRef,
   type InventoryRow,
   type PairMatch,
+  type PickRecord,
   type SingleKey,
 } from './packets.ts';
 
@@ -437,6 +438,52 @@ export interface AnotherStyleRow {
   setAsideDecent: number;
 }
 
+/** One version at one size over the requests a plan picked (`requests` entries). */
+export interface PickedRow {
+  version: string;
+  size: number;
+  picked: number;
+  /** Packets with a valid answer. */
+  judged: number;
+  decent: number;
+  declined: number;
+  anotherStyle: number;
+  /** No deck file for the request. */
+  missing: number;
+  /** Packets with no valid answer yet; left out of the rate. */
+  unanswered: number;
+  /**
+   * decent / (picked - unanswered): a declined request, a deck in another style,
+   * or a missing deck counts as not decent.
+   */
+  decentRate: number | null;
+  meanScore: number | null;
+  /** Styles built on the picked requests, by style id, plus "declined" and "no deck". */
+  styles: Record<string, number>;
+}
+
+/** One picked request and what each version made of it. */
+export interface PickedRequestRow {
+  size: number;
+  request: string;
+  /** By version: the style built and the verdict, or what became of the request. */
+  cells: Record<string, string>;
+  /** By version: decent or not (a decline or no deck is not); absent while unanswered. */
+  decent: Record<string, boolean>;
+}
+
+/**
+ * The requests every version in the plan took (such as a 12-deck version's
+ * picks inside a 40-deck one's), with a verdict for each version: per size,
+ * and pooled over the sizes (size null).
+ */
+export interface PickedCommonRow {
+  size: number | null;
+  requests: number;
+  /** By version: decent decks on those requests. */
+  decent: Record<string, number>;
+}
+
 export interface Collation {
   batch: string;
   seed: number;
@@ -448,6 +495,12 @@ export interface Collation {
   unanswered: string[];
   invalid: FileProblem[];
   warnings: FileProblem[];
+  /** Plan entries with `requests`: every picked request counts, declines as not decent. */
+  picked: PickedRow[];
+  pickedRequests: PickedRequestRow[];
+  pickedCommon: PickedCommonRow[];
+  /** Versions in plan order, for the per-request table. */
+  pickedVersions: string[];
   bySize: SizeRow[];
   /** Per version, size, and request kind (themed, shape, best fit). */
   byKind: KindRow[];
@@ -543,6 +596,131 @@ function versionOrder(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0;
 }
 
+/** The picked request a pick names, the same for every version that took it. */
+function pickKey(p: PickRecord): string {
+  const r = p.request;
+  return [r.pool, r.size, r.colors, r.style ?? '', r.secondary ?? '', r.commander ?? ''].join('|');
+}
+
+function pickLabel(p: PickRecord): string {
+  const r = p.request;
+  const pool = r.pool.replace(/^.*\//, '').replace(/\.json$/, '');
+  return (
+    `${pool} ${r.colors || 'C'}` +
+    (r.style ? ` ${r.style}` : '') +
+    (r.secondary ? `+${r.secondary}` : '') +
+    (r.commander ? ` under ${r.commanderName ?? r.commander.slice(0, 8)}` : '')
+  );
+}
+
+/**
+ * Per version and size over every picked request, and per request across the
+ * versions: a declined request, a deck in another style, or no deck counts as
+ * not decent; a packet without a valid answer is left out of the rate.
+ */
+function pickedTables(
+  picks: readonly PickRecord[],
+  answerOf: ReadonlyMap<string, SingleAnswer>,
+): {
+  picked: PickedRow[];
+  pickedRequests: PickedRequestRow[];
+  pickedCommon: PickedCommonRow[];
+  pickedVersions: string[];
+} {
+  const versions: string[] = [];
+  for (const p of [...picks].sort((a, b) => a.entry - b.entry))
+    if (!versions.includes(p.version)) versions.push(p.version);
+  const rows = new Map<string, PickedRow & { scores: number[] }>();
+  const requests = new Map<string, PickedRequestRow>();
+  for (const p of picks) {
+    const size = p.request.size;
+    const k = `${p.version}|${size}`;
+    let row = rows.get(k);
+    if (!row) {
+      row = {
+        version: p.version,
+        size,
+        picked: 0,
+        judged: 0,
+        decent: 0,
+        declined: 0,
+        anotherStyle: 0,
+        missing: 0,
+        unanswered: 0,
+        decentRate: null,
+        meanScore: null,
+        styles: {},
+        scores: [],
+      };
+      rows.set(k, row);
+    }
+    row.picked++;
+    const style =
+      p.outcome === 'declined' ? 'declined' : p.outcome === 'missing' ? 'no deck' : p.archetype!;
+    row.styles[style] = (row.styles[style] ?? 0) + 1;
+    let cell: string;
+    let decent: boolean | undefined = false;
+    if (p.outcome === 'declined') {
+      row.declined++;
+      cell = 'declined';
+    } else if (p.outcome === 'missing') {
+      row.missing++;
+      cell = 'no deck';
+    } else if (p.outcome === 'another style') {
+      row.anotherStyle++;
+      cell = `${p.archetype}, another style`;
+    } else {
+      const answer = p.packet ? answerOf.get(p.packet) : undefined;
+      if (!answer) {
+        row.unanswered++;
+        decent = undefined;
+        cell = `${p.archetype}, unanswered`;
+      } else {
+        row.judged++;
+        row.scores.push(answer.score);
+        if (answer.decent) row.decent++;
+        decent = answer.decent;
+        cell = `${p.archetype}, ${answer.decent ? 'decent' : 'not decent'} (${answer.score})`;
+      }
+    }
+    const rk = `${size}|${pickKey(p)}`;
+    const req = requests.get(rk) ?? { size, request: pickLabel(p), cells: {}, decent: {} };
+    req.cells[p.version] = cell;
+    if (decent !== undefined) req.decent[p.version] = decent;
+    requests.set(rk, req);
+  }
+  const bySize = (a: number, b: number) => SIZE_ORDER.indexOf(a) - SIZE_ORDER.indexOf(b);
+  const picked = [...rows.values()]
+    .sort(
+      (a, b) => versions.indexOf(a.version) - versions.indexOf(b.version) || bySize(a.size, b.size),
+    )
+    .map(({ scores, ...r }) => ({
+      ...r,
+      decentRate: share(r.decent, r.picked - r.unanswered),
+      meanScore: scores.length ? round(scores.reduce((n, s) => n + s, 0) / scores.length) : null,
+    }));
+  const pickedRequests = [...requests.values()].sort(
+    (a, b) =>
+      bySize(a.size, b.size) || (a.request < b.request ? -1 : a.request > b.request ? 1 : 0),
+  );
+  // Requests every version took and has a verdict on, so the versions compare on equal terms.
+  const common = pickedRequests.filter((r) => versions.every((v) => v in r.decent));
+  const commonRow = (size: number | null): PickedCommonRow => {
+    const rows = common.filter((r) => size === null || r.size === size);
+    return {
+      size,
+      requests: rows.length,
+      decent: Object.fromEntries(versions.map((v) => [v, rows.filter((r) => r.decent[v]).length])),
+    };
+  };
+  const sizes = SIZE_ORDER.filter((s) => common.some((r) => r.size === s));
+  const pickedCommon =
+    versions.length > 1 && common.length
+      ? [...sizes.map(commonRow), ...(sizes.length > 1 ? [commonRow(null)] : [])]
+      : [];
+  return { picked, pickedRequests, pickedCommon, pickedVersions: versions };
+}
+
 /**
  * Collate answers against a batch key. Pure, so the final report can reuse it.
  * Built and declined counts come from `counts` when given (every deck file, as
@@ -597,11 +775,14 @@ export function collate(
   const judged: Judged[] = [];
   const setAside = new Map<string, number>();
   const setAsideDecent = new Map<string, number>();
+  // The answer that counts for each deck, by its first packet's id.
+  const answerOf = new Map<string, SingleAnswer>();
   for (const [id, e] of single) {
     if (e.duplicateOf) continue;
     const useId = [id, ...(seconds.get(id) ?? [])].find((x) => singles.has(x));
     if (!useId) continue;
     const answer = singles.get(useId)!;
+    answerOf.set(id, answer);
     // Another style built counts as declined, so its judgment stays out of every table.
     if (substitute(e)) {
       setAside.set(e.version, (setAside.get(e.version) ?? 0) + 1);
@@ -663,6 +844,11 @@ export function collate(
     };
     if (row.styled || row.judgedSetAside) anotherStyle.push(row);
   }
+
+  const { picked, pickedRequests, pickedCommon, pickedVersions } = pickedTables(
+    key.picks ?? [],
+    answerOf,
+  );
 
   const anchors: AnchorRow[] = ANCHOR_VERSIONS.map((version) => {
     const mine = judged.filter((j) => j.ref.version === version);
@@ -798,6 +984,10 @@ export function collate(
     unanswered,
     invalid,
     warnings,
+    picked,
+    pickedRequests,
+    pickedCommon,
+    pickedVersions,
     bySize,
     byKind,
     byStyle,
@@ -912,9 +1102,90 @@ export function renderCollation(c: Collation): string {
     '',
     '"Of style, built" is the share of judged built decks with a requested style that the judge called a decent deck of that style. "Of style, all requests" is over every styled request, counting a declined or substituted one as not decent of its style.',
     '',
-    '## By version and size',
-    '',
   );
+  if (c.picked.length) {
+    L.push(
+      '## Picked requests',
+      '',
+      'The plan picked these requests from a jobs file, whatever any version built, and every version that takes them is judged on the same ones. "Decent, all picked" counts a declined request, a deck in another style, or a request with no deck file as not decent; packets with no valid answer yet are left out of it.',
+      '',
+      ...table(
+        [
+          'Version',
+          'Size',
+          'Picked',
+          'Judged',
+          'Decent, all picked',
+          'Mean score',
+          'Declined',
+          'Another style',
+          'No deck',
+          'Unanswered',
+        ],
+        c.picked.map((r) => [
+          r.version,
+          String(r.size),
+          String(r.picked),
+          String(r.judged),
+          r.picked - r.unanswered ? `${pct(r.decentRate)} (${r.decent})` : '-',
+          num(r.meanScore),
+          String(r.declined),
+          String(r.anotherStyle),
+          String(r.missing),
+          String(r.unanswered),
+        ]),
+      ),
+      '',
+    );
+    if (c.pickedCommon.length)
+      L.push(
+        '### On the requests every version took',
+        '',
+        'Only requests every version in the plan took and has a verdict on, so a version judged on fewer decks (a 12 inside a 40) compares on the same requests. A decline or a missing deck counts as not decent. "All" pools the sizes.',
+        '',
+        ...table(
+          ['Size', 'Requests', ...c.pickedVersions],
+          c.pickedCommon.map((r) => [
+            r.size === null ? 'all' : String(r.size),
+            String(r.requests),
+            ...c.pickedVersions.map(
+              (v) => `${pct(share(r.decent[v] ?? 0, r.requests))} (${r.decent[v] ?? 0})`,
+            ),
+          ]),
+        ),
+        '',
+      );
+    L.push(
+      '### Styles built on the picked requests',
+      '',
+      ...table(
+        ['Version', 'Size', 'Styles'],
+        c.picked.map((r) => [
+          r.version,
+          String(r.size),
+          Object.entries(r.styles)
+            .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))
+            .map(([s, n]) => `${s} ${n}`)
+            .join(', '),
+        ]),
+      ),
+      '',
+    );
+    for (const size of SIZE_ORDER) {
+      const rows = c.pickedRequests.filter((r) => r.size === size);
+      if (!rows.length) continue;
+      L.push(
+        `### Each picked request at ${size}`,
+        '',
+        ...table(
+          ['Request', ...c.pickedVersions],
+          rows.map((r) => [r.request, ...c.pickedVersions.map((v) => r.cells[v] ?? '-')]),
+        ),
+        '',
+      );
+    }
+  }
+  L.push('## By version and size', '');
   L.push(
     ...table(
       ['Version', 'Size', ...STAT_HEAD],

@@ -7,7 +7,7 @@ npm run review:pools                     # writes only pools that are missing
 npm run review:pools -- --force          # rewrites every pool
 ```
 
-Flags: `--out <dir>` (default `data/review/pools`), `--only plain|theme|public|owner`, `--plain <n>` (plain pools, default 30), `--copies <n>` (copies per plain pool, default 3000), `--extra <n>` (theme copies per theme pool, default 120), `--seed-prefix <p>` (a new set of seeds, below), `--force`. Everything below uses the defaults.
+Flags: `--out <dir>` (default `data/review/pools`), `--only plain|theme|public|owner`, `--plain <n>` (plain pools, default 30), `--copies <n>` (copies per plain pool, default 3000), `--extra <n>` (theme copies per theme pool, default 120), `--themes <n>` (theme pools per style, default 3), `--rotate-themes` (spread the theme pools over the plain bases, below), `--seed-prefix <p>` (a new set of seeds, below), `--force`. Everything below uses the defaults.
 
 The output is gitignored. Running the command twice gives byte-identical files (checked with sha256 over all 105 files after a `--force` rerun and after a plain rerun). The data pack, the config, and the EDHREC pages in `data/edhrec/` decide the cards, so a new pack, config, or page fetch can change the pools; the seeds never change. Each pool records the data pack and config versions that made it, and the command warns when pools on disk came from another pack or config: rerun with `--force` then, so the index and `themes.json` match the pools.
 
@@ -50,6 +50,8 @@ An index entry has `id`, `kind`, `path` (relative to the index), `copies`, `dist
 | theme  |    54 | `theme/`  |
 | public |    11 | `public/` |
 | owner  |     8 | `owner/`  |
+
+The seed prefix sets (below) add `h1` (12 plain, 54 theme) and `h2` (12 plain, 18 theme).
 
 ## Plain bulk: the main test
 
@@ -131,6 +133,25 @@ npm run review:pools -- --seed-prefix h1
 - The index lists every pool on disk, prefixed or not. `npm run review:requests -- --prefix h1` picks one set (`docs/review/requests.md`).
 
 Without the flag, the files are byte-identical to the ones before it existed: on 2026-11-11 a rerun into another folder matched all 30 plain, 54 theme, and 11 public files and `themes.json`.
+
+**Theme pools per style and their bases.** `--themes <n>` makes n theme pools per style instead of 3. They sit on plain bases 1 to n, as above, unless `--rotate-themes` is given: then the k-th style in config order (k from 0) takes bases k + 1 to k + n, wrapping over the `--plain` bases, so one pool per style spreads the styles over every base instead of stacking them on the first. A pool's id, file, and seed text keep its base number (`h2-theme-counters-02`, `theme/h2-counters-02.json`, `hash32('review:h2:theme:counters:2')`), and its recipe names the base. With `--rotate-themes`, `--themes` may not exceed `--plain`, since two pools of one style on one base would share an id. Without either flag nothing changes.
+
+### h1: builder phase 1
+
+12 plain pools and 54 theme pools (18 styles on `h1-plain-01` to `-03`), made on 2026-11-11 for the panel of `docs/builder-phase1.md`; `--seed-prefix h1 --plain 12` makes this set.
+
+### h2: builder phase 2, step 3
+
+Held out for the plan picker's panel (`docs/builder-phase2.md`, step 3). Nobody may open, print, or summarize these pools beyond their file names and card counts while building; the command's theme table and `themes-h2.json` count cards in the bases, so leave them unread too. Made on 2026-11-17 with data pack `2026-11-03.s2` and config `t5.c4.r2.a10.s8.l4.w12.k2.h5.n2.qdi9pv.p1wyug0e.g1hono2u`, with the EDHREC pages in `data/edhrec/` as for the first rounds:
+
+```sh
+npm run review:pools -- --seed-prefix h2 --plain 12 --themes 1 --rotate-themes
+```
+
+- Seed prefix `h2`: plain pools from `hash32('review:h2:plain:' + n)`, theme extras from `hash32('review:h2:theme:' + style + ':' + base)`.
+- 12 plain pools, `plain/h2-plain-01.json` to `h2-plain-12.json`, 3,000 copies each.
+- 18 theme pools, one per themed style (the 18 synergy styles of `config/archetypes.json`, the same styles `config/theme-rules.json` describes), 3,120 copies each, on rotated bases: `theme/h2-tokens-01`, `counters-02`, `aristocrats-03`, `graveyard-04`, `spells-05`, `lifegain-06`, `artifacts-07`, `auras-08`, `flyers-09`, `burn-10`, `landfall-11`, `mill-12`, `enchantments-01`, `bigCreatures-02`, `tappers-03`, `groupHug-04`, `goad-05`, `energy-06` (each `.json`).
+- 30 pools in all, 92,160 copies.
 
 ## Public fixed pools
 

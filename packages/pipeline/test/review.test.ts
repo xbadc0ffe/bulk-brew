@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { ROOT } from '../src/corpus.ts';
 import {
   buildReviewDeck,
+  cardDifferences,
   createContext,
   deckDifferences,
   deckFileName,
@@ -94,6 +95,38 @@ describe('poolHash', () => {
   });
 });
 
+describe('cardDifferences', () => {
+  const deck = (over: Partial<ReviewDeck['deck']> = {}, error?: string): ReviewDeck => ({
+    version: 'v',
+    pool: { id: 'p', source: 'p.txt', hash: '0', cards: 1 },
+    request: { size: 60, colors: ['R'], seed: 1 },
+    deck: {
+      name: 'Red Aggro 60',
+      archetype: 'aggro',
+      cards: [{ id: 'a', name: 'A', qty: 4 }],
+      basics: { R: 20 },
+      ...over,
+    },
+    buildMs: 1,
+    ...(error ? { error } : {}),
+    builtAt: 'x',
+    dataVersion: 'x',
+  });
+
+  it('counts only a decline, other cards, or other basics', () => {
+    expect(
+      cardDifferences(deck(), deck({ name: 'Red Midrange 60', archetype: 'midrange' })),
+    ).toEqual([]);
+    expect(cardDifferences(deck(), deck({ basics: { R: 21 } }))).toEqual([
+      'basics: 0,0,0,20,0 / 0,0,0,21,0',
+    ]);
+    expect(cardDifferences(deck(), deck({ cards: [{ id: 'a', name: 'A', qty: 3 }] }))).toEqual([
+      'cards differ',
+    ]);
+    expect(cardDifferences(deck(), deck({}, 'no deck'))).toEqual(['error: none / no deck']);
+  });
+});
+
 // CI has no data pack (npm run check runs without data:pull), so these run only locally.
 const PACK = path.join(ROOT, 'data', 'packs', 'cards.json');
 
@@ -153,8 +186,14 @@ describe.skipIf(!existsSync(PACK))('review:build with head on a public pool', ()
         colors: 'U',
         size: 20,
       };
+      const first = await runJob(job, ctx);
+      expect(first.skipped).toBe(false);
+      expect((await runJob(job, ctx)).skipped).toBe(true);
+      // A deck from another builder (its notes name the commit, core, or config) is stale.
+      writeFileSync(first.file, JSON.stringify({ ...first.deck, versionNotes: 'an older build' }));
       expect((await runJob(job, ctx)).skipped).toBe(false);
       expect((await runJob(job, ctx)).skipped).toBe(true);
+      expect((await runJob(job, { ...ctx, force: true })).skipped).toBe(false);
 
       // Same cards from another file: without an id it would share the deck file, so it is refused.
       const { pool } = planJob(job, ctx);

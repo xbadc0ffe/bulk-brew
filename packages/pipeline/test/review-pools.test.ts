@@ -12,6 +12,8 @@ import {
   restrictSource,
   SEED_PREFIX,
   seedPrefixProblem,
+  THEME_SAMPLES,
+  themeBases,
   themeSeed,
   twoDigits,
   withFallback,
@@ -73,6 +75,15 @@ describe('seeds', () => {
     // "plain-01" starts with "plain-", so the set "plain" would take in the first round's pools.
     for (const kind of ['plain', 'theme', 'public', 'owner', 'Public'])
       expect(seedPrefixProblem(kind), kind).toMatch(/pool kind/);
+  });
+
+  it('put theme pools on bases 1 to n, or rotate them over the plain bases', () => {
+    expect(themeBases(0, THEME_SAMPLES, 30, false)).toEqual([1, 2, 3]);
+    expect(themeBases(17, THEME_SAMPLES, 30, false)).toEqual([1, 2, 3]);
+    // One pool per style over 12 bases: the 18 styles fill bases 1 to 12, then 1 to 6 again.
+    const one = Array.from({ length: 18 }, (_, k) => themeBases(k, 1, 12, true)[0]);
+    expect(one).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6]);
+    expect(themeBases(11, 2, 12, true)).toEqual([12, 1]);
   });
 });
 

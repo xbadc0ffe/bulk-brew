@@ -1,9 +1,18 @@
-import { existsSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
-import type { Settings } from '@bulk-brew/core';
+import type { Color, Settings } from '@bulk-brew/core';
 import { ROOT } from '../src/corpus.ts';
 import { toOptionsRequest } from '../src/review/algos/head-web.ts';
+import {
+  checkTracked,
+  isInside,
+  toShippedBuildRequest,
+  toShippedOptionsRequest,
+  worktreeDir,
+} from '../src/review/algos/shipped-core.ts';
 import {
   buildReviewDeck,
   createContext,
@@ -44,6 +53,105 @@ describe('toOptionsRequest', () => {
       secondary: 'tokens',
       commander: 'lathril',
     });
+  });
+});
+
+describe('shipped requests', () => {
+  const settings: Settings = {
+    maxCopies: { 100: 1, 60: 4, 40: 4, 20: 2 },
+    unlimitedBasics: true,
+    includeUnsets: false,
+    showArt: false,
+  };
+
+  // What head and useDeckOptions send at f88a87e, written out so a later change to head cannot move them.
+  it('sends buildDeck and the options search what the shipped commit sends', () => {
+    const styled = {
+      size: 100 as const,
+      colors: ['B', 'G'] as Color[],
+      style: 'tribal:Elf',
+      secondary: 'tokens',
+      commander: 'lathril',
+      seed: 3,
+    };
+    expect(toShippedBuildRequest(styled, settings)).toEqual({
+      size: 100,
+      colors: ['B', 'G'],
+      settings,
+      style: 'tribal:Elf',
+      requireStyle: true,
+      secondary: 'tokens',
+      commander: 'lathril',
+      id: 'review',
+      createdAt: 'review',
+    });
+    expect(toShippedOptionsRequest(styled, settings)).toEqual({
+      size: 100,
+      colors: ['B', 'G'],
+      settings,
+      primary: 'tribal:Elf',
+      secondary: 'tokens',
+      commander: 'lathril',
+    });
+    const bestFit = { size: 60 as const, colors: ['R'] as Color[], secondary: 'tokens', seed: 1 };
+    expect(toShippedBuildRequest(bestFit, settings)).toEqual({
+      size: 60,
+      colors: ['R'],
+      settings,
+      secondary: 'tokens',
+      id: 'review',
+      createdAt: 'review',
+    });
+    expect(toShippedOptionsRequest(bestFit, settings)).toEqual({
+      size: 60,
+      colors: ['R'],
+      settings,
+    });
+  });
+
+  it('tells a path inside the worktree from one beside it', () => {
+    const dir = path.join(ROOT, '..', 'bulk-brew-shipped');
+    expect(isInside(path.join(dir, 'packages'), dir)).toBe(true);
+    expect(isInside(dir, dir)).toBe(true);
+    expect(isInside(ROOT, dir)).toBe(false);
+    expect(isInside(`${dir}-other`, dir)).toBe(false);
+  });
+
+  it('refuses a loaded file that git does not track there', () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'bb-shipped-'));
+    try {
+      const git = (...args: string[]) =>
+        execFileSync('git', ['-C', dir, ...args], { stdio: ['ignore', 'pipe', 'pipe'] });
+      git('init', '-q');
+      writeFileSync(path.join(dir, 'tracked.json'), '{}');
+      writeFileSync(path.join(dir, 'stray.json'), '{}');
+      git('add', 'tracked.json');
+      expect(() => checkTracked(dir, 'abcdef0', [path.join(dir, 'tracked.json')])).not.toThrow();
+      expect(() =>
+        checkTracked(dir, 'abcdef0', [
+          path.join(dir, 'tracked.json'),
+          path.join(dir, 'stray.json'),
+        ]),
+      ).toThrow(/not in commit abcdef0: stray\.json/);
+      expect(() => checkTracked(dir, 'abcdef0', [path.join(tmpdir(), 'elsewhere.json')])).toThrow(
+        /outside/,
+      );
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('finds the worktree next to the repo unless REVIEW_WORKTREE_SHIPPED says otherwise', () => {
+    const before = process.env.REVIEW_WORKTREE_SHIPPED;
+    try {
+      delete process.env.REVIEW_WORKTREE_SHIPPED;
+      expect(worktreeDir(ROOT)).toBe(path.resolve(ROOT, '..', 'bulk-brew-shipped'));
+      process.env.REVIEW_WORKTREE_SHIPPED = 'elsewhere';
+      expect(worktreeDir(ROOT)).toBe(path.resolve(ROOT, 'elsewhere'));
+    } finally {
+      if (before === undefined) delete process.env.REVIEW_WORKTREE_SHIPPED;
+      else process.env.REVIEW_WORKTREE_SHIPPED = before;
+    }
   });
 });
 

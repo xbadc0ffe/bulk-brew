@@ -4,7 +4,7 @@
 //
 // Usage: npm run review:requests -- [--pools plain,theme,public,owner] [--plain 30]
 //   [--prefix <p>] [--sizes 60,100,40,20] [--versions head,head-web,v26.0.30,random]
-//   [--bestfit-only head-web,random] [--no-two-color] [--out data/review/jobs] [--force]
+//   [--bestfit-only head-web,random] [--bestfit] [--no-two-color] [--out data/review/jobs] [--force]
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -172,6 +172,21 @@ export function styleRequests(
   return out;
 }
 
+/**
+ * The styles requested for one pool, size, and color set. With `bestfit`
+ * (--bestfit) that is best fit alone, and nothing when the scan says the size
+ * cannot be built in those colors: every version would decline it.
+ */
+export function stylesFor(
+  scan: Pick<ScanReport, 'archetypes' | 'possible'>,
+  bestfit: boolean,
+  enriched?: string,
+  extraViable: readonly string[] = [],
+): { style?: string; reason: Reason }[] {
+  if (bestfit) return scan.possible ? [{ reason: 'bestfit' }] : [];
+  return styleRequests(scan, enriched, extraViable);
+}
+
 /** Partner, Partner with, Friends forever, Choose a Background, Doctor's companion. */
 export function isPartner(card: Pick<CardRecord, 'keywords'>): boolean {
   return card.keywords.some((k) =>
@@ -320,8 +335,12 @@ function main(): number {
   const kinds = list<PoolKind>(arg('pools'), DEFAULT_KINDS);
   const sizes = list(arg('sizes'), ALL_SIZES.map(String)).map(Number) as ReviewSize[];
   const versions = list(arg('versions'), DEFAULT_VERSIONS);
+  // --bestfit makes every version best fit only.
+  const bestfit = flag('bestfit');
   const bestfitOnly = new Set(
-    list(arg('bestfit-only'), DEFAULT_BESTFIT_ONLY).filter((v) => v !== 'none'),
+    bestfit
+      ? versions
+      : list(arg('bestfit-only'), DEFAULT_BESTFIT_ONLY).filter((v) => v !== 'none'),
   );
   const plainArg = arg('plain');
   const plainCount = plainArg === undefined ? Infinity : Number(plainArg);
@@ -377,6 +396,8 @@ function main(): number {
   const perPool = new Map<string, PoolRequest[]>();
   const noCommander: string[] = [];
   const preferred: string[] = [];
+  /** Color sets and commanders --bestfit leaves out because the scan cannot build the size. */
+  let impossible = 0;
   for (const entry of entries) {
     const file = path.join(POOLS_DIR, entry.path);
     const poolPath = rel(file);
@@ -400,13 +421,16 @@ function main(): number {
       if (size !== 100) {
         for (const colors of poolColorSets(entry.kind, entry.colors, comment)) {
           const scan = scanPool(pool, index, config, settings, size, colors);
-          for (const s of styleRequests(scan, enriched)) out.push({ ...base, size, colors, ...s });
+          const styles = stylesFor(scan, bestfit, enriched);
+          if (!styles.length) impossible++;
+          for (const s of styles) out.push({ ...base, size, colors, ...s });
         }
         if (hasTwoColor(entry.kind, size, twoColor))
           for (const colors of twoColorSets()) {
             const scan = scanPool(pool, index, config, settings, size, colors);
-            for (const s of styleRequests(scan))
-              out.push({ ...base, size, colors, ...s, slice: 'two-color' });
+            const styles = stylesFor(scan, bestfit);
+            if (!styles.length) impossible++;
+            for (const s of styles) out.push({ ...base, size, colors, ...s, slice: 'two-color' });
           }
         continue;
       }
@@ -434,7 +458,9 @@ function main(): number {
           (c) => c.facts.card.id !== pick.id,
         );
         const scan = scanCandidates(cands, config, settings, 100, pick.colors);
-        for (const s of styleRequests(scan, enriched, pick.primaryTribes))
+        const styles = stylesFor(scan, bestfit, enriched, pick.primaryTribes);
+        if (!styles.length) impossible++;
+        for (const s of styles)
           out.push({
             ...base,
             size,
@@ -467,6 +493,7 @@ function main(): number {
       sizes: ordered,
       versions,
       bestfitOnly: versions.filter((v) => bestfitOnly.has(v)),
+      ...(bestfit ? { bestfit } : {}),
       twoColor,
     },
     files: versions.flatMap((version) =>
@@ -584,6 +611,10 @@ function main(): number {
       `${twoColor ? '' : ', turned off'}); ${entries.length} pools` +
       `${prefix !== undefined ? ` with prefix ${prefix}` : ''}; data ${index.dataVersion}`,
   );
+  if (bestfit)
+    console.log(
+      `best fit only; ${impossible} color sets or commanders left out because the scan cannot build the size`,
+    );
   if (noCommander.length) console.log(`no commander at 100 for: ${noCommander.join(', ')}`);
   if (preferred.length)
     console.log(`commander swapped for the theme's color: ${preferred.join(', ')}`);

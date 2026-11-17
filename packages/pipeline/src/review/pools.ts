@@ -4,7 +4,8 @@
 // request generator reads. Recipes and seeds: docs/review/pools.md.
 //
 // Usage: npm run review:pools -- [--only plain|theme|public|owner] [--plain 30]
-//   [--copies 3000] [--extra 120] [--seed-prefix <p>] [--out data/review/pools] [--force]
+//   [--copies 3000] [--extra 120] [--themes 3] [--rotate-themes] [--seed-prefix <p>]
+//   [--out data/review/pools] [--force]
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -65,8 +66,18 @@ export interface IndexEntry {
   colors: ColorCounts;
 }
 
-/** Theme pools per style, each on plain sample 1, 2, 3. */
+/** Theme pools per style, each on plain sample 1, 2, 3, unless --themes says otherwise. */
 export const THEME_SAMPLES = 3;
+
+/**
+ * The plain bases of the k-th themed style's pools (k from 0, in config order):
+ * bases 1 to `perStyle`, or with `rotate` bases k + 1 onward, wrapping over the
+ * `plain` bases, so one pool per style spreads the styles over every base.
+ */
+export function themeBases(k: number, perStyle: number, plain: number, rotate: boolean): number[] {
+  return Array.from({ length: perStyle }, (_, j) => (rotate ? ((k + j) % plain) + 1 : j + 1));
+}
+
 const RARITIES: readonly Rarity[] = ['common', 'uncommon', 'rare', 'mythic'];
 
 /**
@@ -240,7 +251,7 @@ export interface ThemeStats {
   /** The union, by rarity. */
   byRarity: Record<Rarity, number>;
   candidates: number;
-  /** Copies of candidate cards already in each plain base, samples 1 to 3. */
+  /** Copies of candidate cards already in the plain base of each of the style's pools. */
   baseCopies: number[];
 }
 
@@ -323,6 +334,10 @@ interface Options {
   plain: number;
   copies: number;
   extra: number;
+  /** Theme pools per style. */
+  themes: number;
+  /** Spread each style's theme pools over the plain bases (themeBases). */
+  rotate: boolean;
   force: boolean;
   /** Plain and theme pools only; public and owner pools have no seed. */
   prefix?: string;
@@ -346,8 +361,13 @@ function readOptions(): Options {
     plain: count('plain', 30),
     copies: count('copies', 3000),
     extra: count('extra', 120),
+    themes: count('themes', THEME_SAMPLES),
+    rotate: flag('rotate-themes'),
     force: flag('force'),
   };
+  // Two pools of one style on one base would share an id.
+  if (opts.rotate && opts.themes > opts.plain)
+    throw new Error(`--rotate-themes needs --themes at most --plain (${opts.plain})`);
   if (only) opts.only = only as PoolKind;
   const prefix = arg('seed-prefix');
   if (prefix !== undefined) {
@@ -456,14 +476,16 @@ function main(): number {
     const styles = config.archetypes.archetypes
       .filter((a) => a.kind === 'synergy')
       .map((a) => a.id);
-    for (const style of styles) {
+    let made = 0;
+    for (const [k, style] of styles.entries()) {
       const theme = themeCandidates(style, source, index, config);
       stats[style] = theme.stats;
       const themeSource = restrictSource(source, theme.ids);
       const from = theme.stats.pages.length
         ? `${theme.stats.matchers} from the matchers, ${theme.stats.edhrecAdded} more from EDHREC pages ${theme.stats.pages.join(', ')}`
         : `${theme.stats.matchers} from the matchers, no EDHREC page`;
-      for (let n = 1; n <= THEME_SAMPLES; n++) {
+      for (const n of themeBases(k, opts.themes, opts.plain, opts.rotate)) {
+        made++;
         const base = plainOf(n);
         theme.stats.baseCopies.push(
           base.reduce((a, [id, q]) => a + (theme.ids.has(id) ? q : 0), 0),
@@ -487,7 +509,8 @@ function main(): number {
     mkdirSync(opts.out, { recursive: true });
     writeFileSync(path.join(opts.out, names.themesFile), JSON.stringify(stats, null, 2) + '\n');
     console.log(
-      `theme: ${styles.length * THEME_SAMPLES} pools, ${styles.length} styles` +
+      `theme: ${made} pools, ${styles.length} styles` +
+        (opts.rotate ? ', bases rotated' : '') +
         (opts.prefix ? `, seed prefix ${opts.prefix} (counts in ${names.themesFile})` : ''),
     );
     console.log(

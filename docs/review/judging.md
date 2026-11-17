@@ -46,10 +46,12 @@ npm run review:packets -- --batch <name> --plan data/review/scratch/plan.json --
   ]
   ```
 
-  `version` and `count` are required. `size`, `kinds`, and `styles` narrow the match when given. A style is the requested style id, or `bestfit` for a best fit request. Three more fields narrow or steer an entry:
+  `version` and `count` are required. `size`, `kinds`, and `styles` narrow the match when given. A style is the requested style id, or `bestfit` for a best fit request. Five more fields narrow or steer an entry:
   - `poolPrefix`: the pool id must start with it, such as `"h1-"` for one seed prefix's pools (`docs/review/pools.md`).
   - `substituted`: `true` takes only decks built in another style than the one requested (such as a note-and-nearest deck), `false` only decks that kept it. Best fit never substitutes, so it counts as kept. Absent takes any.
   - `sameAs`: the number (from 1) of an earlier entry. This entry first takes its own version's decks for the requests that entry drew, in the order it drew them: the same pool (id and cards), size, colors, style, secondary, and commander, with the seed ignored so a one-seed version matches either `random` pile. A deck of this version that declined the request has nothing to draw, and one built in another style is passed over unless the entry asks for `substituted: true`, since collation would set its judgment aside. The entry takes the earlier entry's `size`, `kinds`, `styles`, and `poolPrefix` unless it gives its own, so its top-up and the pairs drawn from the plan stay on the same pools. Its other fields still filter, and `count` caps it. Then it tops up at random to `count`. The key's notes say, per such entry, how many of the earlier entry's requests matched, how many found a declined deck, a deck in another style, or no deck left to draw, and how many more came at random. This makes paired singles: two versions judged on the same requests.
+  - `spread`: `true` spreads the entry's own draw over pools and colors instead of drawing uniformly (the spread draw, below). On a `sameAs` entry it applies only to the top-up.
+  - `requests`: a jobs file from `review:requests`, such as `"data/review/jobs-h2/main-head.json"` (fixed picks, below). Not with `sameAs`.
 
   ```json
   [
@@ -64,6 +66,10 @@ npm run review:packets -- --batch <name> --plan data/review/scratch/plan.json --
     { "version": "head", "poolPrefix": "h1-", "substituted": true, "count": 10 }
   ]
   ```
+
+- **The spread draw** (`spreadPicks` in `packets.ts`). The candidates (an entry's matching decks, or with `requests` the requests of a jobs file), sorted, are shuffled with the seed text `review:packets:<seed>:plan:<entry index from 0>`, as a uniform draw would be. Then the picks are made one at a time: each takes the first candidate left in that order whose pool has the fewest picks so far, and among those, whose most-picked color letter has the fewest picks so far. The letters are the requested colors (W, U, B, R, G; a request with no colors counts as C), so a two-color request counts by the more-picked of its two. Decks the entry already took through `sameAs` count as picks. So every pool is picked once before any pool twice, the colors stay level within each round, and the first few picks already cover different pools and colors. Only the pool and the requested colors count: never the style or the colors a version built.
+
+- **Fixed picks.** An entry with `requests` draws requests, not decks: the jobs file's requests that match the entry (`size`, `kinds`, `styles`, and `poolPrefix`, read from the job's deck file name, which starts with the pool id), one per request with the seed aside, sorted, then `count` of them, spread or uniform. No version's decks enter the choice, so what any version built or declined cannot move it. For each picked request the entry takes its own version's deck (the same pool file, size, colors, style, secondary, and commander). A `sameAs` entry naming it takes the first `count` of the same picked requests, in pick order, and its own version's deck for each. A picked request a version declined, answered with another style, or has no deck file for gets no packet and nothing in its place: the key's `picks` records it (per entry, version, and request: `packet`, `declined`, `another style`, or `missing`, with the deck file, the style built, and the packet id), and collation counts it as not decent. The key's notes give the counts per entry. The review:requests job files hold the same requests for every version, so any version's file serves.
 
 - **Pool kind** comes from where the pool file lives: `data/review/pools/<kind>/` gives `plain`, `theme`, `public`, or `owner`; `eval/pools/` is `public`; `test-bulk/` is `owner`; anything else is `other`.
 
@@ -125,6 +131,7 @@ Card facts come from the data pack's `CardIndex`, copied field by field (`packet
   - a single: `{ kind: "single", file, version, pool: { id, source, kind }, request, archetype, copies, duplicateOf?, styleShown }`, where `archetype` is the style the version built and `styleShown` the requested style the packet showed (null for none), or
   - a pair: `{ kind: "pair", pair: { A, B, match }, styleShown? }`, where A and B have the same fields as a single and `styleShown` is set on same-request pairs only;
 - `inventory`: built and declined counts, and `substituted`, the declined decks that built another style (above);
+- `picks`, for plans with `requests` entries: every picked request per entry and version, and what became of it (fixed picks, above);
 - `notes`: shortfalls and skipped files.
 
 `copies` maps each card name in the packet to its copies. Collation reads dead copies and checks card names from it, so a deck file rebuilt later cannot change a batch's results.
@@ -158,6 +165,7 @@ Each deck counts once, with its first packet's answer, or the copy's answer when
 
 The results, in `data/review/results/<batch>.json` and `.md`:
 
+- **Picked requests,** for a key with `picks`: per version and size, over every request the plan picked for it: picked, judged, "Decent, all picked" (decent out of the picked requests, a declined request, a deck in another style, or a request with no deck file counting as not decent; packets without a valid answer yet are left out), mean score, and the counts of declined, another style, no deck, and unanswered. Then the same rate on the requests every version took and has a verdict on, per size and pooled over the sizes, so a version judged on 12 requests per size compares with the others on those same requests. Then the styles each version built on its picked requests, per version and size (`declined` and `no deck` included), and per size a table of each picked request with what each version made of it: the style built and the verdict with its score, `declined`, `no deck`, or `unanswered`. This is where a style-mix skew shows: the versions are side by side on the same requests.
 - **By version and size,** and **by version and requested style** (`bestfit` for best fit): decks judged; two decent rates side by side, over judged built decks and over all requests (a declined request counts as not decent: the first rate times built / (built + declined)); two rates of decent decks of the requested style, "Of style, built" over judged built decks whose packet showed a style (`decentOfStyle` of `styleJudged`) and "Of style, all requests" over every styled request, a declined or substituted one counting as not decent of its style (the first rate times the styled requests' built share); mean score; mean dead copies (from the judges' dead lists and the packet's copies); the failures histogram; and declined out of all deck files for the row, with how many of the declined built another style. Best fit rows have no style rates, and batches made before the style line show "-" there.
 - **By version, size, and request kind:** the same columns per version and size, split into themed requests (a synergy style), shapes (Aggro, Midrange, or Control by name), and best fit. The ship rule in `docs/builder-phase1.md` reads the themed rows.
 - **Built another style:** per version, the styled requests in the deck files, how many the version answered with another style (each counted as declined above), how many judged decks were set aside for it, and how many of those the judges found decent all the same (`setAsideDecent`): how good the nearest deck was, kept apart from the request it missed.
@@ -168,6 +176,60 @@ The results, in `data/review/results/<batch>.json` and `.md`:
 - Invalid answers, answers with warnings, and unanswered packets.
 
 From a script, `collate(key, answers, counts?)` returns the same tables as data (counts from the key's inventory unless `counts` is given), `collateFromDisk(batch, { decks, also })` reads the files first, and `renderCollation` writes the Markdown. `makeBatch` builds a batch in memory; pass `styles: styleTexts(config.archetypes.archetypes)` for the config's words in the style line, as the command does.
+
+## Builder phase 2, step 3: the plan
+
+Step 3 (`docs/builder-phase2.md`) judges the new first option, built by one plan picker, against the shipped builder's core best fit and its web first option, at 60, 100, and 40, on the held-out `h2-` pools and their best-fit requests (`docs/review/pools.md`, `docs/review/requests.md`). The plan is `data/review/plans/phase2.json`:
+
+| Entry | Version       | Size | Draws                                                     | Packets |
+| ----: | ------------- | ---: | --------------------------------------------------------- | ------: |
+|     1 | `head`        |   60 | 40 best-fit requests from `main-head.json`, spread        |      40 |
+|     2 | `shipped`     |   60 | `sameAs` 1: the same 40 requests                          |      40 |
+|     3 | `shipped-web` |   60 | `sameAs` 1: the first 12 of them                          |      12 |
+|   4-6 | the same      |  100 | as 1 to 3                                                 |      92 |
+|   7-9 | the same      |   40 | as 1 to 3                                                 |      92 |
+| 10-12 | `random`      | each | 2 piles on `h2-` pools, uniform                           |       6 |
+| 13-15 | `real`        | each | 3 real decks, uniform                                     |       9 |
+|       |               |      | per size 92 builder decks and 5 calibration decks; in all |     291 |
+
+**The selection rule.** At each size, the 40 requests are fixed picks (above): the spread draw over the best-fit requests on the `h2-` pools in `data/review/jobs-h2/main-head.json` (60 and 100) or `small-head.json` (40), with the batch seed 1, before and apart from any build. That gives 30 pools, every pool once and ten pools twice, with the color letters level. All three versions are judged on those requests: `shipped` on the same 40, `shipped-web` on the first 12 in pick order, which are on 12 different pools with level colors. A version that declines a picked request, or has no deck for it, gets no packet for it and is counted as not decent there; nothing is drawn in its place. A dry run with stand-in decks for every `h2-` job gave 291 packets: at 60, 40 requests on all 30 pools, at most 2 per pool, 13 of them two-color, letters W 11, U 11, B 10, R 10, G 11; at 40, 10 two-color and 10 of each letter; at 100, all 30 pools, at most 2 per pool; `shipped-web` 12 requests on 12 pools at every size. The "Picked requests" tables of the collation give each version's rate over all 40 (or 12) picked requests and the style each version built on each.
+
+**The web first option is judged on fewer decks.** The brief asks for at least 40 judged first options per version and size. The plan judges 40 per size for `head` and `shipped`, but 12 per size for `shipped-web` (36 over the three sizes), to stay near the judging budget of about 15 million tokens for step 3. So the ship rule's "clearly not below the shipped web first option" is read on the pooled 36 `shipped-web` decks against `head`'s decks on the same 36 requests (the "all" row of the collation's "On the requests every version took"), not per size; the per-size rows for `shipped-web` are too small to read alone.
+
+No pairs and no second copies: at about 55,000 tokens a packet, 291 packets are about 16 million tokens. Calibration first: judge the 15 `random` and `real` packets, check the anchors (most random piles fail, most real decks pass), then the 276 builder packets.
+
+The builds, from the repo root, once `../bulk-brew-shipped` is at the shipped commit (`docs/review/runner.md`). The runner rebuilds a deck file whose version notes differ from the version's own, so decks from an older core (`head` notes a hash of `packages/core/src`) or an older worktree commit (`shipped` notes the commit) are built again without `--force`:
+
+```sh
+npm run review:build -- --jobs data/review/jobs-h2/main-shipped.json
+npm run review:build -- --jobs data/review/jobs-h2/small-shipped.json
+npm run review:build -- --jobs data/review/jobs-h2/main-shipped-web.json
+npm run review:build -- --jobs data/review/jobs-h2/small-shipped-web.json
+npm run review:build -- --jobs data/review/jobs-h2/main-random.json
+npm run review:build -- --jobs data/review/jobs-h2/small-random.json
+npm run review:build -- --jobs data/review/jobs-h2/main-head.json
+npm run review:build -- --jobs data/review/jobs-h2/small-head.json
+```
+
+After step 3, `head`'s best fit and the web's first option must be the same deck. This check builds both on every request, in memory, and lists any request where the cards, the basics, or a decline differ (it exits with 1 then); it judges nothing:
+
+```sh
+npm run review:build -- --jobs data/review/jobs-h2/main-head.json --compare head-web
+npm run review:build -- --jobs data/review/jobs-h2/small-head.json --compare head-web
+```
+
+Then the batch and its collation:
+
+```sh
+npm run review:packets -- --batch phase2 --plan data/review/plans/phase2.json --decks "data/review/decks/*/h2-*.json" --also data/review/decks/real --pairs 0 --two-judges 0 --no-anchors
+npm run review:collate -- --batch phase2
+```
+
+The calibration packet ids, from the key (read by the coordinator, never by a judge):
+
+```sh
+node -e "const k=require('./data/review/keys/phase2.json');console.log(JSON.stringify(Object.keys(k.packets).filter(id=>['random','real'].includes(k.packets[id].version))))"
+```
 
 ## Check run
 
