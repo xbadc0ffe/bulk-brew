@@ -5,7 +5,14 @@
 // Outside a deck (the Bulk List) every credit shows.
 
 import { factsFor } from './candidates.ts';
-import { addSupply, creditEarned, deckSupply, themeCredit, type DeckSupply } from './card-needs.ts';
+import {
+  addSupply,
+  creditEarned,
+  creditNeeds,
+  deckSupply,
+  themeCredit,
+  type DeckSupply,
+} from './card-needs.ts';
 import type { BulkBrewConfig } from './config.ts';
 import type { CardIndex } from './pack.ts';
 import { COLORS, type BuildExplanation, type CardRecord, type Color, type Deck } from './types.ts';
@@ -15,6 +22,8 @@ export interface DeckCredits {
   readonly supply: DeckSupply;
   /** Whether the card earns a credit (a role id or a `themeCredit`) here. */
   earned(card: CardRecord, credit: string): boolean;
+  /** Whether the config gives the card this credit at all, whatever the deck. */
+  given(card: CardRecord, credit: string): boolean;
 }
 
 /** The deck's colors as the supply reads them: its own and those of its basics. */
@@ -48,6 +57,9 @@ export function creditsFor(supply: DeckSupply, config: BulkBrewConfig): DeckCred
       let v = memo.get(key);
       if (v === undefined) memo.set(key, (v = creditEarned(card, credit, supply, config)));
       return v;
+    },
+    given(card, credit) {
+      return creditNeeds(card, credit, config, supply.size).kind !== 'absent';
     },
   };
 }
@@ -89,14 +101,20 @@ export function swapSupply(
   return next;
 }
 
-/** Whether the card earns a theme side: `setup` for an enabler, `payoff` for a payoff. */
+/**
+ * Whether the card earns a theme side: `setup` for an enabler, `payoff` for a
+ * payoff. The views still count theme cards with the old matchers until the
+ * matcher cleanup, so a side the theme rules do not give the card at all is
+ * left as the old matchers count it rather than dropped.
+ */
 export function earnedTheme(
   card: CardRecord,
   style: string,
   side: 'setup' | 'payoff',
   credits: DeckCredits,
 ): boolean {
-  return credits.earned(card, themeCredit(style, side));
+  const credit = themeCredit(style, side);
+  return !credits.given(card, credit) || credits.earned(card, credit);
 }
 
 /**
