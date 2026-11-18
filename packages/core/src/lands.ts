@@ -499,12 +499,14 @@ function themeWork(
 
 /**
  * A one-color deck scores a nonbasic against the basic it replaces, so the
- * basic scores 0: making the deck color or any color gains nothing, and
- * entering tapped (by its chance here), paying life, a drawback, or making no
- * deck color all cost. An ability the card needs reader says works in this
- * deck gains, more when it does theme work for one of the deck's styles, so a
- * land that is sometimes tapped can still beat the basic on what it does. A
- * land that makes only colorless mana gains only when it helps the plan.
+ * basic scores 0: making the deck color or any color gains nothing, and paying
+ * life, a drawback, or making no deck color all cost. Entering tapped costs
+ * `nonbasic.entersTapped` by its chance here, 0 in the shipped rules: a tapped
+ * dual stays out because its second color does nothing here, and a tapped land
+ * with an ability is judged on what the ability does. An ability the card
+ * needs reader says works in this deck gains, more when it does theme work for
+ * one of the deck's styles. A land that makes only colorless mana gains only
+ * when it helps the plan.
  */
 function scoreMono(
   card: CardRecord,
@@ -657,7 +659,8 @@ export function chooseManaBase(
     ? maxColorless
     : forSize(config.landRules.mono.maxColorlessOnly, size);
   const minScore = multi ? rules.minScore : config.landRules.mono.minScore;
-  // In a one-color deck many utility lands tie; the more played one goes first, not the first name.
+  // In a one-color deck many utility lands tie; the one that enters untapped more often goes
+  // first, then the more played one, not the first name.
   const rankOf = (c: Candidate) => (multi ? 0 : (c.facts.card.rank ?? Infinity));
   const notes: string[] = [];
   // What the spells (and a listed commander) supply, for the lands' own conditions.
@@ -669,10 +672,14 @@ export function chooseManaBase(
     .map((candidate) => ({
       candidate,
       ...scoreNonbasic(candidate.facts.card, colors, config, size, styles, supply),
+      slow: multi
+        ? 0
+        : landEntry(candidate.facts.card, { colors, size, styles, supply }, config).tapped,
     }))
     .sort(
       (a, b) =>
         b.score - a.score ||
+        a.slow - b.slow ||
         rankOf(a.candidate) - rankOf(b.candidate) ||
         (a.candidate.facts.card.name < b.candidate.facts.card.name ? -1 : 1) ||
         (a.candidate.facts.card.id < b.candidate.facts.card.id ? -1 : 1),

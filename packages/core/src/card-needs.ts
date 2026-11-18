@@ -3027,6 +3027,11 @@ const NO_USE = [
   /^search your library for an? (?:basic )?(?:land|plains|island|swamp|mountain|forest)\b/i,
   /^(?:basic )?(?:land|plains|island|swamp|mountain|forest)cycling\b/i,
   /^then if you control [^.]*, untap that land\b/i,
+  /^when this land is put into a graveyard from the battlefield, you may search your library for an? (?:basic )?(?:land|plains|island|swamp|mountain|forest)\b/i,
+  // Making every land a basic type is color: one-color decks already have it.
+  /^each land is an? (?:plains|island|swamp|mountain|forest) in addition to its other land types\b/i,
+  // Charging a Planet is no ability by itself; its station abilities count on their own lines.
+  /^station\b/i,
   // Keeping itself safe, going back to hand, going to an opponent, or running out.
   /^(?:indestructible|hexproof|shroud)\.?$/i,
   /\breturn this land to its owner's hand\b/i,
@@ -3037,7 +3042,12 @@ const NO_USE = [
   // A rainbow land's own mana: its counters, energy, chosen color, luck counter, opening hand.
   /^this land enters with [^.]*\bcounters?\b/i,
   /\byou get (?:\{E\})+/i,
-  /^choose a color\b/i,
+  /^(?:as this land enters(?: the battlefield)?, )?choose a color\b/i,
+  // One color among one-color permanents: pay {1} for one mana (Tarnation Vista).
+  /^for each color among [^.]*, add one mana of that color\b/i,
+  // A storage land's counters are its mana.
+  /^you may choose not to untap this land during your untap step\b/i,
+  /^at the beginning of your upkeep, if this land is tapped, put a storage counter\b/i,
   /\binstead add\b/i,
   /\bopening hand\b/i,
   /^if you do, exile a card from your hand\b/i,

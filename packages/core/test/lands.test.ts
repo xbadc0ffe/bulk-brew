@@ -121,7 +121,6 @@ describe('mono-color mana bases', () => {
     'Great Arashin City',
     'Uncharted Haven',
     'Command Bridge',
-    'Dakmor Salvage',
     'Eumidian Hatchery',
     'Paliano, the High City',
     // Tapped half the time here, and its rider needs a creature card in a graveyard this deck lacks.
@@ -132,9 +131,36 @@ describe('mono-color mana bases', () => {
     const mana = chooseManaBase(24, owner, plan('B'), [], CONFIG, SETTINGS, 60, index);
     const names = picked(mana);
     for (const n of bad) expect(names[n]).toBeUndefined();
-    expect(names['Castle Locthwain']).toBe(4);
+    // Each does something; on a tie the one that enters untapped more often goes first, and
+    // the cap of 9 nonbasics (40% of 24) leaves one place for Dakmor Salvage.
+    expect(names).toEqual({ 'Castle Locthwain': 4, 'Realm of Koh': 4, 'Dakmor Salvage': 1 });
     const nonbasic = mana.nonbasics.reduce((n, p) => n + p.qty, 0);
     expect(mana.basics.B).toBe(24 - nonbasic);
+  });
+
+  it('takes an always-tapped land for what it does, but not one that only picks a color', () => {
+    // Entering tapped costs nothing in one color: Bojuka Bog is in on its graveyard exile.
+    expect(CONFIG.landRules.nonbasic.entersTapped).toBe(0);
+    const bog = chooseManaBase(
+      24,
+      [cand(land('Bojuka Bog'))],
+      plan('B'),
+      [],
+      CONFIG,
+      SETTINGS,
+      60,
+      index,
+    );
+    expect(picked(bog)).toEqual({ 'Bojuka Bog': 4 });
+    expect(bog.nonbasics[0]!.why).toMatch(/enters tapped, utility/);
+    // A Gate's second color, a chosen color, Tarnation Vista's one color, and a storage
+    // land's counters are only mana: no better than a Swamp.
+    const mana = ['Black Dragon Gate', 'Shimmerdrift Vale', 'Tarnation Vista', 'Bottomless Vault'];
+    for (const n of mana) expect(landHasUse(land(n), CONFIG), n).toBe(false);
+    const pool = mana.map((n) => cand(land(n)));
+    expect(picked(chooseManaBase(24, pool, plan('B'), [], CONFIG, SETTINGS, 60, index))).toEqual(
+      {},
+    );
   });
 
   it('takes Realm of Koh: sometimes tapped, but its Spirit tokens beat a Swamp', () => {
@@ -147,22 +173,15 @@ describe('mono-color mana bases', () => {
     }
   });
 
-  it('takes Dakmor Salvage only for a Graveyard plan', () => {
-    // planUtility 2 outweighs entering tapped (1.5); nothing else changes.
-    const m = CONFIG.landRules.mono;
-    expect(m.planUtility + CONFIG.landRules.nonbasic.entersTapped).toBeGreaterThanOrEqual(
-      m.minScore,
-    );
+  it('puts Dakmor Salvage first for a Graveyard plan', () => {
     const mana = chooseManaBase(24, owner, plan('B'), [], CONFIG, SETTINGS, 60, index, [
       'graveyard',
     ]);
     const names = picked(mana);
-    // Castle Locthwain and Realm of Koh, almost never tapped, score above Dakmor Salvage's
-    // 2.0 against 1.5 and take 8 of the 9 nonbasic places (40% of 24).
-    expect(names).toEqual({ 'Castle Locthwain': 4, 'Realm of Koh': 4, 'Dakmor Salvage': 1 });
+    // Its dredge helps the plan (2.0) and beats the other lands' utility (1.0).
+    expect(names).toEqual({ 'Dakmor Salvage': 4, 'Castle Locthwain': 4, 'Realm of Koh': 1 });
     const why = mana.nonbasics.find((p) => p.candidate.facts.card.name === 'Dakmor Salvage')!.why;
     expect(why).toMatch(/helps the plan/);
-    // Without the plan it stays out (the first test).
   });
 
   it('takes a few colorless lands, only for the plan, and no fetch land', () => {
@@ -228,6 +247,11 @@ describe('mono-color mana bases', () => {
       'Jund Panorama',
       'Ash Barrens',
       'Fabled Passage',
+      // Fetching a Plains when it dies, making every land a Swamp, charging a Planet whose
+      // station ability is mana.
+      'Flagstones of Trokair',
+      'Urborg, Tomb of Yawgmoth',
+      'Uthros, Titanic Godcore',
     ];
     for (const n of none) expect(landHasUse(land(n), CONFIG), n).toBe(false);
     const some = [
@@ -245,15 +269,15 @@ describe('mono-color mana bases', () => {
   });
 
   it('takes a creature land for a creature plan, colored ones too', () => {
-    // Treetop Village always enters tapped, but a 3/3 trampler is Aggro's plan: 2.0 against 1.5.
+    // A 3/3 trampler is Aggro's plan; in any deck it is still a utility land.
     const village = [cand(land('Treetop Village'))];
     const aggro = chooseManaBase(24, village, plan('G'), [], CONFIG, SETTINGS, 60, index, [
       'aggro',
     ]);
     expect(picked(aggro)).toEqual({ 'Treetop Village': 4 });
-    expect(picked(chooseManaBase(24, village, plan('G'), [], CONFIG, SETTINGS, 60, index))).toEqual(
-      {},
-    );
+    expect(aggro.nonbasics[0]!.why).toMatch(/helps the plan/);
+    const none = chooseManaBase(24, village, plan('G'), [], CONFIG, SETTINGS, 60, index);
+    expect(none.nonbasics[0]!.why).toMatch(/utility/);
   });
 
   it('takes an artifact land for an Artifacts plan by its type alone', () => {

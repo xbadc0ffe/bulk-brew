@@ -142,13 +142,14 @@ describe('grow builder: credits hold only where the deck supplies their needs', 
     }
   });
 
-  it('keeps Dawnhand Eulogist a body without its drain, and Great Arashin City out', () => {
+  it('keeps Dawnhand Eulogist a body without its drain, and takes Great Arashin City', () => {
     const eulogist = needsCard('Dawnhand Eulogist');
     for (const deck of decks) {
       const supply = supplyOfDeck(deck, BLACK_POOL.index, CONFIG);
       expect(creditEarned(eulogist, themeCredit('lifegain', 'setup'), supply, CONFIG)).toBe(false);
       expect(why(deck, 'Dawnhand Eulogist') ?? '').not.toMatch(/^(?:Setup|Payoff): /);
-      expect(copies(deck, 'Great Arashin City')).toBe(0);
+      // Always tapped without a Forest or Plains, but these decks' creature cards feed its Spirits.
+      expect(copies(deck, 'Great Arashin City')).toBe(4);
     }
   });
 

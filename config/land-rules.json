@@ -1,12 +1,12 @@
 {
-  "version": "6",
+  "version": "7",
   "basics": {
     "names": { "W": "Plains", "U": "Island", "B": "Swamp", "R": "Mountain", "G": "Forest" }
   },
   "nonbasic": {
     "producesDeckColor": 2.0,
     "colorlessOnly": -1.0,
-    "entersTapped": -1.5,
+    "entersTapped": 0,
     "utility": 1.0,
     "minScore": 0.5,
     "maxShare": 0.4,
