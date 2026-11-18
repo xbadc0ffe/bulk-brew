@@ -1,5 +1,5 @@
 {
-  "version": "5",
+  "version": "6",
   "basics": {
     "names": { "W": "Plains", "U": "Island", "B": "Swamp", "R": "Mountain", "G": "Forest" }
   },
@@ -18,9 +18,15 @@
     "drawback": -1.0,
     "drawbackTags": ["drawback", "sacrifice-cost-land"],
     "noDeckColor": -2.0,
+    "colorlessOnly": -0.5,
+    "maxColorlessOnly": { "100": 4, "60": 2, "40": 1, "20": 0 },
     "planUtility": 2.0,
     "planTags": {
-      "graveyard": ["mill-self"]
+      "graveyard": ["mill-self"],
+      "flyers": ["gives-evasion", "gives-unblockable"],
+      "aggro": ["creatureland"],
+      "midrange": ["creatureland"],
+      "control": ["creatureland"]
     },
     "minScore": 0.25
   },

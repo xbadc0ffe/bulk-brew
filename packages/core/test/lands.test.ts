@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildDeck, landNote } from '../src/builder.ts';
+import { landHasUse } from '../src/card-needs.ts';
 import { computeFacts, type Candidate } from '../src/candidates.ts';
 import { sourcesNeeded } from '../src/colors.ts';
 import { configVersion, validateConfig } from '../src/config.ts';
@@ -10,6 +11,7 @@ import {
   landColors,
   landEntry,
   lifePerTap,
+  scoreNonbasic,
   type ColorPlan,
   type LandDeck,
 } from '../src/lands.ts';
@@ -122,7 +124,7 @@ describe('mono-color mana bases', () => {
     'Dakmor Salvage',
     'Eumidian Hatchery',
     'Paliano, the High City',
-    // A utility land, but tapped half the time here: utility counts only on a land that costs nothing.
+    // Tapped half the time here, and its rider needs a creature card in a graveyard this deck lacks.
     "Witch's Cottage",
   ];
 
@@ -135,6 +137,16 @@ describe('mono-color mana bases', () => {
     expect(mana.basics.B).toBe(24 - nonbasic);
   });
 
+  it('takes Realm of Koh: sometimes tapped, but its Spirit tokens beat a Swamp', () => {
+    // On its own utility, in any deck: the Evasion rules count no token makers (docs/todo.md).
+    const koh = [cand(land('Realm of Koh'))];
+    for (const styles of [[], ['flyers']]) {
+      const mana = chooseManaBase(24, koh, plan('B'), [], CONFIG, SETTINGS, 60, index, styles);
+      expect(picked(mana)).toEqual({ 'Realm of Koh': 4 });
+      expect(mana.nonbasics[0]!.why).toMatch(/utility/);
+    }
+  });
+
   it('takes Dakmor Salvage only for a Graveyard plan', () => {
     // planUtility 2 outweighs entering tapped (1.5); nothing else changes.
     const m = CONFIG.landRules.mono;
@@ -145,12 +157,120 @@ describe('mono-color mana bases', () => {
       'graveyard',
     ]);
     const names = picked(mana);
-    expect(names['Dakmor Salvage']).toBe(4);
-    for (const n of bad.filter((x) => x !== 'Dakmor Salvage')) expect(names[n]).toBeUndefined();
+    // Castle Locthwain and Realm of Koh, almost never tapped, score above Dakmor Salvage's
+    // 2.0 against 1.5 and take 8 of the 9 nonbasic places (40% of 24).
+    expect(names).toEqual({ 'Castle Locthwain': 4, 'Realm of Koh': 4, 'Dakmor Salvage': 1 });
+    const why = mana.nonbasics.find((p) => p.candidate.facts.card.name === 'Dakmor Salvage')!.why;
+    expect(why).toMatch(/helps the plan/);
+    // Without the plan it stays out (the first test).
+  });
+
+  it('takes a few colorless lands, only for the plan, and no fetch land', () => {
+    const lands = [
+      "Rogue's Passage",
+      'Access Tunnel',
+      'Mystifying Maze',
+      'Evolving Wilds',
+      'Jund Panorama',
+      'Ash Barrens',
+    ].map((n) => cand(land(n)));
+    const at = (size: DeckSize, count: number) =>
+      picked(
+        chooseManaBase(count, lands, plan('B'), [], CONFIG, SETTINGS, size, index, ['flyers']),
+      );
+    // Both unblockable lands help Evasion; Rogue's Passage is the more played.
+    expect(at(60, 24)).toEqual({ "Rogue's Passage": 2 });
+    expect(at(40, 17)).toEqual({ "Rogue's Passage": 1 });
+    expect(at(20, 8)).toEqual({});
+    // Commander holds one of each; Mystifying Maze does nothing for Evasion's plan.
+    const singles = lands.map((c) => cand(c.facts.card, 1));
+    const commander = chooseManaBase(37, singles, plan('B'), [], CONFIG, SETTINGS, 100, index, [
+      'flyers',
+    ]);
+    expect(picked(commander)).toEqual({ "Rogue's Passage": 1, 'Access Tunnel': 1 });
+    // Without a plan a colorless land costs a source of the deck color for nothing.
+    const none = chooseManaBase(24, lands, plan('B'), [], CONFIG, SETTINGS, 60, index);
+    expect(picked(none)).toEqual({});
+    // A creature land is part of a Midrange plan.
+    const factory = chooseManaBase(
+      24,
+      [cand(land('Mutavault'))],
+      plan('B'),
+      [],
+      CONFIG,
+      SETTINGS,
+      60,
+      index,
+      ['midrange'],
+    );
+    expect(picked(factory)).toEqual({ Mutavault: 2 });
+  });
+
+  it('reads no ability in text that only makes mana, keeps the land safe, or costs it', () => {
+    const none = [
+      // Charge counters for colored mana, Indestructible, lands that bounce themselves.
+      "Mirrodin's Core",
+      'Darksteel Citadel',
+      'Undiscovered Paradise',
+      'Oboro, Palace in the Clouds',
+      // Rainbow lands whose extra text is their own mana, or a cost.
+      'Gemstone Mine',
+      'Aether Hub',
+      'Rainbow Vale',
+      'Tendo Ice Bridge',
+      'Meteor Crater',
+      'Rhystic Cave',
+      'Gemstone Caverns',
+      // No maximum hand size matters in Commander, not in 60 cards.
+      'Reliquary Tower',
+      // Fetching a land is making mana.
+      'Evolving Wilds',
+      'Jund Panorama',
+      'Ash Barrens',
+      'Fabled Passage',
+    ];
+    for (const n of none) expect(landHasUse(land(n), CONFIG), n).toBe(false);
+    const some = [
+      'Realm of Koh',
+      'Castle Locthwain',
+      'Dakmor Salvage',
+      "Rogue's Passage",
+      'Mystifying Maze',
+      'Mutavault',
+      'Treetop Village',
+    ];
+    for (const n of some) expect(landHasUse(land(n), CONFIG), n).toBe(true);
+    // Scored in its own color, Oboro is no better than an Island.
+    expect(scoreNonbasic(land('Oboro, Palace in the Clouds'), ['U'], CONFIG, 60).score).toBe(0);
+  });
+
+  it('takes a creature land for a creature plan, colored ones too', () => {
+    // Treetop Village always enters tapped, but a 3/3 trampler is Aggro's plan: 2.0 against 1.5.
+    const village = [cand(land('Treetop Village'))];
+    const aggro = chooseManaBase(24, village, plan('G'), [], CONFIG, SETTINGS, 60, index, [
+      'aggro',
+    ]);
+    expect(picked(aggro)).toEqual({ 'Treetop Village': 4 });
+    expect(picked(chooseManaBase(24, village, plan('G'), [], CONFIG, SETTINGS, 60, index))).toEqual(
+      {},
+    );
+  });
+
+  it('takes an artifact land for an Artifacts plan by its type alone', () => {
+    const lands = [cand(land('Vault of Whispers')), cand(land('Darksteel Citadel'))];
+    const artifacts = chooseManaBase(24, lands, plan('B'), [], CONFIG, SETTINGS, 60, index, [
+      'artifacts',
+    ]);
+    // Darksteel Citadel is colorless, so the cap of 2 holds it.
+    expect(picked(artifacts)).toEqual({ 'Vault of Whispers': 4, 'Darksteel Citadel': 2 });
+    expect(picked(chooseManaBase(24, lands, plan('B'), [], CONFIG, SETTINGS, 60, index))).toEqual(
+      {},
+    );
   });
 
   it('gives no plan credit to off-color abilities or a one-time surveil on entering', () => {
-    // All carry mill-self; only Dakmor Salvage's dredge works in mono-black every turn.
+    // All carry mill-self; only Dakmor Salvage's dredge works in mono-black every turn. The
+    // Unicomplex is in on its own utility: untapped from the third land, with a surveil rider.
     const graveyard = [
       'Forum of Amity',
       'Restless Reef',
@@ -162,7 +282,10 @@ describe('mono-color mana bases', () => {
     const mana = chooseManaBase(24, graveyard, plan('B'), [], CONFIG, SETTINGS, 60, index, [
       'graveyard',
     ]);
-    expect(picked(mana)).toEqual({ 'Dakmor Salvage': 4 });
+    expect(picked(mana)).toEqual({ 'Dakmor Salvage': 4, 'The Unicomplex': 4 });
+    const why = (n: string) => mana.nonbasics.find((p) => p.candidate.facts.card.name === n)!.why;
+    expect(why('Dakmor Salvage')).toMatch(/helps the plan/);
+    expect(why('The Unicomplex')).not.toMatch(/helps the plan/);
     // Nor in mono-red, where the surveil lands make the deck color.
     const red = ['Elegant Parlor', 'Fields of Strife'].map((n) => cand(land(n)));
     const r = chooseManaBase(24, red, plan('R'), [], CONFIG, SETTINGS, 60, index, ['graveyard']);

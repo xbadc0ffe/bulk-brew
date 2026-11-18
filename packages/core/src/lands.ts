@@ -6,6 +6,8 @@
 import {
   addSupply,
   landEntryReading,
+  landHasUse,
+  landText,
   landUtilityEarned,
   lineConditions,
   needMet,
@@ -17,6 +19,7 @@ import type { Candidate, CardFacts } from './candidates.ts';
 import type { CardIndex } from './pack.ts';
 import { isCommanderSize, pipDemand, sourcesNeeded } from './colors.ts';
 import { needsCommander } from './matchers.ts';
+import { matchCard, themeRulesFor } from './theme-rules.ts';
 import {
   COLOR_LABELS,
   COLORS,
@@ -468,11 +471,40 @@ export function scoreNonbasic(
 }
 
 /**
+ * A land's tags, with `creatureland` added for a land whose text makes it a
+ * creature: the tag is on the colorless creature lands only (Mutavault, not
+ * Treetop Village).
+ */
+function landTags(card: CardRecord): readonly string[] {
+  if (card.tags.includes('creatureland')) return card.tags;
+  return /\bthis land becomes an? [^.]*\bcreature\b/i.test(landText(card))
+    ? [...card.tags, 'creatureland']
+    : card.tags;
+}
+
+/** Whether the theme rules give a land a setup or payoff job in one of these styles. */
+function themeWork(
+  card: CardRecord,
+  styles: readonly string[],
+  config: BulkBrewConfig,
+  size: DeckSize,
+): boolean {
+  const rules = themeRulesFor(config).styles;
+  return styles.some((s) => {
+    const style = rules.get(s);
+    const job = style && matchCard(card, style, size);
+    return job !== undefined && job.as !== 'excluded';
+  });
+}
+
+/**
  * A one-color deck scores a nonbasic against the basic it replaces, so the
  * basic scores 0: making the deck color or any color gains nothing, and
- * entering tapped, paying life, a drawback, or making no deck color all cost.
- * Utility gains only on a land that costs nothing against a basic, or when
- * one of the land's tags helps one of the deck's styles.
+ * entering tapped (by its chance here), paying life, a drawback, or making no
+ * deck color all cost. An ability the card needs reader says works in this
+ * deck gains, more when it does theme work for one of the deck's styles, so a
+ * land that is sometimes tapped can still beat the basic on what it does. A
+ * land that makes only colorless mana gains only when it helps the plan.
  */
 function scoreMono(
   card: CardRecord,
@@ -489,10 +521,14 @@ function scoreMono(
   const makes = landColors(card, colors, size, config, supply);
   const colorlessOnly =
     makes.length === 0 && ((card.produces ?? []).length > 0 || producesOnlyColorless(card));
+  const colorless = makes.length === 0 && producesOnlyColorless(card);
   if (makes.length > 0) reasons.push(`produces ${makes.join('')}`);
-  else {
+  else if (colorless) {
+    cost += m.colorlessOnly;
+    reasons.push('colorless only');
+  } else {
     cost += m.noDeckColor;
-    reasons.push(colorlessOnly ? 'colorless only' : 'no deck color');
+    reasons.push('no deck color');
   }
   const entry = landEntry(card, { colors, size, styles, supply }, config);
   if (entry.life > 0) {
@@ -514,25 +550,20 @@ function scoreMono(
     cost += m.drawback;
     reasons.push('drawback');
   }
-  const free =
-    makes.length > 0 &&
-    entry.life === 0 &&
-    entry.tapped <= config.landRules.entering.readsUntapped &&
-    life === 0 &&
-    !drawback;
   // An ability that asks for mana of another color does nothing in this deck, nor
   // one whose needs the deck does not meet (the reader reads the land's text).
   const fits = card.identity.every((c) => colors.includes(c));
+  const lasting = fits && landUtilityEarned(card, supply, config);
+  // A land with no ability does a style's job by its types alone (an artifact land).
+  const typeOnly = fits && !landHasUse(card, config);
+  const tags = landTags(card);
   const plan =
-    fits &&
-    styles.some((s) => (m.planTags[s] ?? []).some((t) => card.tags.includes(t))) &&
-    landUtilityEarned(card, supply, config);
-  // The no-cost credit also counts what it does as it enters and beyond its mana.
-  const earned = fits && landUtilityEarned(card, supply, config, true);
-  const gain = Math.max(
-    plan ? m.planUtility : 0,
-    earned && free && isUtility(card) ? r.utility : 0,
-  );
+    (lasting && styles.some((s) => (m.planTags[s] ?? []).some((t) => tags.includes(t)))) ||
+    ((lasting || typeOnly) && themeWork(card, styles, config, size));
+  // A colorless land costs a source of the deck color, so only the plan pays for it. A land of
+  // the deck color also counts what it does as it enters and beyond its mana.
+  const earned = !colorless && fits && landUtilityEarned(card, supply, config, true);
+  const gain = Math.max(plan ? m.planUtility : 0, earned ? r.utility : 0);
   if (gain > 0) reasons.push(plan && gain === m.planUtility ? 'helps the plan' : 'utility');
   return { score: gain + cost, why: `Land: ${reasons.join(', ')}`, colorlessOnly };
 }
@@ -621,7 +652,13 @@ export function chooseManaBase(
   const maxShare = multi ? (shareByCount[String(colors.length)] ?? rules.maxShare) : rules.maxShare;
   const maxNonbasics = Math.floor(count * maxShare);
   const maxColorless = forSize(rules.maxColorlessOnly, size);
+  // A one-color deck takes fewer colorless utility lands, so they never flood it.
+  const preferredColorless = multi
+    ? maxColorless
+    : forSize(config.landRules.mono.maxColorlessOnly, size);
   const minScore = multi ? rules.minScore : config.landRules.mono.minScore;
+  // In a one-color deck many utility lands tie; the more played one goes first, not the first name.
+  const rankOf = (c: Candidate) => (multi ? 0 : (c.facts.card.rank ?? Infinity));
   const notes: string[] = [];
   // What the spells (and a listed commander) supply, for the lands' own conditions.
   const supply = spellsSupply(spells, colors, size, config);
@@ -636,6 +673,7 @@ export function chooseManaBase(
     .sort(
       (a, b) =>
         b.score - a.score ||
+        rankOf(a.candidate) - rankOf(b.candidate) ||
         (a.candidate.facts.card.name < b.candidate.facts.card.name ? -1 : 1) ||
         (a.candidate.facts.card.id < b.candidate.facts.card.id ? -1 : 1),
     );
@@ -661,7 +699,12 @@ export function chooseManaBase(
   // Each copy counts its chance to enter tapped, so a check land of the deck colors adds little.
   const tappedChance = (card: CardRecord) =>
     multi && isFetch(card) ? 1 : landEntry(card, { colors, size, styles, supply }, config).tapped;
-  const take = (least: number, limit: number, copies: 'preferred' | 'available') => {
+  const take = (
+    least: number,
+    limit: number,
+    copies: 'preferred' | 'available',
+    colorlessLimit: number,
+  ) => {
     for (const s of scored) {
       if (s.score < least) continue;
       // The fallback must still add mana: skip lands that make no usable mana.
@@ -684,7 +727,7 @@ export function chooseManaBase(
       const before = qty;
       const slow = tappedChance(card);
       while (qty < most && taken < limit && taken < count) {
-        if (s.colorlessOnly && colorless >= maxColorless) break;
+        if (s.colorlessOnly && colorless >= colorlessLimit) break;
         // The fallback ignores the tapped cap: a slow land beats running short of lands.
         if (slow > 0 && tapped + slow > maxTapped + 1e-9 && least > -Infinity) break;
         qty++;
@@ -696,7 +739,7 @@ export function chooseManaBase(
       else if (qty > before) nonbasics.push({ candidate: s.candidate, qty, why: s.why });
     }
   };
-  take(minScore, maxNonbasics, 'preferred');
+  take(minScore, maxNonbasics, 'preferred', preferredColorless);
 
   const sources: Partial<Record<Color, number>> = {};
   const addSources = (pick: LandPick) => {
@@ -712,7 +755,7 @@ export function chooseManaBase(
         ? `only ${totalCap} basic lands of the deck colors in the pool; adding more nonbasics`
         : `only ${totalCap} ${config.landRules.basics.names[plan.main]} in the pool; adding more nonbasics`,
     );
-    take(-Infinity, count - totalCap, 'available');
+    take(-Infinity, count - totalCap, 'available', maxColorless);
     need = count - taken;
     if (totalCap < need) {
       throw new ManaBaseError(

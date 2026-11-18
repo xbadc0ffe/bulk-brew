@@ -3021,6 +3021,32 @@ export function lineConditions(
   };
 }
 
+/** Sentences of a land's text that do nothing a basic land does not, or only cost. */
+const NO_USE = [
+  // Fetching a land is making mana: a fetch land, a Panorama, landcycling, Fabled Passage's untap.
+  /^search your library for an? (?:basic )?(?:land|plains|island|swamp|mountain|forest)\b/i,
+  /^(?:basic )?(?:land|plains|island|swamp|mountain|forest)cycling\b/i,
+  /^then if you control [^.]*, untap that land\b/i,
+  // Keeping itself safe, going back to hand, going to an opponent, or running out.
+  /^(?:indestructible|hexproof|shroud)\.?$/i,
+  /\breturn this land to its owner's hand\b/i,
+  /\ban opponent gains control of\b/i,
+  /\bsacrifice (?:it|this land)\.?$/i,
+  // A painland's damage, counted as a cost.
+  /\b(?:deals \d+ damage to you|you lose \d+ life)\b/i,
+  // A rainbow land's own mana: its counters, energy, chosen color, luck counter, opening hand.
+  /^this land enters with [^.]*\bcounters?\b/i,
+  /\byou get (?:\{E\})+/i,
+  /^choose a color\b/i,
+  /\binstead add\b/i,
+  /\bopening hand\b/i,
+  /^if you do, exile a card from your hand\b/i,
+  // A hand size that matters in Commander, not in a 60-card deck.
+  /^you have no maximum hand size\b/i,
+];
+const allNoUse = (parts: string[]) =>
+  parts.every((x) => MANA_ONLY.test(x) || NO_USE.some((re) => re.test(x)));
+
 /** A sentence of a mana ability that only makes, limits, or keeps count of the mana. */
 const MANA_ONLY =
   /^(?:Add |Activate only |Spend this mana only |Put (?:a|an|one|\w+) [\w+/-]+ counters? on this land\b)/i;
@@ -3039,19 +3065,43 @@ export function landUtilityEarned(
   config: BulkBrewConfig,
   riders = false,
 ): boolean {
-  return cardNeeds(card, config).abilities.some((a) => {
+  return landUses(card, config, riders).some((a) =>
+    a.refs.every((r) => r.kind !== 'need' || needMet(r, supply, card, config)),
+  );
+}
+
+/**
+ * Whether a land has any ability beyond its mana, how it enters, and its
+ * costs, met or not: without one, what it does for a style comes from its
+ * types alone (an artifact land in an Artifacts deck).
+ */
+export function landHasUse(card: CardRecord, config: BulkBrewConfig): boolean {
+  return landUses(card, config, true).length > 0;
+}
+
+function landUses(card: CardRecord, config: BulkBrewConfig, riders: boolean): CardAbility[] {
+  return cardNeeds(card, config).abilities.filter((a) => {
     // Mode lines belong to the ability above them.
     if (a.shape === 'mode') return false;
-    const text = a.text.replaceAll(card.name, 'this land');
+    const text = landText(card, a.text);
     if (TAPPED_LINE.test(text)) return false;
+    // Only mana (a storage land's counters too), a fetch, or a cost: nothing a basic lacks.
+    const effect = sentences(text.replace(/^[^:"]*: /, '')).map((x) => x.text.trim());
+    if (effect.length > 0 && allNoUse(effect)) return false;
     const mana = /^([^:]*): Add /i.exec(text);
     if (mana) {
       if (!riders) return false;
       const rest = sentences(text.slice(mana[1]!.length + 2)).map((x) => x.text.trim());
-      if (rest.every((x) => MANA_ONLY.test(x))) return false;
+      if (allNoUse(rest)) return false;
     } else if (!riders && /^(?:When |As )?this land enters\b/i.test(text)) return false;
-    return a.refs.every((r) => r.kind !== 'need' || needMet(r, supply, card, config));
+    return true;
   });
+}
+
+/** A land's text with its name, or a legendary land's short name ("Oboro"), as "this land". */
+export function landText(card: CardRecord, text = card.text): string {
+  const short = card.name.split(', ')[0]!;
+  return text.replaceAll(card.name, 'this land').replaceAll(short, 'this land');
 }
 
 /**

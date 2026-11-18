@@ -237,7 +237,7 @@ export interface LandRulesConfig {
     colorlessOnly: number;
     /** One-color decks: the cost of a land that always enters tapped, scaled by its chance. */
     entersTapped: number;
-    /** A utility ability; in a one-color deck only on a land that costs nothing against a basic. */
+    /** A utility ability; in a one-color deck, an ability the card needs reader says works in the deck. */
     utility: number;
     /** Multi-color nonbasics scoring below this stay out. */
     minScore: number;
@@ -256,9 +256,13 @@ export interface LandRulesConfig {
     drawback: number;
     /** Tags that mark a land's drawback. */
     drawbackTags: string[];
-    /** A land that makes no mana of the deck color. */
+    /** A land that makes only mana of other colors. */
     noDeckColor: number;
-    /** A land with one of `planTags` for one of the deck's styles. */
+    /** A land that makes only colorless mana; it gains only on `planUtility`. */
+    colorlessOnly: number;
+    /** Lands that make only colorless mana allowed per deck size, so they never flood the deck. */
+    maxColorlessOnly: PerSize<number>;
+    /** A land whose lasting ability does theme work for one of the deck's styles, or has one of `planTags`. */
     planUtility: number;
     /** Tags, by style id, whose ability helps that style's plan. */
     planTags: Record<string, string[]>;
@@ -988,8 +992,19 @@ export function validateConfig(c: BulkBrewConfig): string[] {
   const mono = lr.mono;
   if (!mono) problems.push('landRules.mono: missing');
   else {
-    for (const k of ['lifeToEnter', 'lifePerTap', 'drawback', 'noDeckColor'] as const) {
+    for (const k of [
+      'lifeToEnter',
+      'lifePerTap',
+      'drawback',
+      'noDeckColor',
+      'colorlessOnly',
+    ] as const) {
       if (!isNum(mono[k]) || mono[k] > 0) problems.push(`landRules.mono.${k}: must be 0 or less`);
+    }
+    for (const key of [...SIZE_KEYS, '100'] as const) {
+      const n = mono.maxColorlessOnly?.[key];
+      if (!isNum(n) || n < 0)
+        problems.push(`landRules.mono.maxColorlessOnly.${key}: must be 0 or more`);
     }
     if (!Array.isArray(mono.drawbackTags) || mono.drawbackTags.some((t) => typeof t !== 'string'))
       problems.push('landRules.mono.drawbackTags: must be a list of tags');
