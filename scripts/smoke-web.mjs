@@ -22,6 +22,8 @@
 // the list marks Short. SMOKE_ART=1 turns card art on before the deck checks,
 // and SMOKE_WIDTH sets the window width (default 1280; 420 gives the narrow
 // layout, where the picked replacement covers the list until Back to the list).
+// SMOKE_TEXT (90, 100, 110, 125, or 140) picks that Text size on Settings
+// first, checks it survives a reload, and runs the rest at that size.
 
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -165,6 +167,34 @@ try {
   await send('Page.navigate', { url: appUrl });
   await waitForText(/Your bulk list is empty|unique/, 30000);
   log('load', `card data loaded from ${appUrl}`);
+
+  // SMOKE_TEXT picks a Text size with the Settings control; the root text scales from 16px.
+  const textSize = process.env.SMOKE_TEXT;
+  if (textSize) {
+    const rootSize = () =>
+      evaluate(`parseFloat(getComputedStyle(document.documentElement).fontSize)`);
+    const want = (16 * Number(textSize)) / 100;
+    await click('^Settings');
+    await waitForText(/Text size/, 5000);
+    const picked = await evaluate(`(() => {
+      const b = [...document.querySelectorAll('[role="group"][aria-label="Text size"] button')].find(
+        (x) => x.textContent.trim() === ${JSON.stringify(`${textSize}%`)},
+      );
+      b?.click();
+      return !!b;
+    })()`);
+    if (!picked) throw new Error(`Settings offers no ${textSize}% text size`);
+    await sleep(300);
+    if (Math.abs((await rootSize()) - want) > 0.05)
+      throw new Error(`Text size ${textSize}% gave ${await rootSize()}px text, not ${want}px`);
+    await shot('0-settings');
+    await send('Page.reload');
+    await sleep(1000);
+    await waitForText(/Your bulk list is empty|unique/, 30000);
+    if (Math.abs((await rootSize()) - want) > 0.05)
+      throw new Error(`Text size ${textSize}% was lost on reload`);
+    log('text-size', `${textSize}%: root text ${want}px, kept after a reload`);
+  }
 
   const pool = readFileSync(poolFile, 'utf8');
   // The sidebar reads "Bulk List 1,234".

@@ -61,12 +61,15 @@ export {
 export {
   useAppearance,
   readAppearance,
+  parseAppearance,
   APPEARANCE_KEY,
   APPEARANCE_MODES,
+  TEXT_SIZES,
   THEME_COLORS,
   type Appearance,
   type AppearanceMode,
   type AppearanceState,
+  type TextSize,
   type ThemeColor,
 } from './data/useAppearance.ts';
 export { COLOR_NAMES, COLOR_ORDER } from './colors.ts';

@@ -102,15 +102,15 @@ export function ColorWheel({ shares, size = 88 }: { shares: ColorShare[]; size?:
 /** The legend beside the wheel: symbol, color name, and share. */
 export function ColorShareList({ shares }: { shares: ColorShare[] }) {
   if (shares.length === 0) {
-    return <p className="text-[12px] text-fg-2">No colored mana symbols.</p>;
+    return <p className="text-[0.75rem] text-fg-2">No colored mana symbols.</p>;
   }
   return (
-    <ul className="grid w-fit grid-cols-[auto_auto_auto] items-center gap-x-2.5 gap-y-1 text-[12.5px]">
+    <ul className="grid w-fit grid-cols-[auto_auto_auto] items-center gap-x-2.5 gap-y-1 text-[0.78125rem]">
       {shares.map((s) => (
         <li key={s.color} className="contents" title={`${s.pips} colored symbols`}>
           <Pip symbol={s.color} size={16} />
           <span className="text-fg-1">{COLOR_LABELS[s.color]}</span>
-          <span className="min-w-[4ch] pl-2 text-right font-mono text-[12px] text-ink tabular-nums">
+          <span className="min-w-[4ch] pl-2 text-right font-mono text-[0.75rem] text-ink tabular-nums">
             {pct(s.share)}
           </span>
         </li>
@@ -136,14 +136,14 @@ export function TypeBreakdown({ counts }: { counts: TypeCount[] }) {
   const total = counts.reduce((n, t) => n + t.count, 0);
   const max = Math.max(1, ...counts.map((t) => t.count));
   return (
-    <div className="grid grid-cols-[minmax(76px,max-content)_1fr_auto] items-center gap-x-2.5 gap-y-1.5 text-[12.5px]">
+    <div className="grid grid-cols-[minmax(76px,max-content)_1fr_auto] items-center gap-x-2.5 gap-y-1.5 text-[0.78125rem]">
       {counts.map((t) => (
         <div key={t.label} className="contents">
           <span className="text-fg-1">{t.label}</span>
           <span aria-hidden className="h-1.5 overflow-hidden rounded-[3px] bg-line">
             <span className="block h-full bg-bar" style={{ width: `${(t.count / max) * 100}%` }} />
           </span>
-          <span className="text-right font-mono text-[12px] text-ink tabular-nums">
+          <span className="text-right font-mono text-[0.75rem] text-ink tabular-nums">
             {t.count}
             <span className="ml-1.5 inline-block w-[4ch] text-fg-2">
               {pct(total ? t.count / total : 0)}

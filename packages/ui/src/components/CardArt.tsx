@@ -273,7 +273,7 @@ function CardViewer(props: {
   // Tall enough to fill the window's height, unless the width runs out first.
   const fit =
     'pointer-events-none block h-[min(calc(100dvh_-_2rem),calc((100vw_-_2rem)*88/63))] w-auto rounded-[4.75%/3.4%] select-none';
-  const control = `grid place-items-center rounded-full text-white hover:bg-white/20 disabled:opacity-40 disabled:hover:bg-transparent ${phone ? 'size-11 text-[22px]' : 'size-9 text-[20px]'}`;
+  const control = `grid place-items-center rounded-full text-white hover:bg-white/20 disabled:opacity-40 disabled:hover:bg-transparent ${phone ? 'size-11 text-[1.375rem]' : 'size-9 text-[1.25rem]'}`;
   return createPortal(
     <div
       ref={stageRef}
@@ -320,7 +320,7 @@ function CardViewer(props: {
         type="button"
         aria-label="Close full screen"
         onClick={() => cancel.current()}
-        className={`absolute top-3 right-3 grid place-items-center rounded-full bg-white/15 text-white hover:bg-white/25 ${phone ? 'size-11 text-[20px]' : 'size-9 text-[18px]'}`}
+        className={`absolute top-3 right-3 grid place-items-center rounded-full bg-white/15 text-white hover:bg-white/25 ${phone ? 'size-11 text-[1.25rem]' : 'size-9 text-[1.125rem]'}`}
       >
         ✕
       </button>
@@ -338,7 +338,7 @@ function CardViewer(props: {
           type="button"
           aria-label={`Zoom ${Math.round(view.scale * 100)} percent; reset`}
           title="Reset zoom"
-          className="min-w-14 rounded-full px-2 py-1.5 text-[13px] text-white tabular-nums hover:bg-white/20"
+          className="min-w-14 rounded-full px-2 py-1.5 text-[0.8125rem] text-white tabular-nums hover:bg-white/20"
           onClick={reset}
         >
           {Math.round(view.scale * 100)}%

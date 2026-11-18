@@ -107,9 +107,9 @@ export function DeckList(props: DeckListProps) {
               {g.rows.map((r) => (
                 <li
                   key={r.key}
-                  className={`flex items-center gap-2 text-[13px] ${showArt ? 'h-[34px]' : 'h-[26px]'}`}
+                  className={`flex items-center gap-2 text-[0.8125rem] ${showArt ? 'h-[2.125rem]' : 'h-[1.625rem]'}`}
                 >
-                  <span className="w-[22px] shrink-0 font-mono text-[12px] text-fg-1 tabular-nums">
+                  <span className="w-[22px] shrink-0 font-mono text-[0.75rem] text-fg-1 tabular-nums">
                     {r.qty}
                   </span>
                   {showArt && r.card && (
@@ -134,7 +134,7 @@ export function DeckList(props: DeckListProps) {
                       <span className="truncate">{r.name}</span>
                     )}
                     {r.why && (
-                      <span className="ml-2 min-w-8 shrink-[4] truncate text-[11.5px] text-fg-2">
+                      <span className="ml-2 min-w-8 shrink-[4] truncate text-[0.71875rem] text-fg-2">
                         {r.why}
                       </span>
                     )}
@@ -221,14 +221,14 @@ export function DeckExplanation({
   const phone = variant === 'phone';
   const info = archetypeInfo(config, deck.archetype);
   const label = phone ? 'text-[0.6875rem] tracking-[0.04em] text-fg-2 uppercase' : ui.sectionLabel;
-  const small = phone ? 'text-[0.8125rem] text-fg-1' : 'text-[12px] text-fg-1';
+  const small = phone ? 'text-[0.8125rem] text-fg-1' : 'text-[0.75rem] text-fg-1';
   // A style asked for that the bulk list could not support: say so before what was built.
   const nearest = nearestNote(config, deck);
   if (!e) {
     return (
-      <div className={`flex flex-col gap-1 ${phone ? 'text-[0.875rem]' : 'text-[13px]'}`}>
+      <div className={`flex flex-col gap-1 ${phone ? 'text-[0.875rem]' : 'text-[0.8125rem]'}`}>
         <h3 className={label}>Archetype</h3>
-        <span className={`font-semibold ${phone ? 'text-[1rem]' : 'text-[14px]'}`}>
+        <span className={`font-semibold ${phone ? 'text-[1rem]' : 'text-[0.875rem]'}`}>
           {info.label}
         </span>
         <p className="leading-[1.5] text-fg-1">
@@ -238,10 +238,10 @@ export function DeckExplanation({
     );
   }
   return (
-    <div className={`flex flex-col gap-[18px] ${phone ? 'text-[0.875rem]' : 'text-[13px]'}`}>
+    <div className={`flex flex-col gap-[18px] ${phone ? 'text-[0.875rem]' : 'text-[0.8125rem]'}`}>
       <section className="flex flex-col gap-1">
         <h3 className={label}>Archetype</h3>
-        <span className={`font-semibold ${phone ? 'text-[1rem]' : 'text-[14px]'}`}>
+        <span className={`font-semibold ${phone ? 'text-[1rem]' : 'text-[0.875rem]'}`}>
           {info.label}
         </span>
         {nearest && <p className={phone ? phoneStyles.error : ui.error}>{nearest}</p>}
@@ -326,7 +326,7 @@ export function DeckExplanation({
               type="button"
               aria-expanded={notes}
               onClick={() => setNotes((n) => !n)}
-              className={`self-start text-fg-2 underline underline-offset-2 hover:text-ink ${phone ? 'text-[0.8125rem]' : 'text-[12px]'}`}
+              className={`self-start text-fg-2 underline underline-offset-2 hover:text-ink ${phone ? 'text-[0.8125rem]' : 'text-[0.75rem]'}`}
             >
               {notes ? 'Hide builder notes' : 'Show builder notes'}
             </button>

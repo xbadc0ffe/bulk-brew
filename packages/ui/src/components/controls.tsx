@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { RARITIES, RARITY_LABELS, type Rarity } from '@bulk-brew/core';
 import { curveBuckets, viabilityLabel, type Viability } from '../data/analysis.ts';
 
@@ -28,10 +28,10 @@ export function Segmented<T extends string | number>(props: {
   const seg = phone
     ? 'flex-1 py-2 text-[0.8125rem]'
     : compact
-      ? 'px-2.5 py-[3px] text-[12px]'
+      ? 'px-2.5 py-[3px] text-[0.75rem]'
       : full
-        ? 'flex-1 py-2 text-[13px]'
-        : 'px-3 py-1.5 text-[12.5px]';
+        ? 'flex-1 py-2 text-[0.8125rem]'
+        : 'px-3 py-1.5 text-[0.78125rem]';
   return (
     <div
       role="group"
@@ -104,7 +104,7 @@ export function Stepper(props: {
   const phone = variant === 'phone';
   const btn = phone
     ? 'min-h-11 min-w-11 text-[1rem] text-fg-1 active:bg-surface-2'
-    : 'px-2.5 py-[3px] text-[14px] text-fg-1 hover:bg-surface-2';
+    : 'px-2.5 py-[3px] text-[0.875rem] text-fg-1 hover:bg-surface-2';
   return (
     <div
       role="group"
@@ -122,7 +122,7 @@ export function Stepper(props: {
       </button>
       <output
         aria-live="polite"
-        className={`flex items-center justify-center border-x border-line-strong font-mono text-ink tabular-nums ${phone ? 'min-w-11 text-[0.875rem]' : 'min-w-9 px-2 text-[13px]'}`}
+        className={`flex items-center justify-center border-x border-line-strong font-mono text-ink tabular-nums ${phone ? 'min-w-11 text-[0.875rem]' : 'min-w-9 px-2 text-[0.8125rem]'}`}
       >
         {value}
       </output>
@@ -169,12 +169,12 @@ export function ViabilityMark({
   return (
     <div className="flex min-w-0 flex-col gap-0.5">
       <span
-        className={`flex items-center gap-1.5 text-[12.5px] ${state === 'none' ? 'text-fg-2' : 'text-ink'}`}
+        className={`flex items-center gap-1.5 text-[0.78125rem] ${state === 'none' ? 'text-fg-2' : 'text-ink'}`}
       >
         <ViabilityDot state={state} />
         {label ?? viabilityLabel(state)}
       </span>
-      {detail && <span className="text-[11.5px] text-fg-2">{detail}</span>}
+      {detail && <span className="text-[0.71875rem] text-fg-2">{detail}</span>}
     </div>
   );
 }
@@ -198,7 +198,7 @@ export function RoleBar({ label, have, want }: { label: string; have: number; wa
       >
         <span className="block h-full bg-ink" style={{ width: `${pct}%` }} />
       </span>
-      <span className="text-right font-mono text-[12px] tabular-nums">
+      <span className="text-right font-mono text-[0.75rem] tabular-nums">
         {have}/{want}
       </span>
     </div>
@@ -224,14 +224,18 @@ export function CurveChart({ curve, variant = 'desktop' }: { curve: number[]; va
   const summary = buckets.map((n, i) => `${n} at ${name(i)}`).join(', ');
   return (
     <div role="img" aria-label={`Mana curve: ${summary}`} className="flex flex-col gap-1">
-      <div className={`flex items-end ${phone ? 'gap-[5px]' : 'gap-1.5'}`} style={{ height }}>
+      {/* In rem, so the counts above the bars keep their room at any text size. */}
+      <div
+        className={`flex items-end ${phone ? 'gap-[5px]' : 'gap-1.5'}`}
+        style={{ height: `${height / 16}rem` }}
+      >
         {buckets.map((n, i) => (
           <div key={i} className="flex h-full flex-1 flex-col items-center justify-end gap-0.5">
-            {!phone && <span className="text-[10.5px] text-fg-1 tabular-nums">{n}</span>}
+            {!phone && <span className="text-[0.65625rem] text-fg-1 tabular-nums">{n}</span>}
             <div
               className="w-full rounded-t-[2px] bg-bar"
               style={{
-                height: `${Math.max(n > 0 ? 3 : 2, (n / max) * (height - (phone ? 0 : 16)))}px`,
+                height: `${Math.max(n > 0 ? 3 : 2, (n / max) * (height - (phone ? 0 : 16))) / 16}rem`,
               }}
             />
           </div>
@@ -241,7 +245,7 @@ export function CurveChart({ curve, variant = 'desktop' }: { curve: number[]; va
         {buckets.map((_, i) => (
           <span
             key={i}
-            className={`flex-1 text-center text-fg-2 ${phone ? 'text-[0.625rem]' : 'text-[10.5px]'}`}
+            className={`flex-1 text-center text-fg-2 ${phone ? 'text-[0.625rem]' : 'text-[0.65625rem]'}`}
           >
             {name(i)}
           </span>
@@ -297,6 +301,15 @@ export function Dropdown(props: {
     };
   }, [open, buttonId]);
 
+  // At a large text size a menu can run past the window's right edge; slide it back in.
+  useLayoutEffect(() => {
+    const menu = open ? document.getElementById(id) : null;
+    if (!menu) return;
+    const { left, right } = menu.getBoundingClientRect();
+    const over = right - (document.documentElement.clientWidth - 8);
+    if (over > 0) menu.style.translate = `${-Math.min(over, Math.max(0, left - 8))}px 0`;
+  }, [open, id]);
+
   return (
     <div ref={wrap} className="relative inline-block">
       <button
@@ -315,7 +328,7 @@ export function Dropdown(props: {
         <div
           id={id}
           data-menu
-          className={`absolute top-full z-30 mt-1 flex max-h-80 min-w-44 flex-col overflow-y-auto rounded-md border border-line-strong bg-surface p-1 ${align === 'right' ? 'right-0' : 'left-0'}`}
+          className={`absolute top-full z-30 mt-1 flex max-h-80 max-w-[calc(100vw-1rem)] min-w-44 flex-col overflow-y-auto rounded-md border border-line-strong bg-surface p-1 ${align === 'right' ? 'right-0' : 'left-0'}`}
         >
           {children(close)}
         </div>
@@ -330,7 +343,7 @@ export function MenuItem({ children, onSelect }: { children: ReactNode; onSelect
     <button
       type="button"
       onClick={onSelect}
-      className="rounded px-2.5 py-1.5 text-left text-[13px] whitespace-nowrap text-ink hover:bg-surface-2"
+      className="rounded px-2.5 py-1.5 text-left text-[0.8125rem] whitespace-nowrap text-ink hover:bg-surface-2"
     >
       {children}
     </button>
@@ -404,11 +417,11 @@ export function MenuCheck({
       aria-checked={checked}
       aria-disabled={disabled || undefined}
       onClick={disabled ? undefined : onToggle}
-      className={`flex items-center gap-2 rounded px-2.5 py-1.5 text-left text-[13px] whitespace-nowrap text-ink ${disabled ? 'cursor-default opacity-60' : 'hover:bg-surface-2'}`}
+      className={`flex items-center gap-2 rounded px-2.5 py-1.5 text-left text-[0.8125rem] whitespace-nowrap text-ink ${disabled ? 'cursor-default opacity-60' : 'hover:bg-surface-2'}`}
     >
       <span
         aria-hidden
-        className={`flex size-3.5 shrink-0 items-center justify-center rounded-[3px] border border-line-strong text-[10px] ${checked ? 'bg-ink text-on-ink' : 'bg-surface'}`}
+        className={`flex size-3.5 shrink-0 items-center justify-center rounded-[3px] border border-line-strong text-[0.625rem] ${checked ? 'bg-ink text-on-ink' : 'bg-surface'}`}
       >
         {checked ? '✓' : ''}
       </span>

@@ -100,8 +100,8 @@ function BuildForm() {
 
   return (
     <div className="flex h-full flex-col overflow-y-auto md:flex-row md:overflow-hidden">
-      <section className="flex shrink-0 flex-col gap-5 border-line bg-surface px-6 py-[22px] md:w-[400px] md:overflow-y-auto md:border-r">
-        <h1 id="build-title" tabIndex={-1} className="text-[20px] font-semibold">
+      <section className="flex shrink-0 flex-col gap-5 border-line bg-surface px-6 py-[22px] md:w-[max(400px,min(25rem,32vw))] md:overflow-y-auto md:border-r">
+        <h1 id="build-title" tabIndex={-1} className="text-[1.25rem] font-semibold">
           Build
         </h1>
         {flow.accepted && (
@@ -125,7 +125,7 @@ function BuildForm() {
             onChange={flow.setSize}
             full
           />
-          <p className="text-[12px] text-fg-2">{sizeLine(flow.size)}</p>
+          <p className="text-[0.75rem] text-fg-2">{sizeLine(flow.size)}</p>
         </div>
 
         <div className="flex items-center justify-between gap-3">
@@ -202,7 +202,7 @@ function BuildForm() {
                 );
               })}
             </div>
-            <p className="text-[12px] text-fg-2">
+            <p className="text-[0.75rem] text-fg-2">
               {colorName
                 ? scan && !scan.possible && flow.colors.length > 1
                   ? `${colorName} together falls short (${scanShortfall(scan) ?? 'not enough cards'}); options use fewer of these colors.`
@@ -228,7 +228,7 @@ function BuildForm() {
             onChange={flow.setStyle}
           />
           {listing && flow.style && (
-            <p className="text-[12px] text-fg-2">
+            <p className="text-[0.75rem] text-fg-2">
               Commanders that can build it move to the top as each one is checked.
             </p>
           )}
@@ -243,7 +243,7 @@ function BuildForm() {
               onChange={flow.setSecondary}
             />
           ) : (
-            <p className="text-[12px] text-fg-2">Pick a primary archetype first.</p>
+            <p className="text-[0.75rem] text-fg-2">Pick a primary archetype first.</p>
           )}
         </div>
       </section>
@@ -285,8 +285,8 @@ function ColorToggle(props: {
       } ${active ? (on ? '' : 'hover:bg-surface-2') : on ? 'cursor-default' : 'cursor-default opacity-55'}`}
     >
       <Pip symbol={color} size={22} />
-      <span className="text-[12px] font-semibold">{COLOR_LABELS[color]}</span>
-      <span className="text-[10.5px] leading-tight text-fg-2">{count}</span>
+      <span className="text-[0.75rem] font-semibold">{COLOR_LABELS[color]}</span>
+      <span className="text-[0.65625rem] leading-tight text-fg-2">{count}</span>
     </button>
   );
 }
@@ -340,7 +340,7 @@ function CommanderColors() {
           );
         })}
       </div>
-      <p className="text-[12px] text-fg-2">
+      <p className="text-[0.75rem] text-fg-2">
         {flow.commander
           ? `Colors come from the commander: ${name ?? 'colorless'}. Changing a setting returns to the commander list.`
           : !name
@@ -547,10 +547,10 @@ function StyleItem(props: {
       } ${checked ? 'bg-surface-2' : ''}`}
     >
       <span className="flex min-w-0 flex-col">
-        <span className="text-[13px] font-semibold">{name}</span>
-        <span className="text-[11.5px] whitespace-normal text-fg-2">{description}</span>
+        <span className="text-[0.8125rem] font-semibold">{name}</span>
+        <span className="text-[0.71875rem] whitespace-normal text-fg-2">{description}</span>
       </span>
-      <span className="text-[11px] text-fg-1">{state}</span>
+      <span className="text-[0.6875rem] text-fg-1">{state}</span>
     </button>
   );
 }

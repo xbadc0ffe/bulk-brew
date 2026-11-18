@@ -83,8 +83,8 @@ export function AnalysisPanel() {
   return (
     <div className="flex flex-col gap-6 px-6 py-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-[16px] font-semibold">Analysis</h2>
-        <span className="text-[12.5px] text-fg-2">
+        <h2 className="text-[1rem] font-semibold">Analysis</h2>
+        <span className="text-[0.78125rem] text-fg-2">
           {fmt(summary.cards)} cards · {fmt(summary.distinct)} unique
         </span>
       </div>
@@ -95,7 +95,7 @@ export function AnalysisPanel() {
         <Panel title="Colors">
           <ColorPie counts={stats.colors} keys={STAT_COLORS} />
           <div className="flex flex-col gap-3 border-t border-line pt-3">
-            <h4 className="text-[12.5px] font-semibold text-fg-1">
+            <h4 className="text-[0.78125rem] font-semibold text-fg-1">
               Multicolor cards in each of their colors
             </h4>
             <ColorPie counts={stats.eachColor} keys={STAT_COLORS} />
@@ -164,8 +164,8 @@ function Panel({ title, hint, children }: { title: string; hint?: string; childr
   return (
     <section className={`${ui.box} flex min-w-0 flex-col gap-3 px-4 py-3.5`}>
       <div className="flex flex-col gap-0.5">
-        <h3 className="text-[13.5px] font-semibold">{title}</h3>
-        {hint && <p className="text-[12px] text-fg-2">{hint}</p>}
+        <h3 className="text-[0.84375rem] font-semibold">{title}</h3>
+        {hint && <p className="text-[0.75rem] text-fg-2">{hint}</p>}
       </div>
       {children}
     </section>
@@ -180,7 +180,7 @@ function ColorHead({ id }: { id: ColorKey }) {
 
 /** A small note under a table. */
 function Footnote({ children }: { children: ReactNode }) {
-  return <p className="text-[11.5px] text-fg-2">{children}</p>;
+  return <p className="text-[0.71875rem] text-fg-2">{children}</p>;
 }
 
 /** The first rows of a long by-color list, with a note when there are more. */
@@ -264,7 +264,7 @@ function RecommendedDecks() {
   return (
     <section aria-labelledby="best-decks-title" className="flex flex-col gap-3">
       <div className="flex flex-col items-start gap-2">
-        <h3 id="best-decks-title" className="flex items-center gap-2 text-[14px] font-semibold">
+        <h3 id="best-decks-title" className="flex items-center gap-2 text-[0.875rem] font-semibold">
           Recommended decks
           {working && <Spinner />}
         </h3>
@@ -276,7 +276,7 @@ function RecommendedDecks() {
               ? 'The deck search stopped.'
               : `Checked ${fmt(built)} ${built === 1 ? 'deck' : 'decks'}.`}
         </span>
-        <div className="flex items-center gap-2 text-[12.5px] text-fg-1">
+        <div className="flex items-center gap-2 text-[0.78125rem] text-fg-1">
           <span aria-hidden>Max colors per deck</span>
           <Segmented
             label="Max colors per deck"
@@ -355,12 +355,12 @@ function SizeColumn(props: {
     <div className={`${ui.box} flex min-w-0 flex-col`}>
       <div className="flex items-start justify-between gap-2 border-b border-line px-3.5 py-2.5">
         <span className="flex flex-col">
-          <h4 id={`best-${size}`} className="text-[13px] font-semibold">
+          <h4 id={`best-${size}`} className="text-[0.8125rem] font-semibold">
             {SIZE_TITLES[size]}
           </h4>
-          <span className="text-[11.5px] text-fg-2">{SIZE_LINES[size]}</span>
+          <span className="text-[0.71875rem] text-fg-2">{SIZE_LINES[size]}</span>
         </span>
-        <span className="pt-px text-right text-[11.5px] text-fg-2 tabular-nums">{count}</span>
+        <span className="pt-px text-right text-[0.71875rem] text-fg-2 tabular-nums">{count}</span>
       </div>
       {body}
     </div>
@@ -369,7 +369,7 @@ function SizeColumn(props: {
 
 function Empty({ children }: { children: ReactNode }) {
   return (
-    <p className="flex flex-1 items-center justify-center gap-2 px-4 py-6 text-center text-[12.5px] text-fg-2">
+    <p className="flex flex-1 items-center justify-center gap-2 px-4 py-6 text-center text-[0.78125rem] text-fg-2">
       {children}
     </p>
   );
@@ -402,14 +402,14 @@ function DeckRow({ rank, option }: { rank: number; option: DeckOption }) {
         }}
         className="grid min-h-14 w-full grid-cols-[1.1rem_1fr] items-center gap-x-2 px-3.5 py-2 text-left hover:bg-surface-2"
       >
-        <span className="text-[12px] text-fg-2 tabular-nums">{rank}</span>
+        <span className="text-[0.75rem] text-fg-2 tabular-nums">{rank}</span>
         <span className="flex min-w-0 items-center gap-1.5">
           <span className="flex shrink-0 items-center gap-0.5">
             {colors.map((c) => (
               <Pip key={c} symbol={c} size={14} label={COLOR_LABELS[c]} />
             ))}
           </span>
-          <span className="text-[13px] font-semibold">{title}</span>
+          <span className="text-[0.8125rem] font-semibold">{title}</span>
         </span>
       </button>
       <DiscardSwapsDialog

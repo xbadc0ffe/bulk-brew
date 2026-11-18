@@ -9,6 +9,7 @@ import {
   exportFilename,
   readFileText,
   Segmented,
+  TEXT_SIZES,
   THEME_COLORS,
   Toggle,
   ui,
@@ -56,8 +57,9 @@ function Row({
 }) {
   const Label = htmlFor ? 'label' : 'div';
   return (
-    <div className="flex items-center justify-between gap-4 border-b-1 border-surface-2 px-4 py-[11px] last:border-b-0">
-      <Label htmlFor={htmlFor} className="flex min-w-0 flex-col gap-0.5">
+    // The control goes below the label only when it does not fit beside the label's longest word.
+    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2.5 border-b-1 border-surface-2 px-4 py-[11px] last:border-b-0">
+      <Label htmlFor={htmlFor} className="flex min-w-min flex-1 flex-col gap-0.5">
         <span className={ui.label}>{label}</span>
         {hint && <span className={ui.hint}>{hint}</span>}
       </Label>
@@ -161,8 +163,8 @@ export function SettingsScreen() {
   };
 
   return (
-    <div className="h-full overflow-y-auto px-8 py-[22px] text-[13px]">
-      <h1 className="mb-4 text-[20px] font-semibold">Settings</h1>
+    <div className="h-full overflow-y-auto px-8 py-[22px] text-[0.8125rem]">
+      <h1 className="mb-4 text-[1.25rem] font-semibold">Settings</h1>
       <div className="grid gap-x-10 gap-y-5 lg:grid-cols-2">
         <div className="flex flex-col gap-5">
           <Group title="Building">
@@ -213,6 +215,15 @@ export function SettingsScreen() {
                   );
                 })}
               </div>
+            </Row>
+            <Row label="Text size" hint="Makes all text in the app larger or smaller">
+              <Segmented
+                label="Text size"
+                options={TEXT_SIZES}
+                value={appearance.appearance.textSize}
+                onChange={appearance.setTextSize}
+                full
+              />
             </Row>
           </Group>
         </div>
@@ -273,7 +284,7 @@ export function SettingsScreen() {
               </button>
             </Row>
           </Group>
-          <p role="status" className={message ? '-mt-3 text-[12.5px] text-fg-2' : 'sr-only'}>
+          <p role="status" className={message ? '-mt-3 text-[0.78125rem] text-fg-2' : 'sr-only'}>
             {message}
           </p>
         </div>

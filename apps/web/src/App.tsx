@@ -124,17 +124,17 @@ function Shell() {
         type="button"
         onClick={() => choose(n.screen)}
         aria-current={on ? 'page' : undefined}
-        className={`relative flex h-[84px] w-full flex-col items-center justify-center gap-1.5 rounded-lg border ${
+        className={`relative flex h-[max(84px,5.25rem)] w-full flex-col items-center justify-center gap-1.5 rounded-lg border ${
           on
             ? 'border-ink bg-ink text-on-ink [--icon-fill:var(--ink)]'
             : 'border-line bg-surface text-fg-1 [--icon-fill:var(--surface)] hover:border-line-strong hover:text-ink'
         }`}
       >
         <n.Icon size={30} />
-        <span className="text-[12.5px] leading-none font-semibold">{n.label}</span>
+        <span className="text-[0.78125rem] leading-none font-semibold">{n.label}</span>
         {count !== undefined && (
           <span
-            className={`absolute top-1 right-1.5 text-[10.5px] leading-none tabular-nums ${on ? 'text-on-ink' : 'text-fg-2'}`}
+            className={`absolute top-1 right-1.5 text-[0.65625rem] leading-none tabular-nums ${on ? 'text-on-ink' : 'text-fg-2'}`}
           >
             {count.toLocaleString('en-US')}
           </span>
@@ -153,7 +153,7 @@ function Shell() {
         type="button"
         onClick={() => choose(n.screen)}
         aria-current={on ? 'page' : undefined}
-        className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-1.5 text-left text-[13px] whitespace-nowrap ${
+        className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-1.5 text-left text-[0.8125rem] whitespace-nowrap ${
           on
             ? 'border-ink bg-ink font-semibold text-on-ink'
             : 'border-line bg-surface text-fg-1 hover:border-line-strong hover:text-ink'
@@ -174,12 +174,12 @@ function Shell() {
       <div className="flex h-dvh flex-col bg-canvas text-ink md:flex-row">
         <nav
           aria-label="Main"
-          className="hidden w-[104px] shrink-0 flex-col gap-2 overflow-y-auto border-r border-line bg-rail px-2.5 py-3 md:flex"
+          className="hidden w-[max(104px,6.5rem)] shrink-0 flex-col gap-2 overflow-y-auto border-r border-line bg-rail px-2.5 py-3 md:flex"
         >
           {NAV.map(tile)}
           <div className="mt-auto flex flex-col items-center gap-1 pt-4 text-center">
-            <span className="text-[13px] leading-tight font-semibold">Bulk Brew</span>
-            <span className="text-[11px] leading-tight text-fg-2">Version {version}</span>
+            <span className="text-[0.8125rem] leading-tight font-semibold">Bulk Brew</span>
+            <span className="text-[0.6875rem] leading-tight text-fg-2">Version {version}</span>
             {/* The icon follows light and dark mode. */}
             <img
               src={`${import.meta.env.BASE_URL}icon-light.svg`}

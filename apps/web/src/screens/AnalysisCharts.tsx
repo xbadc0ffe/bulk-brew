@@ -117,15 +117,15 @@ export function ColorPie(props: { counts: ColorCounts; keys: readonly ColorKey[]
           );
         })}
       </svg>
-      <ul className="grid w-full grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-x-5 gap-y-1 text-[12.5px]">
+      <ul className="grid w-full grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-x-5 gap-y-1 text-[0.78125rem]">
         {shown.map((k) => (
           <li key={k} className="flex items-center gap-2">
             <ColorMark id={k} />
             <span className="text-fg-1">{COLOR_KEY_LABELS[k]}</span>
-            <span className="ml-auto font-mono text-[12px] text-ink tabular-nums">
+            <span className="ml-auto font-mono text-[0.75rem] text-ink tabular-nums">
               {pct(counts[k] / total)}
             </span>
-            <span className="min-w-[5ch] text-right font-mono text-[12px] text-fg-2 tabular-nums">
+            <span className="min-w-[5ch] text-right font-mono text-[0.75rem] text-fg-2 tabular-nums">
               {fmt(counts[k])}
             </span>
           </li>
@@ -198,7 +198,7 @@ export function HeatTable(props: {
       <div
         role="table"
         aria-label={caption}
-        className="grid gap-[3px] text-[12px] tabular-nums"
+        className="grid gap-[3px] text-[0.75rem] tabular-nums"
         style={{
           gridTemplateColumns: `max-content repeat(${columns.length}, minmax(2rem, 1fr)) max-content`,
         }}
@@ -279,7 +279,7 @@ export function ManaValueBars({ values, label }: { values: number[]; label: stri
   const height = 110;
   return (
     <figure className="flex flex-col gap-2">
-      <figcaption className="text-[12.5px] font-semibold text-fg-1">{label}</figcaption>
+      <figcaption className="text-[0.78125rem] font-semibold text-fg-1">{label}</figcaption>
       <div
         role="img"
         aria-label={`${label}: ${values.map((n, i) => `${fmt(n)} at mana value ${MV_BUCKETS[i]}`).join(', ')}`}
@@ -293,8 +293,8 @@ export function ManaValueBars({ values, label }: { values: number[]; label: stri
                 style={{ height: `${n > 0 ? Math.max(3, (n / max) * height) : 0}px` }}
               />
             </div>
-            <span className="pt-1 text-[12px] font-semibold text-fg-1">{MV_BUCKETS[i]}</span>
-            <span className="text-[11.5px] text-fg-2 tabular-nums">{fmt(n)}</span>
+            <span className="pt-1 text-[0.75rem] font-semibold text-fg-1">{MV_BUCKETS[i]}</span>
+            <span className="text-[0.71875rem] text-fg-2 tabular-nums">{fmt(n)}</span>
           </div>
         ))}
       </div>

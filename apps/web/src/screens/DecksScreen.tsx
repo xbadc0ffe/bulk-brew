@@ -99,7 +99,7 @@ function DeckName({ deck, heading }: { deck: Deck; heading?: boolean }) {
     setDraft(undefined);
     if (refocus) focusLater(id);
   };
-  const size = heading ? 'text-[17px]' : 'text-[13px]';
+  const size = heading ? 'text-[1.0625rem]' : 'text-[0.8125rem]';
   if (draft !== undefined) {
     return (
       <input
@@ -136,7 +136,7 @@ function DeckName({ deck, heading }: { deck: Deck; heading?: boolean }) {
       <span className="decoration-fg-3 decoration-dotted underline-offset-4 group-hover:underline">
         {deck.name}
       </span>
-      <span aria-hidden className="text-[12px] text-fg-3 opacity-0 group-hover:opacity-100">
+      <span aria-hidden className="text-[0.75rem] text-fg-3 opacity-0 group-hover:opacity-100">
         ✎
       </span>
     </button>
@@ -288,7 +288,7 @@ function DeckTable({ onOpen }: { onOpen(id: string): void }) {
           onClick={() => setSort(nextDeckSort(sort, key))}
         >
           {label}
-          <span aria-hidden className="w-2 text-[9px]">
+          <span aria-hidden className="w-2 text-[0.5625rem]">
             {dir === 'asc' ? '▲' : dir === 'desc' ? '▼' : ''}
           </span>
         </button>
@@ -299,10 +299,10 @@ function DeckTable({ onOpen }: { onOpen(id: string): void }) {
   return (
     <div className="flex h-full flex-col gap-4 overflow-y-auto px-8 py-[22px]">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <h1 id="decks-title" tabIndex={-1} className="text-[20px] font-semibold">
+        <h1 id="decks-title" tabIndex={-1} className="text-[1.25rem] font-semibold">
           Decks
         </h1>
-        <span className="text-[13px] text-fg-1">
+        <span className="text-[0.8125rem] text-fg-1">
           {list.length} saved · {packets} {packets === 1 ? 'packet' : 'packets'}
         </span>
       </div>
@@ -335,7 +335,7 @@ function DeckTable({ onOpen }: { onOpen(id: string): void }) {
                 type="button"
                 aria-pressed={on}
                 onClick={() => setSizes(toggle(sizes, s))}
-                className={`rounded-md border px-2.5 py-1.5 text-[12.5px] ${on ? 'border-ink bg-ink text-on-ink' : 'border-line-strong bg-surface text-fg-1 hover:bg-surface-2'}`}
+                className={`rounded-md border px-2.5 py-1.5 text-[0.78125rem] ${on ? 'border-ink bg-ink text-on-ink' : 'border-line-strong bg-surface text-fg-1 hover:bg-surface-2'}`}
               >
                 {s === 20 ? '20 packets' : `${s} cards`}
               </button>
@@ -348,7 +348,7 @@ function DeckTable({ onOpen }: { onOpen(id: string): void }) {
               ? `Archetype: ${styles.length <= 2 ? styles.join(', ') : `${styles.length} selected`}`
               : 'Archetype ▾'
           }
-          buttonClassName={`rounded-md border px-2.5 py-1.5 text-[12.5px] ${styles.length ? 'border-ink bg-ink text-on-ink' : 'border-line-strong bg-surface text-fg-1 hover:bg-surface-2'}`}
+          buttonClassName={`rounded-md border px-2.5 py-1.5 text-[0.78125rem] ${styles.length ? 'border-ink bg-ink text-on-ink' : 'border-line-strong bg-surface text-fg-1 hover:bg-surface-2'}`}
         >
           {() =>
             present.styles.map((s) => (
@@ -370,7 +370,7 @@ function DeckTable({ onOpen }: { onOpen(id: string): void }) {
         {filtered && (
           <button
             type="button"
-            className={`${ui.quiet} px-1 text-[12.5px] underline`}
+            className={`${ui.quiet} px-1 text-[0.78125rem] underline`}
             onClick={() => {
               setColors([]);
               setSizes([]);
@@ -384,7 +384,7 @@ function DeckTable({ onOpen }: { onOpen(id: string): void }) {
       </div>
 
       <div className={`${ui.box} overflow-x-auto`}>
-        <table className="w-full min-w-[760px] border-collapse text-[13px]">
+        <table className="w-full min-w-[760px] border-collapse text-[0.8125rem]">
           <thead>
             <tr className={`text-left ${ui.sectionLabel}`}>
               <th className="w-[60px] border-b border-line py-[9px] pl-[18px] font-normal">
@@ -440,9 +440,9 @@ function DeckTable({ onOpen }: { onOpen(id: string): void }) {
                     )}
                   </span>
                 </td>
-                <td className="pr-3 font-mono text-[12px] text-fg-1">{d.size}</td>
+                <td className="pr-3 font-mono text-[0.75rem] text-fg-1">{d.size}</td>
                 <td className="pr-3 text-fg-1">{info.get(d.id)!.style}</td>
-                <td className="pr-3 text-[12.5px] text-fg-2">{savedLabel(d.createdAt)}</td>
+                <td className="pr-3 text-[0.78125rem] text-fg-2">{savedLabel(d.createdAt)}</td>
                 <td className="pr-[18px]" onClick={(e) => e.stopPropagation()}>
                   <span className="flex items-center justify-end gap-2">
                     <ExportButton deck={d} onStatus={setStatus} />
@@ -459,7 +459,7 @@ function DeckTable({ onOpen }: { onOpen(id: string): void }) {
           <p className={`${ui.note} p-6 text-center`}>No decks match these filters.</p>
         )}
       </div>
-      <p role="status" className={status ? 'text-[12.5px] text-fg-2' : 'sr-only'}>
+      <p role="status" className={status ? 'text-[0.78125rem] text-fg-2' : 'sr-only'}>
         {status}
       </p>
 
@@ -584,8 +584,8 @@ function PairPackets(props: { packet: Deck; onBack(): void; onMerged(id: string)
         className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line bg-surface px-6 py-3.5"
       >
         <BackButton label={packet.name} onClick={onBack} />
-        <h1 className="text-[17px] font-semibold">Pair packets</h1>
-        <label className="flex items-center gap-2 text-[13px] text-fg-1">
+        <h1 className="text-[1.0625rem] font-semibold">Pair packets</h1>
+        <label className="flex items-center gap-2 text-[0.8125rem] text-fg-1">
           with
           <select
             value={otherId}
@@ -613,7 +613,7 @@ function PairPackets(props: { packet: Deck; onBack(): void; onMerged(id: string)
       </header>
       <div className="relative min-h-0 flex-1">
         <div className="h-full overflow-y-auto px-7 py-5">
-          <p className="mb-4 max-w-2xl text-[13px] leading-[1.5] text-fg-1">
+          <p className="mb-4 max-w-2xl text-[0.8125rem] leading-[1.5] text-fg-1">
             This is a preview of the two packets played together as a 40-card deck. Nothing changes
             until you merge them. Merging replaces both packets with one deck.
           </p>
@@ -621,7 +621,7 @@ function PairPackets(props: { packet: Deck; onBack(): void; onMerged(id: string)
           {pair && !pair.ok && <p className={ui.error}>{pair.error}</p>}
           {pair?.ok && index && (
             <>
-              <p className="mb-3 flex items-center gap-2 text-[13px]">
+              <p className="mb-3 flex flex-wrap items-center gap-2 text-[0.8125rem]">
                 <span className="flex gap-1">
                   {deckColors(pair.deck, index).map((c) => (
                     <Pip key={c} symbol={c} size={18} label={COLOR_LABELS[c]} />

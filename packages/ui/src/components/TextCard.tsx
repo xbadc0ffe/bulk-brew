@@ -26,19 +26,19 @@ export function TextCard({
   return (
     <div
       title={face.text}
-      className={`flex w-full flex-col gap-1.5 overflow-hidden border-2 border-fg-2 bg-surface p-[4%] text-left ${full ? 'min-h-[380px] rounded-[14px]' : 'aspect-[63/88] rounded-[4.75%/3.4%]'} ${className}`}
+      className={`flex w-full flex-col gap-1.5 overflow-hidden border-2 border-fg-2 bg-surface p-[4%] text-left ${full ? 'min-h-[max(380px,23.75rem)] shrink-0 rounded-[14px]' : 'aspect-[63/88] rounded-[4.75%/3.4%]'} ${className}`}
     >
       <div className="flex items-start justify-between gap-2 rounded-md border border-line-strong bg-surface-2 px-2 py-1.5">
-        <span className="text-[13.5px] leading-tight font-semibold">{face.name}</span>
+        <span className="text-[0.84375rem] leading-tight font-semibold">{face.name}</span>
         <span className="shrink-0 pt-px">
           <ManaCost cost={face.manaCost} size={15} />
         </span>
       </div>
-      <div className="rounded-md border border-line-strong bg-surface-2 px-2 py-1 text-[12px] leading-tight font-semibold">
+      <div className="rounded-md border border-line-strong bg-surface-2 px-2 py-1 text-[0.75rem] leading-tight font-semibold">
         {face.typeLine}
       </div>
       <div
-        className={`relative flex-1 rounded-md border border-line px-2 py-1.5 text-[12px] leading-[1.45] ${full ? '' : 'min-h-0 overflow-hidden'}`}
+        className={`relative flex-1 rounded-md border border-line px-2 py-1.5 text-[0.75rem] leading-[1.45] ${full ? '' : 'min-h-0 overflow-hidden'}`}
       >
         {(face.text ?? '').split('\n').map((p, i) => (
           <p key={i} className="mb-1.5 last:mb-0">
@@ -55,9 +55,9 @@ export function TextCard({
       </div>
       {(stats || back) && (
         <div className="flex items-center justify-between gap-2">
-          <span className="truncate text-[11px] text-fg-2">{back && `Back: ${back}`}</span>
+          <span className="truncate text-[0.6875rem] text-fg-2">{back && `Back: ${back}`}</span>
           {stats && (
-            <span className="shrink-0 rounded-md border border-line-strong bg-surface-2 px-2 py-0.5 text-[12.5px] font-semibold tabular-nums">
+            <span className="shrink-0 rounded-md border border-line-strong bg-surface-2 px-2 py-0.5 text-[0.78125rem] font-semibold tabular-nums">
               {stats}
             </span>
           )}

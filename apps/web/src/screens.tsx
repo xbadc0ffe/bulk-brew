@@ -64,9 +64,9 @@ export function BackButton({ label, onClick }: { label: string; onClick(): void 
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex items-center gap-1.5 rounded-lg border border-line-strong bg-surface px-3.5 py-2 text-[14px] font-semibold text-ink hover:bg-surface-2"
+      className="inline-flex items-center gap-1.5 rounded-lg border border-line-strong bg-surface px-3.5 py-2 text-[0.875rem] font-semibold text-ink hover:bg-surface-2"
     >
-      <span aria-hidden className="text-[16px] leading-none">
+      <span aria-hidden className="text-[1rem] leading-none">
         ‹
       </span>
       {label}
@@ -89,7 +89,8 @@ export function ImportScreen() {
   const importButton = (
     <button
       type="button"
-      className={`${ui.primary} px-6 py-2.5 text-[14px]`}
+      // Marked important: which of two text sizes wins otherwise depends on CSS order.
+      className={`${ui.primary} px-6 py-2.5 text-[0.875rem]!`}
       disabled={!imp.canImport}
       onClick={imp.commit}
     >
@@ -110,12 +111,12 @@ export function ImportScreen() {
     <div className="flex h-full flex-col">
       <header className="flex shrink-0 items-center gap-4 border-b border-line px-6 py-3">
         <BackButton label="Bulk List" onClick={() => nav.go('pool')} />
-        <h1 className="text-[20px] font-semibold">Import</h1>
+        <h1 className="text-[1.25rem] font-semibold">Import</h1>
         <span className="ml-auto lg:hidden">{importButton}</span>
       </header>
       <div className="grid min-h-0 flex-1 overflow-y-auto lg:grid-cols-2 lg:overflow-hidden">
         <section className="flex min-h-[520px] flex-col gap-3.5 border-line px-8 py-6 lg:min-h-0 lg:border-r">
-          <p className="text-[13px] leading-[1.5] text-fg-1">
+          <p className="text-[0.8125rem] leading-[1.5] text-fg-1">
             Paste a decklist or collection export, or drop text files into the box. Accepted lines:{' '}
             <code className={ui.code}>4 Lightning Bolt</code>{' '}
             <code className={ui.code}>4x Lightning Bolt</code>{' '}
@@ -141,13 +142,13 @@ export function ImportScreen() {
               aria-label="Card list"
               aria-describedby={imp.text ? undefined : 'import-hint'}
               spellCheck={false}
-              className="w-full flex-1 resize-none rounded-lg border border-line-strong bg-surface px-3.5 py-3 font-mono text-[12.5px] leading-[1.7]"
+              className="w-full flex-1 resize-none rounded-lg border border-line-strong bg-surface px-3.5 py-3 font-mono text-[0.78125rem] leading-[1.7]"
             />
             {!imp.text && (
               // Stands in for a placeholder, since a placeholder cannot hold the file link.
               <div
                 id="import-hint"
-                className="pointer-events-none absolute inset-0 border border-transparent px-3.5 py-3 font-mono text-[12.5px] leading-[1.7] whitespace-pre-wrap text-fg-3"
+                className="pointer-events-none absolute inset-0 border border-transparent px-3.5 py-3 font-mono text-[0.78125rem] leading-[1.7] whitespace-pre-wrap text-fg-3"
               >
                 {
                   '4 Lightning Bolt (M10) 146\n2 Llanowar Elves\n10 Forest\n-\nDrop .txt or .csv files here, or '
@@ -162,7 +163,7 @@ export function ImportScreen() {
               </div>
             )}
             {dragging && (
-              <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-lg border-2 border-dashed border-ink bg-surface/85 text-[14px] font-semibold text-ink">
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-lg border-2 border-dashed border-ink bg-surface/85 text-[0.875rem] font-semibold text-ink">
                 Drop to add the files to the list
               </div>
             )}
@@ -179,7 +180,7 @@ export function ImportScreen() {
               }}
             />
           </div>
-          <p className="text-[12.5px] text-fg-1">
+          <p className="text-[0.78125rem] text-fg-1">
             {plural(imp.parsed.lines.length, 'line')} · {plural(imp.totalCards, 'card')} ·{' '}
             {fmt(imp.parsed.skipped.length)} unreadable
             {imp.text && imp.format !== 'decklist' && ` · ${IMPORT_FORMAT_LABELS[imp.format]}`}
@@ -191,7 +192,7 @@ export function ImportScreen() {
           className="flex flex-col gap-4 px-8 py-6 lg:overflow-y-auto"
         >
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p role="status" className="text-[13px] text-fg-1">
+            <p role="status" className="text-[0.8125rem] text-fg-1">
               {imp.done
                 ? `Added ${plural(imp.done.cards, 'card')} to your bulk list.${
                     imp.done.left > 0
@@ -229,7 +230,7 @@ export function ImportScreen() {
                 <Stat value={preview.distinct} caption="unique cards" muted />
                 <Stat value={preview.unresolved.length} caption="lines not matched" muted />
               </div>
-              <ul className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px] text-fg-1">
+              <ul className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[0.78125rem] text-fg-1">
                 {COLOR_KEYS.filter((c) => preview.byColor[c.id] > 0).map((c) => (
                   <li key={c.id} className="flex items-center gap-1.5">
                     {c.id === 'M' ? <span>Multicolor</span> : <Pip symbol={c.id} label={c.label} />}
@@ -243,7 +244,7 @@ export function ImportScreen() {
                     <h2 className={ui.sectionLabel}>Not matched</h2>
                     <button
                       type="button"
-                      className={`${ui.quiet} text-[12.5px] underline`}
+                      className={`${ui.quiet} text-[0.78125rem] underline`}
                       onClick={imp.skipAll}
                     >
                       Skip all
@@ -297,11 +298,11 @@ function Stat({ value, caption, muted }: { value: number; caption: string; muted
   return (
     <div className="flex flex-col">
       <span
-        className={`text-[28px] leading-tight font-semibold tracking-[-0.02em] tabular-nums ${muted ? 'text-fg-1' : ''}`}
+        className={`text-[1.75rem] leading-tight font-semibold tracking-[-0.02em] tabular-nums ${muted ? 'text-fg-1' : ''}`}
       >
         {fmt(value)}
       </span>
-      <span className="text-[12px] text-fg-2">{caption}</span>
+      <span className="text-[0.75rem] text-fg-2">{caption}</span>
     </div>
   );
 }
@@ -321,7 +322,9 @@ function UnresolvedRow(props: {
   };
   return (
     <li className="grid grid-cols-[34px_1fr_auto] items-start gap-3 border-b-1 border-surface-2 px-3.5 py-2.5 last:border-b-0">
-      <span className="pt-1.5 font-mono text-[12px] text-fg-1 tabular-nums">{line.line.qty}</span>
+      <span className="pt-1.5 font-mono text-[0.75rem] text-fg-1 tabular-nums">
+        {line.line.qty}
+      </span>
       <div className="flex min-w-0 flex-col gap-1">
         <input
           id={`unresolved-${line.line.line}`}
@@ -336,9 +339,9 @@ function UnresolvedRow(props: {
           onKeyDown={(e) => {
             if (e.key === 'Enter') submit(e.currentTarget.value);
           }}
-          className="w-full rounded-[5px] border border-line-strong bg-surface px-[9px] py-[5px] text-[13px]"
+          className="w-full rounded-[5px] border border-line-strong bg-surface px-[9px] py-[5px] text-[0.8125rem]"
         />
-        <span className="text-[12px] text-fg-1">
+        <span className="text-[0.75rem] text-fg-1">
           {suggestion ? (
             <>
               Did you mean{' '}
@@ -363,7 +366,7 @@ function UnresolvedRow(props: {
             Use suggestion
           </button>
         )}
-        <button type="button" className={`${ui.quiet} text-[12.5px]`} onClick={onSkip}>
+        <button type="button" className={`${ui.quiet} text-[0.78125rem]`} onClick={onSkip}>
           Skip
         </button>
       </div>
@@ -373,7 +376,7 @@ function UnresolvedRow(props: {
 
 // ---------------------------------------------------------------- Bulk List
 
-const chipBase = 'inline-flex items-center rounded-md border text-[12.5px]';
+const chipBase = 'inline-flex items-center rounded-md border text-[0.78125rem]';
 const chipOff = 'border-line-strong bg-surface text-fg-1 hover:bg-surface-2';
 const chipOn = 'border-ink bg-ink text-on-ink';
 
@@ -451,7 +454,7 @@ function ManaValueFilter(props: {
 }) {
   const { values, op, value, onChange } = props;
   const on = op !== 'any';
-  const select = `appearance-none rounded bg-transparent px-1 py-1.5 text-[12.5px] ${on ? 'text-on-ink' : 'text-fg-1'}`;
+  const select = `appearance-none rounded bg-transparent px-1 py-1.5 text-[0.78125rem] ${on ? 'text-on-ink' : 'text-fg-1'}`;
   return (
     <span
       role="group"
@@ -511,7 +514,7 @@ export function PoolScreen() {
 }
 
 function BulkList() {
-  const { index, pool, settings, detail, config, decks } = useAppState();
+  const { index, pool, settings, detail, config, decks, appearance } = useAppState();
   const nav = useNav();
   const {
     poolFilters: filters,
@@ -530,6 +533,8 @@ function BulkList() {
   const tbodyRef = useRef<HTMLTableSectionElement>(null);
   const detailRef = useRef<HTMLElement>(null);
   const wide = useMediaQuery('(min-width: 1024px)');
+  // A narrow window with larger text leaves the name no room beside Type; the card detail shows it.
+  const showType = wide || appearance.appearance.textSize <= 100;
 
   const rows = useMemo(
     () =>
@@ -592,10 +597,12 @@ function BulkList() {
       const body = tbodyRef.current;
       if (!box || !body) return;
       const head = body.offsetTop;
-      const top = head + next * rowHeight;
+      // Rows are sized in rem, so measure one; the text size changes their height.
+      const height = body.querySelector<HTMLElement>('[data-row]')?.offsetHeight || rowHeight;
+      const top = head + next * height;
       if (top - head < box.scrollTop) box.scrollTop = top - head;
-      else if (top + rowHeight > box.scrollTop + box.clientHeight)
-        box.scrollTop = top + rowHeight - box.clientHeight;
+      else if (top + height > box.scrollTop + box.clientHeight)
+        box.scrollTop = top + height - box.clientHeight;
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
@@ -629,7 +636,9 @@ function BulkList() {
   // Picks hidden by the filters, or already removed, do not count and are not removed.
   const pickedRows = rows.filter((r) => picked.has(r.card.id));
   const pickedCopies = pickedRows.reduce((n, r) => n + r.entry.qty, 0);
-  const shownColumns = COLUMNS.filter((c) => wide || !c.wideOnly);
+  const shownColumns = COLUMNS.filter(
+    (c) => (wide || !c.wideOnly) && (showType || c.key !== 'type'),
+  );
   const columnCount = shownColumns.length + (selecting ? 1 : 0);
   const openRow = (cardId: string, printing: PrintingHint | undefined) => {
     // Clicking the open card again closes the detail.
@@ -649,12 +658,14 @@ function BulkList() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className={`flex min-h-0 ${analyze ? 'basis-1/2' : 'flex-1'}`}>
+      {/* With Analyze open, the list half never gets shorter than its header and a few
+          rows (large text can make the header taller than half); the Analysis pane gives way. */}
+      <div className={`flex ${analyze ? 'basis-1/2' : 'min-h-0 flex-1'}`}>
         <section className="flex min-w-0 flex-1 flex-col">
           <header className="flex flex-col gap-3 px-6 pt-5">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-              <h1 className="text-[20px] font-semibold">Bulk List</h1>
-              <span className="text-[13px] text-fg-1">
+              <h1 className="text-[1.25rem] font-semibold">Bulk List</h1>
+              <span className="text-[0.8125rem] text-fg-1">
                 {plural(summary.cards, 'card')} · {fmt(summary.distinct)} unique
               </span>
               <button
@@ -678,7 +689,7 @@ function BulkList() {
                       aria-label={`${c.label}, ${plural(summary.byColor[c.id], 'card')}`}
                       title={`Show only ${c.label.toLowerCase()} cards`}
                       onClick={() => set('colors', toggle(filters.colors, c.id))}
-                      className={`flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-[12.5px] ${
+                      className={`flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-[0.78125rem] ${
                         on
                           ? 'border-ink bg-surface font-semibold text-ink'
                           : 'border-transparent text-fg-1 hover:bg-surface-2'
@@ -734,7 +745,7 @@ function BulkList() {
               {filtered && (
                 <button
                   type="button"
-                  className={`${ui.quiet} px-1 text-[12.5px] underline`}
+                  className={`${ui.quiet} px-1 text-[0.78125rem] underline`}
                   onClick={() => setFilters(EMPTY_FILTERS)}
                 >
                   Clear filters
@@ -775,7 +786,7 @@ function BulkList() {
             </div>
 
             {selecting && (
-              <div className="flex flex-wrap items-center gap-2 rounded-md bg-surface-2 px-3 py-2 text-[12.5px]">
+              <div className="flex flex-wrap items-center gap-2 rounded-md bg-surface-2 px-3 py-2 text-[0.78125rem]">
                 <span className="mr-auto text-fg-1">
                   {pickedRows.length > 0
                     ? `${plural(pickedRows.length, 'card')} selected (${copies(pickedCopies)})`
@@ -798,7 +809,7 @@ function BulkList() {
                 </button>
                 <button
                   type="button"
-                  className={`${ui.primary} py-[5px] text-[12.5px]`}
+                  className={`${ui.primary} py-[5px]`}
                   disabled={pickedRows.length === 0}
                   onClick={() => setConfirm('remove')}
                 >
@@ -808,8 +819,8 @@ function BulkList() {
             )}
           </header>
 
-          <div ref={scroller} className="relative mt-3 min-h-0 flex-1 overflow-y-auto">
-            <table className="w-full table-fixed border-collapse text-[13px]">
+          <div ref={scroller} className="relative mt-3 min-h-[5rem] grow basis-0 overflow-y-auto">
+            <table className="w-full table-fixed border-collapse text-[0.8125rem]">
               <colgroup>
                 {shownColumns.map((c) => (
                   <col key={c.key} style={c.width ? { width: c.width } : undefined} />
@@ -834,7 +845,7 @@ function BulkList() {
                           onClick={() => setSort(nextSort(sort, c.key))}
                         >
                           {c.label}
-                          <span aria-hidden className="w-2 text-[9px]">
+                          <span aria-hidden className="w-2 text-[0.5625rem]">
                             {dir === 'asc' ? '▲' : dir === 'desc' ? '▼' : ''}
                           </span>
                         </button>
@@ -874,9 +885,9 @@ function BulkList() {
                       data-row
                       onClick={() => openRow(card.id, e.printing)}
                       className={`cursor-pointer border-b-1 border-surface-2 ${on ? 'bg-surface-2' : 'hover:bg-surface-2'}`}
-                      style={{ height: rowHeight }}
+                      style={{ height: `${rowHeight / 16}rem` }}
                     >
-                      <td className="pr-3 pl-6 font-mono text-[12px] text-fg-1 tabular-nums">
+                      <td className="pr-3 pl-6 font-mono text-[0.75rem] text-fg-1 tabular-nums">
                         {e.qty}
                       </td>
                       <td className="pr-3">
@@ -915,26 +926,29 @@ function BulkList() {
                       <td className="pr-3 whitespace-nowrap">
                         <ManaCost cost={card.manaCost} />
                       </td>
-                      <td className="truncate pr-3 text-fg-1" title={type}>
-                        {type}
-                      </td>
+                      {showType && (
+                        <td className="truncate pr-3 text-fg-1" title={type}>
+                          {type}
+                        </td>
+                      )}
                       {wide && (
                         <>
                           <td
-                            className="truncate pr-3 text-[12.5px] text-fg-1 italic"
+                            className="truncate pr-3 text-[0.78125rem] text-fg-1 italic"
                             title={subtype}
                           >
                             {subtype}
                           </td>
                           <td className="pr-6" title={tags.map((t) => t.label).join(', ')}>
                             {/* Bubbles that do not fit wrap onto a hidden line, so none is cut. The
-                                box is one bubble tall (11px text, 1px padding, 2px borders). */}
-                            <span className="flex h-[24px] min-w-0 flex-wrap items-center gap-1 overflow-hidden">
+                                box is one bubble tall (a line of 11px text, 1px padding, 2px
+                                borders), with a little room, at any text size. */}
+                            <span className="flex h-[calc(1.03125rem+7.5px)] min-w-0 flex-wrap items-center gap-1 overflow-hidden">
                               {tags.map((t) => (
                                 <span
                                   key={t.id}
                                   title={t.description}
-                                  className="shrink-0 rounded-full border border-line px-2 py-px text-[11px] whitespace-nowrap text-fg-1"
+                                  className="shrink-0 rounded-full border border-line px-2 py-px text-[0.6875rem] whitespace-nowrap text-fg-1"
                                 >
                                   {t.label}
                                 </span>
@@ -981,7 +995,7 @@ function BulkList() {
             )}
           </div>
 
-          <footer className="border-t border-line px-6 py-2 text-[12px] text-fg-2">
+          <footer className="border-t border-line px-6 py-2 text-[0.75rem] text-fg-2">
             {filtered
               ? `Showing ${fmt(rows.length)} of ${fmt(summary.distinct)} unique`
               : `Showing all ${fmt(summary.distinct)} unique`}
@@ -993,7 +1007,8 @@ function BulkList() {
             ref={detailRef}
             tabIndex={-1}
             aria-label="Card detail"
-            className="fixed inset-y-0 right-0 z-40 flex w-[320px] max-w-full shrink-0 flex-col overflow-y-auto border-l border-line bg-surface p-[22px] lg:static lg:z-auto"
+            // Sized by the row, not its content, so a long card never makes the list half taller.
+            className="fixed inset-y-0 right-0 z-40 flex w-[320px] max-w-full shrink-0 flex-col overflow-y-auto border-l border-line bg-surface p-[22px] [contain:size] lg:static lg:z-auto"
           >
             <CardDetail
               card={selected}

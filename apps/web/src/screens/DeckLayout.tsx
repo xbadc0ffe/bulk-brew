@@ -182,13 +182,13 @@ export function DeckLayout(props: {
             <Pip key={c} symbol={c} size={20} label={COLOR_LABELS[c]} />
           ))}
         </span>
-        {props.title ?? <h1 className="text-[17px] font-semibold">{deck.name}</h1>}
-        <span className="text-[12.5px] text-fg-1">{props.meta}</span>
+        {props.title ?? <h1 className="text-[1.0625rem] font-semibold">{deck.name}</h1>}
+        <span className="text-[0.78125rem] text-fg-1">{props.meta}</span>
         <div className="ml-auto flex flex-wrap items-center gap-2">{props.actions}</div>
         {/* Always present, so screen readers announce new text. */}
         <p
           role="status"
-          className={props.status ? 'basis-full text-right text-[12px] text-fg-2' : 'sr-only'}
+          className={props.status ? 'basis-full text-right text-[0.75rem] text-fg-2' : 'sr-only'}
         >
           {props.status}
         </p>
@@ -212,7 +212,7 @@ export function DeckLayout(props: {
               aria-label={wide ? 'Narrow the deck details' : 'Widen the deck details'}
               title={wide ? 'Narrow the deck details' : 'Widen the deck details'}
               onClick={() => setWide((w) => !w)}
-              className="absolute top-1/2 left-1/2 z-10 flex h-10 w-5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-md border border-line-strong bg-surface text-[13px] text-fg-1 hover:bg-surface-2 hover:text-ink"
+              className="absolute top-1/2 left-1/2 z-10 flex h-10 w-5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-md border border-line-strong bg-surface text-[0.8125rem] text-fg-1 hover:bg-surface-2 hover:text-ink"
             >
               {wide ? '›' : '‹'}
             </button>

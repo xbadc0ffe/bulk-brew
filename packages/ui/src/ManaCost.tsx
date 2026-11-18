@@ -8,16 +8,17 @@ const SHADOW = '[filter:drop-shadow(-1px_1px_0_rgb(0_0_0/0.8))]';
 
 export type PipSize = 14 | 15 | 16 | 18 | 20 | 22 | 24 | 28 | 32;
 
+// In px like the symbol images, so a lettered circle matches them at any text size.
 const SIZE: Record<PipSize, string> = {
   14: 'h-[14px] min-w-[14px] text-[8px]',
   15: 'h-[15px] min-w-[15px] text-[8.5px]',
-  16: 'h-4 min-w-4 text-[9px]',
+  16: 'h-[16px] min-w-[16px] text-[9px]',
   18: 'h-[18px] min-w-[18px] text-[10px]',
-  20: 'h-5 min-w-5 text-[10.5px]',
+  20: 'h-[20px] min-w-[20px] text-[10.5px]',
   22: 'h-[22px] min-w-[22px] text-[11px]',
-  24: 'h-6 min-w-6 text-[11px]',
-  28: 'h-7 min-w-7 text-[12px]',
-  32: 'h-8 min-w-8 text-[13px]',
+  24: 'h-[24px] min-w-[24px] text-[11px]',
+  28: 'h-[28px] min-w-[28px] text-[12px]',
+  32: 'h-[32px] min-w-[32px] text-[13px]',
 };
 
 /**

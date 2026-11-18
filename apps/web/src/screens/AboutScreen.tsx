@@ -26,12 +26,12 @@ const EMAIL = 'info@badc0ffe.net';
 export function AboutScreen() {
   const { pack, config } = useAppState();
   return (
-    <div className="h-full overflow-y-auto px-8 py-[22px] text-[13px]">
+    <div className="h-full overflow-y-auto px-8 py-[22px] text-[0.8125rem]">
       <div className="mx-auto flex max-w-2xl flex-col gap-6">
         <header className="flex items-center gap-5">
           <img src={logo} alt={`${AUTHOR} logo`} className="size-24 shrink-0" />
           <div className="flex flex-col gap-1">
-            <h1 className="text-[24px] font-semibold">Bulk Brew</h1>
+            <h1 className="text-[1.5rem] font-semibold">Bulk Brew</h1>
             <p className="text-fg-1">Version {version}</p>
             <p className="text-fg-1">Made by {AUTHOR}</p>
           </div>
@@ -69,7 +69,8 @@ export function AboutScreen() {
                 Scryfall oracle cards · data format v
                 {pack.status === 'ready' ? pack.index.pack.schema : DATA_SCHEMA_VERSION}
               </span>
-              <span className="text-[11.5px] text-fg-2">
+              {/* The config id is one long word; it breaks rather than overflow on a narrow window. */}
+              <span className="text-[0.71875rem] wrap-anywhere text-fg-2">
                 {pack.status === 'ready'
                   ? `${pack.index.version} · ${pack.index.size.toLocaleString('en-US')} cards · config ${configVersion(config)}`
                   : pack.status === 'loading'
@@ -79,7 +80,7 @@ export function AboutScreen() {
             </div>
             <div className="flex flex-col gap-0.5 px-4 py-[11px]">
               <span className="font-semibold">Updates</span>
-              <span className="text-[11.5px] text-fg-2">
+              <span className="text-[0.71875rem] text-fg-2">
                 New card data arrives with app updates, usually once a week. Reload the page to get
                 the latest.
               </span>
@@ -97,7 +98,7 @@ export function AboutScreen() {
           </div>
         </section>
 
-        <section className="flex flex-col gap-2 text-[12.5px] leading-[1.6] text-fg-1">
+        <section className="flex flex-col gap-2 text-[0.78125rem] leading-[1.6] text-fg-1">
           <h2 className={ui.sectionLabel}>Notices</h2>
           <p>{FAN_CONTENT_NOTICE}</p>
           <p>{WIZARDS_NOTICE}</p>

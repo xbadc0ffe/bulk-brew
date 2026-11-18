@@ -83,13 +83,13 @@ function Picker(props: {
         aria-modal="true"
         aria-labelledby={`${id}-title`}
         aria-describedby={`${id}-message`}
-        className="relative flex max-h-[92dvh] w-full max-w-[1200px] flex-col rounded-xl border border-line bg-surface"
+        className="relative flex max-h-[92dvh] w-full max-w-[max(1200px,75rem)] flex-col rounded-xl border border-line bg-surface"
       >
         <header className="flex flex-col gap-1.5 border-b border-line px-5 pt-5 pb-4">
-          <h2 id={`${id}-title`} className="text-[16px] font-semibold">
+          <h2 id={`${id}-title`} className="text-[1rem] font-semibold">
             Replace {r.card.name}
           </h2>
-          <p id={`${id}-message`} className="text-[13px] leading-[1.5] text-fg-1">
+          <p id={`${id}-message`} className="text-[0.8125rem] leading-[1.5] text-fg-1">
             {r.qty > 1 ? `${r.qty} copies in this deck. ` : ''}
             {jobs.length > 0
               ? `It counts as ${jobs.join(', ')}. `
@@ -112,8 +112,8 @@ function Picker(props: {
                   ref={list}
                   className={`grid gap-3 ${
                     showArt
-                      ? 'grid-cols-[repeat(auto-fill,minmax(140px,1fr))] md:grid-cols-[repeat(auto-fill,minmax(170px,1fr))]'
-                      : 'grid-cols-[repeat(auto-fill,minmax(190px,1fr))] md:grid-cols-[repeat(auto-fill,minmax(210px,1fr))]'
+                      ? 'grid-cols-[repeat(auto-fill,minmax(max(140px,8.75rem),1fr))] md:grid-cols-[repeat(auto-fill,minmax(max(170px,10.625rem),1fr))]'
+                      : 'grid-cols-[repeat(auto-fill,minmax(max(190px,11.875rem),1fr))] md:grid-cols-[repeat(auto-fill,minmax(max(210px,13.125rem),1fr))]'
                   }`}
                 >
                   {visible.map((o, i) => {
@@ -154,7 +154,7 @@ function Picker(props: {
                             <TextCard card={o.card} />
                           )}
                           <JobLine option={o} />
-                          {partial && <span className="text-[12px] text-fg-2">{partial}</span>}
+                          {partial && <span className="text-[0.75rem] text-fg-2">{partial}</span>}
                         </button>
                       </li>
                     );
@@ -181,14 +181,16 @@ function Picker(props: {
               choice={choice}
               showArt={showArt}
               className={
-                wide ? 'w-[360px] shrink-0 border-l border-line' : 'absolute inset-0 bg-surface'
+                wide
+                  ? 'w-[max(360px,22.5rem)] shrink-0 border-l border-line'
+                  : 'absolute inset-0 bg-surface'
               }
               action={
                 !wide && (
                   <button
                     ref={back}
                     type="button"
-                    className={`${ui.quiet} text-[13px] font-semibold`}
+                    className={`${ui.quiet} text-[0.8125rem] font-semibold`}
                     onClick={unzoom}
                   >
                     Back to the list
@@ -200,7 +202,7 @@ function Picker(props: {
         </div>
 
         <footer className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line px-5 py-3.5">
-          <p aria-live="polite" className="min-w-0 flex-1 text-[13px] text-fg-1">
+          <p aria-live="polite" className="min-w-0 flex-1 text-[0.8125rem] text-fg-1">
             {choice
               ? `Swap ${copiesOf(choice.qty, r.card.name, r.qty)} for ${copiesOf(choice.qty, choice.card.name)}.`
               : r.options.length > 0
@@ -271,24 +273,24 @@ function Preview(props: {
           printing={printing}
           size="large"
           zoom={false}
-          frameClassName="mx-auto w-full max-w-[360px]"
+          frameClassName="mx-auto w-full max-w-[max(360px,22.5rem)]"
           className="block aspect-[672/936] h-auto w-full rounded-[4.75%/3.4%] bg-surface-2"
           fallback={<TextCard card={card} full />}
         />
       ) : (
-        <TextCard card={card} full className="mx-auto max-w-[360px]" />
+        <TextCard card={card} full className="mx-auto max-w-[max(360px,22.5rem)]" />
       )}
-      <div className="mx-auto flex w-full max-w-[360px] flex-col gap-1">
+      <div className="mx-auto flex w-full max-w-[max(360px,22.5rem)] flex-col gap-1">
         {choice ? (
           <JobLine option={choice} big />
         ) : (
-          <span className="text-[13px] leading-snug text-fg-1">
+          <span className="text-[0.8125rem] leading-snug text-fg-1">
             {jobs.length > 0
               ? `Counts as ${jobs.join(' · ')}`
               : 'Fills no role or theme the deck counts'}
           </span>
         )}
-        {partial && <span className="text-[13px] text-fg-2">{partial}</span>}
+        {partial && <span className="text-[0.8125rem] text-fg-2">{partial}</span>}
       </div>
     </section>
   );
@@ -298,7 +300,7 @@ function Preview(props: {
 function JobLine({ option, big = false }: { option: ReplacementOption; big?: boolean }) {
   const shared = labels(option.shared);
   const added = labels(option.added);
-  const size = big ? 'text-[13px]' : 'text-[12px]';
+  const size = big ? 'text-[0.8125rem]' : 'text-[0.75rem]';
   if (shared.length === 0 && added.length === 0)
     return <span className={`${size} text-fg-2`}>No role the deck counts</span>;
   return (

@@ -6,7 +6,8 @@ import './index.css';
 /**
  * Follow the iOS text size. Sizes in this app are in rem, designed at a 16px
  * root; -apple-system-body is 17px at the default text size, so the root
- * scales by its ratio. Browsers without the font keyword keep 16px.
+ * scales by its ratio. Browsers without the font keyword keep 16px. The Text
+ * size setting multiplies this base (index.css).
  */
 function followSystemTextSize() {
   // Touch devices only: desktop Safari knows the keyword too, at a smaller size.
@@ -22,7 +23,7 @@ function followSystemTextSize() {
   if (!(body > 0)) return;
   // Clamped so the largest accessibility sizes still leave room for the layout.
   const root = Math.min(28, Math.max(14, (16 * body) / 17));
-  document.documentElement.style.fontSize = `${root}px`;
+  document.documentElement.style.setProperty('--root-base', `${root}px`);
   // Lists that measure rows listen for resize.
   window.dispatchEvent(new Event('resize'));
 }

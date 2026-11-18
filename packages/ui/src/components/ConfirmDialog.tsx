@@ -45,7 +45,7 @@ function Shell(props: {
       >
         <h2
           id={`${id}-title`}
-          className={isPhone ? 'text-[1.0625rem] font-semibold' : 'text-[16px] font-semibold'}
+          className={isPhone ? 'text-[1.0625rem] font-semibold' : 'text-[1rem] font-semibold'}
         >
           {title}
         </h2>
@@ -54,7 +54,7 @@ function Shell(props: {
           className={
             isPhone
               ? 'text-[0.875rem] leading-[1.5] text-fg-1'
-              : 'text-[13px] leading-[1.5] text-fg-1'
+              : 'text-[0.8125rem] leading-[1.5] text-fg-1'
           }
         >
           {message}
@@ -163,12 +163,16 @@ export function ChoiceDialog(props: {
             className={`flex w-full flex-col items-center justify-center rounded-lg px-4 hover:brightness-110 ${TONE[c.tone]} ${isPhone ? 'min-h-12 py-2' : 'min-h-11 py-2'}`}
           >
             <span
-              className={isPhone ? 'text-[0.9375rem] font-semibold' : 'text-[14px] font-semibold'}
+              className={
+                isPhone ? 'text-[0.9375rem] font-semibold' : 'text-[0.875rem] font-semibold'
+              }
             >
               {c.label}
             </span>
             {c.detail && (
-              <span className={isPhone ? 'text-[0.75rem] opacity-90' : 'text-[11.5px] opacity-90'}>
+              <span
+                className={isPhone ? 'text-[0.75rem] opacity-90' : 'text-[0.71875rem] opacity-90'}
+              >
                 {c.detail}
               </span>
             )}

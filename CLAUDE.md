@@ -80,7 +80,7 @@ npx -w @bulk-brew/web vite preview --port 4173 --strictPort   # in the backgroun
 npm run smoke                                                  # or: npm run smoke -- https://xbadc0ffe.github.io/bulk-brew/
 ```
 
-The smoke test imports `eval/pools/white-bulk.txt`, opens the strongest deck option, replaces a card in it, accepts it, and checks the Bulk List and Decks screens. Environment variables pick other paths: `SMOKE_COLORS=White,Blue`, `SMOKE_STYLE` and `SMOKE_SECONDARY` for the style drop-downs, `SMOKE_SIZE=100` with `SMOKE_COMMANDER=<part of a name>` for Commander, `SMOKE_ART=1` for card art, and `SMOKE_WIDTH=420` for the narrow layout. It also checks that `data/learned.json` loads and that About credits its sources. The Commander tribe check runs the Elf pool: `SMOKE_SIZE=100 SMOKE_COMMANDER=Lathril SMOKE_STYLE='Elf tribe' npm run smoke -- <url> eval/pools/elf-tribe.txt`. Screenshots land in `.smoke/` (gitignored).
+The smoke test imports `eval/pools/white-bulk.txt`, opens the strongest deck option, replaces a card in it, accepts it, and checks the Bulk List and Decks screens. Environment variables pick other paths: `SMOKE_COLORS=White,Blue`, `SMOKE_STYLE` and `SMOKE_SECONDARY` for the style drop-downs, `SMOKE_SIZE=100` with `SMOKE_COMMANDER=<part of a name>` for Commander, `SMOKE_ART=1` for card art, `SMOKE_WIDTH=420` for the narrow layout, and `SMOKE_TEXT=140` (or 90, 110, 125) to pick that Text size on Settings first. It also checks that `data/learned.json` loads and that About credits its sources. The Commander tribe check runs the Elf pool: `SMOKE_SIZE=100 SMOKE_COMMANDER=Lathril SMOKE_STYLE='Elf tribe' npm run smoke -- <url> eval/pools/elf-tribe.txt`. Screenshots land in `.smoke/` (gitignored).
 
 ## Environment notes
 

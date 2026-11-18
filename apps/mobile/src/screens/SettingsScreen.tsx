@@ -10,6 +10,7 @@ import {
   readFileText,
   Segmented,
   Stepper,
+  TEXT_SIZES,
   THEME_COLORS,
   Toggle,
   type ThemeColor,
@@ -80,6 +81,7 @@ export function SettingsScreen() {
 
   const mode = APPEARANCE_MODES.find((m) => m.id === appearance.appearance.mode)?.label;
   const theme = THEME_COLORS.find((t) => t.id === appearance.appearance.theme)?.label;
+  const textSize = appearance.appearance.textSize;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -115,7 +117,7 @@ export function SettingsScreen() {
           </ToggleRow>
           <Row
             label="Appearance"
-            value={`${mode} · ${theme}`}
+            value={`${mode} · ${theme}${textSize === 100 ? '' : ` · ${textSize}%`}`}
             onClick={() => setSub('appearance')}
           />
         </Group>
@@ -238,6 +240,19 @@ export function SettingsScreen() {
                   );
                 })}
               </div>
+            </section>
+            <section className="flex flex-col gap-1.5">
+              <h2 className={phone.groupLabel}>Text size</h2>
+              <Segmented
+                label="Text size"
+                options={TEXT_SIZES}
+                value={appearance.appearance.textSize}
+                onChange={appearance.setTextSize}
+                variant="phone"
+              />
+              <p className={`${phone.note} px-1`}>
+                Works on top of the text size set on your device.
+              </p>
             </section>
           </div>
         </Pushed>

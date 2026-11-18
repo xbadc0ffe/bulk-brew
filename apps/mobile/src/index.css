@@ -2,6 +2,12 @@
 @import '../../../packages/ui/src/theme.css';
 @source '../../../packages/ui/src';
 
+/* The Text size setting on top of the system text size, clamped so the
+   largest sizes still leave room for the layout. */
+html {
+  font-size: clamp(12px, calc(var(--root-base, 100%) * var(--root-scale, 1)), 28px);
+}
+
 html,
 body {
   overscroll-behavior: none;

@@ -104,11 +104,11 @@ function OptionsBody({ options, onClear }: { options: DeckOptions; onClear(): vo
   return (
     <div className="flex flex-col md:min-h-0 md:flex-1">
       <div className="flex items-center justify-between gap-3 border-b border-line px-6 py-3">
-        <h2 id="options-title" tabIndex={-1} className="text-[15px] font-semibold">
+        <h2 id="options-title" tabIndex={-1} className="text-[0.9375rem] font-semibold">
           Deck options
         </h2>
         {options.working && (
-          <p aria-hidden className="flex items-center gap-2 text-[12px] text-fg-2">
+          <p aria-hidden className="flex items-center gap-2 text-[0.75rem] text-fg-2">
             <Spinner />
             Building options, {options.built} of {options.planned}
           </p>
@@ -131,7 +131,7 @@ function OptionsBody({ options, onClear }: { options: DeckOptions; onClear(): vo
 
 function Centered({ children }: { children: ReactNode }) {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-1 p-8 text-center text-[13px] text-fg-2">
+    <div className="flex flex-1 flex-col items-center justify-center gap-1 p-8 text-center text-[0.8125rem] text-fg-2">
       {children}
     </div>
   );
@@ -166,7 +166,7 @@ function Detail({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-1">
       <span className={ui.sectionLabel}>{label}</span>
-      <div className="text-[12.5px] leading-[1.45] text-fg-1">{children}</div>
+      <div className="text-[0.78125rem] leading-[1.45] text-fg-1">{children}</div>
     </div>
   );
 }
@@ -206,11 +206,11 @@ function CommanderDetails({ c }: { c: CommanderCandidate }) {
 function Chips({ lead, items, strong }: { lead: string; items: string[]; strong?: boolean }) {
   return (
     <span className="flex flex-wrap items-center gap-1.5">
-      <span className="text-[12px] text-fg-2">{lead}</span>
+      <span className="text-[0.75rem] text-fg-2">{lead}</span>
       {items.map((label) => (
         <span
           key={label}
-          className={`rounded-full px-2 py-[2px] text-[12px] ${strong ? 'border border-line-strong bg-surface font-semibold text-ink' : 'bg-surface-2 text-fg-1'}`}
+          className={`rounded-full px-2 py-[2px] text-[0.75rem] ${strong ? 'border border-line-strong bg-surface font-semibold text-ink' : 'bg-surface-2 text-fg-1'}`}
         >
           {label}
         </span>
@@ -283,16 +283,16 @@ function CommanderList({ onClear }: { onClear(): void }) {
   return (
     <div className="flex flex-col md:min-h-0 md:flex-1">
       <div className="flex items-center justify-between gap-3 border-b border-line px-6 py-3">
-        <h2 id="options-title" tabIndex={-1} className="text-[15px] font-semibold">
+        <h2 id="options-title" tabIndex={-1} className="text-[0.9375rem] font-semibold">
           Pick a commander
         </h2>
         {style && checking > 0 ? (
-          <p aria-hidden className="flex items-center gap-2 text-[12px] text-fg-2">
+          <p aria-hidden className="flex items-center gap-2 text-[0.75rem] text-fg-2">
             <Spinner />
             Checking which can build {style}, {shown.length - checking} of {shown.length}
           </p>
         ) : (
-          <p className="text-[12px] text-fg-2">
+          <p className="text-[0.75rem] text-fg-2">
             {filtered ? `${shown.length} of ${list.length}` : list.length} in your bulk list
             {style ? '' : ', most promising first'}
           </p>
@@ -420,9 +420,9 @@ function OptionCard({ option, onOpen }: { option: DeckOption; onOpen(): void }) 
             <Pip key={c} symbol={c} size={18} />
           ))}
         </span>
-        <span className="text-[15px] font-semibold">{title}</span>
-        {nearest && <span className="text-[12px] text-fg-1">{nearest}</span>}
-        <span className="text-[12px] text-fg-2">{style.description}</span>
+        <span className="text-[0.9375rem] font-semibold">{title}</span>
+        {nearest && <span className="text-[0.75rem] text-fg-1">{nearest}</span>}
+        <span className="text-[0.75rem] text-fg-2">{style.description}</span>
       </span>
       <ColorBreakdown shares={shares} size={84} />
       <Part label="Mana curve">
@@ -433,7 +433,7 @@ function OptionCard({ option, onOpen }: { option: DeckOption; onOpen(): void }) 
       </Part>
       {(styles.length > 0 || roles.length > 0) && (
         <Part label="Roles">
-          <span className="text-[12.5px]">
+          <span className="text-[0.78125rem]">
             <RoleBars>
               {styles.map((r) => (
                 <RoleBar key={r.key} label={r.label} have={r.have} want={r.want} />
@@ -459,7 +459,7 @@ function OptionCard({ option, onOpen }: { option: DeckOption; onOpen(): void }) 
           )}
         </span>
       )}
-      {synergy && <span className="text-[12px] text-fg-1">{synergy}</span>}
+      {synergy && <span className="text-[0.75rem] text-fg-1">{synergy}</span>}
       <Cover onClick={onOpen}>Open {title}</Cover>
     </div>
   );

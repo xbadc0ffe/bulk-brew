@@ -65,7 +65,12 @@ function FaceBlock({ face, phone }: { face: FaceLike; phone: boolean }) {
         sub: 'text-[0.8125rem]',
         body: 'text-[0.9375rem]',
       }
-    : { name: 'text-[16px]', type: 'text-[13px]', sub: 'text-[12.5px]', body: 'text-[13px]' };
+    : {
+        name: 'text-[1rem]',
+        type: 'text-[0.8125rem]',
+        sub: 'text-[0.78125rem]',
+        body: 'text-[0.8125rem]',
+      };
   return (
     <article className="flex flex-col rounded-lg border border-line-strong bg-surface">
       <header className="flex flex-col gap-1.5 px-3.5 pt-3 pb-2.5">
@@ -148,8 +153,8 @@ export function CardDetail(props: CardDetailProps) {
   }, [escape]);
 
   const label = phone ? phoneStyles.groupLabel : ui.sectionLabel;
-  const small = phone ? 'text-[0.8125rem] text-fg-2' : 'text-[12.5px] text-fg-2';
-  const bubble = phone ? 'px-2.5 py-1 text-[0.75rem]' : 'px-2.5 py-[3px] text-[12px]';
+  const small = phone ? 'text-[0.8125rem] text-fg-2' : 'text-[0.78125rem] text-fg-2';
+  const bubble = phone ? 'px-2.5 py-1 text-[0.75rem]' : 'px-2.5 py-[3px] text-[0.75rem]';
   const editable = qty !== undefined && props.onQtyChange;
 
   return (
@@ -158,7 +163,7 @@ export function CardDetail(props: CardDetailProps) {
         <div className="flex items-center justify-between gap-3">
           {editable ? (
             <span className="flex items-center gap-2.5">
-              <span className={phone ? 'text-[0.9375rem] text-fg-1' : 'text-[13px] text-fg-1'}>
+              <span className={phone ? 'text-[0.9375rem] text-fg-1' : 'text-[0.8125rem] text-fg-1'}>
                 Quantity
               </span>
               <Stepper
@@ -179,7 +184,7 @@ export function CardDetail(props: CardDetailProps) {
               className={
                 phone
                   ? 'min-h-11 shrink-0 px-1 text-[0.9375rem] font-semibold text-ink'
-                  : `${ui.quiet} shrink-0 px-1 text-[16px] leading-none`
+                  : `${ui.quiet} shrink-0 px-1 text-[1rem] leading-none`
               }
               onClick={onClose}
               aria-label="Close card detail"
@@ -254,7 +259,7 @@ export function CardDetail(props: CardDetailProps) {
           {card.tags.map((t) => (
             <li
               key={t}
-              className="rounded border border-line px-1.5 py-px font-mono text-[11px] text-fg-1"
+              className="rounded border border-line px-1.5 py-px font-mono text-[0.6875rem] text-fg-1"
             >
               {t}
             </li>

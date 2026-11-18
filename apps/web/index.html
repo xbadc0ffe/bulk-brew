@@ -27,6 +27,7 @@
         } catch (e) {}
         var mode = a.mode === 'dark' || a.mode === 'system' ? a.mode : 'light';
         var theme = ['W', 'U', 'B', 'R', 'G'].indexOf(a.theme) >= 0 ? a.theme : 'grey';
+        var textSize = [90, 110, 125, 140].indexOf(a.textSize) >= 0 ? a.textSize : 100;
         var dark =
           mode === 'dark' ||
           (mode === 'system' &&
@@ -36,6 +37,7 @@
         root.setAttribute('data-mode', dark ? 'dark' : 'light');
         root.setAttribute('data-theme', theme);
         root.style.colorScheme = dark ? 'dark' : 'light';
+        root.style.setProperty('--root-scale', String(textSize / 100));
         var icon = document.querySelector('link[rel="icon"][data-dark]');
         if (icon) icon.setAttribute('href', icon.getAttribute(dark ? 'data-dark' : 'data-light'));
       })();

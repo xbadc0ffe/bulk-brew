@@ -273,6 +273,11 @@
 }
 
 @layer base {
+  /* Sizes are in rem, so this scales the whole app. The Text size setting sets
+     --root-scale; the phone app sets --root-base from the system text size. */
+  html {
+    font-size: calc(var(--root-base, 100%) * var(--root-scale, 1));
+  }
   html,
   body {
     background: var(--bg);
