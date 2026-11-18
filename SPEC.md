@@ -288,25 +288,26 @@ npm workspaces monorepo, TypeScript throughout.
 
 ## Milestones
 
-| Phase | Deliverable                                                                                                             | Status                                  |
-| ----- | ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
-| 1     | Repo bootstrap: monorepo, license, docs, download scripts, CI, Pages deploy, design brief                               | done                                    |
-| 2     | Data pipeline: pack, manifest, edge-case tests, weekly refresh workflow                                                 | done                                    |
-| 3     | Core: pack loader, name resolution, pool model with import report and backup                                            | done                                    |
-| 4     | Guides and config v1: templates, roles, archetypes, synergy and land rules                                              | done                                    |
-| 5     | Archetype scan and builder v1: mono-color, all sizes, explanations, packet pairing                                      | done                                    |
-| 6     | Evaluation harness: test pools, rubric, results tracking                                                                | done                                    |
-| 7     | Web app: full flow, card detail and art, backup, CSV import, offline, mobile layouts                                    | done                                    |
-| 7b    | Design pass: Claude Design restyles both apps from `docs/DESIGN_BRIEF.md`                                               | done                                    |
-| 8     | iOS app: Capacitor project, bundled data, over-the-air data updates, TestFlight                                         | on hold until the owner starts it       |
-| 9     | Deck strength: data pack schema 2, card strength and deck scores, best fit by building, guide-based config pass         | done                                    |
-| 10    | Colors: one to five colors, castability candidates, pip-based mana bases, fixing, saved deck migration                  | done                                    |
-| 11    | Build page: settings left, ranked deck options right, background worker, state kept                                     | done                                    |
-| 12    | Styles: primary and secondary styles, tribal as a secondary style, new styles                                           | done                                    |
-| 13    | Commander: 100-card singleton, commander candidates and tiers, commander-anchored builds                                | done                                    |
-| 14    | Analyze pane: recommended decks from a background worker, color pie, pool breakdown by color                            | done                                    |
-| 15    | Builder phase 1: theme rules as config, seed-and-grow builder for requested styles at 60, 100, and 40, note and nearest | done, panel in `docs/builder-phase1.md` |
-| Later | Builder phases 2 to 4 (`docs/review/report.md`), batch balanced mode, offline image download                            |                                         |
+| Phase | Deliverable                                                                                                                                                                                      | Status                                                |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------- |
+| 1     | Repo bootstrap: monorepo, license, docs, download scripts, CI, Pages deploy, design brief                                                                                                        | done                                                  |
+| 2     | Data pipeline: pack, manifest, edge-case tests, weekly refresh workflow                                                                                                                          | done                                                  |
+| 3     | Core: pack loader, name resolution, pool model with import report and backup                                                                                                                     | done                                                  |
+| 4     | Guides and config v1: templates, roles, archetypes, synergy and land rules                                                                                                                       | done                                                  |
+| 5     | Archetype scan and builder v1: mono-color, all sizes, explanations, packet pairing                                                                                                               | done                                                  |
+| 6     | Evaluation harness: test pools, rubric, results tracking                                                                                                                                         | done                                                  |
+| 7     | Web app: full flow, card detail and art, backup, CSV import, offline, mobile layouts                                                                                                             | done                                                  |
+| 7b    | Design pass: Claude Design restyles both apps from `docs/DESIGN_BRIEF.md`                                                                                                                        | done                                                  |
+| 8     | iOS app: Capacitor project, bundled data, over-the-air data updates, TestFlight                                                                                                                  | on hold until the owner starts it                     |
+| 9     | Deck strength: data pack schema 2, card strength and deck scores, best fit by building, guide-based config pass                                                                                  | done                                                  |
+| 10    | Colors: one to five colors, castability candidates, pip-based mana bases, fixing, saved deck migration                                                                                           | done                                                  |
+| 11    | Build page: settings left, ranked deck options right, background worker, state kept                                                                                                              | done                                                  |
+| 12    | Styles: primary and secondary styles, tribal as a secondary style, new styles                                                                                                                    | done                                                  |
+| 13    | Commander: 100-card singleton, commander candidates and tiers, commander-anchored builds                                                                                                         | done                                                  |
+| 14    | Analyze pane: recommended decks from a background worker, color pie, pool breakdown by color                                                                                                     | done                                                  |
+| 15    | Builder phase 1: theme rules as config, seed-and-grow builder for requested styles at 60, 100, and 40, note and nearest                                                                          | done, panel in `docs/builder-phase1.md`               |
+| 16    | Builder phase 2 (`docs/builder-phase2.md`): one-color lands, the card needs reader, one plan picker, one set of definitions, 20-card packets and Commander (tribes included) on the grow builder | steps 1 to 5 done, panels in `docs/builder-phase2.md` |
+| Later | Retire the classic builder (step 7), batch balanced mode, offline image download                                                                                                                 |                                                       |
 
 ## Decisions
 
