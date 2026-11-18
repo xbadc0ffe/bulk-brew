@@ -76,7 +76,8 @@ export interface ShippedOptionSearch {
 export interface ShippedCore {
   DATA_SCHEMA_VERSION: number;
   CardIndex: new (pack: DataPack) => { learned?: object };
-  parseLearnedData(json: string): { data?: { version: string }; problems: string[] };
+  /** Absent in a core from before the learned data (26.0.30 and earlier). */
+  parseLearnedData?(json: string): { data?: { version: string }; problems: string[] };
   BuildError: abstract new (...args: never[]) => Error;
   buildDeck(
     request: ShippedBuildRequest,
@@ -239,8 +240,10 @@ async function load(ctx: PrepareContext): Promise<Shipped> {
   const { loadConfigDir } = loader;
   const reads = readsDuring(() => loadConfigDir(configDir) as { learned?: object });
   const config = reads.value;
-  // That loader skips config/learned/ unless every file is there; the web always ships them.
-  if (!config.learned)
+  const { parseLearnedData } = core;
+  // That loader skips config/learned/ unless every file is there; the web always ships them
+  // once the core reads learned data.
+  if (parseLearnedData && !config.learned)
     throw new VersionLoadError(
       `the shipped worktree's config/learned/ is incomplete at ${configDir}`,
     );
@@ -254,20 +257,24 @@ async function load(ctx: PrepareContext): Promise<Shipped> {
   // that core as its attachLearned does, so a later learn:build cannot move the baseline.
   const index = new core.CardIndex(pack);
   const learnedFile = path.join(dir, 'data', 'learned.json');
-  if (!existsSync(learnedFile))
-    throw new VersionLoadError(`the shipped worktree has no data/learned.json at ${learnedFile}`);
-  const parsed = core.parseLearnedData(readFileSync(learnedFile, 'utf8'));
-  if (!parsed.data)
-    throw new VersionLoadError(
-      `the shipped core cannot read ${learnedFile}: ${parsed.problems.join('; ')}`,
-    );
-  index.learned = parsed.data;
+  let learned = 'none';
+  if (parseLearnedData) {
+    if (!existsSync(learnedFile))
+      throw new VersionLoadError(`the shipped worktree has no data/learned.json at ${learnedFile}`);
+    const parsed = parseLearnedData(readFileSync(learnedFile, 'utf8'));
+    if (!parsed.data)
+      throw new VersionLoadError(
+        `the shipped core cannot read ${learnedFile}: ${parsed.problems.join('; ')}`,
+      );
+    index.learned = parsed.data;
+    learned = parsed.data.version;
+  }
   // Untracked files would not be the commit's: every module, config file, and data file must be tracked.
   checkTracked(dir, commit, [
     ...modules,
     ...reads.files,
     path.join(configDir, 'settings.defaults.json'),
-    learnedFile,
+    ...(parseLearnedData ? [learnedFile] : []),
   ]);
   return {
     core,
@@ -275,7 +282,7 @@ async function load(ctx: PrepareContext): Promise<Shipped> {
     settings: deepFreeze(settings),
     index,
     commit,
-    notes: `Commit ${commit}, config ${core.configVersion(config)}, learned data ${parsed.data.version}.`,
+    notes: `Commit ${commit}, config ${core.configVersion(config)}, learned data ${learned}.`,
   };
 }
 

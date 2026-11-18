@@ -256,7 +256,7 @@ describe('job files', () => {
     expect(setOf(100)).toBe('main');
     expect(setOf(40)).toBe('small');
     expect(setOf(20)).toBe('small');
-    expect(jobFileName('main', 'v26.0.30')).toBe('main-v26.0.30.json');
+    expect(jobFileName('main', 'shipped-web')).toBe('main-shipped-web.json');
     expect(seedsFor('head')).toEqual([1]);
     expect(seedsFor('random')).toEqual([1, 2]);
   });
@@ -378,7 +378,7 @@ describe('job files', () => {
     expect(requestsFor(all, 'head', only)).toEqual([requests[0]]);
     expect(requestsFor(all, 'head', only, new Set(['head']))).toEqual([requests[0], tribe]);
     expect(requestsFor(all, 'random', only, new Set(['head']))).toEqual([requests[0]]);
-    expect(requestsFor(all, 'v26.0.30', only)).toEqual(all);
+    expect(requestsFor(all, 'shipped', only)).toEqual(all);
     const files = expandJobs(all, ['head', 'random'], only, new Set(['head']));
     expect(files.get('main-head.json')!.map((j) => j.deck)).toEqual([
       'head/plain-01-B-60-bestfit-s1.json',

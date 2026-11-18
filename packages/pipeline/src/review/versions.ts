@@ -7,8 +7,6 @@ import type { BuilderVersion } from './version.ts';
 const REGISTRY: Record<string, () => Promise<{ default: BuilderVersion }>> = {
   head: () => import('./algos/head.ts'),
   'head-web': () => import('./algos/head-web.ts'),
-  'v26.0.30': () => import('./algos/v26-0-30.ts'),
-  'v26.0.35': () => import('./algos/v26-0-35.ts'),
   shipped: () => import('./algos/shipped.ts'),
   'shipped-web': () => import('./algos/shipped-web.ts'),
   random: () => import('./algos/random.ts'),

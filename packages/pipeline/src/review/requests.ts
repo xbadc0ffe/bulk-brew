@@ -3,7 +3,7 @@
 // the same requests. Rules and counts: docs/review/requests.md.
 //
 // Usage: npm run review:requests -- [--pools plain,theme,tribe,public,owner] [--plain 30]
-//   [--prefix <p>] [--sizes 60,100,40,20] [--versions head,head-web,v26.0.30,random]
+//   [--prefix <p>] [--sizes 60,100,40,20] [--versions head,head-web,shipped,random]
 //   [--bestfit-only head-web,random] [--bestfit] [--tribe-versions <ids>] [--commanders 2]
 //   [--tribe-commanders 4] [--no-two-color] [--two-color-sizes 60,40]
 //   [--out data/review/jobs] [--force]
@@ -41,7 +41,7 @@ export const DEFAULT_OUT = path.join(ROOT, 'data', 'review', 'jobs');
 const POOLS_DIR = path.join(ROOT, 'data', 'review', 'pools');
 const KIND_ORDER: readonly PoolKind[] = ['plain', 'theme', 'tribe', 'public', 'owner'];
 export const DEFAULT_KINDS: readonly PoolKind[] = ['plain', 'theme', 'tribe', 'public'];
-export const DEFAULT_VERSIONS: readonly string[] = ['head', 'head-web', 'v26.0.30', 'random'];
+export const DEFAULT_VERSIONS: readonly string[] = ['head', 'head-web', 'shipped', 'random'];
 /** head-web differs from head only in best fit, and a random pile ignores the style. */
 export const DEFAULT_BESTFIT_ONLY: readonly string[] = ['head-web', 'random'];
 const ALL_SIZES: readonly ReviewSize[] = [60, 100, 40, 20];

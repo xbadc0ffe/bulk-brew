@@ -11,22 +11,22 @@ The code is `packages/pipeline/src/review/requests.ts`; the pure parts are teste
 
 ## Flags
 
-| Flag                     | Default                         | Meaning                                                                                                 |
-| ------------------------ | ------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `--pools <kinds>`        | `plain,theme,tribe,public`      | Pool kinds, from `plain`, `theme`, `tribe`, `public`, `owner`. Owner pools only when asked.             |
-| `--plain <n>`            | all 30                          | Only the first n plain pools, by id.                                                                    |
-| `--prefix <p>`           | none                            | Only pools of one seed prefix (below).                                                                  |
-| `--sizes <list>`         | `60,100,40,20`                  | Deck sizes.                                                                                             |
-| `--versions <ids>`       | `head,head-web,v26.0.30,random` | One pair of job files per version. Prototypes are added here by name.                                   |
-| `--bestfit-only <ids>`   | `head-web,random`               | Versions that get only the best-fit requests. `none` turns it off.                                      |
-| `--bestfit`              | off                             | Best fit only, for every version, where the scan can build the size (below).                            |
-| `--tribe-versions <ids>` | none                            | Best-fit-only versions that also get the tribe pools' tribe requests (rule 3). Full versions always do. |
-| `--commanders <n>`       | 2                               | Commanders per pool at 100 (rule 3).                                                                    |
-| `--tribe-commanders <n>` | 4                               | Commanders per tribe pool that get its tribe request (rule 3).                                          |
-| `--two-color`            | on                              | The two-color slice on plain pools at 60 and 40 (rule 1). `--no-two-color` drops it.                    |
-| `--two-color-sizes <l>`  | `60,40`                         | The sizes that get the slice, from 60, 40, 20.                                                          |
-| `--out <dir>`            | `data/review/jobs`              | Output folder.                                                                                          |
-| `--force`                | off                             | Replace job files that exist with other jobs.                                                           |
+| Flag                     | Default                        | Meaning                                                                                                 |
+| ------------------------ | ------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| `--pools <kinds>`        | `plain,theme,tribe,public`     | Pool kinds, from `plain`, `theme`, `tribe`, `public`, `owner`. Owner pools only when asked.             |
+| `--plain <n>`            | all 30                         | Only the first n plain pools, by id.                                                                    |
+| `--prefix <p>`           | none                           | Only pools of one seed prefix (below).                                                                  |
+| `--sizes <list>`         | `60,100,40,20`                 | Deck sizes.                                                                                             |
+| `--versions <ids>`       | `head,head-web,shipped,random` | One pair of job files per version. Prototypes are added here by name.                                   |
+| `--bestfit-only <ids>`   | `head-web,random`              | Versions that get only the best-fit requests. `none` turns it off.                                      |
+| `--bestfit`              | off                            | Best fit only, for every version, where the scan can build the size (below).                            |
+| `--tribe-versions <ids>` | none                           | Best-fit-only versions that also get the tribe pools' tribe requests (rule 3). Full versions always do. |
+| `--commanders <n>`       | 2                              | Commanders per pool at 100 (rule 3).                                                                    |
+| `--tribe-commanders <n>` | 4                              | Commanders per tribe pool that get its tribe request (rule 3).                                          |
+| `--two-color`            | on                             | The two-color slice on plain pools at 60 and 40 (rule 1). `--no-two-color` drops it.                    |
+| `--two-color-sizes <l>`  | `60,40`                        | The sizes that get the slice, from 60, 40, 20.                                                          |
+| `--out <dir>`            | `data/review/jobs`             | Output folder.                                                                                          |
+| `--force`                | off                            | Replace job files that exist with other jobs.                                                           |
 
 The command needs no network and reads no clock. The data pack, the config, and the pools decide the requests, so a new pack or config can change them; `index.json` records the data and config versions.
 
@@ -100,7 +100,7 @@ Notes:
 ### 4. Sizes, versions, and seeds
 
 - 60 and 100 are the main set, `main-<version>.json`. 40 and 20 are the second set, `small-<version>.json`.
-- One pair of files per version in `--versions`. Default `head`, `head-web`, `v26.0.30`, and `random`.
+- One pair of files per version in `--versions`. Default `head`, `head-web`, `shipped`, and `random`. Until 2026-11-18 the default had `v26.0.30` in place of `shipped`; the 26.0.30 builder is now `shipped` with its worktree at that commit (`docs/review/runner.md`).
 - Seed 1 for every job, except `random`, which gets seeds 1 and 2: two piles per request, so the panel's calibration has more random decks.
 - `--bestfit-only` holds two versions by default, which get only the `bestfit` jobs:
   - `head-web` (the web Build page's first option) differs from `head` only for best-fit requests and equals it for requested styles.
