@@ -105,6 +105,8 @@ Ranked. The current phase is at the top. Finished phases are removed, not struck
 - Empty, loading, and error states follow the handoff's suggestions; confirm them with the owner.
 - Mobile: Rename uses the browser prompt; replace it with an inline field like the web's click-to-rename.
 - Build page: the archetype drop-down shows a horizontal scrollbar under its list when the list scrolls (seen at 1600 by 1000, any deck size).
+- Text size above 100% on a window about 420 pixels wide (builder phase 2, step 9): the tab bar scrolls sideways, the Bulk List hides its Type column, and with Analyze open the list keeps its header and a few rows, leaving the Analysis pane a thin strip at 140% (the page scrolls to reach it). A layout that stacks the two panes there would read better.
+- Headless Edge will not size a window below about 500 pixels, so `SMOKE_WIDTH=420` renders 492 wide. A true narrow check needs device metrics emulation (`Emulation.setDeviceMetricsOverride`) in `scripts/smoke-web.mjs`.
 
 ## Owner review follow-ups
 

@@ -137,7 +137,7 @@ A plain, functional interface already implements every screen above, so the desi
 - Build (desktop): settings beside ranked deck options; an option opens the deck view with Accept, Back, and Export. Phones: size, colors, archetype list, Build, then the deck view.
 - Deck view: cards grouped by type, mana symbols, optional "why each card is here", curve bars, land reasoning, roles, synergies, notes. On a fresh build (web), any card but the commander and basics can be replaced from the bulk list.
 - Decks: list, open, rename by clicking the name, export, Remove (Delete or Disassemble), pair two packets with Copy.
-- Settings: Un-sets, card art, appearance, export (bulk list, decks, or both, as JSON or TXT) and restore (bulk list, decks, or both), reset settings, clear all data, card data version, About with the attribution notices.
+- Settings: Un-sets, card art, appearance, text size, export (bulk list, decks, or both, as JSON or TXT) and restore (bulk list, decks, or both), reset settings, clear all data, card data version, About with the attribution notices.
 - Card detail: opened from any card row. Web shows a right-hand panel, which in a deck view opens over the deck details below the deck's header so Accept, Back, and Export stay in view; phones show a full-screen sheet; tablets show a side panel. With art on, lists show small thumbnails and the detail shows the whole card.
 - Mobile shell: bottom tab bar on phones; from 768 px a side rail, and Build shows the form beside the result.
 - Web app: installable, works offline after the first load through a service worker.
