@@ -40,7 +40,7 @@ export function DeckList(props: DeckListProps) {
       <div className="flex flex-col">
         {groups.map((g) => (
           <section key={g.label} aria-label={g.label}>
-            <h3 className="flex justify-between border-y border-line bg-surface-2 px-4 py-1.5 text-[0.6875rem] tracking-[0.04em] text-fg-2 uppercase">
+            <h3 className="flex justify-between border-y border-line bg-surface-2 px-4 py-1.5 text-[0.8125rem] tracking-[0.04em] text-fg-2 uppercase">
               <span>{g.label}</span>
               <span className="tabular-nums">{g.count}</span>
             </h3>
@@ -99,7 +99,7 @@ export function DeckList(props: DeckListProps) {
             // The one-card Commander group would leave a gap beside a long column.
             className={`min-w-0 ${g.label === 'Commander' ? 'col-span-full' : ''}`}
           >
-            <h3 className={`flex justify-between border-b border-line pb-[5px] ${ui.sectionLabel}`}>
+            <h3 className={`flex justify-between border-b border-line pb-[5px] ${ui.deckGroup}`}>
               <span>{g.label}</span>
               <span className="tabular-nums">{g.count}</span>
             </h3>

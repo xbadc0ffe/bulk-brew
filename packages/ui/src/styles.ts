@@ -28,6 +28,8 @@ export const ui = {
   field:
     'rounded-md border border-line-strong bg-surface px-2.5 py-[6px] text-[13px] text-ink placeholder:text-fg-3',
   sectionLabel: 'text-[11px] font-semibold tracking-[0.04em] text-fg-2 uppercase',
+  /** Card group headings in a decklist: larger than a section label, to read at a glance. */
+  deckGroup: 'text-[13px] font-semibold tracking-[0.04em] text-fg-2 uppercase',
   tag: 'inline-flex items-center rounded bg-surface-2 px-2 py-[3px] text-[11.5px] text-fg-1',
   badge:
     'inline-flex items-center rounded bg-surface-2 px-2 py-[2px] text-[11.5px] whitespace-nowrap text-fg-1',
