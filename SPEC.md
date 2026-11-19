@@ -164,7 +164,7 @@ One compact JSON file, gzip-compressed by the host. Shape: `DataPack` in `packag
 - Raw bulk files and built packs are never committed. The repo pins `data/manifest.json`.
 - A weekly GitHub Actions workflow fetches the bulk files, rebuilds the pack, and when the data date changed, publishes it as a release asset tagged `data-YYYY-MM-DD`, commits the manifest bump to main, and triggers the web deploy.
 - The web deploy downloads the pinned pack with `npm run data:pull`, verifies its checksum, and serves it from the site's own origin as `data/cards.json`. `data:pull` and `data:build` also install the committed `data/learned.json`. The browser caches both; a new deploy brings the new pack.
-- The iOS app is to bundle the pack and config at build time and offer "check for card updates", which downloads a newer pack and config from GitHub. Apple permits data updates; code changes still need an App Store release. No user data is sent.
+- The iOS app is to bundle the pack at build time and update it by itself: on opening, at most once a day, it checks for a newer pack and learned data, downloads them in the background, and uses them from the next launch, with no button to press (the owner's call, 2026-11-19). It keeps the bundled pack when offline or when a download fails its checksum, and takes only a pack whose schema it understands. Apple permits data updates; code and config changes still need an App Store release. No user data is sent.
 
 ## Images
 

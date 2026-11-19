@@ -56,7 +56,17 @@ Known risks, most likely first. None has been tried in a WebView yet.
 - Text size: the Settings choice scales the app. Decide with the owner whether the app should also follow the system text size.
 - Speed: Analyze and the deck options run in web workers; time them on the phone with a large bulk list.
 
-Later, not now: over-the-air data updates (the app only has the bundled pack until then; SPEC "Publishing and updates"), TestFlight, App Store listing and privacy answers (no data leaves the device).
+## Card data updates
+
+The owner wants the app to keep its card data current by itself, as the web app does, with nothing to press. Do this once the app runs on the phone; until then it has only the bundled pack. SPEC "Publishing and updates" has the rule.
+
+- The weekly workflow (`.github/workflows/data-refresh.yml`) already publishes a new pack and redeploys the site, which serves the current `data/cards.json` and `data/learned.json`. The app can read them from there; check that the site's responses allow a request from the app's origin, and that there is a small file to compare first (the manifest with the data date and checksum) so the app does not download the whole pack to learn nothing changed. Add one to the deploy if not.
+- On opening, at most once a day: compare, download in the background, verify the checksum, store it on the device, and use it from the next launch. Keep the bundled pack as the fallback, and refuse a pack whose schema the app does not know.
+- The pack is large, so IndexedDB may not be the right place for it; if the Filesystem plugin is needed, that is a new dependency to ask about.
+- About shows the card data date already; it should show the downloaded pack's date once one is in use, and its "Reload the page" line needs wording that fits an app.
+- Config ships inside the app's code, so config changes still arrive only with an app update.
+
+Later, not now: TestFlight, App Store listing and privacy answers (no data leaves the device).
 
 ## How the owner works
 
