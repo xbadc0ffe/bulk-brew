@@ -1,6 +1,6 @@
 // Registry of builder versions for the review runner. To add one, write
 // algos/<name>.ts with a default-exported BuilderVersion and add one line here.
-// Versions load lazily, so a broken prototype never stops the others.
+// Versions load lazily, so a broken version never stops the others.
 
 import type { BuilderVersion } from './version.ts';
 
@@ -10,10 +10,6 @@ const REGISTRY: Record<string, () => Promise<{ default: BuilderVersion }>> = {
   shipped: () => import('./algos/shipped.ts'),
   'shipped-web': () => import('./algos/shipped-web.ts'),
   random: () => import('./algos/random.ts'),
-  'a-objective': () => import('./algos/a/a-objective.ts'),
-  'a-search': () => import('./algos/a/a-search.ts'),
-  'b-grow': () => import('./algos/b/grow.ts'),
-  'b-oldrules': () => import('./algos/b/oldrules.ts'),
 };
 
 export function listVersions(): string[] {

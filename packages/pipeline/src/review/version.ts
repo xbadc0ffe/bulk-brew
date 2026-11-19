@@ -1,5 +1,5 @@
-// One build interface for every builder version in the review (docs/algo-review.md),
-// so the current builder, the old one, and the prototypes store decks the same way.
+// One build interface for every builder version the review runner compares,
+// so the current builder and older ones store decks the same way.
 
 import type { BulkBrewConfig, CardIndex, Color, Pool, Settings } from '@bulk-brew/core';
 

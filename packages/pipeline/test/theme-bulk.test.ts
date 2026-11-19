@@ -1,18 +1,11 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import {
-  CardIndex,
-  COLOR_CLASSES,
-  parsePack,
-  type CardRecord,
-  type DataPack,
-} from '@bulk-brew/core';
+import type { COLOR_CLASSES } from '@bulk-brew/core';
+import { parsePack, type CardRecord, type DataPack } from '@bulk-brew/core';
 import { PACK_FILE } from '../src/build.ts';
 import { loadConfigDir } from '../src/check-config.ts';
 import { ROOT } from '../src/corpus.ts';
-import { rulesDefs, withBulkBaseline } from '../src/review/algos/b/defs.ts';
-import { compileThemeRules } from '../src/review/theme-rules.ts';
 import { computeThemeBulk } from '../src/theme-bulk.ts';
 
 const CONFIG = loadConfigDir(path.join(ROOT, 'config'));
@@ -105,23 +98,6 @@ const PACK: DataPack = {
 describe('the bulk baseline', () => {
   const bulk = computeThemeBulk(PACK, CONFIG);
 
-  it("computes what the prototype's run-time baseline computes", () => {
-    const index = new CardIndex(PACK);
-    const proto = withBulkBaseline(
-      rulesDefs(compileThemeRules(CONFIG.themeRules), CONFIG, 'test'),
-      index,
-      CONFIG,
-    );
-    expect(Object.keys(bulk.styles).sort()).toEqual([...proto.bulk!.keys()].sort());
-    for (const [style, per] of proto.bulk!)
-      for (const k of COLOR_CLASSES) {
-        const got = bulk.styles[style]![k] as unknown as Record<string, number>;
-        for (const [key, v] of Object.entries(per[k]))
-          expect(got[key], `${style} ${k} ${key}`).toBeCloseTo(v, 6);
-      }
-  });
-
-  // Pinned on their own too, so a change to both computations still shows.
   it('reads commons and uncommons, nonlands and modal land cards, at 60, per color class', () => {
     const at = (style: string, k: (typeof COLOR_CLASSES)[number]) => bulk.styles[style]![k];
     // Two looters and a bear: the rare and the Un-set looters would raise the mean.
