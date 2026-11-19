@@ -14,7 +14,7 @@ Settled, so the session can start without asking:
 
 - Dependencies: `@capacitor/core`, `@capacitor/ios`, and `@capacitor/cli` in `apps/web` are approved (the owner agreed to Capacitor around the web app on 2026-11-19). Any further plugin, such as Filesystem or Share, is a new dependency: ask first, as CLAUDE.md says.
 - The name under the icon: Bulk Brew.
-- Bundle identifier: `net.badc0ffe.bulkbrew`, after the owner's site. It cannot change once the app is in the App Store, so say it to the owner once, when creating the project, in case they want another.
+- Bundle identifier: `com.badc0ffe.bulkbrew`, in the same form as Pull State (`com.badc0ffe.pullstate`). The owner confirmed it on 2026-11-19. It cannot change once the app is in the App Store.
 - Lowest iOS version: whatever the current Capacitor sets by default. The dark app icon shows on iOS 18 and later; older phones show the light one.
 - First goal: the app on the owner's own iPhone, run from Xcode. TestFlight is later.
 

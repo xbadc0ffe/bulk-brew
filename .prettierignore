@@ -11,3 +11,5 @@ config/learned
 data/learned.json
 # Agent worktrees (not part of this tree)
 .claude/worktrees
+# Native iOS project, generated and managed by Capacitor
+apps/web/ios
