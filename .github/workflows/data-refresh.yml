@@ -1,7 +1,7 @@
 name: Refresh card data
 
 # Weekly: fetch Scryfall bulk data, rebuild the pack, publish it as a release,
-# pin it in data/manifest.json, and redeploy the web app.
+# pin it in data/manifest.json, rebuild the bulk baseline, and redeploy the web app.
 
 on:
   schedule:
@@ -44,9 +44,11 @@ jobs:
             --title "Card data $VERSION" \
             --notes "Card data pack built from Scryfall bulk data dated $VERSION. See data/README.md."
           cp data/packs/manifest.json data/manifest.json
+          # The bulk baseline is read against the pack, so it moves with it.
+          npm run theme:bulk
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/manifest.json
+          git add data/manifest.json config/theme-bulk.json
           git commit -m "Card data $VERSION"
           git push
           gh workflow run deploy-web.yml --ref main
