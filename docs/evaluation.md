@@ -32,7 +32,7 @@ npm run eval -- --dir test-bulk --combine --colors all   # the owner's lists as 
 
 It builds from `eval/pools/*.txt`, scores each deck with `metrics.ts` (table in `eval/README.md`), and exits 1 when a build fails or a deck breaks a hard invariant. `synergy`, `filler`, and `score` are the classic deck score's measures, which grow decks do not build to, so a move in them describes the decks rather than judges them.
 
-**Baselines.** `eval/results/` holds one JSON per committed full best-fit run, `<date>-<commit>.json`. A run prints per-size deltas against the latest earlier full run with the same `--styles` and `--colors`, over the pools both runs have. When a change moves a metric, commit the new file with it and put the deltas in the commit body.
+**Baselines.** `eval/results/` holds the current baseline, one JSON from a full best-fit run named `<date>-<commit>.json`, and a README with the history of earlier baselines. A run prints per-size deltas against the latest earlier full run with the same `--styles` and `--colors`, over the pools both runs have. When a change moves a metric, commit the new file with it, delete the old one, add a row to the history, and put the deltas in the commit body. A run that is not a new baseline leaves an untracked file there; delete it.
 
 **What a delta means.** The eval is deterministic, so every delta is a real change in the decks, never noise; only build time varies with the machine. "Better" and "worse" say which way a metric moved, not whether the decks improved: that is the panel's question. Compare per-size rows, not the overall row.
 
