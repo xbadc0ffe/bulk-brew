@@ -264,14 +264,14 @@ try {
     await evaluate(
       `document.querySelector('[role="dialog"] button[aria-label="Next card"]').click()`,
     );
-    await sleep(300);
+    await sleep(500);
     const second = await openName();
     if (second === name.text) throw new Error('Next card did not move to another card');
     for (let i = 0; i < 2; i++) {
       await evaluate(
         `document.querySelector('[role="dialog"] button[aria-label="Previous card"]').click()`,
       );
-      await sleep(300);
+      await sleep(500);
     }
     const last = await openName();
     if (last === name.text || last === second)
@@ -285,7 +285,7 @@ try {
     await touch('touchStart', 80);
     for (const x of [120, 180, 240, 300]) await touch('touchMove', x);
     await touch('touchEnd');
-    await sleep(300);
+    await sleep(500);
     const swiped = await openName();
     if (swiped === last) throw new Error('a swipe did not move to another card');
     log('phone-step', `${name.text}, ${second}, around to ${last}, a swipe back to ${swiped}`);

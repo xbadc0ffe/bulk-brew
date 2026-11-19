@@ -3,6 +3,9 @@ import { createPortal } from 'react-dom';
 import { holdBack, holdInert } from './overlay.ts';
 
 const CLOSE_MS = 200;
+// A step between cards: out fast, in a little slower.
+const OUT_MS = 130;
+const IN_MS = 240;
 // Clear of the home bar.
 const BOTTOM = 'pb-[max(1.25rem,env(safe-area-inset-bottom))]';
 
@@ -43,16 +46,57 @@ function OpenSheet(props: SheetProps) {
   const { onClose, label, title, full, flush, children, footer, onStep, stepName = 'one' } = props;
   const [shown, setShown] = useState(false);
   const [drag, setDrag] = useState<number>();
-  const [swipe, setSwipe] = useState<number>();
   const latestStep = useRef(onStep);
   useEffect(() => {
     latestStep.current = onStep;
   });
-  // The next one starts at its top.
-  const step = useCallback((direction: 1 | -1) => {
-    latestStep.current?.(direction);
-    if (scroller.current) scroller.current.scrollTop = 0;
+  // Where the content sits during a swipe. Set on the element, not through state, so a
+  // finger's every move costs no render.
+  const slide = useCallback((x: string, fade: number, ms: number, ease = 'ease-out') => {
+    const el = scroller.current;
+    if (!el) return;
+    el.style.transition = ms ? `transform ${ms}ms ${ease}, opacity ${ms}ms ${ease}` : 'none';
+    el.style.transform = x === '0' ? '' : `translateX(${x})`;
+    el.style.opacity = fade === 1 ? '' : String(fade);
   }, []);
+  const stepping = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const stepFrame = useRef(0);
+  useEffect(
+    () => () => {
+      clearTimeout(stepping.current);
+      cancelAnimationFrame(stepFrame.current);
+    },
+    [],
+  );
+  // The content slides off one side, the next one slides in from the other, at its top.
+  const step = useCallback(
+    (direction: 1 | -1) => {
+      const el = scroller.current;
+      if (!latestStep.current || !el || stepping.current !== undefined) return;
+      const change = () => {
+        latestStep.current?.(direction);
+        el.scrollTop = 0;
+      };
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        slide('0', 1, 0);
+        change();
+        return;
+      }
+      slide(`${-direction * 100}%`, 0, OUT_MS, 'ease-in');
+      stepping.current = setTimeout(() => {
+        change();
+        slide(`${direction * 100}%`, 0, 0);
+        // Two frames: one for the next card to render, one for its start place to apply.
+        stepFrame.current = requestAnimationFrame(() => {
+          stepFrame.current = requestAnimationFrame(() => {
+            slide('0', 1, IN_MS, 'cubic-bezier(0.2, 0.8, 0.2, 1)');
+            stepping.current = undefined;
+          });
+        });
+      }, OUT_MS);
+    },
+    [slide],
+  );
   const panel = useRef<HTMLDivElement>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const handle = useRef<HTMLButtonElement>(null);
@@ -159,17 +203,23 @@ function OpenSheet(props: SheetProps) {
       }
       if (e.cancelable) e.preventDefault();
       if (state === 'dragging') setDrag(Math.max(0, dy));
-      else setSwipe(dx);
+      // The content follows the finger, fading as it goes.
+      else slide(`${dx}px`, Math.max(0.35, 1 - Math.abs(dx) / el.clientWidth), 0);
     };
     const onEnd = (e: TouchEvent) => {
       if (state === 'dragging') {
         const speed = dy / Math.max(1, e.timeStamp - startTime);
         if (dy > 120 || (dy > 40 && speed > 0.5)) requestClose();
       }
-      if (state === 'swiping' && Math.abs(dx) > 60 && e.type === 'touchend') step(dx < 0 ? 1 : -1);
+      if (state === 'swiping') {
+        const speed = Math.abs(dx) / Math.max(1, e.timeStamp - startTime);
+        // Far enough or fast enough goes on; anything less settles back.
+        if (e.type === 'touchend' && (Math.abs(dx) > 70 || (Math.abs(dx) > 25 && speed > 0.4)))
+          step(dx < 0 ? 1 : -1);
+        else slide('0', 1, 200);
+      }
       state = 'idle';
       setDrag(undefined);
-      setSwipe(undefined);
     };
     el.addEventListener('touchstart', onStart, { passive: true });
     el.addEventListener('touchmove', onMove, { passive: false });
@@ -181,7 +231,7 @@ function OpenSheet(props: SheetProps) {
       el.removeEventListener('touchend', onEnd);
       el.removeEventListener('touchcancel', onEnd);
     };
-  }, [requestClose, step]);
+  }, [requestClose, step, slide]);
 
   return createPortal(
     <div className="fixed inset-0 z-50">
@@ -201,8 +251,9 @@ function OpenSheet(props: SheetProps) {
         style={{
           transform: !shown ? 'translateY(100%)' : drag ? `translateY(${drag}px)` : 'none',
         }}
-        className={`absolute inset-x-0 bottom-0 mx-auto flex w-full max-w-[640px] flex-col rounded-t-2xl border border-b-0 border-line bg-surface shadow-[0_-8px_30px_rgb(0_0_0/0.25)] ease-out motion-reduce:transition-none ${
-          full ? 'h-[92dvh]' : 'max-h-[92dvh]'
+        className={`absolute inset-x-0 bottom-0 mx-auto flex w-full max-w-[640px] flex-col overflow-hidden rounded-t-2xl border border-b-0 border-line bg-surface shadow-[0_-8px_30px_rgb(0_0_0/0.25)] ease-out motion-reduce:transition-none ${
+          // A series keeps one height, so a step never moves the sheet.
+          full || onStep ? 'h-[92dvh]' : 'max-h-[92dvh]'
         } ${drag === undefined ? 'transition-transform duration-200' : ''}`}
       >
         <div className="flex shrink-0 items-stretch">
@@ -239,15 +290,6 @@ function OpenSheet(props: SheetProps) {
         {title && <div className="shrink-0 px-5 pb-3 text-[1.0625rem] font-semibold">{title}</div>}
         <div
           ref={scroller}
-          // The content follows a sideways swipe, fading as it goes.
-          style={
-            swipe
-              ? {
-                  transform: `translateX(${swipe}px)`,
-                  opacity: Math.max(0.3, 1 - Math.abs(swipe) / 300),
-                }
-              : undefined
-          }
           className={`min-h-0 flex-1 overflow-y-auto overscroll-none ${footer ? 'pb-4' : BOTTOM} ${flush ? '' : 'px-5'}`}
         >
           {typeof children === 'function' ? children(requestClose) : children}
