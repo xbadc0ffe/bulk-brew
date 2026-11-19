@@ -570,6 +570,7 @@ try {
   const about = await waitForText(/Commander Spellbook/, 10000);
   if (!/EDHREC/.test(about)) throw new Error('About does not credit EDHREC');
   log('about', 'credits EDHREC and Commander Spellbook');
+  await shot('6-about');
 
   if (pageErrors > 0) throw new Error(`${pageErrors} page or console errors`);
   log('done', `ok, screenshots in ${path.relative(ROOT, outDir) || '.'}`);

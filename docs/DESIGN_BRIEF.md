@@ -52,7 +52,7 @@ Below 768 px the web app keeps its colors and type and changes shape. Everything
 - Deck options: tighter cards with a larger name, a smaller color wheel and curve, and card types and roles as two columns of names and counts.
 - Deck view: one scrolling page. The name and details are centered and scroll away; card types and roles come first, then the cards, then the details. The actions (Accept, Back, Export, and a saved deck's) stay in a bar at the bottom.
 - Buttons and fields are at least 44 px tall on touch screens, fields use 16 px text so iOS does not zoom, and safe-area insets keep the tabs and sheets clear of the notch and home bar.
-- About shows the app's icon at the top, since a phone has no sidebar to carry it.
+- About shows the maker's logo on top and the app's icon beside the name, since a phone has no sidebar to carry the icon.
 - Not done yet: Decks is still the desktop table, and Settings, Import, the Build form, and the dialogs are the desktop layout squeezed.
 
 ### Phone layout (mobile app)

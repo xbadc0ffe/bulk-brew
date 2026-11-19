@@ -28,19 +28,21 @@ export function AboutScreen() {
   return (
     <div className="h-full overflow-y-auto px-4 py-[22px] text-[0.8125rem] md:px-8">
       <div className="mx-auto flex max-w-2xl flex-col gap-6">
-        {/* The sidebar shows the app's icon; a phone has no sidebar, so it goes here. It follows light and dark mode. */}
-        <img
-          src={`${import.meta.env.BASE_URL}icon-light.svg`}
-          alt="Bulk Brew icon"
-          className="size-28 self-center rounded-[22%] md:hidden dark:hidden"
-        />
-        <img
-          src={`${import.meta.env.BASE_URL}icon.svg`}
-          alt="Bulk Brew icon"
-          className="hidden size-28 self-center rounded-[22%] max-md:dark:block"
-        />
+        {/* A phone has no sidebar to show the app's icon, so the icon sits beside the name
+            (it follows light and dark mode) and the maker's logo goes on top, larger. */}
+        <img src={logo} alt={`${AUTHOR} logo`} className="size-36 self-center md:hidden" />
         <header className="flex items-center gap-5">
-          <img src={logo} alt={`${AUTHOR} logo`} className="size-24 shrink-0" />
+          <img src={logo} alt={`${AUTHOR} logo`} className="hidden size-24 shrink-0 md:block" />
+          <img
+            src={`${import.meta.env.BASE_URL}icon-light.svg`}
+            alt="Bulk Brew icon"
+            className="size-24 shrink-0 rounded-[22%] md:hidden dark:hidden"
+          />
+          <img
+            src={`${import.meta.env.BASE_URL}icon.svg`}
+            alt="Bulk Brew icon"
+            className="hidden size-24 shrink-0 rounded-[22%] max-md:dark:block"
+          />
           <div className="flex flex-col gap-1">
             <h1 className="text-[1.5rem] font-semibold">Bulk Brew</h1>
             <p className="text-fg-1">Version {version}</p>
