@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import type { Deck, PrintingHint } from '@bulk-brew/core';
 
 export interface OpenCard {
@@ -61,5 +61,6 @@ export function useCardDetail(): CardDetailState {
     opener.current = null;
   }, []);
 
-  return { current, open, close, dismiss };
+  // Stable between card changes, so effects that depend on it do not re-run every render.
+  return useMemo(() => ({ current, open, close, dismiss }), [current, open, close, dismiss]);
 }

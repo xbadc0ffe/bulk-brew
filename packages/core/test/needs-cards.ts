@@ -2203,23 +2203,6 @@ const RECORDS: CardRecord[] = [
     rank: 7373,
     rarity: 'rare',
   },
-  {
-    id: '7ffae8f8-3006-4969-a339-6d30678f87ea',
-    name: "Night's Whisper",
-    layout: 'normal',
-    mv: 2,
-    typeLine: 'Sorcery',
-    text: 'You draw two cards and lose 2 life.',
-    colors: ['B'],
-    identity: ['B'],
-    keywords: [],
-    types: ['sorcery'],
-    tags: ['black-effect', 'card-advantage', 'draw', 'life-for-cards', 'life-payment', 'pure-draw'],
-    img: '8c8f954b-0da2-412c-ad7a-86225bb330ea',
-    manaCost: '{1}{B}',
-    rank: 177,
-    rarity: 'common',
-  },
 ];
 
 /** Records by name. */

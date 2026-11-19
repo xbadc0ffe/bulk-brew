@@ -185,19 +185,17 @@ export function commanderCandidates(
       fixed,
     });
   }
+  // Name, then id: two cards can share a name (an Un-card and its namesake), and pool order must not decide.
+  const byName = (a: CommanderCandidate, b: CommanderCandidate) =>
+    (a.name < b.name ? -1 : a.name > b.name ? 1 : 0) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
   // On a big pool most commanders clear the bar; keep "top" to the best quarter of them.
   const qualified = out
     .filter((c) => c.tier === 'top')
-    .sort((a, b) => b.score - a.score || (a.name < b.name ? -1 : 1));
+    .sort((a, b) => b.score - a.score || byName(a, b));
   const keep = Math.max(5, Math.ceil(out.length / 4));
   for (const c of qualified.slice(keep)) c.tier = 'good';
   const order: Record<CommanderTier, number> = { top: 0, good: 1, possible: 2 };
-  return out.sort(
-    (a, b) =>
-      order[a.tier] - order[b.tier] ||
-      b.score - a.score ||
-      (a.name < b.name ? -1 : a.name > b.name ? 1 : 0),
-  );
+  return out.sort((a, b) => order[a.tier] - order[b.tier] || b.score - a.score || byName(a, b));
 }
 
 /**

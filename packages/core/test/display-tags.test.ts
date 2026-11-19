@@ -38,6 +38,8 @@ describe('display tags', () => {
         { id: 'b', label: 'B', description: '', styles: ['nope'] },
         { id: 'c', label: 'C', description: '' },
         { id: 'a', label: 'A', description: '', roles: ['removal'] },
+        // A typo key would otherwise make the clause match every card.
+        { id: 'd', label: 'D', description: '', match: [{ anyTag: ['draw'] } as never] },
       ],
     };
     const problems = validateDisplayTags(bad, CONFIG).join('\n');
@@ -45,5 +47,6 @@ describe('display tags', () => {
     expect(problems).toMatch(/unknown style nope/);
     expect(problems).toMatch(/c: needs roles, styles, or match/);
     expect(problems).toMatch(/duplicate id/);
+    expect(problems).toMatch(/d: match\[0\]: unknown key "anyTag"/);
   });
 });

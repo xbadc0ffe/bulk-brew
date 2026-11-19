@@ -2,7 +2,7 @@
 // Logic lives in the builder; every number and rule it uses lives here.
 // Keep erasable TypeScript only: this runs under Node without a build step.
 
-import type { CardType, Color, DeckSize } from './types.ts';
+import { RARITIES, type CardType, type Color, type DeckSize, type Settings } from './types.ts';
 import { checkCardNeeds, type CardNeedsConfig } from './card-needs.ts';
 import { validateLearnedConfig, type LearnedConfig } from './learned.ts';
 import {
@@ -42,6 +42,20 @@ export const DERIVED_TAGS: readonly string[] = [
   'mana-rock',
   'mana-producer',
   'tutor-land-to-battlefield',
+];
+
+/** Tag slugs lands.ts reads directly, listed so config:check verifies them too. */
+export const LAND_TAGS: readonly string[] = [
+  'fetchland',
+  'tutor-land-basic',
+  'tutor-land-basic-plains',
+  'tutor-land-basic-island',
+  'tutor-land-basic-swamp',
+  'tutor-land-basic-mountain',
+  'tutor-land-basic-forest',
+  'utility-land',
+  'creatureland',
+  'draft-matters',
 ];
 
 /**
@@ -664,12 +678,6 @@ export function curveProfileFor(c: BulkBrewConfig, id: string): CurveProfile {
   return p;
 }
 
-export function roleById(c: BulkBrewConfig, id: string): RoleDef {
-  const r = c.roles.roles.find((x) => x.id === id);
-  if (!r) throw new Error(`no role "${id}"`);
-  return r;
-}
-
 export function archetypeById(c: BulkBrewConfig, id: string): Archetype {
   const a = c.archetypes.archetypes.find((x) => x.id === id);
   if (!a) throw new Error(`no archetype "${id}"`);
@@ -705,7 +713,8 @@ export function collectTagReferences(c: BulkBrewConfig): Set<string> {
     for (const rule of [...(s.setup ?? []), ...(s.payoff ?? []), ...(s.exclude ?? [])])
       for (const t of [...(rule.anyTags ?? []), ...(rule.allTags ?? []), ...(rule.notTags ?? [])])
         out.add(t);
-  for (const t of DERIVED_TAGS) out.add(t);
+  for (const t of Object.keys(c.cardNeeds?.credits?.themeTags ?? {})) out.add(t);
+  for (const t of [...DERIVED_TAGS, ...LAND_TAGS]) out.add(t);
   return out;
 }
 
@@ -727,7 +736,7 @@ function isNum(v: unknown): v is number {
   return typeof v === 'number' && Number.isFinite(v);
 }
 
-function checkMatcher(where: string, m: unknown, problems: string[]): void {
+export function checkMatcher(where: string, m: unknown, problems: string[]): void {
   if (!Array.isArray(m) || m.length === 0) {
     problems.push(`${where}: matcher must be a non-empty list of clauses`);
     return;
@@ -805,6 +814,26 @@ function checkTypeMix(where: string, t: Partial<TypeMix> | undefined, problems: 
   if (isNum(t.creatureMin) && isNum(t.creatureMax) && t.creatureMin > t.creatureMax) {
     problems.push(`${where}: creatureMin exceeds creatureMax`);
   }
+}
+
+/** Problems with config/settings.defaults.json, which carries no version; empty means valid. */
+export function validateSettings(s: unknown): string[] {
+  if (!s || typeof s !== 'object') return ['settings: must be an object'];
+  const o = s as Partial<Settings>;
+  const problems: string[] = [];
+  for (const size of [100, 60, 40, 20] as const) {
+    const n = o.maxCopies?.[size];
+    if (!isNum(n) || !Number.isInteger(n) || n < 1)
+      problems.push(`settings.maxCopies.${size}: must be a whole number of at least 1`);
+  }
+  for (const k of ['unlimitedBasics', 'includeUnsets', 'showArt'] as const)
+    if (typeof o[k] !== 'boolean') problems.push(`settings.${k}: must be true or false`);
+  if (
+    o.rarities !== undefined &&
+    (!Array.isArray(o.rarities) || o.rarities.some((r) => !RARITIES.includes(r)))
+  )
+    problems.push(`settings.rarities: must be a list of ${RARITIES.join(', ')}`);
+  return problems;
 }
 
 /** Shape and cross-reference checks. Returns human-readable problems; empty means valid. */
@@ -921,6 +950,10 @@ export function validateConfig(c: BulkBrewConfig): string[] {
       problems.push(`${w}: unknown curve profile "${a.curveProfile}"`);
     for (const key of SIZE_KEYS)
       checkQuotas(`${w}.roleOverrides.${key}`, a.roleOverrides?.[key], roleIds, problems);
+    // roleOverridesFor reads only these sizes; any other key would be ignored without a word.
+    for (const key of Object.keys(a.roleOverrides ?? {}))
+      if (!(SIZE_KEYS as readonly string[]).includes(key))
+        problems.push(`${w}.roleOverrides: size "${key}" is not 60, 40, or 20`);
     checkTypeMix(`${w}.typeMixOverrides`, a.typeMixOverrides, problems);
     // Overrides replace template values one key at a time, so check the merged result.
     for (const key of SIZE_KEYS) {

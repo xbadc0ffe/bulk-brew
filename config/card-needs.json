@@ -2075,9 +2075,7 @@
       "cost-reducer-enchantment": "\\benchantments?\\b",
       "blood-artist-ability": "\\bdies\\b|\\bloses? \\w+ life\\b",
       "morbid": "\\bdied this turn\\b",
-      "attacking-opponents-matters": "\\battack",
-      "repeatable-pp-counters": "\\+1/\\+1\\b",
-      "gives-pp-counters-to-all": "\\+1/\\+1\\b"
+      "attacking-opponents-matters": "\\battack"
     }
   },
   "supply": {

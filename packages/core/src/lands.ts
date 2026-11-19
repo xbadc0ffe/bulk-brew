@@ -412,8 +412,7 @@ export function draftOnly(card: CardRecord): boolean {
   return card.tags.includes('draft-matters') || /\bas you draft\b/i.test(card.text);
 }
 
-const isUtility = (card: CardRecord) =>
-  card.tags.includes('utility-land') || card.tags.includes('manland');
+const isUtility = (card: CardRecord) => card.tags.includes('utility-land');
 
 /** The land note's words for a chance to enter tapped; none for a land that reads as untapped. */
 function tappedWords(chance: number, config: BulkBrewConfig): string | undefined {
@@ -676,14 +675,17 @@ export function chooseManaBase(
         ? 0
         : landEntry(candidate.facts.card, { colors, size, styles, supply }, config).tapped,
     }))
-    .sort(
-      (a, b) =>
+    .sort((a, b) => {
+      const x = a.candidate.facts.card;
+      const y = b.candidate.facts.card;
+      return (
         b.score - a.score ||
         a.slow - b.slow ||
         rankOf(a.candidate) - rankOf(b.candidate) ||
-        (a.candidate.facts.card.name < b.candidate.facts.card.name ? -1 : 1) ||
-        (a.candidate.facts.card.id < b.candidate.facts.card.id ? -1 : 1),
-    );
+        (x.name < y.name ? -1 : x.name > y.name ? 1 : 0) ||
+        (x.id < y.id ? -1 : x.id > y.id ? 1 : 0)
+      );
+    });
 
   const nonbasics: LandPick[] = [];
   // Basics available per color: unlimited, or what the pool holds.

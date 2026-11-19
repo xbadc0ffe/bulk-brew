@@ -246,6 +246,7 @@ function PoolCards() {
             downloadText(
               `bulk-brew-list-${new Date().toISOString().slice(0, 10)}.txt`,
               poolToDecklist(pool.pool, index),
+              'text/plain',
             )
           }
         >

@@ -56,7 +56,7 @@ export function deckTribes(deck: Deck, index: CardIndex, config: BulkBrewConfig)
  * the deck's cards, lands, colors, and commander), the commander at
  * `grow.commanderCredit`, as the grow builder counts its finished deck.
  */
-export function deckThemeTallies(
+function deckThemeTallies(
   deck: Deck,
   index: CardIndex,
   config: BulkBrewConfig,

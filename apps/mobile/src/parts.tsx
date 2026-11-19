@@ -1,6 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { phone } from '@bulk-brew/ui';
+import { phone, useModal } from '@bulk-brew/ui';
 
 // Phone building blocks. Sizes are in rem so they follow the system text size.
 
@@ -158,30 +158,6 @@ export function ToggleRow(props: { label: string; hint?: ReactNode; children: Re
   );
 }
 
-/** Closes on Escape and moves focus into the panel when it opens. */
-function useModal(open: boolean, onClose: () => void) {
-  const panel = useRef<HTMLDivElement>(null);
-  // Callers pass inline functions; keep the latest without re-running the effect.
-  const close = useRef(onClose);
-  useEffect(() => {
-    close.current = onClose;
-  });
-  useEffect(() => {
-    if (!open) return;
-    const before = document.activeElement as HTMLElement | null;
-    panel.current?.querySelector<HTMLElement>('[data-autofocus], button, input, select')?.focus();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') close.current();
-    };
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      if (before?.isConnected) before.focus({ preventScroll: true });
-    };
-  }, [open]);
-  return panel;
-}
-
 /** A bottom sheet with a title row and Done. */
 export function Sheet(props: {
   open: boolean;
@@ -191,7 +167,8 @@ export function Sheet(props: {
   children: ReactNode;
 }) {
   const { open, onClose, title, lead, children } = props;
-  const panel = useModal(open, onClose);
+  const done = useRef<HTMLButtonElement>(null);
+  useModal(open, onClose, done);
   if (!open) return null;
   // Portaled to body so it stacks above pushed screens and the card sheet.
   return createPortal(
@@ -204,7 +181,6 @@ export function Sheet(props: {
         onClick={onClose}
       />
       <div
-        ref={panel}
         role="dialog"
         aria-modal="true"
         aria-label={title}
@@ -224,8 +200,8 @@ export function Sheet(props: {
           )}
           <h2 className="text-[1rem] font-semibold">{title}</h2>
           <button
+            ref={done}
             type="button"
-            data-autofocus
             className="min-h-11 justify-self-end px-2 text-[0.9375rem] font-medium text-ink"
             onClick={onClose}
           >
@@ -252,7 +228,8 @@ export function ActionSheet(props: {
   actions: SheetAction[];
 }) {
   const { open, onClose, title, actions } = props;
-  const panel = useModal(open, onClose);
+  const first = useRef<HTMLButtonElement>(null);
+  useModal(open, onClose, first);
   if (!open) return null;
   // Portaled to body so it stacks above pushed screens and the card sheet.
   return createPortal(
@@ -265,16 +242,16 @@ export function ActionSheet(props: {
         onClick={onClose}
       />
       <div
-        ref={panel}
         role="dialog"
         aria-modal="true"
         aria-label={title}
         className="flex flex-col gap-2 px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]"
       >
         <div className={phone.group}>
-          {actions.map((a) => (
+          {actions.map((a, i) => (
             <button
               key={a.label}
+              ref={i === 0 ? first : undefined}
               type="button"
               className="flex min-h-12 w-full items-center justify-center border-b-1 border-surface-2 text-[1rem] text-ink last:border-b-0 active:bg-surface-2"
               onClick={() => {

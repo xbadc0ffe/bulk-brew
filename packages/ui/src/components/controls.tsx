@@ -1,6 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { RARITIES, RARITY_LABELS, type Rarity } from '@bulk-brew/core';
-import { curveBuckets, viabilityLabel, type Viability } from '../data/analysis.ts';
+import { curveBuckets, type Viability } from '../data/analysis.ts';
 
 export type Variant = 'desktop' | 'phone';
 
@@ -152,30 +152,6 @@ export function ViabilityDot({ state }: { state: Viability }) {
       aria-hidden
       className={`inline-block size-2 shrink-0 rounded-full border border-fg-2 ${fill}`}
     />
-  );
-}
-
-/** Dot, label, and an optional detail line below. */
-export function ViabilityMark({
-  state,
-  detail,
-  label,
-}: {
-  state: Viability;
-  detail?: string | undefined;
-  /** Overrides the default label ("Viable", "Short", "Near miss", "Not enough"). */
-  label?: string | undefined;
-}) {
-  return (
-    <div className="flex min-w-0 flex-col gap-0.5">
-      <span
-        className={`flex items-center gap-1.5 text-[0.78125rem] ${state === 'none' ? 'text-fg-2' : 'text-ink'}`}
-      >
-        <ViabilityDot state={state} />
-        {label ?? viabilityLabel(state)}
-      </span>
-      {detail && <span className="text-[0.71875rem] text-fg-2">{detail}</span>}
-    </div>
   );
 }
 

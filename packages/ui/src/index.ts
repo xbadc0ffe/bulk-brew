@@ -9,7 +9,6 @@ export {
   Toggle,
   Stepper,
   ViabilityDot,
-  ViabilityMark,
   RoleBar,
   RoleBars,
   CurveChart,
@@ -72,7 +71,6 @@ export {
   type TextSize,
   type ThemeColor,
 } from './data/useAppearance.ts';
-export { COLOR_NAMES, COLOR_ORDER } from './colors.ts';
 export * from './attribution.ts';
 export { downloadText, readFileText, backupFilename, exportFilename } from './util/files.ts';
 export { openKv, type KeyValueStore } from './storage/kv.ts';
@@ -166,4 +164,5 @@ export { TextCard } from './components/TextCard.tsx';
 export { CardDetail, type CardDetailProps } from './components/CardDetail.tsx';
 export { ReplaceDialog } from './components/ReplaceDialog.tsx';
 export { ErrorBoundary } from './components/ErrorBoundary.tsx';
+export { useModal } from './components/useModal.ts';
 export { STORAGE_KEYS } from './storage/keys.ts';

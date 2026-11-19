@@ -320,11 +320,11 @@ function CardViewer(props: {
         type="button"
         aria-label="Close full screen"
         onClick={() => cancel.current()}
-        className={`absolute top-3 right-3 grid place-items-center rounded-full bg-white/15 text-white hover:bg-white/25 ${phone ? 'size-11 text-[1.25rem]' : 'size-9 text-[1.125rem]'}`}
+        className={`absolute top-[max(0.75rem,env(safe-area-inset-top))] right-[max(0.75rem,env(safe-area-inset-right))] grid place-items-center rounded-full bg-white/15 text-white hover:bg-white/25 ${phone ? 'size-11 text-[1.25rem]' : 'size-9 text-[1.125rem]'}`}
       >
         ✕
       </button>
-      <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-black/60 p-1 text-white">
+      <div className="absolute bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-black/60 p-1 text-white">
         <button
           type="button"
           aria-label="Zoom out"

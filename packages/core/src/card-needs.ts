@@ -36,7 +36,6 @@ export type NeedPlace =
   | 'additionalCost'
   | 'unparsed';
 
-export const NEED_KINDS: readonly NeedKind[] = ['need', 'bonus', 'drawback', 'unconditional'];
 const SEVERITY: Record<NeedKind, number> = { unconditional: 0, bonus: 1, drawback: 2, need: 3 };
 
 /** One resource reference: any resource in `anyOf` meets it. */
@@ -614,6 +613,9 @@ export function checkCardNeeds(data: unknown, config?: BulkBrewConfig): string[]
     }
     for (const k of ['plurals', 'groups', 'numbers'] as const)
       if (!isObject(v[k])) problems.push(`vocabulary.${k}: must be an object`);
+    for (const [w, n] of Object.entries(isObject(v.numbers) ? v.numbers : {}))
+      if (!Number.isInteger(n) || n < 0)
+        problems.push(`vocabulary.numbers.${w}: must be a whole number of 0 or more`);
     for (const [g, list] of Object.entries(v.groups ?? {})) {
       if (!Array.isArray(list)) {
         problems.push(`vocabulary.groups.${g}: must be a list of creature types`);

@@ -19,6 +19,7 @@ import {
   CardIndex,
   validateConfig,
   validateDisplayTags,
+  validateSettings,
   type DisplayTagsConfig,
   type BulkBrewConfig,
   type CardRecord,
@@ -64,7 +65,14 @@ function main(): number {
   const displayTags = JSON.parse(
     readFileSync(path.join(CONFIG_DIR, 'display-tags.json'), 'utf8'),
   ) as DisplayTagsConfig;
-  const problems = [...validateConfig(config), ...validateDisplayTags(displayTags, config)];
+  const settings: unknown = JSON.parse(
+    readFileSync(path.join(CONFIG_DIR, 'settings.defaults.json'), 'utf8'),
+  );
+  const problems = [
+    ...validateConfig(config),
+    ...validateDisplayTags(displayTags, config),
+    ...validateSettings(settings),
+  ];
   if (problems.length) {
     console.error(`config has ${problems.length} problem(s):`);
     for (const p of problems) console.error(`  - ${p}`);

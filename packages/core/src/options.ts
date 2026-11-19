@@ -65,7 +65,7 @@ export function colorSubsets(colors: readonly Color[]): Color[][] {
 }
 
 /** Styles most worth building first: themes, then by how deep they run in the pool. */
-export function byStylePromise(a: ArchetypeReport, b: ArchetypeReport): number {
+function byStylePromise(a: ArchetypeReport, b: ArchetypeReport): number {
   return (
     Number(b.kind === 'synergy') - Number(a.kind === 'synergy') ||
     b.margin - a.margin ||
@@ -78,7 +78,7 @@ export function byStylePromise(a: ArchetypeReport, b: ArchetypeReport): number {
  * without a secondary style. Then every option carries the picker's score
  * (`explanation.pick`), the same score best fit ranks by.
  */
-export function pickerRanks(req: OptionsRequest, config: BulkBrewConfig): boolean {
+function pickerRanks(req: OptionsRequest, config: BulkBrewConfig): boolean {
   return growBuilds(
     {
       size: req.size,

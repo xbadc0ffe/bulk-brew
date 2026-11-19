@@ -58,7 +58,7 @@ export function ExportButton({ deck, onStatus }: { deck: Deck; onStatus(text: st
             tone: 'go-soft',
             onSelect: () => {
               setOpen(false);
-              downloadText(deckFilename(deck.name), text());
+              downloadText(deckFilename(deck.name), text(), 'text/plain');
             },
           },
           { label: 'Cancel', tone: 'stop-soft', onSelect: () => setOpen(false) },

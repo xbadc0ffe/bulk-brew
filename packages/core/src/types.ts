@@ -2,6 +2,8 @@
 // Keep this file free of logic. Changes here are schema changes: bump
 // DATA_SCHEMA_VERSION when the data pack shape changes.
 
+import type { ThemeFloor } from './theme-rules.ts';
+
 export const DATA_SCHEMA_VERSION = 2;
 
 /** Pack schemas the core reads. Schema 1 lacks the Commander and rank fields; treat them as absent. */
@@ -339,8 +341,7 @@ export interface BuildResult {
 }
 
 /** The theme rules' floor kinds (config/theme-rules.json minimums). */
-export type ThemeFloorKey =
-  'setup' | 'setupWeight' | 'repeatable' | 'payoff' | 'payoffWeight' | 'repeatableOrPayoff';
+export type ThemeFloorKey = keyof ThemeFloor;
 
 /** One floor of a theme: what a pool or deck holds against what the floor asks. */
 export interface FloorCount {

@@ -6,8 +6,7 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "typecheck": "tsc --noEmit -p .",
-    "build-pack": "node src/cli.ts"
+    "typecheck": "tsc --noEmit -p ."
   },
   "dependencies": {
     "@bulk-brew/core": "*"

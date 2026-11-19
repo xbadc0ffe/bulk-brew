@@ -118,7 +118,7 @@ export function SettingsScreen() {
         index,
         config,
       );
-      downloadText(exportFilename(now, what, 'txt'), text);
+      downloadText(exportFilename(now, what, 'txt'), text, 'text/plain');
     }
     setMessage(
       `${what === 'both' ? 'Bulk list and decks' : PART_LABELS[what]} downloaded as ${format.toUpperCase()}.`,

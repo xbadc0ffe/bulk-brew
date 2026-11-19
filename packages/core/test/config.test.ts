@@ -12,6 +12,7 @@ import cardNeeds from '../../../config/card-needs.json';
 import themeBulk from '../../../config/theme-bulk.json';
 import learnedPlans from '../../../config/learned/plans.json';
 import learnedTags from '../../../config/learned/tags.json';
+import settingsDefaults from '../../../config/settings.defaults.json';
 import {
   archetypeById,
   configVersion,
@@ -19,6 +20,7 @@ import {
   curveProfileFor,
   templateFor,
   validateConfig,
+  validateSettings,
   type BulkBrewConfig,
 } from '../src/config.ts';
 
@@ -95,5 +97,39 @@ describe('validateConfig', () => {
     const broken = clone(CONFIG);
     broken.roles.roles[0]!.match = [{ excludeTags: ['x'] }];
     expect(validateConfig(broken).some((p) => p.includes('needs a positive condition'))).toBe(true);
+  });
+
+  it('reports role overrides for a size the builder never reads, and bad number words', () => {
+    const broken = clone(CONFIG);
+    const aggro = broken.archetypes.archetypes.find((a) => a.id === 'aggro')!;
+    (aggro.roleOverrides as Record<string, unknown>)['100'] = {};
+    broken.cardNeeds.vocabulary.numbers['two'] = 2.5;
+    const problems = validateConfig(broken);
+    expect(problems).toContain('archetypes.aggro.roleOverrides: size "100" is not 60, 40, or 20');
+    expect(problems).toContain(
+      'cardNeeds: vocabulary.numbers.two: must be a whole number of 0 or more',
+    );
+  });
+
+  it('checks the tags the land code and the theme tag credits read', () => {
+    const refs = collectTagReferences(CONFIG);
+    for (const t of ['fetchland', 'tutor-land-basic-forest', 'utility-land', 'draft-matters'])
+      expect(refs.has(t)).toBe(true);
+    const credited = clone(CONFIG);
+    credited.cardNeeds.credits.themeTags['not-a-tag'] = '\\bx\\b';
+    expect(collectTagReferences(credited).has('not-a-tag')).toBe(true);
+  });
+});
+
+describe('validateSettings', () => {
+  it('passes the shipped defaults and reports bad values', () => {
+    expect(validateSettings(settingsDefaults)).toEqual([]);
+    const bad = { ...clone(settingsDefaults), showArt: 'no', rarities: ['common', 'special'] };
+    bad.maxCopies['60'] = 0;
+    expect(validateSettings(bad)).toEqual([
+      'settings.maxCopies.60: must be a whole number of at least 1',
+      'settings.showArt: must be true or false',
+      'settings.rarities: must be a list of common, uncommon, rare, mythic',
+    ]);
   });
 });

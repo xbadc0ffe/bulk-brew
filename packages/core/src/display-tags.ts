@@ -2,7 +2,7 @@
 // "+1/+1"). Judgment lives in config/display-tags.json; this file only
 // evaluates it. Display tags never affect a build.
 
-import type { BulkBrewConfig, Matcher } from './config.ts';
+import { checkMatcher, type BulkBrewConfig, type Matcher } from './config.ts';
 import type { CardFacts } from './candidates.ts';
 import { themeCredit } from './card-needs.ts';
 import { cardThemeSides } from './deck-themes.ts';
@@ -85,6 +85,7 @@ export function validateDisplayTags(tags: DisplayTagsConfig, config: BulkBrewCon
       if (!roles.has(r)) problems.push(`display tag ${t.id}: unknown role ${r}`);
     for (const s of t.styles ?? [])
       if (!styles.has(s)) problems.push(`display tag ${t.id}: unknown style ${s}`);
+    if (t.match !== undefined) checkMatcher(`display tag ${t.id}: match`, t.match, problems);
   }
   return problems;
 }

@@ -47,7 +47,7 @@ export function headNotes(ctx: {
   return `Core ${coreSourceHash(ctx.root)}, config ${configVersion(ctx.config)}${learned ? `, learned data ${learned}` : ''}.`;
 }
 
-export function toBuildRequest(request: ReviewRequest, settings: Settings): BuildRequest {
+function toBuildRequest(request: ReviewRequest, settings: Settings): BuildRequest {
   return {
     size: request.size,
     colors: request.colors,

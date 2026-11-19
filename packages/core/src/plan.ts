@@ -21,7 +21,7 @@ import type { CardIndex } from './pack.ts';
 import type { CardRecord, DeckSize } from './types.ts';
 
 /** The plan id of the plain shapes (Aggro, Midrange, Control) together. */
-export const SHAPE_PLAN = 'shape';
+const SHAPE_PLAN = 'shape';
 const TRIBAL = 'tribal:';
 const SHAPE_IDS = ['aggro', 'midrange', 'control'];
 
@@ -69,7 +69,7 @@ function themeTest(a: SynergyArchetype): (c: Candidate) => boolean {
  * profile that comes from decks running it, plus the shape decks. A style
  * whose profile only borrows decks that meet it counts half a deck.
  */
-export function planPriors(config: BulkBrewConfig, size: DeckSize): Map<string, number> {
+function planPriors(config: BulkBrewConfig, size: DeckSize): Map<string, number> {
   const block = config.learned?.plans.sizes[learnedSizeKey(size)];
   const out = new Map<string, number>();
   if (!block) return out;
@@ -238,7 +238,7 @@ export function planScores(
  * has spell slots) sits from each plain shape's curve profile, the way a
  * deck with no theme is read as aggro, midrange, or control from its curve.
  */
-export function shapeDistances(
+function shapeDistances(
   cands: readonly Candidate[],
   shapes: readonly { id: string; curveProfile: string }[],
   config: BulkBrewConfig,

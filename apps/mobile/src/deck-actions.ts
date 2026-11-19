@@ -17,6 +17,9 @@ export function exportActions(
           () => onStatus('Copy failed. Try Download .txt instead.'),
         ),
     },
-    { label: 'Download .txt', onSelect: () => downloadText(deckFilename(deck.name), text()) },
+    {
+      label: 'Download .txt',
+      onSelect: () => downloadText(deckFilename(deck.name), text(), 'text/plain'),
+    },
   ];
 }
