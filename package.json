@@ -1,6 +1,6 @@
 {
   "name": "bulk-brew",
-  "version": "26.0.50",
+  "version": "26.0.51",
   "private": true,
   "description": "Turn a pile of bulk Magic: The Gathering cards into playable decks of 60, 40, and 20 cards in one to five colors, and 100-card Commander decks.",
   "license": "MIT",
