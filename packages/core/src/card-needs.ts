@@ -1991,8 +1991,11 @@ function readCard(card: CardRecord, config: BulkBrewConfig): CardNeeds {
   backReferences(abilities);
   // Self-supply: the card's types, what its other abilities make, and what an
   // earlier sentence of the same ability makes (a sentence that needs what it
-  // makes itself would be circular). An ability supplies only once its own
-  // needs are met, so the pass runs twice: the second sees what the first met.
+  // makes itself would be circular). Two passes are enough: whether the card
+  // meets a need itself rests on those alone, so the first pass settles every
+  // `self` flag, and the second reads each supplier's open needs (`selfVia`)
+  // from the settled flags, so a third would repeat it (on the 2026-11-03 pack
+  // the second pass changes 23 cards, a third none).
   const typeSupplies = new Set(typesSupply(card, c));
   const supplies = new Set<string>(typeSupplies);
   for (const a of abilities) for (const s of a.supplies) supplies.add(s);
