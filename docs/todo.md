@@ -4,8 +4,7 @@ Ranked within each group. The current work is at the top. One line per item. Fin
 
 ## Decisions waiting on the owner
 
-- Secondary styles and the classic builder: every request with a secondary style still runs on the classic builder (`buildClassic` in `builder.ts`). Either retire the Secondary archetype picker so the classic builder can be removed, or keep it until the grow builder learns secondary styles.
-- One app or two: `apps/mobile` lacks the deck options list, Commander, secondary styles, Replace, and the Analyze pane, and is not deployed or smoke-tested. Either make `apps/web` one responsive app that Capacitor wraps and retire `apps/mobile`, or keep two apps and bring mobile to parity. SPEC "Decisions" currently says two apps.
+- One set of screens or two (undecided; the owner leans toward the web app adjusted for phones, with the phone web app and the iOS app looking much the same): `apps/mobile` lacks the deck options list, Commander, secondary styles, Replace, and the Analyze pane, and is not deployed or smoke-tested. Either make `apps/web` one responsive app that Capacitor wraps and retire `apps/mobile`, or keep two apps and bring mobile to parity. SPEC "Decisions" currently says two apps.
 
 ## Next up: phone web and iOS
 
@@ -39,8 +38,8 @@ Ranked within each group. The current work is at the top. One line per item. Fin
 
 ## Builder defects
 
-- If secondary styles stay: build a secondary style in the grow builder as a second, smaller set of floors, judge it on new held-out pools, then remove the classic builder as below.
-- Removing the classic builder (either way): route thin-pool plain shapes at 60, 40, and 100 to land padding as at 20; move the 11 helpers `grow.ts` imports out of `builder.ts`; keep or recount `styleCounts` and `deckThemes` for saved classic decks; delete `buildClassic`, `plan.ts`, `select.ts`, and their tests.
+- Teach the grow builder secondary styles (a tribe as the secondary included): the owner wants secondary styles kept (2026-11-18), and they are the only reason the apps still reach the classic builder. Build a secondary style as a second, smaller set of floors, judge it on new held-out pools, then remove the classic builder as below.
+- Removing the classic builder, once the grow builder builds secondary styles: route thin-pool plain shapes at 60, 40, and 100 to land padding as at 20; move the 11 helpers `grow.ts` imports out of `builder.ts`; keep or recount `styleCounts` and `deckThemes` for saved classic decks; delete `buildClassic`, `plan.ts`, `select.ts`, and their tests.
 - Follow-up to that removal (config formats and `ATTRIBUTION.md`; ask first): the classic-only `builderWeights` keys, `config/learned`, the `archetypes.json` matchers, and the learned data scripts.
 - Until then, classic decks skip the card needs gate (unsupported copies per deck 1.0 at 60, 0.88 at 40, 2.33 at 100), keep the old matchers' false friends (surveil 1 on removal, charge and energy counters, Sphinx's Tutelage, nine player Auras as Voltron, Treasure and Food as outlets, Shrines), and can swap out a color's minimum in local search.
 - Learned selection (EDHREC, Commander Spellbook) now runs only on the classic path, so it shapes secondary-style decks alone while About credits it for the builder; `configVersion` (`config.ts`) still includes the learned versions.
