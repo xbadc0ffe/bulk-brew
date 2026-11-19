@@ -547,8 +547,12 @@ describe('grow builder: the nearest rule', () => {
     // With no shape either builder can fill, best fit is the classic builder's own, and a
     // request for the short style is refused with what the pool lacks.
     const thinner = thinPool(1);
-    expect(build(thinner, undefined).deck.archetype).toBe('graveyard');
-    expect(build(thinner, undefined).explanation.pick).toBeUndefined();
+    const last = build(thinner, undefined);
+    expect(last.explanation.builder).toBe('classic');
+    expect(last.deck.archetype).toBe('graveyard');
+    // Scored by the picker as its style's plan, so it ranks with the other decks: a
+    // Graveyard deck from a pool with no graveyard payoff scores nothing.
+    expect(last.explanation.pick).toMatchObject({ score: 0, margin: 0 });
     expect(() => build(thinner, 'graveyard')).toThrow(BuildError);
     expect(() => build(thinner, 'graveyard')).toThrow(
       'Not enough cards to build Graveyard: your bulk list has few cards that use a full graveyard (0 of 6).',

@@ -184,6 +184,64 @@ describe('bestDeckSearch at 100', () => {
     expect(state.options[4]).toEqual(mono);
   });
 
+  it("ranks a thin pool's last-resort deck by the picker's score, as the others", () => {
+    // Sixty cheap white cards fill no shape either builder takes by name, so the white
+    // commander's deck is the classic builder's own best fit; seventy blue cards of
+    // every mana value fill a shape for the blue commander.
+    const spells = (c: 'W' | 'U', n: number, span: number) =>
+      Array.from({ length: n }, (_, i) => {
+        const mv = (i % span) + 1;
+        return card(`${c}-${i}`, {
+          mv,
+          manaCost: `{${mv - 1}}{${c}}`,
+          colors: [c],
+          identity: [c],
+          power: String(mv),
+          toughness: String(mv),
+          tags: i % 9 === 0 ? ['removal-creature', 'removal'] : i % 9 === 1 ? ['draw-engine'] : [],
+        });
+      });
+    const white = spells('W', 60, 2);
+    const blue = spells('U', 70, 6);
+    const thinLead = leads[0]!;
+    const fullLead = card('Cy, the Third', {
+      typeLine: 'Legendary Creature — Human',
+      mv: 3,
+      manaCost: '{2}{U}',
+      colors: ['U'],
+      identity: ['U'],
+    });
+    const island = card('Island', {
+      typeLine: 'Basic Land — Island',
+      types: ['land'],
+      manaCost: '',
+      mv: 0,
+      colors: [],
+      identity: ['U'],
+      produces: ['U'],
+    });
+    const list = [...white, ...blue, thinLead, fullLead, plains, island];
+    const idx = new CardIndex({
+      schema: 2,
+      version: 't',
+      builtAt: 't',
+      cardCount: list.length,
+      cards: list,
+    });
+    const thinPool: Pool = {
+      entries: Object.fromEntries(
+        [...white, ...blue, thinLead, fullLead].map((c) => [c.id, { cardId: c.id, qty: 1 }]),
+      ),
+      updatedAt: 't',
+    };
+    const search = bestDeckSearch(100, thinPool, idx, CONFIG, SETTINGS);
+    while (search.step());
+    const mono = search.state().options[0]!;
+    expect(mono.map((o) => o.result.explanation.builder)).toEqual(['grow', 'classic']);
+    expect(mono.map((o) => o.result.deck.commander)).toEqual([fullLead.id, thinLead.id]);
+    for (const o of mono) expect(o.rank).toBe(o.result.explanation.pick?.score);
+  });
+
   it('builds the same commander deck from the pool pack as from the full pack', () => {
     const small = new CardIndex(poolPack(pool, cmdIndex, CONFIG));
     const request = {

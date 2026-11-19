@@ -2283,7 +2283,9 @@ function labelOf(config: BulkBrewConfig, style: string): string {
 /**
  * Best fit: the first deck of the picker's list. With nothing the grow
  * builder can fill and no classic shape either, the classic builder's own
- * best fit is the last resort (not at 20).
+ * best fit is the last resort (not at 20), scored by the picker as the plan
+ * of its style, as planResult scores a classic shape, so the Analyze pane
+ * ranks it with the other commanders' decks on one scale.
  */
 function bestFit(ctx: GrowContext, pool: Pool): BuildResult {
   const ranked = rankPlans(ctx, pool);
@@ -2292,7 +2294,13 @@ function bestFit(ctx: GrowContext, pool: Pool): BuildResult {
     throw new BuildError(
       `Not enough cards for a ${ctx.size}-card ${colorsLabel(ctx.colors)} deck: ${plainLacks(ctx, PLAIN_SHAPES[0])}.`,
     );
-  if (!top) return buildClassic(ctx.request, pool, ctx.index, withoutLearned(ctx.config));
+  if (!top) {
+    const r = buildClassic(ctx.request, pool, ctx.index, withoutLearned(ctx.config));
+    const style = r.deck.archetype;
+    // A theme the rules describe here is scored as one; any other style by its shape alone.
+    const plan = themePlan(ctx, style) ?? plainPlan(ctx, style)!;
+    return withPick(r, pickScore(ctx, plan, r.deck));
+  }
   const rest = ranked.slice(1).map((r) => labelOf(ctx.config, r.style));
   const shown = rest.slice(0, 3);
   if (rest.length > 3) shown.push(`${rest.length - 3} more`);
