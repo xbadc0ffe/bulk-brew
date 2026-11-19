@@ -27,7 +27,7 @@ Requires Node 24 or newer.
 ```sh
 npm install
 npm run dev          # web app at http://localhost:5173
-npm run dev:mobile   # phone and tablet app at http://localhost:5174
+npm run dev:mobile   # the earlier separate phone app, being retired
 npm run check        # typecheck, lint, format check, tests, build
 ```
 
@@ -56,8 +56,8 @@ npm run smoke                                          # browser test of the ful
 | `packages/core`     | Platform-free logic: types, parsing, name resolution, pool, scan, builder, export                     |
 | `packages/ui`       | Shared React pieces used by both apps                                                                 |
 | `packages/pipeline` | Developer-side pipeline from Scryfall bulk files to the card data pack                                |
-| `apps/web`          | Desktop-first web app, deployed to GitHub Pages                                                       |
-| `apps/mobile`       | Phone and tablet app; the iOS build is planned, not shipped                                           |
+| `apps/web`          | The web app for desktop and phone, deployed to GitHub Pages; the iOS app will wrap it                 |
+| `apps/mobile`       | An earlier separate phone app, being retired                                                          |
 | `config/`           | Deck templates, theme rules, card needs, roles, land rules, weights: all tunable without code changes |
 | `data/`             | Pinned manifest of the published data pack; raw downloads are gitignored                              |
 | `docs/`             | How the builder works and how to measure it, the design brief, deckbuilding guides, the backlog       |

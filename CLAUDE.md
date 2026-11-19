@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Bulk Brew: bulk Magic cards in, playable decks out: 60, 40, and 20 cards in one to five colors, and 100-card Commander. Web app and iOS app on one TypeScript core. Open source, MIT.
+Bulk Brew: bulk Magic cards in, playable decks out: 60, 40, and 20 cards in one to five colors, and 100-card Commander. One web app for desktop and phone, which the iOS app will wrap, on one TypeScript core. Open source, MIT.
 
 ## Authority
 
@@ -57,7 +57,7 @@ Card facts, rules text, and tag meanings come from the data files and `docs/rule
 npm run check            # the single gate: typecheck, lint, format, test, build
 npm run data:pull        # pinned card data pack into data/packs and each app's public/data
 npm run dev              # web app on 5173
-npm run dev:mobile       # mobile app on 5174
+npm run dev:mobile       # the earlier phone app on 5174, being retired
 npm run data:fetch       # Scryfall bulk files into data/raw/ (at most daily)
 npm run data:build       # rebuild the card data pack from data/raw/
 npm run symbols:fetch    # Scryfall symbol images into packages/ui/src/symbols (only when new symbols appear)

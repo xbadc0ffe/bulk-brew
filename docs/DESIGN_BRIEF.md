@@ -36,6 +36,7 @@ Web screen ids (`apps/web/src/nav.ts`): import, pool, build, decks, settings, ab
 
 - Light and dark mode, six theme colors, and a text size setting (90 to 140%). No external fonts, CDNs, or trackers. Mana and card symbols are Scryfall's symbol images, bundled.
 - Web sidebar: square tiles with an outline icon over the label (Bulk List, Build, Decks, Settings, About). The app name, version, and app icon sit at the bottom. Below 768 px the sidebar becomes a top bar of pills that scrolls sideways.
+- Card images fade in once they have loaded, and a card never shows the last card's image while its own loads.
 - The app icon has a light and a dark version; the sidebar and browser tab show the one for the current mode.
 - Labels with a detail line under them are bold and the detail line is not; section labels are bold.
 - Light themes: colored text is dark, box fills are near white with a faint tint of the theme color. Dark themes: background and sidebar are very dark, boxes lighter, colored text light.
