@@ -17,7 +17,6 @@ One app: `apps/web` has a phone layout below 768 px and Capacitor will wrap it (
 - Add an apple-touch-icon to the web app, and make the theme-color meta in `apps/web/index.html` follow the theme (it stays `#18181b`).
 - iOS: Capacitor project around `apps/web` with the bundled data pack and config and the over-the-air data update.
 - iOS: pick the bundle identifier with the owner (for example com.<name>.bulkbrew).
-- iOS: put `apps/mobile/resources/app-icon-light.png` and `app-icon-dark.png` in the AppIcon set (Any and Dark); see the README there. Move them out of `apps/mobile` first.
 - iOS: confirm IndexedDB persistence in the WebView, or move the key-value store to the Filesystem plugin (a new dependency; ask first).
 - iOS: backup and .txt downloads use a blob link (`packages/ui/src/util/files.ts`), which probably does not work in a WKWebView; check, then use the Filesystem and Share plugins if needed (new dependencies; ask first).
 - iOS: check that external links open in Safari from the WebView, and that the sheet's Back handling does no harm where there is no Back.

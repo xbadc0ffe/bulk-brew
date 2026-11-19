@@ -259,7 +259,7 @@ Runtime:
 
 - **Storage**: pool, decks, and settings in IndexedDB behind one key-value interface (`packages/ui/src/storage/kv.ts`). On iOS the same store runs in the WebView unless the iOS work moves it to native storage (see `docs/todo.md`). Backup is a JSON file export and import; restore writes the restored keys in one transaction.
 - **Offline**: the web app is an installable progressive web app. Its service worker precaches the app shell and built assets per deploy and keeps the data pack in a separate cache that survives deploys. The iOS app will bundle everything.
-- **iOS**: Capacitor wraps the web app's static build. Builds run on the user's Mac mini with Xcode and ship through TestFlight and the App Store. The home-screen icon comes in a light and a dark version (`apps/mobile/resources/`), matching the web app's icon, which follows light and dark mode.
+- **iOS**: Capacitor wraps the web app's static build. Builds run on the user's Mac mini with Xcode and ship through TestFlight and the App Store. The home-screen icon comes in a light and a dark version (`apps/web/resources/`, copied into the AppIcon set as Any and Dark), matching the web app's icon, which follows light and dark mode.
 
 ## Compliance
 

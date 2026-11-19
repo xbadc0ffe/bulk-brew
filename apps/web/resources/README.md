@@ -6,9 +6,10 @@ transparency (iOS rounds the corners itself):
 - `app-icon-light.png`: the default icon, for light mode.
 - `app-icon-dark.png`: the dark version, for dark mode (iOS 18 and later).
 
-In Xcode, open the AppIcon set in `Assets.xcassets`, set Appearances to "Any,
-Dark", and drop the light file in the Any slot and the dark file in the Dark
-slot.
+Copies of both are in the iOS AppIcon set
+(`apps/web/ios/App/App/Assets.xcassets/AppIcon.appiconset/`) as
+`AppIcon-light.png` (Any) and `AppIcon-dark.png` (Dark). After redrawing one,
+copy it there again.
 
 The SVG files are the sources. They match `apps/web/public/icon-light.svg` and
 `apps/web/public/icon.svg`, except that the web icons have rounded corners and

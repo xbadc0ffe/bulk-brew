@@ -6,7 +6,7 @@ The next piece of work, ahead of the rest of `docs/todo.md`. It runs on the owne
 
 The web app (`apps/web`) running on the owner's iPhone as an installed app, wrapped by Capacitor. Same screens, same code: the phone layout below 768 px is the app (SPEC "Decisions"). First on the owner's own phone from Xcode; TestFlight comes after.
 
-`apps/mobile` is an older separate phone app. Do not build on it. Its only useful part is the icons in `apps/mobile/resources/`.
+`apps/mobile` is an older separate phone app. Do not build on it. The icons it had are now in `apps/web/resources/`.
 
 ## Decisions
 
@@ -29,10 +29,9 @@ Only the owner can do this one, in Xcode: pick the signing team under Signing & 
 
 ## Steps
 
-1. Icons: put `apps/mobile/resources/app-icon-light.png` and `app-icon-dark.png` in the AppIcon set (Any and Dark), as that folder's README says, then move the folder out of `apps/mobile`.
-2. Run it in the simulator, then on the phone, and go through "Check on the device".
-3. Fix what the checks find. Each new plugin is a new dependency: ask first.
-4. Update `SPEC.md` (Platforms, Runtime, Status), `docs/DESIGN_BRIEF.md`, the README, and `docs/todo.md`; bump the version in its own commit.
+1. Run it in the simulator, then on the phone, and go through "Check on the device".
+2. Fix what the checks find. Each new plugin is a new dependency: ask first.
+3. Update `SPEC.md` (Platforms, Runtime, Status), `docs/DESIGN_BRIEF.md`, the README, and `docs/todo.md`; bump the version in its own commit.
 
 ## Check on the device
 
