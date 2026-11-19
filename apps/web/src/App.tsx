@@ -199,7 +199,9 @@ function Shell() {
         >
           {NAV.map(pill)}
         </nav>
-        <main className="min-h-0 min-w-0 flex-1 overflow-hidden">
+        {/* Positioned so absolute children with no nearer positioned parent, such as
+            sr-only labels deep in a scrolling pane, are clipped here and never grow the page. */}
+        <main className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
           <Screen key={visit} />
         </main>
       </div>
