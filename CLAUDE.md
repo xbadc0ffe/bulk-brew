@@ -9,6 +9,7 @@ Bulk Brew: bulk Magic cards in, playable decks out: 60, 40, and 20 cards in one 
 - `docs/builder.md` explains how the builder works and why.
 - `docs/evaluation.md` says how to measure a builder change.
 - `docs/DESIGN_BRIEF.md` describes the screens and flows as built.
+- `docs/ios.md` is the brief for the iOS app, the current work.
 - `docs/todo.md` is the one ranked backlog. Open items go there, not into code comments.
 
 ## Tech stack

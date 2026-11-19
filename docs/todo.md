@@ -4,6 +4,8 @@ Ranked within each group. The current work is at the top. One line per item. Fin
 
 ## Next up: phone layout and iOS
 
+The iOS app comes first: `docs/ios.md` is the brief for it, written for a session on the Mac. The phone items below wait until it runs on the phone.
+
 One app: `apps/web` has a phone layout below 768 px and Capacitor will wrap it (SPEC "Decisions"). Done so far: folder tabs, the sheet, the Bulk List, deck options, and the deck view.
 
 - Phone: the Decks table has `min-w-[760px]` and tapping a name starts a rename instead of opening the deck (`apps/web/src/screens/DecksScreen.tsx`); show a list where the name opens the deck.
