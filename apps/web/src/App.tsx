@@ -145,7 +145,8 @@ function Shell() {
 
   /**
    * Top bar item on narrow windows: a folder tab. The open one is the page's
-   * color and covers the bar's bottom line, so it reads as part of the page.
+   * color and covers the bar's bottom line, so it reads as part of the page; the line
+   * runs under the other tabs and sets them apart from it.
    * Settings and About are icons, so five tabs fit a phone.
    */
   const tab = (n: (typeof NAV)[number]) => {
@@ -159,11 +160,11 @@ function Shell() {
         onClick={() => choose(n.screen)}
         aria-current={on ? 'page' : undefined}
         aria-label={icon ? n.label : undefined}
-        className={`-mb-0.5 flex h-10 items-center justify-center gap-1.5 rounded-t-[10px] border border-b-0 text-[0.8125rem] whitespace-nowrap ${
+        className={`flex h-10 items-center justify-center gap-1.5 rounded-t-[10px] border border-b-0 text-[0.8125rem] whitespace-nowrap ${
           icon ? 'w-11 shrink-0' : 'min-w-0 flex-auto px-2'
         } ${
           on
-            ? 'border-line-strong bg-canvas font-semibold text-ink [--icon-fill:var(--bg)]'
+            ? '-mb-0.5 border-line-strong bg-canvas font-semibold text-ink [--icon-fill:var(--bg)]'
             : 'mt-1 h-9 border-line bg-surface-2 text-fg-1 [--icon-fill:var(--surface2)]'
         }`}
       >
