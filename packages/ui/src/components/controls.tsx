@@ -191,11 +191,20 @@ export function RoleBars({ children }: { children: ReactNode }) {
 }
 
 /** Mana curve bars. Desktop shows counts above the bars; phone is shorter and bare. */
-export function CurveChart({ curve, variant = 'desktop' }: { curve: number[]; variant?: Variant }) {
+export function CurveChart({
+  curve,
+  variant = 'desktop',
+  height: wanted,
+}: {
+  curve: number[];
+  variant?: Variant;
+  /** Height of the bars and their counts, in design pixels; 72 by default. */
+  height?: number;
+}) {
   const buckets = curveBuckets(curve);
   const max = Math.max(1, ...buckets);
   const phone = variant === 'phone';
-  const height = phone ? 44 : 72;
+  const height = wanted ?? (phone ? 44 : 72);
   const name = (i: number) => (i === 6 ? '6+' : String(i));
   const summary = buckets.map((n, i) => `${n} at ${name(i)}`).join(', ');
   return (

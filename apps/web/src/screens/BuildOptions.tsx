@@ -15,6 +15,7 @@ import {
   CardArt,
   ColorBreakdown,
   CurveChart,
+  DeckCounts,
   deckColorShares,
   deckStyleRows,
   deckTypeCounts,
@@ -26,6 +27,7 @@ import {
   TextCard,
   TypeBreakdown,
   ui,
+  useMediaQuery,
   type DeckOptions,
 } from '@bulk-brew/ui';
 import { useAppState } from '../app-context.ts';
@@ -103,7 +105,7 @@ function OptionsBody({ options, onClear }: { options: DeckOptions; onClear(): vo
 
   return (
     <div className="flex flex-col md:min-h-0 md:flex-1">
-      <div className="flex items-center justify-between gap-3 border-b border-line px-6 py-3">
+      <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3 md:px-6">
         <h2 id="options-title" tabIndex={-1} className="text-[0.9375rem] font-semibold">
           Deck options
         </h2>
@@ -118,7 +120,7 @@ function OptionsBody({ options, onClear }: { options: DeckOptions; onClear(): vo
           {options.working ? '' : `${options.options.length} deck options ready.`}
         </span>
       </div>
-      <ul className="grid auto-rows-min grid-cols-[repeat(auto-fill,minmax(min(335px,100%),1fr))] gap-4 p-6 md:min-h-0 md:flex-1 md:overflow-y-auto">
+      <ul className="grid auto-rows-min grid-cols-[repeat(auto-fill,minmax(min(335px,100%),1fr))] gap-3 p-4 md:min-h-0 md:flex-1 md:gap-4 md:overflow-y-auto md:p-6">
         {options.options.map((o) => (
           <li key={o.key}>
             <OptionCard option={o} onOpen={() => flow.open(o.result)} />
@@ -412,26 +414,39 @@ function OptionCard({ option, onOpen }: { option: DeckOption; onOpen(): void }) 
   // A role the deck size does not ask for (a target of 0) has nothing to show.
   const roles = Object.entries(roleCounts).filter(([, c]) => c.want > 0);
   const left = missing.map((c) => COLOR_LABELS[c].toLowerCase()).join(' and ');
+  // A phone gets a tighter card: a bigger name, smaller charts, and counts in place of bars.
+  const phone = useMediaQuery('(max-width: 767.98px)');
   return (
-    <div className="relative flex h-full flex-col gap-4 rounded-lg border border-line bg-surface p-4 hover:border-line-strong hover:bg-surface-2">
+    <div
+      className={`relative flex h-full flex-col rounded-lg border border-line bg-surface hover:border-line-strong hover:bg-surface-2 ${phone ? 'gap-3 p-3.5' : 'gap-4 p-4'}`}
+    >
       <span className="flex min-w-0 flex-col gap-1">
         <span className="flex items-center gap-1">
           {colors.map((c) => (
             <Pip key={c} symbol={c} size={18} />
           ))}
         </span>
-        <span className="text-[0.9375rem] font-semibold">{title}</span>
+        <span className={`font-semibold ${phone ? 'text-[1.0625rem]' : 'text-[0.9375rem]'}`}>
+          {title}
+        </span>
         {nearest && <span className="text-[0.75rem] text-fg-1">{nearest}</span>}
         <span className="text-[0.75rem] text-fg-2">{style.description}</span>
       </span>
-      <ColorBreakdown shares={shares} size={84} />
+      <ColorBreakdown shares={shares} size={phone ? 68 : 84} />
       <Part label="Mana curve">
-        <CurveChart curve={explanation.curve} />
+        <CurveChart curve={explanation.curve} {...(phone ? { height: 52 } : {})} />
       </Part>
-      <Part label="Card types">
-        <TypeBreakdown counts={types} />
-      </Part>
-      {(styles.length > 0 || roles.length > 0) && (
+      {phone && index && (
+        <span className="border-t border-line pt-3">
+          <DeckCounts deck={deck} index={index} config={config} />
+        </span>
+      )}
+      {!phone && (
+        <Part label="Card types">
+          <TypeBreakdown counts={types} />
+        </Part>
+      )}
+      {!phone && (styles.length > 0 || roles.length > 0) && (
         <Part label="Roles">
           <span className="text-[0.78125rem]">
             <RoleBars>

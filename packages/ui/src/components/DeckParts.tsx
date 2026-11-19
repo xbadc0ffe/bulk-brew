@@ -12,7 +12,7 @@ import {
 } from '@bulk-brew/core';
 import { CardImage } from './CardImage.tsx';
 import { CurveChart, RoleBar, RoleBars, type Variant } from './controls.tsx';
-import { ColorBreakdown, TypeBreakdown } from './DeckStats.tsx';
+import { ColorBreakdown, CountColumns, TypeBreakdown } from './DeckStats.tsx';
 import { ManaCost } from '../ManaCost.tsx';
 import { archetypeInfo, deckGroups, nearestNote } from '../data/deckGroups.ts';
 import { deckColorShares, deckStyleRows, deckTypeCounts } from '../data/deckStats.ts';
@@ -179,6 +179,45 @@ function reasons(
   return [...m]
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
     .map(([why, qty]) => ({ why, qty }));
+}
+
+/** A deck's card types beside its roles, as names and counts, for a narrow screen. */
+export function DeckCounts({
+  deck,
+  index,
+  config,
+}: {
+  deck: Deck;
+  index: CardIndex;
+  config: BulkBrewConfig;
+}) {
+  const types = useMemo(() => deckTypeCounts(deck, index), [deck, index]);
+  const styles = useMemo(() => deckStyleRows(deck, index, config), [deck, index, config]);
+  const roles = useMemo(
+    // A role the deck size does not ask for (a target of 0) has nothing to show.
+    () => Object.entries(deckRoleCounts(deck, index, config)).filter(([, c]) => c.want > 0),
+    [deck, index, config],
+  );
+  return (
+    <CountColumns
+      columns={[
+        {
+          title: 'Card types',
+          rows: types.map((t) => ({ label: t.label, value: String(t.count) })),
+        },
+        {
+          title: 'Roles',
+          rows: [
+            ...styles.map((r) => ({ label: r.label, value: `${r.have}/${r.want}` })),
+            ...roles.map(([id, c]) => ({
+              label: roleLabel(config, id),
+              value: `${c.have}/${c.want}`,
+            })),
+          ],
+        },
+      ]}
+    />
+  );
 }
 
 /**

@@ -143,25 +143,33 @@ function Shell() {
     );
   };
 
-  /** Top bar item on narrow windows. */
-  const pill = (n: (typeof NAV)[number]) => {
+  /**
+   * Top bar item on narrow windows: a folder tab. The open one is the page's
+   * color and covers the bar's bottom line, so it reads as part of the page.
+   * Settings and About are icons, so five tabs fit a phone.
+   */
+  const tab = (n: (typeof NAV)[number]) => {
     const on = n.screen === active;
     const count = counts[n.screen];
+    const icon = n.screen === 'settings' || n.screen === 'about';
     return (
       <button
         key={n.screen}
         type="button"
         onClick={() => choose(n.screen)}
         aria-current={on ? 'page' : undefined}
-        className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-1.5 text-left text-[0.8125rem] whitespace-nowrap ${
+        aria-label={icon ? n.label : undefined}
+        className={`-mb-0.5 flex h-10 items-center justify-center gap-1.5 rounded-t-[10px] border border-b-0 text-[0.8125rem] whitespace-nowrap ${
+          icon ? 'w-11 shrink-0' : 'min-w-0 flex-auto px-2'
+        } ${
           on
-            ? 'border-ink bg-ink font-semibold text-on-ink'
-            : 'border-line bg-surface text-fg-1 hover:border-line-strong hover:text-ink'
+            ? 'border-line-strong bg-canvas font-semibold text-ink [--icon-fill:var(--bg)]'
+            : 'mt-1 h-9 border-line bg-surface-2 text-fg-1 [--icon-fill:var(--surface2)]'
         }`}
       >
-        <span>{n.label}</span>
+        {icon ? <n.Icon size={22} /> : <span className="truncate">{n.label}</span>}
         {count !== undefined && (
-          <span className={`tabular-nums ${on ? 'text-on-ink' : 'text-fg-2'}`}>
+          <span className={`text-[0.75rem] tabular-nums ${on ? 'text-fg-1' : 'text-fg-2'}`}>
             {count.toLocaleString('en-US')}
           </span>
         )}
@@ -171,7 +179,8 @@ function Shell() {
 
   return (
     <NavContext.Provider value={nav}>
-      <div className="flex h-dvh flex-col bg-canvas text-ink md:flex-row">
+      {/* The insets keep the app clear of a notch and the home bar. */}
+      <div className="flex h-dvh flex-col bg-canvas pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] text-ink md:flex-row">
         <nav
           aria-label="Main"
           className="hidden w-[max(104px,6.5rem)] shrink-0 flex-col gap-2 overflow-y-auto border-r border-line bg-rail px-2.5 py-3 md:flex"
@@ -195,9 +204,9 @@ function Shell() {
         </nav>
         <nav
           aria-label="Main"
-          className="flex shrink-0 items-center gap-1.5 overflow-x-auto border-b border-line bg-rail px-3 py-2 md:hidden"
+          className="flex shrink-0 items-end gap-1 border-b border-line-strong bg-rail px-2 pt-[max(0.375rem,env(safe-area-inset-top))] md:hidden"
         >
-          {NAV.map(pill)}
+          {NAV.map(tab)}
         </nav>
         {/* Positioned so absolute children with no nearer positioned parent, such as
             sr-only labels deep in a scrolling pane, are clipped here and never grow the page. */}

@@ -131,6 +131,38 @@ export function ColorBreakdown({ shares, size = 88 }: { shares: ColorShare[]; si
   );
 }
 
+/**
+ * Short columns of names and counts side by side, such as card types beside
+ * roles, where a narrow screen has no room for bars.
+ */
+export function CountColumns(props: {
+  columns: { title: string; rows: { label: string; value: string }[] }[];
+}) {
+  const columns = props.columns.filter((c) => c.rows.length > 0);
+  if (columns.length === 0) return null;
+  return (
+    <div className="grid grid-cols-2 gap-x-5 gap-y-3 text-left">
+      {columns.map((col) => (
+        <div key={col.title} className="flex min-w-0 flex-col gap-1.5">
+          <span className="text-[0.6875rem] font-semibold tracking-[0.04em] text-fg-2 uppercase">
+            {col.title}
+          </span>
+          <dl className="grid grid-cols-[1fr_auto] gap-x-2 gap-y-0.5 text-[0.78125rem]">
+            {col.rows.map((r) => (
+              <div key={r.label} className="contents">
+                <dt className="truncate text-fg-1">{r.label}</dt>
+                <dd className="text-right font-mono text-[0.75rem] text-ink tabular-nums">
+                  {r.value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /** Copies of each card type: label, bar, count, and share of the deck. */
 export function TypeBreakdown({ counts }: { counts: TypeCount[] }) {
   const total = counts.reduce((n, t) => n + t.count, 0);

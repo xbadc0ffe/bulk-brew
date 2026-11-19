@@ -1,4 +1,5 @@
 import { useEffect, useRef, type RefObject } from 'react';
+import { holdInert } from './overlay.ts';
 
 /**
  * While open: the page behind is inert, `first` takes focus, Escape cancels,
@@ -17,9 +18,8 @@ export function useModal(
   useEffect(() => {
     if (!open) return;
     const before = document.activeElement as HTMLElement | null;
-    // The dialog itself is portaled outside #root.
-    const root = document.getElementById('root');
-    root?.setAttribute('inert', '');
+    // A sheet under this dialog holds the page inert too, and keeps it so.
+    const releaseInert = holdInert();
     first.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -31,7 +31,7 @@ export function useModal(
     document.addEventListener('keydown', onKey, true);
     return () => {
       document.removeEventListener('keydown', onKey, true);
-      root?.removeAttribute('inert');
+      releaseInert();
       // Return focus unless the chosen action removed or disabled that control.
       const usable = before?.isConnected && !(before as HTMLButtonElement).disabled;
       if (usable) before.focus({ preventScroll: true });

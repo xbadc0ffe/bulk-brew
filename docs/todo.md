@@ -2,39 +2,25 @@
 
 Ranked within each group. The current work is at the top. One line per item. Finished items are removed, not struck through.
 
-## Decisions waiting on the owner
+## Next up: phone layout and iOS
 
-- One set of screens or two (undecided; the owner leans toward the web app adjusted for phones, with the phone web app and the iOS app looking much the same): `apps/mobile` lacks the deck options list, Commander, secondary styles, Replace, and the Analyze pane, and is not deployed or smoke-tested. Either make `apps/web` one responsive app that Capacitor wraps and retire `apps/mobile`, or keep two apps and bring mobile to parity. SPEC "Decisions" currently says two apps.
+One app: `apps/web` has a phone layout below 768 px and Capacitor will wrap it (SPEC "Decisions"). Done so far: folder tabs, the sheet, the Bulk List, deck options, and the deck view.
 
-## Next up: phone web and iOS
-
-- iOS: Capacitor project with the bundled data pack and config and the over-the-air data update (around `apps/mobile`, or around `apps/web` if the one-app decision goes that way).
+- Phone: the Decks table has `min-w-[760px]` and tapping a name starts a rename instead of opening the deck (`apps/web/src/screens/DecksScreen.tsx`); show a list where the name opens the deck.
+- Phone: Export, Replace, Accept, and the confirm boxes are centered dialogs; make them bottom sheets like the rest.
+- Phone: Toggle, Stepper, and Segmented are 24 to 34 px tall (`packages/ui/src/components/controls.tsx`); raise them to 44 px on touch screens, as buttons and fields are.
+- Phone: Settings, Import, and the Build form are the desktop layout squeezed; the Build page's 340 px archetype menu (`BuildScreen.tsx`) scrolls sideways under 360 px.
+- Phone: hover-only cues (the rename pencil, the reason Pair with is disabled in `DecksScreen.tsx`) need a touch equivalent.
+- Phone: the sheet's drag and the 16 px fields are checked only in an emulated browser; try them on a real iPhone.
+- Add an apple-touch-icon to the web app, and make the theme-color meta in `apps/web/index.html` follow the theme (it stays `#18181b`).
+- iOS: Capacitor project around `apps/web` with the bundled data pack and config and the over-the-air data update.
 - iOS: pick the bundle identifier with the owner (for example com.<name>.bulkbrew).
-- iOS: put `apps/mobile/resources/app-icon-light.png` and `app-icon-dark.png` in the AppIcon set (Any and Dark); see the README there.
-- Storage: the app now asks for persistent storage after the first saved bulk list or deck (`packages/ui/src/storage/kv.ts`); Firefox asks the user once. Still open: suggest a backup when the browser refuses.
+- iOS: put `apps/mobile/resources/app-icon-light.png` and `app-icon-dark.png` in the AppIcon set (Any and Dark); see the README there. Move them out of `apps/mobile` first.
 - iOS: confirm IndexedDB persistence in the WebView, or move the key-value store to the Filesystem plugin (a new dependency; ask first).
 - iOS: backup and .txt downloads use a blob link (`packages/ui/src/util/files.ts`), which probably does not work in a WKWebView; check, then use the Filesystem and Share plugins if needed (new dependencies; ask first).
-- iOS: check that external links open in Safari from the WebView.
-- Phone web: the Bulk List's fixed Qty, Cost, and Type columns take 340 px (`apps/web/src/screens.tsx`), leaving the name about 35 px at 375 px wide; use two-line rows below 768 px.
-- Phone web: the Decks table has `min-w-[760px]` and tapping a name starts a rename instead of opening the deck (`apps/web/src/screens/DecksScreen.tsx`); show a list below 768 px where the name opens the deck.
-- Phone web: with Analyze open the screen splits in half (`screens.tsx`), and at 140% text size the pane is a thin strip; stack the two panes.
-- Phone web: below 1024 px the card detail is a fixed 320 px panel with no backdrop (`screens.tsx`).
-- Phone web: touch targets are 24 to 34 px (`ui.small`, Toggle, Stepper, compact Segmented, table rows, nav pills); raise them to 44 px on touch screens.
-- Phone web: fields are 12.5 to 13 px (`packages/ui/src/styles.ts`, `screens.tsx`), so iOS Safari zooms in on focus; use 16 px below 768 px, then drop `maximum-scale=1.0` from `apps/mobile/index.html`.
-- Phone web: hover-only cues (the rename pencil, the reason Pair with is disabled in `DecksScreen.tsx`) need a touch equivalent.
-- Phone web: add `viewport-fit=cover` and an apple-touch-icon to the web app, so the safe-area insets the full-screen card viewer already honors take effect there.
-- Phone web: the Build page's 340 px archetype menu (`BuildScreen.tsx`) scrolls sideways under 360 px, and at text size above 100% the top bar of pills scrolls sideways.
-- Smoke: headless Edge will not size below about 500 px (`SMOKE_WIDTH=420` renders 492) and does not emulate touch; add `Emulation.setDeviceMetricsOverride` to `scripts/smoke-web.mjs`.
-- The theme-color meta stays `#18181b` in `apps/web/index.html`; make it follow the theme.
-- Share code before either path, small pieces first: move into `packages/ui` the theme swatches and format helpers, Spinner, the logo and contact constants, PackGate, the pre-paint appearance script, and deck export actions.
-- Then the larger shared pieces: the export, restore, and clear-all actions, `PairPackets` state, unresolved import rows, the pool list memos, the commander and secondary style choices from web `BuildScreen.tsx`, and `AppStateProvider`.
-- Mobile: builds run on the main thread (`packages/ui/src/data/useBuildFlow.ts`); route them through the worker.
-- Mobile: replace the browser prompt for Rename (`DecksScreen.tsx`) with an inline field, and the browser confirm boxes (Restore and Clear all data in both apps, Clear list on mobile) with the app's dialog.
-- Mobile: swipe-only Export and Disassemble on the Decks list cannot be reached with VoiceOver; add accessibility actions.
-- Mobile parity, if two apps stay: 100-card Commander and the commander list; the deck options list; the secondary style picker; Replace in the deck view's card sheet; the rebuilt Analyze pane.
-- Mobile parity, if two apps stay: Bulk List column sorting and Select to remove; Decks filters, search, and sort; colored deck actions and the Remove dialog (Delete or Disassemble); export and restore by part; max copies on the Build form after rarities; Export list, Backup, and Clear list moved to Settings; the icon rail on tablets.
-- Mobile: the pool list ignores Show card art; empty Decks says "Build one and save it" (web: accept it); the Import preview lacks the per-color counts the web shows.
-- iPad: the mobile app shows phone screens beside a text side rail; decide whether tablets reuse the desktop layouts.
+- iOS: check that external links open in Safari from the WebView, and that the sheet's Back handling does no harm where there is no Back.
+- Remove `apps/mobile`, its scripts, and the `phone` variants in `packages/ui` that only it uses, once the iOS project wraps `apps/web`; then drop the Mobile app from `docs/DESIGN_BRIEF.md`, the README, and CLAUDE.md.
+- Storage: the app now asks for persistent storage after the first saved bulk list or deck (`packages/ui/src/storage/kv.ts`); Firefox asks the user once. Still open: suggest a backup when the browser refuses.
 
 ## Builder defects
 

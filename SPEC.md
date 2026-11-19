@@ -68,8 +68,8 @@ Defaults live in `config/settings.defaults.json`.
 
 ### Platforms
 
-- **Web app**: desktop-first, fully static, hosted on GitHub Pages. Works offline after first load.
-- **Mobile app**: phone and tablet layouts on the same core, developed in a browser. It is to ship to iOS through Capacitor, bundling the data pack and config and updating both over the air (not built yet; see Status).
+- **Web app**: fully static, hosted on GitHub Pages. Works offline after first load. One set of screens serves every width: the desktop layout from 768 px, and a phone layout below it (folder tabs, two-line card rows, bottom sheets; see `docs/DESIGN_BRIEF.md`).
+- **iOS app**: the web app wrapped by Capacitor, bundling the data pack and config and updating both over the air (not built yet; see Status). `apps/mobile`, an earlier separate phone app, is being retired and gets no new work.
 
 ## Screens
 
@@ -252,14 +252,14 @@ npm workspaces monorepo, TypeScript throughout. Packages:
 - `@bulk-brew/core`: types, decklist parser, name resolution, pool, scan, builder, export. Pure, unit-tested, no DOM or Node APIs.
 - `@bulk-brew/ui`: shared React pieces and hooks: storage, pack and config loading, pool, decks, settings, build flow, card detail, deck view.
 - `@bulk-brew/pipeline`: developer-side data pipeline, evaluation, and review tools.
-- `@bulk-brew/web`: desktop-first React app, a static build deployed to GitHub Pages.
-- `@bulk-brew/mobile`: phone and tablet React app, to be wrapped by Capacitor for iOS.
+- `@bulk-brew/web`: the React app for desktop and phone, a static build deployed to GitHub Pages and to be wrapped by Capacitor for iOS.
+- `@bulk-brew/mobile`: the earlier separate phone app, kept only until the iOS project wraps the web app.
 
 Runtime:
 
 - **Storage**: pool, decks, and settings in IndexedDB behind one key-value interface (`packages/ui/src/storage/kv.ts`). On iOS the same store runs in the WebView unless the iOS work moves it to native storage (see `docs/todo.md`). Backup is a JSON file export and import; restore writes the restored keys in one transaction.
 - **Offline**: the web app is an installable progressive web app. Its service worker precaches the app shell and built assets per deploy and keeps the data pack in a separate cache that survives deploys. The iOS app will bundle everything.
-- **iOS**: Capacitor wraps the mobile app's static build. Builds run on the user's Mac mini with Xcode and ship through TestFlight and the App Store. The home-screen icon comes in a light and a dark version (`apps/mobile/resources/`), matching the web app's icon, which follows light and dark mode.
+- **iOS**: Capacitor wraps the web app's static build. Builds run on the user's Mac mini with Xcode and ship through TestFlight and the App Store. The home-screen icon comes in a light and a dark version (`apps/mobile/resources/`), matching the web app's icon, which follows light and dark mode.
 
 ## Compliance
 
@@ -277,12 +277,12 @@ Version 26.0.47. Ranked open items are in `docs/todo.md`.
 **Built**
 
 - Web app on GitHub Pages, offline after first load: import with a live check, the Bulk List with filters and the Analyze pane, ranked deck options at 100, 60, 40, and 20 cards in one to five colors, the commander list, Replace, Accept or keep, Decks with packet pairing and Merge, backup and restore by part, appearance and text size, About with the credits.
-- Mobile app (phone and tablet layouts), run in a browser during development; several web features are not on it yet.
+- Phone layout of the web app, in progress: the Bulk List, the card, filter, sort, and Analyze sheets, the deck options, and the deck view are done; Decks, Settings, Import, and the dialogs still use the desktop layout squeezed.
 - Data pipeline, weekly data refresh and release, learned data, reference corpus tools.
 - Builder: the grow builder (theme rules, card needs reader, plan picker, one-color land rules) for every request without a secondary style; the classic builder for secondary styles.
 - Evaluation: `npm run eval`, `corpus:eval`, and the blind panel tooling.
 
-**Next**: phone web (what phones get in the browser, and the narrow layout at larger text sizes) and the iOS app (a Capacitor project around the mobile app with the bundled data pack and config, over-the-air data updates, TestFlight), with the mobile app catching up to the web's features.
+**Next**: the rest of the phone layout, then the iOS app (a Capacitor project around the web app with the bundled data pack and config, over-the-air data updates, TestFlight), then removing `apps/mobile`.
 
 **Later**: retire the classic builder by building secondary styles in the grow builder, batch balanced mode, image download for offline use.
 
@@ -293,7 +293,7 @@ Resolved questions, kept so they are not reopened by accident.
 ### Platform and data
 
 - Core language: TypeScript. UI: React 19, Vite, Tailwind. Tests: Vitest. Package manager: npm.
-- iOS: a separate mobile interface on the shared core, wrapped by Capacitor. Not a Swift port, not a responsive single app.
+- iOS: the web app, responsive down to phone width, wrapped by Capacitor. Not a Swift port, and not a second set of screens (decided 2026-11-19; it replaced a separate mobile interface, which had fallen behind the web app).
 - Database: a JSON data pack, not SQLite (see Data pack).
 - Data distribution: release assets plus a pinned manifest, not committed packs (see Publishing and updates).
 - Rulings: never bundled.

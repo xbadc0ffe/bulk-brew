@@ -150,3 +150,25 @@ export function InfoIcon({ size = 28 }: { size?: number }) {
     </Svg>
   );
 }
+
+/** Filters: three sliders. */
+export function FilterIcon({ size = 28 }: { size?: number }) {
+  return (
+    <Svg size={size}>
+      <path d="M5 9h22M5 16h22M5 23h22" />
+      <circle cx={11} cy={9} r={2.6} fill="var(--icon-fill)" />
+      <circle cx={21} cy={16} r={2.6} fill="var(--icon-fill)" />
+      <circle cx={14} cy={23} r={2.6} fill="var(--icon-fill)" />
+    </Svg>
+  );
+}
+
+/** Sort: one arrow up, one down. */
+export function SortIcon({ size = 28 }: { size?: number }) {
+  return (
+    <Svg size={size}>
+      <path d="M10.5 25V7M5.5 12l5-5 5 5" />
+      <path d="M21.5 7v18M16.5 20l5 5 5-5" />
+    </Svg>
+  );
+}

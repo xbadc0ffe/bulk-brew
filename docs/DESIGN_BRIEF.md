@@ -17,7 +17,7 @@ Casual and kitchen-table players, people who draft a lot and have piles of commo
 | Web    | Desktop and phone browsers, GitHub Pages                    | The full product. The only app that is deployed and smoke-tested.  |
 | Mobile | Development only (`npm run dev:mobile`), no iOS project yet | A phone layout of the earlier product; see "Web only today" below. |
 
-Both are React 19 with Tailwind 4 on `packages/core`. Shared components, hooks, and the design tokens (`packages/ui/src/theme.css`) live in `packages/ui`; layouts live in `apps/web/src` and `apps/mobile/src`. Whether the two become one responsive app is an open decision in `docs/todo.md`.
+Both are React 19 with Tailwind 4 on `packages/core`. Shared components, hooks, and the design tokens (`packages/ui/src/theme.css`) live in `packages/ui`; layouts live in `apps/web/src` and `apps/mobile/src`. The web app is becoming the one app: it has a phone layout below 768 px (see "Phone layout (web app)"), Capacitor will wrap it for iOS, and the Mobile app is being retired.
 
 Web screen ids (`apps/web/src/nav.ts`): import, pool, build, decks, settings, about. Import is a subpage of the Bulk List (id `pool`). Mobile has import, pool, build, decks, settings; its pool has a Cards and an Analysis view, and About is a page inside Settings.
 
@@ -42,6 +42,18 @@ Web screen ids (`apps/web/src/nav.ts`): import, pool, build, decks, settings, ab
 - Outlines of boxes, buttons, tiles, fields, and tag bubbles are two pixels; separators between list rows are one. Fixed-height rows leave room for a whole bubble.
 - Action colors are fixed: Accept green, Back and Remove red, Analyze blue, Export grey.
 
+### Phone layout (web app)
+
+Below 768 px the web app keeps its colors and type and changes shape. Everything here is about that width unless it says otherwise.
+
+- Folder tabs across the top in place of the sidebar: Bulk List, Build, Decks with their counts, then Settings and About as icons. The open tab is the page's color and joins the page.
+- Sheets (`packages/ui/src/components/Sheet.tsx`): a panel rolls up from the bottom over a dimmed page, with a handle. The handle, the dimmed area, a drag down, Escape, and the phone's Back all close it, and its content scrolls inside it. A card (below 1024 px), the Bulk List's filters, its sort and select, and Analyze each open in one.
+- Bulk List: the totals and Import; a row of color tiles, the symbol over a short count (exact to 999, then 1.2k, 1.2m), where the symbol filters and the count shows the exact number in a bubble; one toolbar row with search, a Filters button that carries the number of filters on, a Sort and select button, and Analyze. Cards take two lines (count and name, then cost and type) while the list is narrower than 640 px at the chosen text size.
+- Deck options: tighter cards with a larger name, a smaller color wheel and curve, and card types and roles as two columns of names and counts.
+- Deck view: one scrolling page. The name and details are centered and scroll away; card types and roles come first, then the cards, then the details. The actions (Accept, Back, Export, and a saved deck's) stay in a bar at the bottom.
+- Buttons and fields are at least 44 px tall on touch screens, fields use 16 px text so iOS does not zoom, and safe-area insets keep the tabs and sheets clear of the notch and home bar.
+- Not done yet: Decks is still the desktop table, and Settings, Import, the Build form, and the dialogs are the desktop layout squeezed.
+
 ### Phone layout (mobile app)
 
 - A four-tab bar (Bulk List, Build, Decks, Settings) with outline icons, filled when active. From 768 px a text side rail replaces it, with a 320 px card detail side panel.
@@ -64,7 +76,7 @@ Web screen ids (`apps/web/src/nav.ts`): import, pool, build, decks, settings, ab
 - Header: total cards, and color buttons with counts that act as filters.
 - A table of cards with quantity, name, mana cost, type, subtype, and tags as bubbles. Thousands of rows are normal, so only rows near the viewport render. With art on, rows show small thumbnails.
 - Filters: color, type, subtype, a mana value comparison, tags and subtags, text search, and Clear filters. The web sorts by any column header; the phone picks from fixed orders.
-- Card detail: image when art is on, oracle text, type line, tags in plain language. Edit quantity, remove. On the web it is a right-hand panel (an overlay below 1024 px); on phones a full-screen sheet.
+- Card detail: image when art is on, oracle text, type line, tags in plain language. Edit quantity, remove. On the web it is a right-hand panel, and below 1024 px a sheet that rolls up from the bottom; on the Mobile app a full-screen sheet.
 - Select (web) removes several cards at once. Export, backup, and clearing live on Settings on the web; the phone still has them on this screen.
 - Analyze (web): a blue button opens a pane under the list. Recommended decks for Commander, 60, 40, and 20 (five each, found by a background search, with a max colors per deck choice); picking one opens it on Build. Then a color pie and a second pie counting multicolor cards in each color, spells by color and mana value, and by-color tables for card types, roles, creature types, and subtypes.
 - Empty state that leads to Import.
@@ -91,7 +103,7 @@ The same view serves a fresh build and a saved deck.
 - Fresh build: Accept (asks Confirm and remove the cards, Confirm and keep them in the bulk list, or Decline), Back to the options, and Export (Copy as text, Download .txt, Cancel).
 - Replace (web, fresh builds): the card detail's Replace this card opens a picker of bulk list cards that fit the deck, closest matches first, each with the jobs it shares with the card going out. Leaving a deck with replaced cards asks Discard your changes? first.
 - Saved deck: click the name to rename it; Export; a red Remove that asks Delete or Disassemble (cards go back) for an accepted deck, and Delete for a kept one. A kept deck shows a "Cards in bulk list" badge and a green Accept. A packet has Pair with.
-- In a deck view the card detail opens over the deck details, below the header, so the actions stay in view.
+- In a deck view the card detail opens over the deck details, below the header, so the actions stay in view. Below 1024 px it is a bottom sheet.
 
 ### Decks
 

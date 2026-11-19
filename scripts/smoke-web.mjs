@@ -22,6 +22,7 @@
 // the list marks Short. SMOKE_ART=1 turns card art on before the deck checks,
 // and SMOKE_WIDTH sets the window width (default 1280; 420 gives the narrow
 // layout, where the picked replacement covers the list until Back to the list).
+// SMOKE_PHONE=1 emulates a 390 by 844 touch phone, for the phone layout.
 // SMOKE_TEXT (90, 100, 110, 125, or 140) picks that Text size on Settings
 // first, checks it survives a reload, and runs the rest at that size.
 
@@ -164,6 +165,16 @@ try {
   };
   await send('Runtime.enable');
   await send('Page.enable');
+  // A headless window will not go below about 500px wide; emulation does.
+  if (process.env.SMOKE_PHONE === '1') {
+    await send('Emulation.setDeviceMetricsOverride', {
+      width: 390,
+      height: 844,
+      deviceScaleFactor: 2,
+      mobile: true,
+    });
+    await send('Emulation.setTouchEmulationEnabled', { enabled: true });
+  }
   await send('Page.navigate', { url: appUrl });
   await waitForText(/Your bulk list is empty|unique/, 30000);
   log('load', `card data loaded from ${appUrl}`);
@@ -196,6 +207,7 @@ try {
     log('text-size', `${textSize}%: root text ${want}px, kept after a reload`);
   }
 
+  const phone = process.env.SMOKE_PHONE === '1';
   const pool = readFileSync(poolFile, 'utf8');
   // The sidebar reads "Bulk List 1,234".
   const poolCount = async () => {
@@ -224,6 +236,61 @@ try {
   const before = await poolCount();
   log('pool', `${before} cards`);
   await shot('2-pool');
+
+  // On a phone the Bulk List has two-line rows, and a card, the filters, and the sort
+  // each roll up in a sheet that its handle closes.
+  if (phone) {
+    const closeSheet = async (label) => {
+      await evaluate(
+        `document.querySelector('[role="dialog"] > button[aria-label="Close ${label}"]').click()`,
+      );
+      await sleep(400);
+      if (await evaluate(`!!document.querySelector('[role="dialog"]')`))
+        throw new Error(`the ${label} sheet stayed open`);
+    };
+    const name = await evaluate(`(() => {
+      const b = document.querySelector('[data-row] button');
+      const r = b.getBoundingClientRect();
+      b.click();
+      return { text: b.textContent, width: Math.round(r.width) };
+    })()`);
+    await sleep(500);
+    if (!(await evaluate(`!!document.querySelector('[role="dialog"][aria-label="Card detail"]')`)))
+      throw new Error('a card did not open in a sheet');
+    if (name.width < 150) throw new Error(`card names get only ${name.width}px`);
+    await shot('2-pool-card');
+    await closeSheet('Card detail');
+    await evaluate(`document.querySelector('button[aria-label^="Filters"]').click()`);
+    await sleep(500);
+    await click('^Creature\\d');
+    await shot('2-pool-filters');
+    const badge = await evaluate(
+      `document.querySelector('button[aria-label^="Filters"]').getAttribute('aria-label')`,
+    );
+    if (badge !== 'Filters, 1 on') throw new Error(`the Filters button reads "${badge}"`);
+    await click('^Clear filters$');
+    await closeSheet('Filters');
+    await evaluate(`document.querySelector('button[aria-label="Sort and select"]').click()`);
+    await sleep(500);
+    await shot('2-pool-sort');
+    await closeSheet('Sort and select');
+    // The phone's Back closes a sheet and stays in the app, and closed sheets leave no
+    // history entry behind.
+    const sheetEntry = () => evaluate(`history.state?.sheet === true`);
+    if (await sheetEntry()) throw new Error('a closed sheet left its history entry');
+    await evaluate(`document.querySelector('[data-row] button').click()`);
+    await sleep(500);
+    if (!(await sheetEntry())) throw new Error('an open sheet has no history entry');
+    await evaluate(`history.back()`);
+    await sleep(600);
+    if (await evaluate(`!!document.querySelector('[role="dialog"]')`))
+      throw new Error('Back left the card sheet open');
+    if ((await sheetEntry()) || !/unique/.test(await pageText()))
+      throw new Error('Back with a sheet open left the Bulk List');
+    const wide = await evaluate(`document.documentElement.scrollWidth > innerWidth`);
+    if (wide) throw new Error('the Bulk List scrolls sideways');
+    log('phone', `${name.text} gets ${name.width}px; card, filter, and sort sheets open and close`);
+  }
 
   await click('^Build$');
   // SMOKE_SIZE=100 builds Commander: pick SMOKE_COMMANDER (part of a name) from the list.
@@ -289,6 +356,12 @@ try {
   // A screen-reader line announces the finished list.
   log('options', oneLine(await waitForText(/deck options? ready/, 60000), 160));
   await shot('3-build-options');
+  // On a phone the options sit under the form; bring the first card into view.
+  if (phone) {
+    await evaluate(`document.getElementById('options-title').scrollIntoView()`);
+    await sleep(300);
+    await shot('3-option-card');
+  }
   // Each option card has an Open button over it; the first card is the strongest.
   const openStrongest = async () => {
     await click('^Open ', 'first');
@@ -337,8 +410,12 @@ try {
   })()`);
   if (!opened) throw new Error('no card to open in the deck list');
   await sleep(300);
+  // A phone shows the card in a sheet over the page instead.
+  const cardOpen = phone
+    ? '[role="dialog"][aria-label="Card detail"]'
+    : 'aside[aria-label="Card detail"]';
   const layout = await evaluate(`(() => {
-    const pane = document.querySelector('aside[aria-label="Card detail"]');
+    const pane = document.querySelector('${cardOpen}');
     const accept = [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Accept');
     if (!pane || !accept) return undefined;
     const a = accept.getBoundingClientRect();
@@ -346,7 +423,7 @@ try {
     return { paneTop: pane.getBoundingClientRect().top, acceptBottom: a.bottom, onTop: accept.contains(hit) };
   })()`);
   if (!layout) throw new Error(`opening ${opened} showed no card detail`);
-  if (layout.paneTop < layout.acceptBottom || !layout.onTop)
+  if (!phone && (layout.paneTop < layout.acceptBottom || !layout.onTop))
     throw new Error('the card detail covers the deck actions');
   await shot('3-card-detail');
   // Replace offers cards from the bulk list; picking one swaps it in.
@@ -388,9 +465,16 @@ try {
     (await waitForText(/Replaced [^\n]+ with [^\n]+\./, 5000)).match(/Replaced[^\n]*/)[0],
   );
   // Back asks before it drops the change, and a header button closes the card detail.
+  // On a phone the card's sheet covers the actions, so it is closed first.
+  if (phone) {
+    await evaluate(
+      `document.querySelector('[role="dialog"] > button[aria-label="Close Card detail"]').click()`,
+    );
+    await sleep(400);
+  }
   await click('^Back$');
   await waitForText(/Discard your changes\?/, 5000);
-  if (await evaluate(`!!document.querySelector('aside[aria-label="Card detail"]')`))
+  if (await evaluate(`!!document.querySelector('${cardOpen}')`))
     throw new Error('the card detail stayed open after Back');
   await click('^Keep editing$');
   if (!/Accept/.test(await pageText())) throw new Error('Keep editing left the deck');

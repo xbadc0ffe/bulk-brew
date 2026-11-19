@@ -81,7 +81,7 @@ export function AnalysisPanel() {
       rows.map((r) => ({ key: r.id, label: r.label, values: keys.map((c) => r.byColor[c]) }));
 
   return (
-    <div className="flex flex-col gap-6 px-6 py-4">
+    <div className="flex flex-col gap-6 px-4 py-4 md:px-6">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-[1rem] font-semibold">Analysis</h2>
         <span className="text-[0.78125rem] text-fg-2">

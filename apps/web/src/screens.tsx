@@ -19,6 +19,7 @@ import {
   poolFacets,
   poolRows,
   poolSummary,
+  Sheet,
   typeParts,
   ui,
   useImport,
@@ -32,7 +33,9 @@ import {
   type SortKey,
 } from '@bulk-brew/ui';
 import { useAppState } from './app-context.ts';
+import { FilterIcon, SortIcon } from './icons.tsx';
 import { useNav } from './nav.ts';
+import { ColorTiles, FilterSheet, IconButton, SortSheet } from './screens/PoolPhone.tsx';
 import { AnalysisPanel } from './screens/AnalysisPanel.tsx';
 
 const fmt = (n: number) => n.toLocaleString('en-US');
@@ -533,6 +536,13 @@ function BulkList() {
   const tbodyRef = useRef<HTMLTableSectionElement>(null);
   const detailRef = useRef<HTMLElement>(null);
   const wide = useMediaQuery('(min-width: 1024px)');
+  // The phone layout: a short header, sheets for the filters, a card, and Analyze.
+  const phone = useMediaQuery('(max-width: 767.98px)');
+  // Too narrow for columns: each card takes two lines. Larger text needs the room sooner.
+  const twoLine = useMediaQuery(
+    `(max-width: ${Math.round(6.4 * appearance.appearance.textSize) - 0.02}px)`,
+  );
+  const [sheet, setSheet] = useState<'filters' | 'sort'>();
   // A narrow window with larger text leaves the name no room beside Type; the card detail shows it.
   const showType = wide || appearance.appearance.textSize <= 100;
 
@@ -551,14 +561,25 @@ function BulkList() {
     () => (index ? poolFacets(pool.pool, index, config, DISPLAY_TAGS) : undefined),
     [index, pool.pool, config],
   );
-  const rowHeight = showArt ? 38 : 34;
-  const version = `${JSON.stringify(sort)}|${JSON.stringify(filters)}|${showArt}|${analyze}`;
+  const rowHeight = twoLine ? (showArt ? 58 : 52) : showArt ? 38 : 34;
+  const version = `${JSON.stringify(sort)}|${JSON.stringify(filters)}|${showArt}|${analyze}|${twoLine}`;
   const win = useWindowedRows(rows.length, rowHeight, tbodyRef, version);
   // A new filter or sort starts at the top of the list.
   const listKey = `${JSON.stringify(sort)}|${JSON.stringify(filters)}`;
   useEffect(() => {
     if (scroller.current) scroller.current.scrollTop = 0;
   }, [listKey]);
+  // On the phone Analyze is a sheet over the list; leaving the list closes it.
+  const phoneNow = useRef(phone);
+  useEffect(() => {
+    phoneNow.current = phone;
+  });
+  useEffect(
+    () => () => {
+      if (phoneNow.current) setAnalyze(false);
+    },
+    [setAnalyze],
+  );
   const selectedId = detail.current?.cardId;
   const selectedIndex = rows.findIndex((r) => r.card.id === selectedId);
 
@@ -575,7 +596,14 @@ function BulkList() {
       }
       if ((e.key !== 'ArrowDown' && e.key !== 'ArrowUp') || e.shiftKey) return;
       if (typing && el !== searchRef.current) return;
-      if (el.closest('[data-menu], [role=alertdialog], [role=dialog]') || rows.length === 0) return;
+      // From the card's own sheet the arrows still move through the list.
+      if (
+        el.closest(
+          '[data-menu], [role=alertdialog], [role=dialog]:not([aria-label="Card detail"])',
+        ) ||
+        rows.length === 0
+      )
+        return;
       e.preventDefault();
       const next =
         selectedIndex < 0
@@ -639,7 +667,14 @@ function BulkList() {
   const shownColumns = COLUMNS.filter(
     (c) => (wide || !c.wideOnly) && (showType || c.key !== 'type'),
   );
-  const columnCount = shownColumns.length + (selecting ? 1 : 0);
+  const columnCount = twoLine ? 1 : shownColumns.length + (selecting ? 1 : 0);
+  const pick = (id: string) =>
+    setPicked((s) => {
+      const next = new Set(s);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   const openRow = (cardId: string, printing: PrintingHint | undefined) => {
     // Clicking the open card again closes the detail.
     if (cardId === selectedId) detail.close();
@@ -656,219 +691,287 @@ function BulkList() {
     requestAnimationFrame(() => searchRef.current?.focus());
   };
 
+  const searchBox = (
+    <input
+      ref={searchRef}
+      type="search"
+      value={filters.search}
+      onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
+      placeholder="Search name or text"
+      aria-label="Search name or text"
+      className={`${ui.field} ${phone ? 'min-w-0' : 'min-w-40'} flex-1`}
+    />
+  );
+  const analyzeButton = (
+    <button
+      type="button"
+      aria-pressed={analyze}
+      // Glows while closed to invite a look; pressed in while open.
+      className={`${ui.info} ${analyze ? 'shadow-[inset_0_2px_5px_rgb(0_0_0/0.35)]' : 'animate-glow motion-reduce:animate-none'}`}
+      onClick={() => setAnalyze(!analyze)}
+    >
+      Analyze
+    </button>
+  );
+  const selectBar = selecting && (
+    <div className="flex flex-wrap items-center gap-2 rounded-md bg-surface-2 px-3 py-2 text-[0.78125rem]">
+      <span className="mr-auto text-fg-1">
+        {pickedRows.length > 0
+          ? `${plural(pickedRows.length, 'card')} selected (${copies(pickedCopies)})`
+          : 'Tick cards to select them.'}
+      </span>
+      <button
+        type="button"
+        className={ui.small}
+        onClick={() => setPicked(new Set(rows.map((r) => r.card.id)))}
+      >
+        Select all {fmt(rows.length)}
+      </button>
+      <button
+        type="button"
+        className={ui.small}
+        disabled={pickedRows.length === 0}
+        onClick={() => setPicked(new Set())}
+      >
+        Clear selection
+      </button>
+      <button
+        type="button"
+        className={`${ui.primary} py-[5px]`}
+        disabled={pickedRows.length === 0}
+        onClick={() => setConfirm('remove')}
+      >
+        Remove{pickedRows.length > 0 ? ` ${fmt(pickedRows.length)}` : ''}
+      </button>
+      {phone && (
+        <button
+          type="button"
+          className={ui.small}
+          onClick={() => {
+            setSelecting(false);
+            setPicked(new Set());
+          }}
+        >
+          Done
+        </button>
+      )}
+    </div>
+  );
+  const sheetFilters = filterCount(filters) - filters.colors.length;
+
   return (
     <div className="flex h-full flex-col">
       {/* With Analyze open, the list half never gets shorter than its header and a few
           rows (large text can make the header taller than half); the Analysis pane gives way. */}
-      <div className={`flex ${analyze ? 'basis-1/2' : 'min-h-0 flex-1'}`}>
+      <div className={`flex ${analyze && !phone ? 'basis-1/2' : 'min-h-0 flex-1'}`}>
         <section className="flex min-w-0 flex-1 flex-col">
-          <header className="flex flex-col gap-3 px-6 pt-5">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-              <h1 className="text-[1.25rem] font-semibold">Bulk List</h1>
-              <span className="text-[0.8125rem] text-fg-1">
-                {plural(summary.cards, 'card')} · {fmt(summary.distinct)} unique
-              </span>
-              <button
-                type="button"
-                className={`${ui.primary} ml-auto`}
-                onClick={() => nav.go('import')}
-              >
-                Import
-              </button>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <div role="group" aria-label="Colors" className="flex flex-wrap items-center gap-1">
-                {COLOR_KEYS.filter((c) => c.id !== 'M' || summary.byColor.M > 0).map((c) => {
-                  const on = filters.colors.includes(c.id as ColorKey);
-                  return (
-                    <button
-                      key={c.id}
-                      type="button"
-                      aria-pressed={on}
-                      aria-label={`${c.label}, ${plural(summary.byColor[c.id], 'card')}`}
-                      title={`Show only ${c.label.toLowerCase()} cards`}
-                      onClick={() => set('colors', toggle(filters.colors, c.id))}
-                      className={`flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-[0.78125rem] ${
-                        on
-                          ? 'border-ink bg-surface font-semibold text-ink'
-                          : 'border-transparent text-fg-1 hover:bg-surface-2'
-                      }`}
-                    >
-                      {c.id === 'M' ? <span>Multi</span> : <Pip symbol={c.id} label={c.label} />}
-                      <span className="tabular-nums">{fmt(summary.byColor[c.id])}</span>
-                    </button>
-                  );
-                })}
-              </div>
-              <span aria-hidden className="mx-1 h-5 w-px bg-line" />
-              <FilterChip
-                name="Type"
-                options={facets.types}
-                selected={filters.types}
-                onToggle={(id) => set('types', toggle(filters.types, id))}
-                onClear={() => set('types', [])}
-              />
-              <FilterChip
-                name="Subtype"
-                options={facets.subtypes}
-                selected={filters.subtypes}
-                onToggle={(id) => set('subtypes', toggle(filters.subtypes, id))}
-                onClear={() => set('subtypes', [])}
-                searchable
-              />
-              <ManaValueFilter
-                values={facets.manaValues}
-                op={filters.mv.op}
-                value={
-                  filters.mv.op === 'any' && !facets.manaValues.includes(filters.mv.value)
-                    ? (facets.manaValues[0] ?? 0)
-                    : filters.mv.value
-                }
-                onChange={(op, value) => set('mv', { op, value })}
-              />
-              <FilterChip
-                name="Tags"
-                options={facets.tags}
-                selected={filters.tags}
-                onToggle={(id) => set('tags', toggle(filters.tags, id))}
-                onClear={() => set('tags', [])}
-              />
-              <FilterChip
-                name="Subtags"
-                options={facets.subtags}
-                selected={filters.subtags}
-                onToggle={(id) => set('subtags', toggle(filters.subtags, id))}
-                onClear={() => set('subtags', [])}
-                searchable
-              />
-              {filtered && (
-                <button
-                  type="button"
-                  className={`${ui.quiet} px-1 text-[0.78125rem] underline`}
-                  onClick={() => setFilters(EMPTY_FILTERS)}
-                >
-                  Clear filters
-                </button>
-              )}
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <input
-                ref={searchRef}
-                type="search"
-                value={filters.search}
-                onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
-                placeholder="Search name or text"
-                aria-label="Search name or text"
-                className={`${ui.field} min-w-40 flex-1`}
-              />
-              <button
-                type="button"
-                aria-pressed={selecting}
-                className={selecting ? ui.primary : ui.secondary}
-                onClick={() => {
-                  setSelecting((s) => !s);
-                  setPicked(new Set());
-                }}
-              >
-                Select
-              </button>
-              <button
-                type="button"
-                aria-pressed={analyze}
-                // Glows while closed to invite a look; pressed in while open.
-                className={`${ui.info} ${analyze ? 'shadow-[inset_0_2px_5px_rgb(0_0_0/0.35)]' : 'animate-glow motion-reduce:animate-none'}`}
-                onClick={() => setAnalyze(!analyze)}
-              >
-                Analyze
-              </button>
-            </div>
-
-            {selecting && (
-              <div className="flex flex-wrap items-center gap-2 rounded-md bg-surface-2 px-3 py-2 text-[0.78125rem]">
-                <span className="mr-auto text-fg-1">
-                  {pickedRows.length > 0
-                    ? `${plural(pickedRows.length, 'card')} selected (${copies(pickedCopies)})`
-                    : 'Tick cards to select them.'}
+          {phone ? (
+            <header className="flex flex-col gap-2.5 px-4 pt-3">
+              <div className="flex items-center gap-3">
+                <h1 className="sr-only">Bulk List</h1>
+                <span className="text-[0.8125rem] text-fg-1">
+                  {plural(summary.cards, 'card')} · {fmt(summary.distinct)} unique
                 </span>
                 <button
                   type="button"
-                  className={ui.small}
-                  onClick={() => setPicked(new Set(rows.map((r) => r.card.id)))}
+                  className={`${ui.primary} ml-auto`}
+                  onClick={() => nav.go('import')}
                 >
-                  Select all {fmt(rows.length)}
-                </button>
-                <button
-                  type="button"
-                  className={ui.small}
-                  disabled={pickedRows.length === 0}
-                  onClick={() => setPicked(new Set())}
-                >
-                  Clear selection
-                </button>
-                <button
-                  type="button"
-                  className={`${ui.primary} py-[5px]`}
-                  disabled={pickedRows.length === 0}
-                  onClick={() => setConfirm('remove')}
-                >
-                  Remove{pickedRows.length > 0 ? ` ${fmt(pickedRows.length)}` : ''}
+                  Import
                 </button>
               </div>
-            )}
-          </header>
+              <ColorTiles
+                summary={summary}
+                selected={filters.colors}
+                onToggle={(id) => set('colors', toggle(filters.colors, id))}
+              />
+              <div className="flex items-center gap-2">
+                {searchBox}
+                <IconButton
+                  label={sheetFilters > 0 ? `Filters, ${sheetFilters} on` : 'Filters'}
+                  badge={sheetFilters}
+                  onClick={() => setSheet('filters')}
+                >
+                  <FilterIcon size={22} />
+                </IconButton>
+                <IconButton
+                  label="Sort and select"
+                  badge={sort !== undefined || selecting}
+                  onClick={() => setSheet('sort')}
+                >
+                  <SortIcon size={22} />
+                </IconButton>
+                {analyzeButton}
+              </div>
+              {selectBar}
+            </header>
+          ) : (
+            <header className="flex flex-col gap-3 px-6 pt-5">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                <h1 className="text-[1.25rem] font-semibold">Bulk List</h1>
+                <span className="text-[0.8125rem] text-fg-1">
+                  {plural(summary.cards, 'card')} · {fmt(summary.distinct)} unique
+                </span>
+                <button
+                  type="button"
+                  className={`${ui.primary} ml-auto`}
+                  onClick={() => nav.go('import')}
+                >
+                  Import
+                </button>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <div role="group" aria-label="Colors" className="flex flex-wrap items-center gap-1">
+                  {COLOR_KEYS.filter((c) => c.id !== 'M' || summary.byColor.M > 0).map((c) => {
+                    const on = filters.colors.includes(c.id as ColorKey);
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        aria-pressed={on}
+                        aria-label={`${c.label}, ${plural(summary.byColor[c.id], 'card')}`}
+                        title={`Show only ${c.label.toLowerCase()} cards`}
+                        onClick={() => set('colors', toggle(filters.colors, c.id))}
+                        className={`flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-[0.78125rem] ${
+                          on
+                            ? 'border-ink bg-surface font-semibold text-ink'
+                            : 'border-transparent text-fg-1 hover:bg-surface-2'
+                        }`}
+                      >
+                        {c.id === 'M' ? <span>Multi</span> : <Pip symbol={c.id} label={c.label} />}
+                        <span className="tabular-nums">{fmt(summary.byColor[c.id])}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <span aria-hidden className="mx-1 h-5 w-px bg-line" />
+                <FilterChip
+                  name="Type"
+                  options={facets.types}
+                  selected={filters.types}
+                  onToggle={(id) => set('types', toggle(filters.types, id))}
+                  onClear={() => set('types', [])}
+                />
+                <FilterChip
+                  name="Subtype"
+                  options={facets.subtypes}
+                  selected={filters.subtypes}
+                  onToggle={(id) => set('subtypes', toggle(filters.subtypes, id))}
+                  onClear={() => set('subtypes', [])}
+                  searchable
+                />
+                <ManaValueFilter
+                  values={facets.manaValues}
+                  op={filters.mv.op}
+                  value={
+                    filters.mv.op === 'any' && !facets.manaValues.includes(filters.mv.value)
+                      ? (facets.manaValues[0] ?? 0)
+                      : filters.mv.value
+                  }
+                  onChange={(op, value) => set('mv', { op, value })}
+                />
+                <FilterChip
+                  name="Tags"
+                  options={facets.tags}
+                  selected={filters.tags}
+                  onToggle={(id) => set('tags', toggle(filters.tags, id))}
+                  onClear={() => set('tags', [])}
+                />
+                <FilterChip
+                  name="Subtags"
+                  options={facets.subtags}
+                  selected={filters.subtags}
+                  onToggle={(id) => set('subtags', toggle(filters.subtags, id))}
+                  onClear={() => set('subtags', [])}
+                  searchable
+                />
+                {filtered && (
+                  <button
+                    type="button"
+                    className={`${ui.quiet} px-1 text-[0.78125rem] underline`}
+                    onClick={() => setFilters(EMPTY_FILTERS)}
+                  >
+                    Clear filters
+                  </button>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {searchBox}
+                <button
+                  type="button"
+                  aria-pressed={selecting}
+                  className={selecting ? ui.primary : ui.secondary}
+                  onClick={() => {
+                    setSelecting((s) => !s);
+                    setPicked(new Set());
+                  }}
+                >
+                  Select
+                </button>
+                {analyzeButton}
+              </div>
+
+              {selectBar}
+            </header>
+          )}
 
           <div ref={scroller} className="relative mt-3 min-h-[5rem] grow basis-0 overflow-y-auto">
             <table className="w-full table-fixed border-collapse text-[0.8125rem]">
-              <colgroup>
-                {shownColumns.map((c) => (
-                  <col key={c.key} style={c.width ? { width: c.width } : undefined} />
-                ))}
-                {selecting && <col style={{ width: 52 }} />}
-              </colgroup>
-              <thead className="sticky top-0 z-10 bg-canvas text-left">
-                <tr className={ui.sectionLabel}>
-                  {shownColumns.map((c) => {
-                    const dir = sort?.key === c.key ? sort.dir : undefined;
-                    return (
-                      <th
-                        key={c.key}
-                        aria-sort={
-                          dir === 'asc' ? 'ascending' : dir === 'desc' ? 'descending' : 'none'
-                        }
-                        className={`border-b border-line font-normal ${c.pad}`}
-                      >
-                        <button
-                          type="button"
-                          className={`flex items-center gap-1 py-1.5 tracking-[0.04em] uppercase hover:text-ink ${dir ? 'text-ink' : ''}`}
-                          onClick={() => setSort(nextSort(sort, c.key))}
+              {!twoLine && (
+                <colgroup>
+                  {shownColumns.map((c) => (
+                    <col key={c.key} style={c.width ? { width: c.width } : undefined} />
+                  ))}
+                  {selecting && <col style={{ width: 52 }} />}
+                </colgroup>
+              )}
+              {/* Two-line rows have no columns to head; Sort and select has the sorting. */}
+              {!twoLine && (
+                <thead className="sticky top-0 z-10 bg-canvas text-left">
+                  <tr className={ui.sectionLabel}>
+                    {shownColumns.map((c) => {
+                      const dir = sort?.key === c.key ? sort.dir : undefined;
+                      return (
+                        <th
+                          key={c.key}
+                          aria-sort={
+                            dir === 'asc' ? 'ascending' : dir === 'desc' ? 'descending' : 'none'
+                          }
+                          className={`border-b border-line font-normal ${c.pad}`}
                         >
-                          {c.label}
-                          <span aria-hidden className="w-2 text-[0.5625rem]">
-                            {dir === 'asc' ? '▲' : dir === 'desc' ? '▼' : ''}
-                          </span>
-                        </button>
+                          <button
+                            type="button"
+                            className={`flex items-center gap-1 py-1.5 tracking-[0.04em] uppercase hover:text-ink ${dir ? 'text-ink' : ''}`}
+                            onClick={() => setSort(nextSort(sort, c.key))}
+                          >
+                            {c.label}
+                            <span aria-hidden className="w-2 text-[0.5625rem]">
+                              {dir === 'asc' ? '▲' : dir === 'desc' ? '▼' : ''}
+                            </span>
+                          </button>
+                        </th>
+                      );
+                    })}
+                    {selecting && (
+                      <th className="border-b border-line pr-6 font-normal">
+                        <input
+                          type="checkbox"
+                          aria-label="Select all shown"
+                          checked={rows.length > 0 && pickedRows.length === rows.length}
+                          onChange={(e) =>
+                            setPicked(
+                              e.target.checked ? new Set(rows.map((r) => r.card.id)) : new Set(),
+                            )
+                          }
+                          className="size-4 accent-[var(--ink)]"
+                        />
                       </th>
-                    );
-                  })}
-                  {selecting && (
-                    <th className="border-b border-line pr-6 font-normal">
-                      <input
-                        type="checkbox"
-                        aria-label="Select all shown"
-                        checked={rows.length > 0 && pickedRows.length === rows.length}
-                        onChange={(e) =>
-                          setPicked(
-                            e.target.checked ? new Set(rows.map((r) => r.card.id)) : new Set(),
-                          )
-                        }
-                        className="size-4 accent-[var(--ink)]"
-                      />
-                    </th>
-                  )}
-                </tr>
-              </thead>
+                    )}
+                  </tr>
+                </thead>
+              )}
               <tbody ref={tbodyRef}>
                 {win.topPad > 0 && (
                   <tr aria-hidden style={{ height: win.topPad }}>
@@ -879,6 +982,80 @@ function BulkList() {
                   const on = card.id === selectedId;
                   const { type, subtype } = typeParts(card.typeLine);
                   const tags = wide ? majorTags(index, config, DISPLAY_TAGS, card) : [];
+                  const nameButton = (
+                    <button
+                      id={`pool-row-${card.id}`}
+                      type="button"
+                      aria-pressed={on}
+                      tabIndex={card.id === focusId ? 0 : -1}
+                      className={`min-w-0 truncate text-left font-semibold ${twoLine ? 'text-[0.875rem]' : ''}`}
+                      title={card.name}
+                      onClick={(ev) => {
+                        ev.stopPropagation();
+                        openRow(card.id, e.printing);
+                      }}
+                      onKeyDown={(ev) => {
+                        if (ev.key !== 'Enter' || on) return;
+                        // Enter opens the card and moves into its detail.
+                        ev.preventDefault();
+                        detail.open(card.id, e.printing);
+                        requestAnimationFrame(() => detailRef.current?.focus());
+                      }}
+                    >
+                      {card.name}
+                    </button>
+                  );
+                  // Narrow: the count and name, then the cost and type under the name.
+                  if (twoLine)
+                    return (
+                      <tr
+                        key={card.id}
+                        data-row
+                        onClick={() => openRow(card.id, e.printing)}
+                        className={`cursor-pointer border-b-1 border-surface-2 ${on ? 'bg-surface-2' : ''}`}
+                        style={{ height: `${rowHeight / 16}rem` }}
+                      >
+                        <td className="px-4">
+                          <span className="flex min-w-0 items-center gap-2.5">
+                            {showArt && (
+                              <CardImage
+                                card={card}
+                                printing={e.printing}
+                                size="small"
+                                className="h-[44px] w-[32px] shrink-0 rounded-[3px] object-contain"
+                              />
+                            )}
+                            <span className="grid min-w-0 flex-1 grid-cols-[auto_1fr] items-center gap-x-2.5 gap-y-0.5">
+                              <span className="min-w-[1.25rem] text-right font-mono text-[0.8125rem] text-fg-1 tabular-nums">
+                                {e.qty}
+                              </span>
+                              {nameButton}
+                              <span className="col-start-2 flex min-w-0 items-center gap-2 text-[0.75rem] text-fg-1">
+                                {card.manaCost && (
+                                  <span className="shrink-0 whitespace-nowrap">
+                                    <ManaCost cost={card.manaCost} />
+                                  </span>
+                                )}
+                                <span className="truncate">
+                                  {type}
+                                  {subtype && <span className="italic"> {subtype}</span>}
+                                </span>
+                              </span>
+                            </span>
+                            {selecting && (
+                              <input
+                                type="checkbox"
+                                aria-label={`Select ${card.name}`}
+                                checked={picked.has(card.id)}
+                                onClick={(ev) => ev.stopPropagation()}
+                                onChange={() => pick(card.id)}
+                                className="size-5 shrink-0 accent-[var(--ink)]"
+                              />
+                            )}
+                          </span>
+                        </td>
+                      </tr>
+                    );
                   return (
                     <tr
                       key={card.id}
@@ -900,27 +1077,7 @@ function BulkList() {
                               className="h-[30px] w-[22px] shrink-0 rounded-[2px] object-contain"
                             />
                           )}
-                          <button
-                            id={`pool-row-${card.id}`}
-                            type="button"
-                            aria-pressed={on}
-                            tabIndex={card.id === focusId ? 0 : -1}
-                            className="min-w-0 truncate text-left font-semibold"
-                            title={card.name}
-                            onClick={(ev) => {
-                              ev.stopPropagation();
-                              openRow(card.id, e.printing);
-                            }}
-                            onKeyDown={(ev) => {
-                              if (ev.key !== 'Enter' || on) return;
-                              // Enter opens the card and moves into its detail.
-                              ev.preventDefault();
-                              detail.open(card.id, e.printing);
-                              requestAnimationFrame(() => detailRef.current?.focus());
-                            }}
-                          >
-                            {card.name}
-                          </button>
+                          {nameButton}
                         </span>
                       </td>
                       <td className="pr-3 whitespace-nowrap">
@@ -963,14 +1120,7 @@ function BulkList() {
                             type="checkbox"
                             aria-label={`Select ${card.name}`}
                             checked={picked.has(card.id)}
-                            onChange={() =>
-                              setPicked((s) => {
-                                const next = new Set(s);
-                                if (next.has(card.id)) next.delete(card.id);
-                                else next.add(card.id);
-                                return next;
-                              })
-                            }
+                            onChange={() => pick(card.id)}
                             className="size-4 accent-[var(--ink)]"
                           />
                         </td>
@@ -1002,13 +1152,13 @@ function BulkList() {
           </footer>
         </section>
 
-        {selected && (
+        {selected && wide && (
           <aside
             ref={detailRef}
             tabIndex={-1}
             aria-label="Card detail"
             // Sized by the row, not its content, so a long card never makes the list half taller.
-            className="fixed inset-y-0 right-0 z-40 flex w-[320px] max-w-full shrink-0 flex-col overflow-y-auto border-l border-line bg-surface p-[22px] [contain:size] lg:static lg:z-auto"
+            className="flex w-[320px] shrink-0 flex-col overflow-y-auto border-l border-line bg-surface p-[22px] [contain:size]"
           >
             <CardDetail
               card={selected}
@@ -1018,8 +1168,6 @@ function BulkList() {
               config={config}
               showArt={showArt}
               inDecks={inDecks}
-              onClose={wide ? undefined : detail.close}
-              onEscape={detail.close}
               onQtyChange={entry ? (q) => pool.actions.setQty(selected.id, q) : undefined}
               onRemove={
                 entry
@@ -1029,18 +1177,72 @@ function BulkList() {
                     }
                   : undefined
               }
+              onEscape={detail.close}
             />
           </aside>
         )}
       </div>
 
-      {analyze && (
-        <section
-          aria-label="Analysis"
-          className="min-h-0 basis-1/2 overflow-y-auto border-t-2 border-line-strong"
-        >
-          <AnalysisPanel />
-        </section>
+      {/* Below 1024px a card rolls up from the bottom over the list. */}
+      <Sheet open={selected !== undefined && !wide} onClose={detail.close} label="Card detail">
+        {selected && (
+          <CardDetail
+            card={selected}
+            printing={detail.current?.printing ?? entry?.printing}
+            qty={entry?.qty}
+            index={index}
+            config={config}
+            showArt={showArt}
+            inDecks={inDecks}
+            onQtyChange={entry ? (q) => pool.actions.setQty(selected.id, q) : undefined}
+            onRemove={
+              entry
+                ? () => {
+                    detail.close();
+                    pool.actions.remove(selected.id);
+                  }
+                : undefined
+            }
+            variant="phone"
+          />
+        )}
+      </Sheet>
+
+      {phone ? (
+        <>
+          <Sheet open={analyze} onClose={() => setAnalyze(false)} label="Analysis" full flush>
+            <AnalysisPanel />
+          </Sheet>
+          <FilterSheet
+            open={sheet === 'filters'}
+            onClose={() => setSheet(undefined)}
+            facets={facets}
+            filters={filters}
+            setFilters={setFilters}
+            filtered={filtered}
+            shown={rows.length}
+          />
+          <SortSheet
+            open={sheet === 'sort'}
+            onClose={() => setSheet(undefined)}
+            sort={sort}
+            setSort={setSort}
+            selecting={selecting}
+            onSelecting={(on) => {
+              setSelecting(on);
+              setPicked(new Set());
+            }}
+          />
+        </>
+      ) : (
+        analyze && (
+          <section
+            aria-label="Analysis"
+            className="min-h-0 basis-1/2 overflow-y-auto border-t-2 border-line-strong"
+          >
+            <AnalysisPanel />
+          </section>
+        )
       )}
 
       <ConfirmDialog

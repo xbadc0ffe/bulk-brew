@@ -72,6 +72,7 @@ export {
   type ThemeColor,
 } from './data/useAppearance.ts';
 export * from './attribution.ts';
+export { compactCount } from './util/format.ts';
 export { downloadText, readFileText, backupFilename, exportFilename } from './util/files.ts';
 export { openKv, type KeyValueStore } from './storage/kv.ts';
 export { CONFIG, CONFIG_PROBLEMS, DEFAULT_SETTINGS, DISPLAY_TAGS } from './data/config.ts';
@@ -125,7 +126,12 @@ export {
   type SortKey,
   type TypeKey,
 } from './data/poolView.ts';
-export { DeckList, DeckExplanation, type DeckListProps } from './components/DeckParts.tsx';
+export {
+  DeckList,
+  DeckExplanation,
+  DeckCounts,
+  type DeckListProps,
+} from './components/DeckParts.tsx';
 export {
   ColorBreakdown,
   ColorShareList,
@@ -165,4 +171,5 @@ export { CardDetail, type CardDetailProps } from './components/CardDetail.tsx';
 export { ReplaceDialog } from './components/ReplaceDialog.tsx';
 export { ErrorBoundary } from './components/ErrorBoundary.tsx';
 export { useModal } from './components/useModal.ts';
+export { Sheet, type SheetProps } from './components/Sheet.tsx';
 export { STORAGE_KEYS } from './storage/keys.ts';
