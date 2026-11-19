@@ -6,14 +6,13 @@ Ranked within each group. The current work is at the top. One line per item. Fin
 
 - Secondary styles and the classic builder: every request with a secondary style still runs on the classic builder (`buildClassic` in `builder.ts`). Either retire the Secondary archetype picker so the classic builder can be removed, or keep it until the grow builder learns secondary styles.
 - One app or two: `apps/mobile` lacks the deck options list, Commander, secondary styles, Replace, and the Analyze pane, and is not deployed or smoke-tested. Either make `apps/web` one responsive app that Capacitor wraps and retire `apps/mobile`, or keep two apps and bring mobile to parity. SPEC "Decisions" currently says two apps.
-- `config/theme-bulk.json` was built from the 2026-11-03 pack while `data/manifest.json` pins 2026-11-16. Rerunning `npm run theme:bulk` with a new eval baseline changes decks slightly; decide when, and whether the data refresh workflow should run it each week.
 
 ## Next up: phone web and iOS
 
 - iOS: Capacitor project with the bundled data pack and config and the over-the-air data update (around `apps/mobile`, or around `apps/web` if the one-app decision goes that way).
 - iOS: pick the bundle identifier with the owner (for example com.<name>.bulkbrew).
 - iOS: put `apps/mobile/resources/app-icon-light.png` and `app-icon-dark.png` in the AppIcon set (Any and Dark); see the README there.
-- Storage: `packages/ui/src/storage/kv.ts` never calls `navigator.storage.persist()`, and Safari can clear a site's storage after seven days without a visit. Ask for persistence after the first import and suggest a backup.
+- Storage: the app now asks for persistent storage after the first saved bulk list or deck (`packages/ui/src/storage/kv.ts`); Firefox asks the user once. Still open: suggest a backup when the browser refuses.
 - iOS: confirm IndexedDB persistence in the WebView, or move the key-value store to the Filesystem plugin (a new dependency; ask first).
 - iOS: backup and .txt downloads use a blob link (`packages/ui/src/util/files.ts`), which probably does not work in a WKWebView; check, then use the Filesystem and Share plugins if needed (new dependencies; ask first).
 - iOS: check that external links open in Safari from the WebView.
@@ -24,13 +23,12 @@ Ranked within each group. The current work is at the top. One line per item. Fin
 - Phone web: touch targets are 24 to 34 px (`ui.small`, Toggle, Stepper, compact Segmented, table rows, nav pills); raise them to 44 px on touch screens.
 - Phone web: fields are 12.5 to 13 px (`packages/ui/src/styles.ts`, `screens.tsx`), so iOS Safari zooms in on focus; use 16 px below 768 px, then drop `maximum-scale=1.0` from `apps/mobile/index.html`.
 - Phone web: hover-only cues (the rename pencil, the reason Pair with is disabled in `DecksScreen.tsx`) need a touch equivalent.
-- Phone web: add `viewport-fit=cover`, safe-area insets, and an apple-touch-icon to the web app; the full-screen card viewer's close button and zoom bar (`packages/ui/src/components/CardArt.tsx`) ignore the insets in both apps.
+- Phone web: add `viewport-fit=cover` and an apple-touch-icon to the web app, so the safe-area insets the full-screen card viewer already honors take effect there.
 - Phone web: the Build page's 340 px archetype menu (`BuildScreen.tsx`) scrolls sideways under 360 px, and at text size above 100% the top bar of pills scrolls sideways.
 - Smoke: headless Edge will not size below about 500 px (`SMOKE_WIDTH=420` renders 492) and does not emulate touch; add `Emulation.setDeviceMetricsOverride` to `scripts/smoke-web.mjs`.
 - The theme-color meta stays `#18181b` in `apps/web/index.html`; make it follow the theme.
 - Share code before either path, small pieces first: move into `packages/ui` the theme swatches and format helpers, Spinner, the logo and contact constants, PackGate, the pre-paint appearance script, and deck export actions.
 - Then the larger shared pieces: the export, restore, and clear-all actions, `PairPackets` state, unresolved import rows, the pool list memos, the commander and secondary style choices from web `BuildScreen.tsx`, and `AppStateProvider`.
-- Mobile: `apps/mobile/src/parts.tsx` has its own `useModal` with no `inert`, so the page behind a sheet stays reachable; use the one in `packages/ui`.
 - Mobile: builds run on the main thread (`packages/ui/src/data/useBuildFlow.ts`); route them through the worker.
 - Mobile: replace the browser prompt for Rename (`DecksScreen.tsx`) with an inline field, and the browser confirm boxes (Restore and Clear all data in both apps, Clear list on mobile) with the app's dialog.
 - Mobile: swipe-only Export and Disassemble on the Decks list cannot be reached with VoiceOver; add accessibility actions.
@@ -46,9 +44,7 @@ Ranked within each group. The current work is at the top. One line per item. Fin
 - Follow-up to that removal (config formats and `ATTRIBUTION.md`; ask first): the classic-only `builderWeights` keys, `config/learned`, the `archetypes.json` matchers, and the learned data scripts.
 - Until then, classic decks skip the card needs gate (unsupported copies per deck 1.0 at 60, 0.88 at 40, 2.33 at 100), keep the old matchers' false friends (surveil 1 on removal, charge and energy counters, Sphinx's Tutelage, nine player Auras as Voltron, Treasure and Food as outlets, Shrines), and can swap out a color's minimum in local search.
 - Learned selection (EDHREC, Commander Spellbook) now runs only on the classic path, so it shapes secondary-style decks alone while About credits it for the builder; `configVersion` (`config.ts`) still includes the learned versions.
-- A deck with no picker score ranks by `explanation.score.total` (0 to 100) against picker scores near 0 to 1.5 (`best-decks.ts`, `options.ts`), so the last-resort classic best fit in `grow.ts` would top the Analyze pane on a thin Commander pool; score it with `withPick`.
 - That last-resort classic best fit (`bestFit` in `grow.ts`) can name a deck after a theme the rules call short, with no `nearest` note (`grow.test.ts` asserts Graveyard on a pool with 0 of 6 payoffs); pad with lands or refuse.
-- `card-needs.ts`: the self-supply pass runs exactly two passes though its comment says it repeats until nothing changes, so a supply chain three deep stays unresolved; loop to a fixed point and rerun the needs expectations and eval.
 - `scan.ts` caps usable nonbasics with the one-color `nonbasic.maxShare` at every color count, while the mana base uses `colors.nonbasicMaxShare`; a multi-color scan can report missing lands for a pool the builder could fill (suspected).
 - `theme-bulk.json` counts every theme card while pool tallies drop jobs the pool cannot pay for, and the smaller of two noisy sides biases two-sided themes low (0.78 to 0.96 against Evasion's 1.05); recompute the baseline with the pool rule.
 - Confirm that dropping the review prototype's "one-sided theme reads richness 1" guard was intended; `richness()` now reads setup alone for such themes.
@@ -80,10 +76,8 @@ Ranked within each group. The current work is at the top. One line per item. Fin
 - Decide how the builder treats modal double-faced cards with a land back face, which the pack marks `entersTapped` from the land face.
 - Judgment numbers sit in code, not config (a config format change; ask first): `grow.ts` peer group size, rich seed margins, and slack; `commander.ts` fixing lands, cheap mana value range, tier weights, and top-quarter minimum; `scan.ts` `MIN_COLORED_SHARE`, tribe member minimum, top 15 tribes, and the tribal curve profile; `matchers.ts` finisher thresholds and the mana source mana value.
 - `curveTargets` (`builder.ts`) returns a leading 0 for bucket 0 while its comment says buckets 1 through 7.
-- `lands.ts`: the name comparator in the nonbasic sort never returns 0, so its id tie-break is unreachable; `commander.ts` falls back to pool order when two commanders share a name.
-- `lands.ts` reads the tags fetchland, tutor-land-basic, utility-land, creatureland, and draft-matters without listing them in `DERIVED_TAGS` (`config.ts`), so `config:check` never checks them against the pack; `manland` matches no card.
-- Validation gaps: `display-tags.ts` never runs `checkMatcher` on `match` (a typo key matches every card); `settings.defaults.json` is not validated; `vocabulary.numbers` values, the sign of `nonbasic.entersTapped`, size 100 in the merged `typeMixOverrides`, unknown `roleOverrides` sizes, and `themeTags` slugs are unchecked.
-- Dead config (a format change for the first; ask first): `card-needs.json` `vocabulary.builtInSacrifice` is never read, and `credits.themeTags` has two tags no theme rule uses (`repeatable-pp-counters`, `gives-pp-counters-to-all`).
+- Validation gaps: the sign of `nonbasic.entersTapped` and size 100 in the merged `typeMixOverrides` are unchecked.
+- Dead config (a format change; ask first): `card-needs.json` `vocabulary.builtInSacrifice` is never read.
 - `pool.ts` defaults `now` to `new Date()`, the only clock in core, and `pool.ts` and `resolve.ts` call `localeCompare` with no locale, so export order and name suggestions depend on the device; neither feeds the builder.
 
 ## Reader misreads
@@ -110,9 +104,9 @@ Ranked within each group. The current work is at the top. One line per item. Fin
 - `corpus:eval` reads the classic deck score (`explanation.score`), so its score and "ref ahead" columns are empty for grow decks.
 - `corpus:eval`'s style-mix blockers apply the mechanical rule from before 2026-11-11; align them with the owner rule or label them diagnostics.
 - Two panels exist with two rubrics and packet formats (`corpus:panel`, and `review:packets` with `review:collate`); pick one.
-- Every eval run writes into the tracked `eval/results` folder (`eval.ts`); write runs that are not baselines elsewhere, and prune the 16 old results to the ones the docs cite plus the latest.
+- Every eval run writes into the tracked `eval/results` folder (`eval.ts`); write runs that are not baselines elsewhere.
 - Nothing warns when `config/theme-bulk.json` and the pinned pack differ; the "shipped baseline" test skips when they do, and always in CI.
-- Test fixtures (`needs-cards.ts`, `land-cards.ts`, `needs-expected.json`, and the rest) are hand-copied from the 2026-11-03 pack with no documented way to add or refresh them; `needs-cards.ts` holds Night's Whisper twice, the kept copy without its flavor names.
+- Test fixtures (`needs-cards.ts`, `land-cards.ts`, `needs-expected.json`, and the rest) are hand-copied from the 2026-11-03 pack with no documented way to add or refresh them.
 - The 708 theme-rule example expectations sit in gitignored `data/review/scratch/tr/`; commit them as a fixture or accept losing them.
 - Rerun `npm run needs:report`: the coverage summary predates the card needs changes in 26.0.46 and 26.0.47.
 - Re-measure the Analyze search on a 3,000-card five-color list (last: about 1,500 decks in 75 s, before 20-card packets moved to the grow builder).
@@ -142,6 +136,5 @@ Ranked within each group. The current work is at the top. One line per item. Fin
 - Pipeline: one loader for the pack, config, settings, and learned data (about nine scripts repeat it); one CLI helper file for `ROOT`, `arg`, `git`, and `median`; one list of the app data folders (now in `cli.ts`, `learn-build.ts`, and `scripts/pull-data-pack.mjs`).
 - Config loading lists the files by hand in three places (`packages/ui/src/data/config.ts`, the core config test, `loadConfigDir`), and per-size tables follow two conventions (`PerSize`, `SizeTable`); unify each.
 - Move word lists in `card-needs.ts` (`namedResources`, `NO_USE`, `BODY_HARM`) into `card-needs.json` (a format change; ask first).
-- Small cleanups: unused `ViabilityMark` (`controls.tsx`), `packages/ui/src/colors.ts`, `NEED_KINDS`, `roleById`, and own-file-only exports in `plan.ts`, `options.ts`, and `deck-themes.ts`; `downloadText` defaults to `application/json` for .txt files; the unreferenced `build-pack` script in the pipeline package.
 - Design: decide whether to build the Bulk List grouped by mana value (header bars like "Mana value 2, 7 cards", small thumbnails, a "Group: Mana value" chip).
 - Design: ink and fg-1 share a lightness in light mode; split ink into a text and an accent color if it reads flat.

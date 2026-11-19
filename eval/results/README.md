@@ -32,5 +32,6 @@ Read down the table with care:
 | 2026-11-17 | Same builder, run again with the unsupported count added            | 66    | 21.94 | 1.98            | 0.52                | 0.69            | 7.44   | 5.19     | 76.84 | 1.18        |
 | 2026-11-17 | Build every style the scan plans, on thin pools too                 | 64    | 21.41 | 1.45            | 0.38                | 0.42            | 8.2    | 5.59     | 81.75 | 0.13        |
 | 2026-11-17 | Feed below a role minimum only at 20, and hold a would-be commander | 64    | 21.45 | 1.33            | 0.36                | 0.29            | 7.7    | 5.79     |       | 0           |
+| 2026-11-19 | One-color utility lands, and the bulk baseline on the 2026-11-16 pack | 64    | 21.45 | 1.33            | 0.36                | 0.29            | 7.75   | 5.79     |       | 0           |
 
-The last row is the current baseline, `2026-11-17-457e55b.json`.
+The last row is the current baseline, `2026-11-19-73b7090.json`.

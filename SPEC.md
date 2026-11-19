@@ -239,7 +239,7 @@ A deck with cards grouped by type, basics by color, and a `BuildExplanation`: ar
 
 ## Evaluation
 
-- `npm run eval` builds every pool in `eval/pools/` at every size and color the scan allows, plus best fit under the two most promising commanders of each pool, scores the decks with automatic metrics, writes `eval/results/<date>-<sha>.json`, and shows per-size deltas against the previous run. It exits 1 on any build failure or broken invariant. The current baseline is `eval/results/2026-11-17-457e55b.json`.
+- `npm run eval` builds every pool in `eval/pools/` at every size and color the scan allows, plus best fit under the two most promising commanders of each pool, scores the decks with automatic metrics, writes `eval/results/<date>-<sha>.json`, and shows per-size deltas against the previous run. It exits 1 on any build failure or broken invariant. The current baseline is `eval/results/2026-11-19-73b7090.json`.
 - `npm run corpus:eval` builds reference decks from seeded random bulk (`npm run corpus:fetch` collects them into the gitignored `data/corpus/`; one deck in five is a held-out test split) and is the tool for tuning.
 - Builder changes ship on a blind panel of agents judging held-out pools (see Decisions).
 
