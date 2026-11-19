@@ -1,6 +1,6 @@
 // Entry point for `npm run review:build`: build any registered version on any
 // pool and store the deck as one ReviewDeck JSON file in data/review/decks/.
-// Usage and file naming: docs/review/runner.md.
+// Usage and file naming: docs/evaluation.md.
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -706,7 +706,7 @@ async function main(): Promise<number> {
   }
 }
 
-// Run only as a script, so Phase 3 tools can import runJob and friends.
+// Run only as a script, so the other review tools can import runJob and friends.
 if (process.argv[1]?.replace(/\\/g, '/').endsWith('/review/build.ts')) {
   process.exitCode = await main();
 }

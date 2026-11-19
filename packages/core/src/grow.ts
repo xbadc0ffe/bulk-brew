@@ -8,8 +8,8 @@
 // style the pool cannot support is answered with a note and the nearest deck
 // it can build. The plan picker (pickScore) scores every finished deck with
 // one number, which ranks best fit, the Build page's options, and the Analyze
-// pane alike. Ported from the review prototype b-grow (docs/review/proto-b.md);
-// its constants live in config/builder-weights.json under `grow` and `picker`.
+// pane alike. Its constants live in config/builder-weights.json under `grow`
+// and `picker`; why it works this way: docs/builder.md.
 // Deterministic: candidates are walked in card id order and ties go to
 // strength, then id.
 
@@ -1561,7 +1561,7 @@ function best(
   return top;
 }
 
-// ---------------------------------------------------------------- steps 2 and 3
+// ---------------------------------------------------------------- the theme core: seed payoffs, grow setup
 
 /** Deficit closed by one copy, each floor's share normalised by its target. */
 function gain(t: Tally, job: Job | undefined, targets: Targets): number {
@@ -1586,7 +1586,7 @@ interface CoreResult {
 }
 
 /**
- * Steps 2 and 3: seed the payoffs the pool supports best, then grow setup to
+ * The theme core: seed the payoffs the pool supports best, then grow setup to
  * the demand they create in the ratio the floors imply, re-scoring every
  * candidate after each add (demand met, quality with cast chance, room on the
  * curve). Payoffs the setup cannot cover go again, never below the floor.
@@ -1674,7 +1674,7 @@ function themeCoreOnce(ctx: GrowContext, plan: ThemePlan, loose: boolean): CoreR
   return { deck: d, ok, short: ok ? [] : shortOf(cur(ctx, d).plan, minimum) };
 }
 
-// ---------------------------------------------------------------- steps 4 and 5
+// ---------------------------------------------------------------- role and curve fills
 
 interface Shape {
   quotas: Record<string, RoleQuota>;
@@ -1705,7 +1705,7 @@ function creatureShare(ctx: GrowContext, plan: { kind: string }, mix: TypeMix): 
 }
 
 /**
- * Step 4: each role to its minimum, a card competing only with cards of the
+ * The role fill: each role to its minimum, a card competing only with cards of the
  * same role, by value. Cards already in the deck count for every role they fill.
  */
 function fillRoles(ctx: GrowContext, plan: Plan, d: GrowDeck, shape: Shape, slots: number): void {
@@ -1739,7 +1739,7 @@ const RELAXATIONS = [
 ];
 
 /**
- * Step 5: fill the slot furthest below the curve profile with the best card
+ * The curve fill: the slot furthest below the curve profile takes the best card
  * at that mana value, keeping the type mix; when every slot is full or empty,
  * the card best among its peers. Each relaxation is a last resort for thin pools.
  */
@@ -1814,7 +1814,7 @@ function fillCurve(
   }
 }
 
-/** Steps 4 and 5 into a given number of spell slots. */
+/** The role fill, then the curve fill, into a given number of spell slots. */
 function fillSpells(
   ctx: GrowContext,
   plan: Plan,
@@ -1833,7 +1833,7 @@ function spellCopies(ctx: GrowContext, d: GrowDeck): { facts: CardFacts; qty: nu
   return ctx.cards.filter((c) => have(d, c) > 0).map((c) => ({ facts: c.facts, qty: have(d, c) }));
 }
 
-// ---------------------------------------------------------------- the plan picker (phase 2)
+// ---------------------------------------------------------------- the plan picker
 
 /**
  * The finished deck against its shape's template: the share of the role
@@ -2014,9 +2014,8 @@ function deepShare(ctx: GrowContext, have: number, need: number): number {
 /**
  * A theme deck's depth: each side (setup, and payoff where the floors ask
  * for payoffs) left at its bare floor costs `picker.depthWeight` of the
- * score, nothing once it reaches `picker.depthFull` times the floor. The
- * phase 1 panel found decks at their floors decent only about half the time,
- * failing on thin payoffs.
+ * score, nothing once it reaches `picker.depthFull` times the floor, since a
+ * deck at its bare floors often plays thin: too few payoffs to draw.
  */
 function themeDepth(ctx: GrowContext, plan: ThemePlan, t: Tally): number {
   const w = ctx.config.builderWeights.picker.depthWeight;
@@ -2314,7 +2313,7 @@ function bestFit(ctx: GrowContext, pool: Pool): BuildResult {
   return { deck: { ...r.deck, explanation }, explanation };
 }
 
-// ---------------------------------------------------------------- steps 6 and 7
+// ---------------------------------------------------------------- the land count and the mana base
 
 /** Main color by pips in the deck; a color carrying little next to it is a splash. */
 function deckColorPlan(ctx: GrowContext, d: GrowDeck): ColorPlan {
@@ -2383,7 +2382,7 @@ interface Built {
   floors?: Tally;
 }
 
-/** Steps 4 to 7 for one plan, or what the pool lacks to fill it. */
+/** The fills, the land count, and the mana base for one plan, or what the pool lacks to fill it. */
 function buildPlan(
   ctx: GrowContext,
   plan: Plan,
@@ -2405,7 +2404,7 @@ function buildPlan(
   }
   lands = ctx.size - cmd - d.spells;
   const range = ctx.template.landFormula;
-  // The prototype checked only the slack over the formula; the template's
+  // Both the slack over the formula and the template's range count: the
   // range is a hard limit for every deck (checkBuiltDeck). Where no classic
   // builder takes a thin pool's plain shape, the deck pads with lands up to
   // the range, as the scan counts the size buildable.
@@ -3066,7 +3065,7 @@ export function buildGrowDeck(
   );
 }
 
-/** A classic deck answering a request for another style: the note first, and what was asked. */
+/** A deck (usually a grow deck) answering a request for another style: the note first, and what was asked. */
 function withNote(
   r: BuildResult,
   nearest: NonNullable<BuildExplanation['nearest']>,

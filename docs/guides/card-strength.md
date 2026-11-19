@@ -2,6 +2,8 @@
 
 How the builder tells a good card from a weak one, and a good deck from a weaker one. Feeds `config/card-strength.json` and the `deckScore` and `bestFit` blocks of `config/builder-weights.json`.
 
+Card strength feeds every builder. The theme pass, the objective, the deck score, and best fit below are the classic builder's (secondary styles); the grow builder ranks every other deck, best fit included, by the plan picker's score (`picker` in `config/builder-weights.json`, explained in `config/README.md`).
+
 ## Card strength
 
 A score from 0 to 10, computed from card data alone. It starts at a base of 3 and adds or subtracts:
@@ -45,4 +47,4 @@ Role coverage and type mix are full in almost every bulk pool, so in practice sy
 
 ## Best fit
 
-The archetype scan measures how deep a theme runs in the pool, not how good its deck will be: a color full of flyers always looks deep in flyers. So best fit builds the best deck it can for every viable style, scores each, and keeps the highest. The deck notes list the scores it compared. On the Build page (phase 11) the same builds become the ranked list of options.
+The archetype scan measures how deep a theme runs in the pool, not how good its deck will be: a color full of flyers always looks deep in flyers. So best fit builds the best deck it can for every viable style, scores each, and keeps the highest. The deck notes list the scores it compared. On the Build page the same builds become the ranked list of options.

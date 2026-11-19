@@ -1,6 +1,6 @@
 # Card needs: coverage over the pack
 
-Written by `npm run needs:report` (packages/pipeline/src/needs-report.ts). Pack 2026-11-03, 34168 cards; config t5.c4.r2.a10.s8.l4.w13.k2.h8.n5.q1lphgr9.p1wyug0e.g1hono2u. The full unparsed work list is in `data/review/needs/unparsed.md` (not committed).
+Written by `npm run needs:report` (packages/pipeline/src/needs-report.ts). Pack 2026-11-03, 34168 cards; config t6.c4.r2.a10.s8.l7.w13.k2.h9.n6.qk6yhz8.p1wyug0e.g1hono2u. The full unparsed work list is in `data/review/needs/unparsed.md` (not committed).
 
 ## Abilities
 
@@ -244,4 +244,4 @@ Lands the pack marks `entersTapped` (Un-sets left out): how `landEntry` in lands
 
 ## Speed
 
-Reading: 287 ms per 1,000 cards (9.8 s for the pack, fresh cache). Credits: 74522 role and theme credits in 7.4 s.
+Reading: 315 ms per 1,000 cards (10.8 s for the pack, fresh cache). Credits: 74522 role and theme credits in 7.8 s.

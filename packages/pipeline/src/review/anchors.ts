@@ -1,7 +1,7 @@
 // Entry point for `npm run review:anchors`: real decks from the corpus, written
 // as ReviewDeck files under data/review/decks/real/ so the judging panel can be
 // checked on decks that should pass. Random piles, which should fail, come from
-// the `random` version through the runner. Selection rules: docs/review/anchors.md.
+// the `random` version through the runner. Selection rules: docs/evaluation.md.
 
 import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';

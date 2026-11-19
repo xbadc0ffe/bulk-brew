@@ -1,5 +1,5 @@
 // The shipped builder's core best fit: buildDeck from a worktree at the shipped
-// commit, as head runs the current one (docs/review/runner.md, "The shipped worktree").
+// commit, as head runs the current one (docs/evaluation.md, "The shipped worktree").
 
 import type { BuilderVersion } from '../version.ts';
 import {

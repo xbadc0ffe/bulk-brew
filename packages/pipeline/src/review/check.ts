@@ -1,7 +1,7 @@
 // Entry point for `npm run review:check`: cheap automatic checks on every
-// stored review deck, independent of any judge (docs/algo-review.md, Phase 3).
-// Checks reuse the core's own rules where the core exports them; the rest are
-// labeled proxies. Usage, output, and thresholds: docs/review/checks.md.
+// stored review deck, independent of any judge. They back up the blind panel,
+// never replace it. Checks reuse the core's own rules where the core exports
+// them; the rest are labeled proxies. Usage and flags: docs/evaluation.md.
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -59,7 +59,8 @@ import {
 import { deckColorsOf, VersionLoadError, type ReviewDeck, type ReviewSize } from './version.ts';
 import { listVersions } from './versions.ts';
 
-// Flag thresholds, all in one place; docs/review/checks.md quotes them.
+// Flag thresholds, all in one place. Set so the real-deck anchors mostly pass;
+// recheck them against the anchors and the panel, never against a builder.
 export const THRESHOLDS = {
   /** lands-low / lands-high: the deck's lands differ from the land formula's count by more than this. */
   landSlack: { 100: 2, 60: 2, 40: 1, 20: 1 },
@@ -1122,7 +1123,7 @@ export function summaryMarkdown(
     `Command: \`npm run review:check -- --decks ${info.decks}${info.rebuild ? ' --rebuild' : ''}\`. ` +
       `${info.total} deck files, ${info.declined} declined (the version could not build the request)` +
       `${info.bad ? `, ${info.bad} unreadable` : ''}. Per-deck results: \`data/review/checks/<version>/\`. ` +
-      'Checks, proxies, and thresholds: `docs/review/checks.md`.',
+      'Checks and flags: `docs/evaluation.md`; thresholds: `THRESHOLDS` in `check.ts`.',
   );
   lines.push('');
   lines.push(

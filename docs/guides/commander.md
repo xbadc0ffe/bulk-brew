@@ -2,6 +2,8 @@
 
 How the builder makes a 100-card Commander deck from a bulk list, and why the numbers are what they are. Feeds the `100` template in `config/deck-templates.json`, the `commander` curve profile, and the `commander` block of `config/builder-weights.json`.
 
+The grow builder makes every Commander deck but one with a secondary style: it reads theme and tribe floors from `config/theme-rules.json` (a tribe at 100 needs 20 setup and 10 payoff cards) and the commander's pull from `grow.commanderPlan`. `commander.styleBonus`, `commander.minimumScale`, and the tribe counts below feed only the classic builder; the template, curve, `roleCredit`, and `deepPool` feed both.
+
 ## The rules the builder enforces
 
 From the Comprehensive Rules, section 903:
@@ -46,7 +48,7 @@ The Build page lists every commander in the bulk list in three tiers:
 
 Each entry says why: how many cards fit its colors, which styles it rewards or feeds, and what holds it back (cost, fixing). Unchecked rarities leave commanders out of the list, the same as any other card.
 
-Picked colors narrow the list to commanders whose colors all come from them, the ones using every picked color first. A picked primary archetype keeps the commanders that lead it: a synergy style counts when the commander's own text rewards or feeds it, a tribe when the commander names it, and Aggro, Midrange, and Control suit any commander. The list then asks whether the bulk list can build that style under each one. If the scan of the commander's colors says no, the answer is no; otherwise the app builds the deck and checks that it kept the style and reached the style's enabler and payoff minimums for 100 cards. The scan alone misses some: on a test pool of 5,300 cards, 9 of 63 Ramp commanders passed the scan but their builds fell short.
+Picked colors narrow the list to commanders whose colors all come from them, the ones using every picked color first. A picked primary archetype keeps the commanders that lead it: a synergy style counts when the commander's own text rewards or feeds it, a tribe when the commander names it, and Aggro, Midrange, and Control suit any commander. The list then asks whether the bulk list can build that style under each one. If the scan of the commander's colors says no, the answer is no; otherwise the app builds the deck and checks that it kept the style (the grow builder answers a style the pool falls short of with another one; a classic deck must also reach the style's enabler and payoff minimums for 100 cards). The scan alone misses some: on a test pool of 5,300 cards, 9 of 63 Ramp commanders passed the scan but their builds fell short.
 
 ## Power level
 

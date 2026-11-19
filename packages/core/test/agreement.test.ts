@@ -1,4 +1,4 @@
-// The agreement check (builder phase 2, step 4): the scan, the Analyze pane's
+// The agreement check: the scan, the Analyze pane's
 // plan, the Build page's plan, and the builder name the same viable styles,
 // and every deck shows the setup and payoff counts its builder counted.
 
@@ -345,8 +345,8 @@ describe('a floor the scan counts, the builder reaches', () => {
 
   it('grows repeatable setup to Burn floor of repeatable setup or payoffs', () => {
     // The pool's repeatable pingers (Goblin Fireslinger, Kindlespark Duo, Retributive Wand,
-    // Blisterspit Gremlin) meet the floor with almost no payoff; the theme core used to stop
-    // growing setup at the setup floors and leave the deck short of this one.
+    // Blisterspit Gremlin) meet the floor with almost no payoff; a theme core that stopped
+    // growing setup at the setup floors would leave the deck short of this one.
     const request = { size: 40 as const, colors: ['R' as const], settings: s };
     expect(pickerPlans(request, pool, idx, CONFIG).map((p) => p.style)).toContain('burn');
     const r = buildDeck({ ...request, style: 'burn', id: 't', createdAt: 't' }, pool, idx, CONFIG);

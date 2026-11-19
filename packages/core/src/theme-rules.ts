@@ -1,7 +1,7 @@
 // Theme rules (config/theme-rules.json): setup and payoff jobs per themed
-// style, written from the theme guide (docs/review/themes.md). Each card
-// counts once, as setup or as payoff, never both. Format and meaning:
-// config/README.md and docs/review/theme-rules.md. Erasable TypeScript only.
+// style. Each card counts once, as setup or as payoff, never both. Format:
+// config/README.md; why each theme has its jobs and floors: docs/builder.md,
+// "Theme rules". Erasable TypeScript only.
 
 import type { BulkBrewConfig } from './config.ts';
 import { COLOR_CLASSES, type ColorClass } from './colors.ts';

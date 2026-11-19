@@ -1,4 +1,4 @@
-// A commander's lead and its own job (builder phase 2, step 5): the lead follows the share of
+// A commander's lead and its own job: the lead follows the share of
 // its text that does a theme's work, and the job it does counts as the scan counts it, the
 // finished deck feeding its needs. Real commanders from the pack; the pools around them are
 // made-up cards that only fill the 99.

@@ -129,7 +129,7 @@ export function planScores(
 ): PlanScore[] {
   const w = config.builderWeights.learned;
   const plans = config.learned?.plans;
-  // Without calibrated weights the scores would not be balanced, so best fit keeps its old way.
+  // Without calibrated weights the scores would not be balanced, so best fit ranks by deck score.
   if (!w || !plans || !learnedAt(config, size) || !plans.sizes[learnedSizeKey(size)]?.bias)
     return [];
   const sw = forSize(w.plan, size);

@@ -61,7 +61,7 @@ function roles(name: string): string[] {
   return CONFIG.roles.roles.filter((r) => cardMatches(needsCard(name), r.match)).map((r) => r.id);
 }
 
-describe('the brief examples, in a mono-black 60', () => {
+describe('worked examples, in a mono-black 60', () => {
   it('Lo and Li: every ability needs Nobles or Lessons; no role, and no credit earned', () => {
     const r = read('Lo and Li, Twin Tutors');
     expect(r.abilities).toHaveLength(2);

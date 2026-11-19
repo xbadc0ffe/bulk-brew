@@ -1,6 +1,6 @@
-// Entry point for `npm run review:requests`: the Phase 3 job files for every
+// Entry point for `npm run review:requests`: the panel's job files for every
 // builder version, made the same way every time so each version gets exactly
-// the same requests. Rules and counts: docs/review/requests.md.
+// the same requests. Rules: docs/evaluation.md.
 //
 // Usage: npm run review:requests -- [--pools plain,theme,tribe,public,owner] [--plain 30]
 //   [--prefix <p>] [--sizes 60,100,40,20] [--versions head,head-web,shipped,random]
@@ -45,7 +45,7 @@ export const DEFAULT_VERSIONS: readonly string[] = ['head', 'head-web', 'shipped
 /** head-web differs from head only in best fit, and a random pile ignores the style. */
 export const DEFAULT_BESTFIT_ONLY: readonly string[] = ['head-web', 'random'];
 const ALL_SIZES: readonly ReviewSize[] = [60, 100, 40, 20];
-/** Rough build seconds per job, from the runner's timings (docs/review/runner.md). */
+/** Rough build seconds per job, from the runner's measured median build times. */
 export const SECONDS: Record<ReviewSize, number> = { 60: 0.1, 40: 0.07, 20: 0.05, 100: 0.5 };
 /** Commanders per pool at 100, and how far down the list a theme pool looks for its color. */
 export const COMMANDERS = 2;
@@ -154,7 +154,7 @@ export function hasTwoColor(
 }
 
 /**
- * "theme-energy-01" and "h1-theme-energy-01" (a seed prefix, docs/review/pools.md)
+ * "theme-energy-01" and "h1-theme-energy-01" (with the seed prefix review:pools adds)
  * are energy pools; plain and public pools have no enriched style.
  */
 export function themeStyleOf(poolId: string): string | undefined {

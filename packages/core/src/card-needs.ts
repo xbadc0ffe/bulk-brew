@@ -1,4 +1,4 @@
-// Card needs (docs/builder-phase2.md, step 2): what each ability of a card
+// Card needs: what each ability of a card
 // depends on, read from its rules text, and whether a deck supplies it. Rules
 // text is templated, so the same words always mean the same thing: the
 // vocabulary and the templates live in config/card-needs.json, the reading
@@ -21,7 +21,7 @@ import type { CardRecord, CardType, Color, DeckSize } from './types.ts';
 
 // ---------------------------------------------------------------- the model
 
-/** How an ability depends on a resource (the brief's templates). */
+/** How an ability depends on a resource. */
 export type NeedKind = 'need' | 'bonus' | 'drawback' | 'unconditional';
 export type RefKind = Exclude<NeedKind, 'unconditional'>;
 
@@ -234,7 +234,7 @@ export interface CardNeedsConfig {
     selfNouns: string[];
     /** Number words. */
     numbers: Record<string, number>;
-    /** Subtypes with their own sacrifice ability (Food, Clue): sacrificing them needs no outlet. */
+    /** Subtypes with their own sacrifice ability (Food, Clue). Validated, but nothing reads it yet. */
     builtInSacrifice: string[];
     /** Keywords a creature can be selected by ("creatures you control with flying"). */
     creatureKeywords: string[];
@@ -1990,7 +1990,7 @@ function readCard(card: CardRecord, config: BulkBrewConfig): CardNeeds {
   // Self-supply: the card's types, what its other abilities make, and what an
   // earlier sentence of the same ability makes (a sentence that needs what it
   // makes itself would be circular). An ability supplies only once its own
-  // needs are met, so the pass repeats until nothing changes.
+  // needs are met, so the pass runs twice: the second sees what the first met.
   const typeSupplies = new Set(typesSupply(card, c));
   const supplies = new Set<string>(typeSupplies);
   for (const a of abilities) for (const s of a.supplies) supplies.add(s);

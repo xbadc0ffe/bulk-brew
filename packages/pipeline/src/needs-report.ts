@@ -1,9 +1,9 @@
-// Coverage of the card needs reader (docs/builder-phase2.md, step 2) over the
-// whole pack: how many abilities it reads cleanly and why the rest are left
-// unparsed, how role and theme credits come out (need, bonus, drawback,
-// unconditional, untied), and a cross-check against the pack's tags. Writes
-// the short summary to docs/review/needs-coverage.md and the full unparsed
-// work list, by shape and rarity, to data/review/needs/unparsed.md.
+// Coverage of the card needs reader (docs/builder.md) over the whole pack:
+// how many abilities it reads cleanly and why the rest are left unparsed, how
+// role and theme credits come out (need, bonus, drawback, unconditional,
+// untied), and a cross-check against the pack's tags. Writes the short summary
+// to eval/needs-coverage.md (committed) and the full unparsed work list, by
+// shape and rarity, to data/review/needs/unparsed.md.
 //
 // Usage: npm run needs:report
 
@@ -30,7 +30,7 @@ import { loadConfigDir } from './check-config.ts';
 import { ROOT } from './corpus.ts';
 
 const PACK_PATH = path.join(ROOT, 'data', 'packs', PACK_FILE);
-const SUMMARY = path.join(ROOT, 'docs', 'review', 'needs-coverage.md');
+const SUMMARY = path.join(ROOT, 'eval', 'needs-coverage.md');
 const WORK_LIST = path.join(ROOT, 'data', 'review', 'needs', 'unparsed.md');
 
 type CreditKind = NeedKind | 'untied';

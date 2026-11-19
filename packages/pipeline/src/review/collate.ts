@@ -1,7 +1,7 @@
-// Collate the blind panel's answers for one batch (docs/algo-review.md,
-// Phase 3): check each answer against the rubric's shape, join it with the
-// answer key, and tabulate decent rates, failures, anchors, judge agreement,
-// and head-to-head pairs. Usage: docs/review/judging.md.
+// Collate the blind panel's answers for one batch: check each answer against
+// the shape eval/panel-rubric.md asks for, join it with the answer key, and
+// tabulate decent rates, failures, anchors, judge agreement, and head-to-head
+// pairs. Usage: docs/evaluation.md.
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';

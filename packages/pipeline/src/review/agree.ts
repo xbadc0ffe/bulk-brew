@@ -1,5 +1,5 @@
-// Entry point for `npm run review:agree`: the agreement check (builder phase 2,
-// step 4) over pool files. For each pool it checks best fit's requests (each
+// Entry point for `npm run review:agree`: the agreement check over pool files
+// (docs/evaluation.md). For each pool it checks best fit's requests (each
 // color at 60, 40, and 20, the top commanders at 100): the scan, the Analyze pane's
 // plan, the Build page's plan, and the builder name the same viable styles,
 // every one of them can be built, and every deck built shows the setup and payoff counts its builder counted
@@ -8,7 +8,7 @@
 //
 // Usage: npm run review:agree -- [--dev] [--sizes 60,40,20,100] [--commanders 2] [pool files...]
 // --dev adds the development pools: eval/pools, plain-01 to plain-10, and the
-// theme pools without an h1- or h2- prefix. Exits 1 on any disagreement.
+// theme pools without an hN- prefix. Exits 1 on any disagreement.
 
 import {
   checkAgreement,

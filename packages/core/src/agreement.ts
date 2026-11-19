@@ -1,4 +1,4 @@
-// The agreement check (builder phase 2, step 4): everything the player sees
+// The agreement check: everything the player sees
 // agrees with what the builder counted. For one request, the scan (the style
 // pickers and the Analyze pane's list), the Analyze pane's plan
 // (bestDeckPlans), the Build page's plan (planOptions), and the builder's own

@@ -1,6 +1,6 @@
 // The shipped builder's first web Build page option: deckOptionSearch from a
 // worktree at the shipped commit, recorded as head-web records the current one
-// (docs/review/runner.md, "The shipped worktree").
+// (docs/evaluation.md, "The shipped worktree").
 
 import type { BuilderVersion } from '../version.ts';
 import { webFirstOption } from './head-web.ts';

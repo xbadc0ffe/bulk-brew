@@ -3,8 +3,9 @@
 // each card's job once, earned in the deck by the card needs reader, the
 // commander at `grow.commanderCredit`, against the floors the build recorded;
 // a commander's tribes are read from the tribe rules the same way. A classic
-// deck (20-card packets, secondary styles, tribes saved before step 5) keeps
-// the old matchers and minimums its builder counted (styleCounts), until it leaves.
+// deck (a secondary style, a thin pool's plain shape, or a deck saved before
+// the grow builder took its size or tribe) keeps the archetypes.json matchers
+// and minimums its builder counted (styleCounts).
 
 import { styleCounts } from './builder.ts';
 import { factsFor, type CardFacts } from './candidates.ts';

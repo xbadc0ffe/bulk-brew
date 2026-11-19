@@ -786,8 +786,8 @@ export function chooseManaBase(
     if (need > 0) basics[plan.main] = need;
     sources[plan.main] = (sources[plan.main] ?? 0) + need;
   } else {
-    // Past the want, basics aim at what every copy needs, as before the want was fitted
-    // to real decks: splitting the rest otherwise moved near-tie plan picks (docs/todo.md).
+    // Past the want, basics aim at what every copy needs, then go by pips: the other
+    // splits measured moved near-tie plan picks (docs/todo.md).
     const every = colorWants(spells, plan, size, count, config, 1);
     // Colored pips per color, for the split once every color has what every copy needs.
     const prefer = [plan.main, ...colors.filter((c) => c !== plan.main)];
@@ -822,8 +822,8 @@ export function chooseManaBase(
       return got;
     };
     const counts = split([wanted, every]);
-    // Deck views list basics in this object's order: keep the order the split had before
-    // the want was fitted, so only the counts move.
+    // Deck views list basics in this object's order: take it from the split without the
+    // want, so the want moves only the counts.
     for (const c of [...Object.keys(split([every])), ...Object.keys(counts)] as Color[]) {
       const n = counts[c] ?? 0;
       if (n > 0 && basics[c] === undefined) basics[c] = n;

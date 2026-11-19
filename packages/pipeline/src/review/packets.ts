@@ -1,7 +1,7 @@
-// Blind judge packets for the builder review (docs/algo-review.md, Phase 3):
-// sample stored decks, render each one with the cards' printed facts only,
-// and keep the answer key outside the folder judges read.
-// Format, sampling, and commands: docs/review/judging.md.
+// Blind judge packets for the review panel: sample stored decks, render each
+// one with the cards' printed facts only, and keep the answer key outside the
+// folder judges read. Every prompt carries eval/panel-rubric.md in full.
+// Format, sampling, and commands: docs/evaluation.md.
 
 import {
   existsSync,
@@ -29,7 +29,7 @@ import { deckColorsOf, type ReviewDeck, type ReviewRequest } from './version.ts'
 export const PACKETS_DIR = path.join(ROOT, 'data', 'review', 'packets');
 export const KEYS_DIR = path.join(ROOT, 'data', 'review', 'keys');
 export const JUDGMENTS_DIR = path.join(ROOT, 'data', 'review', 'judgments');
-export const RUBRIC_FILE = path.join(ROOT, 'docs', 'review', 'rubric.md');
+export const RUBRIC_FILE = path.join(ROOT, 'eval', 'panel-rubric.md');
 
 /** Versions whose decks have known answers; every one found joins a batch. */
 export const ANCHOR_VERSIONS: readonly string[] = ['random', 'real'];

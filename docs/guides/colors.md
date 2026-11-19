@@ -1,6 +1,6 @@
 # Colors
 
-What each color does well in a mono-color bulk deck, and which themes to expect. Counts come from `npm run config:check` over the current data pack (mono-color cards only) and guide the archetype color limits in `config/archetypes.json`.
+What each color does well in a mono-color bulk deck, and which themes to expect. Counts come from `npm run config:check` over the current data pack (mono-color cards only) and guide the archetype color limits in `config/archetypes.json`, which only the classic builder (secondary styles) reads.
 
 ## White
 
@@ -28,4 +28,4 @@ Artifacts fit any deck. Colorless creatures, mana rocks, and equipment are alway
 
 ## Where themes do not work
 
-The config limits lifegain to white, black, and green because blue and red have almost no life gain. Other themes stay open to every color and simply fail the viability scan when the pool is thin; the Build screen shows what is missing.
+`archetypes.json` limits lifegain to white, black, and green because blue and red have almost no life gain (and Burn and Mill to their own colors); only the classic builder reads those limits. The theme rules the grow builder reads set none: every theme stays open to every color and simply fails the viability scan when the pool is thin; the Build screen shows what is missing.

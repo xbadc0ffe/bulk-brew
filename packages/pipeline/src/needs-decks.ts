@@ -1,5 +1,5 @@
-// Unsupported cards in built decks (docs/builder-phase2.md, step 2): over the
-// eval pools and the development pools plain-01 to plain-10, build every mono
+// Unsupported cards in built decks (docs/evaluation.md): over the eval pools
+// and the development pools plain-01 to plain-10, build every mono
 // color the scan allows at 60 and 40, and every pool's two most promising
 // commanders at 100 (as npm run eval picks them): best fit, each style the
 // theme rules call viable, and Aggro, Midrange, and Control by name. For each
@@ -38,7 +38,7 @@ import { arg, ROOT } from './corpus.ts';
 import { createContext, loadPool } from './review/build.ts';
 
 const PLAIN_SHAPES = ['aggro', 'midrange', 'control'];
-// Development pools only: plain-11 to plain-30 and every h1-* pool are held out for judging.
+// Development pools only: plain-11 to plain-30 and every hN- pool are held out for judging.
 const DEV_POOLS = Array.from(
   { length: 10 },
   (_, i) => `data/review/pools/plain/plain-${String(i + 1).padStart(2, '0')}.json`,

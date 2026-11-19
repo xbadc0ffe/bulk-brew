@@ -1,5 +1,5 @@
 // Anchor with a known answer: a legal random pile in the requested colors.
-// Judges should fail these (docs/review/anchors.md). Spells come uniformly at
+// Judges should fail these (docs/evaluation.md, anchors). Spells come uniformly at
 // random from the cards the current builder could legally use; the mana base
 // is plain basics, as many as the builder's land formula asks for.
 

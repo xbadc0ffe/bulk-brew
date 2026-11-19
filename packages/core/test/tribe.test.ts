@@ -1,4 +1,4 @@
-// Tribes in the theme rules (builder phase 2, step 5): a tribe is a theme whose setup is
+// Tribes in the theme rules: a tribe is a theme whose setup is
 // creatures of the type, changelings included, and whose payoffs are the cards that reward
 // the type; a commander that names it leads it, and the grow builder builds it at 100.
 

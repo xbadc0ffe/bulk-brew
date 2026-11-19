@@ -43,8 +43,8 @@ import {
 } from '../src/review/packets.ts';
 import type { ReviewDeck, ReviewSize } from '../src/review/version.ts';
 
-// One marker per field that could give a version or an anchor away
-// (docs/review/anchors.md), plus the builder's view of cards; none may reach a packet.
+// One marker per field that could give a version or an anchor away, plus the
+// builder's view of cards; none may reach a packet.
 const SECRETS = [
   'WHY_SECRET',
   'ARCH_SECRET',

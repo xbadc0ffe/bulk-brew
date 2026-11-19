@@ -214,9 +214,9 @@ export interface BuildRequest {
   colors: Color[];
   /**
    * Archetype id. Without `requireStyle` it is one plan of a list (a Build
-   * page option, an Analyze deck): at 60, 40, and 100 the grow builder builds
-   * it or throws a BuildError when the pool cannot; at 20 the classic builder
-   * uses it when viable, otherwise the strongest viable one.
+   * page option, an Analyze deck): the grow builder builds it or throws a
+   * BuildError when the pool cannot; with a secondary style the classic
+   * builder uses it when viable, otherwise the strongest viable one.
    */
   style?: string;
   /**
@@ -264,7 +264,7 @@ export interface DeckScore {
 /** Why the builder made the deck it made. Also the builder's debugging output. */
 export interface BuildExplanation {
   archetype: string;
-  /** Which builder made the deck: grow (styles asked for by name) or classic. Absent on older decks. */
+  /** Which builder made the deck: grow, or classic (a secondary style, a thin pool's fallback). Absent on older decks. */
   builder?: 'grow' | 'classic';
   /**
    * Set when the style asked for could not be built and the nearest one was:
@@ -300,9 +300,10 @@ export interface BuildExplanation {
   theme?: { style: string; floors: FloorCount[] };
   /**
    * The plan picker's score (`pickScore` in grow.ts): one number that ranks
-   * the finished decks of every plan at 60, 40, and 100 cards, for best fit,
-   * the Build page's options, and the Analyze pane. Internal, never shown.
-   * Absent on 20-card packets, decks with a secondary style, and older decks.
+   * the finished decks of every plan at every size, for best fit, the Build
+   * page's options, and the Analyze pane. Internal, never shown. Absent on
+   * decks with a secondary style, a classic best fit no plan could fill, and
+   * older decks.
    */
   pick?: PickScore;
 }
@@ -312,7 +313,7 @@ export interface PickScore {
   score: number;
   /** Mean quality of the spells among the pool's cards of the same mana value and kind, rank for rank. */
   quality: number;
-  /** Share of the shape's role minimums and targets, curve, and creature count the deck reaches. */
+  /** Share of the shape's role minimums, curve slots, and creature count the deck reaches. */
   fit: number;
   /** Share of the spell copies the deck supports. */
   clean: number;
@@ -361,8 +362,8 @@ export interface ArchetypeReport {
   margin: number;
   notes: string[];
   /**
-   * At 60, 40, and 100 cards, what the grow builder plans from: for a synergy
-   * style the pool against the theme rules' floors (growViability), for a
+   * At every size, what the grow builder plans from: for a synergy style the
+   * rules describe at the size, the pool against their floors (growViability), for a
    * plain shape whether the size can be built at all. `viable` is false when
    * the size cannot be built (`possible`), so the apps read this one field.
    * `margin` is have over need, 1 or more viable; it is 0 when the size cannot

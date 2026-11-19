@@ -1,4 +1,4 @@
-// Card facts for the builder review: what the data pack says about a card and
+// Card facts for the review tools: what the data pack says about a card and
 // what the live builder's matchers make of it. Review tools print or embed
 // these instead of card text from memory. Matching goes through the core's
 // own functions, so the facts are what the builder sees.

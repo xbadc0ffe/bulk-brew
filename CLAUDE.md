@@ -6,7 +6,9 @@ Bulk Brew: bulk Magic cards in, playable decks out: 60, 40, and 20 cards in one 
 
 - `SPEC.md` is the source of truth for scope, data, and architecture. Read it before changing behavior; update it when a decision changes.
 - `config/` holds every tunable number and rule. Logic lives in `packages/core`; judgment lives in config.
-- `docs/DESIGN_BRIEF.md` describes screens and flows for the design pass.
+- `docs/builder.md` explains how the builder works and why.
+- `docs/evaluation.md` says how to measure a builder change.
+- `docs/DESIGN_BRIEF.md` describes the screens and flows as built.
 - `docs/todo.md` is the one ranked backlog. Open items go there, not into code comments.
 
 ## Tech stack
@@ -62,6 +64,7 @@ npm run symbols:fetch    # Scryfall symbol images into packages/ui/src/symbols (
 npm run config:check     # validate config/ and print role and archetype match counts
 npm run demo:build -- <pool.txt> <W|U|B|R|G> [60|40|20] [style]
 npm run eval             # score decks from every pool in eval/pools; exits 1 on failures
+npm run corpus:fetch     # reference decks into data/corpus/ (official precons; -- --drafts <sets> adds Arena draft decks); needed before corpus:eval and learn:build
 npm run corpus:eval      # build every reference deck from bulk plus its cards (about 20 minutes)
 npm run corpus:panel -- --a <old.json> --b <new.json>   # blind review packets from two corpus:eval runs
 npm run edhrec:fetch     # EDHREC pages into data/edhrec/ (one request per second, at most weekly)
@@ -71,6 +74,8 @@ npm run theme:bulk       # config/theme-bulk.json, the bulk baseline; rerun afte
 ```
 
 After any builder or config change, run `npm run eval` and compare the per-size deltas with the committed baseline in `eval/results/`.
+
+The blind panel scripts (`npm run review:*`) are described in `docs/evaluation.md`.
 
 Browser check of the real app (headless Edge or Chrome):
 
@@ -91,4 +96,4 @@ The smoke test imports `eval/pools/white-bulk.txt`, opens the strongest deck opt
 
 ## Session start
 
-Read `SPEC.md` "Milestones" and `docs/todo.md` to find the current phase, then continue from there. If `data/packs/` is empty, run `npm run data:pull` first.
+Read `SPEC.md` "Status" and `docs/todo.md` to find the current phase, then continue from there. If `data/packs/` is empty, run `npm run data:pull` first.

@@ -13,4 +13,6 @@ Each file here is named `<date>-<commit>.json` after the commit it was run at, a
 - `2026-11-05-b3d169f.json`: now `825ac9e`
 - `2026-11-05-bba1815.json`: now `c35195c`
 - `2026-11-05-cd2ed3b.json`: now `82afdbd`
-- `54165ab`, the corpus baseline in `docs/corpus-tuning.md`: now `a631938`
+- `54165ab`, an early `corpus:eval` baseline (its file sits in the gitignored `data/corpus/results/`): now `a631938`
+
+Files not listed here were made after the rewrite, so their IDs are current. `npm run eval` compares against the latest comparable file; at 26.0.47 that is `2026-11-17-457e55b.json`. How to read the deltas: `docs/evaluation.md`.

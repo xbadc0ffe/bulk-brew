@@ -13,7 +13,6 @@ export default tseslint.config(
       '**/coverage/**',
       'data/**',
       'docs/rules/**',
-      'docs/design_handoff_bulk_brew_ui/**',
       '.smoke/**',
       '.claude/worktrees/**',
       '**/ios/**',

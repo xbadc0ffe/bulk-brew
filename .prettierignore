@@ -4,8 +4,6 @@ coverage
 data/raw
 data/packs
 docs/rules
-# Design reference from the design pass, kept as delivered
-docs/design_handoff_bulk_brew_ui
 package-lock.json
 eval/results
 # Written by npm run learn:build

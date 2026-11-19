@@ -1,8 +1,11 @@
-// Deck builder v1: mono-color, best-cards mode. Deterministic: every loop
+// The classic builder, for secondary styles and, at 60, 40, and 100, for a
+// pool too thin for the grow builder's plans (grow.ts). It also holds
+// buildDeck, which routes each request, and helpers the grow builder shares
+// (the finished-deck check, notes, curve targets). Deterministic: every loop
 // walks candidates in card id order and never depends on object iteration
 // order, so the same pool, settings, config, and data give the same deck.
 //
-// Shape of a build: pick an archetype from the scan, reserve the template's
+// Shape of a classic build: pick an archetype from the scan, reserve the template's
 // land count, fill spell slots in passes (role minimums, theme minimums, role
 // targets, type minimums, curve, filler), size the mana base from the spells
 // actually chosen, improve by swaps, re-fit the land count, then pick lands.
@@ -1574,7 +1577,7 @@ function synergyLines(t: Tally, config: BulkBrewConfig): string[] {
     .map((s) => `${s.rule.note.replace(/\.$/, '')}: ${s.e} enablers, ${s.p} payoffs`);
 }
 
-/** The explanation's synergy lines for a spell list, as both builders write them. */
+/** The explanation's synergy lines for a spell list, as the classic builder writes them (a grow deck uses themeSynergyLines). */
 export function spellSynergyLines(
   spells: readonly { facts: CardFacts; qty: number }[],
   config: BulkBrewConfig,
@@ -1784,9 +1787,10 @@ export function buildClassic(
   const pull = commander
     ? commanderPull(tryList, commander, cands, index, config, size)
     : new Map<string, number>();
-  // With learned plans, best fit builds the plans the pool runs most (see plan.ts) and
-  // keeps the best of them; the plain shapes stay in as the fallback and as the "shape" plan.
-  // No scores (learned plans off for this size, or not calibrated) keeps best fit's old way.
+  // Classic best fit with learned plans, for a request with no style it can build (none, or
+  // one neither viable nor required), which the apps do not normally send. It builds the
+  // plans the pool runs most (plan.ts) and keeps the best; the plain shapes stay in as the
+  // fallback. Without scores, attempts rank by deck score and the commander's pull.
   const scored =
     !styleBuilt && config.learned && config.builderWeights.learned
       ? planScores(

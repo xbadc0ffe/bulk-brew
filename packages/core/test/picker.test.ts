@@ -1,5 +1,5 @@
-// The plan picker (builder phase 2, step 3): one score ranks best fit, the
-// Build page's options, and the Analyze pane's decks at 60, 40, and 100.
+// The plan picker: one score ranks best fit, the Build page's options, and
+// the Analyze pane's decks at every size (these tests cover 60, 40, and 100).
 
 import { describe, expect, it } from 'vitest';
 import { bestDeckSearch } from '../src/best-decks.ts';

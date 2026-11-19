@@ -22,10 +22,9 @@ import { CONFIG } from './config.test.ts';
 import { land } from './land-cards.ts';
 import { needsCard } from './needs-cards.ts';
 
-// The grow builder against the card needs reader (docs/builder-phase2.md, step
-// 2), on pack records copied verbatim: a mono-black pool with no Elves,
-// Dragons, Nobles, Lessons, counters plan, or lifegain plan, plus the cards
-// the brief's table names.
+// The grow builder against the card needs reader, on pack records copied
+// verbatim: a mono-black pool with no Elves, Dragons, Nobles, Lessons,
+// counters plan, or lifegain plan, plus the cards each worked example names.
 
 const BLACK = [
   'Walking Corpse',
@@ -257,7 +256,7 @@ describe('land utility holds only when the deck earns the ability', () => {
   });
 });
 
-describe("the brief's table, from the cards' text", () => {
+describe("worked examples, from the cards' text", () => {
   const mono = (more: [string, number][] = []) =>
     deckSupply(
       {

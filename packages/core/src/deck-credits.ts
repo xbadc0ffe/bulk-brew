@@ -198,8 +198,8 @@ export interface UnsupportedCard {
 }
 
 /**
- * The deck's spells that the deck does not support (docs/builder-phase2.md,
- * step 2): a drawback the deck does not meet, credits the config gives the
+ * The deck's spells that the deck does not support: a drawback the deck does
+ * not meet, credits the config gives the
  * card of which it earns none (dead), or a recorded reason it does not earn.
  * Lands and the commander are left out. The eval and the grow builder's
  * finished-deck check count these.

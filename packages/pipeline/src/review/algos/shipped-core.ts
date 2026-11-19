@@ -1,4 +1,4 @@
-// The shipped builder, run from a git worktree at any commit (docs/review/runner.md,
+// The shipped builder, run from a git worktree at any commit (docs/evaluation.md,
 // "The shipped worktree"): that commit's core, its config/ read by its own
 // loadConfigDir, and its data/learned.json, on the current data pack. Shared by
 // the shipped and shipped-web versions, so a run that builds both loads it once.

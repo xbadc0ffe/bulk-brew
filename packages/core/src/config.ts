@@ -454,7 +454,7 @@ export interface BuilderWeightsConfig {
     brackets: Record<string, number>;
     weight: PerSize<number>;
   };
-  /** The grow builder (grow.ts): every deck at 60, 40, and 100 cards but tribes and secondary styles. */
+  /** The grow builder (grow.ts): every deck at every size but secondary styles and tribes below 100 (`growBuilds`). */
   grow: GrowWeights;
   /** The plan picker (grow.ts): one score for best fit, the Build page's options, and the Analyze pane. */
   picker: PickerWeights;
@@ -473,7 +473,7 @@ export interface BuilderWeightsConfig {
   };
 }
 
-/** Judgment constants of the grow builder, set from the theme guide (docs/review/proto-b.md). */
+/** Judgment constants of the grow builder; why each is set as it is: docs/builder.md. */
 export interface GrowWeights {
   /** Best fit: a theme whose pool holds this many times its floors counts in full; less scores less. */
   marginFull: number;

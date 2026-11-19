@@ -51,18 +51,18 @@ npm run smoke                                          # browser test of the ful
 
 ## Repository layout
 
-| Path                | What lives there                                                                  |
-| ------------------- | --------------------------------------------------------------------------------- |
-| `packages/core`     | Platform-free logic: types, parsing, name resolution, pool, scan, builder, export |
-| `packages/ui`       | Shared React pieces used by both apps                                             |
-| `packages/pipeline` | Developer-side pipeline from Scryfall bulk files to the card data pack            |
-| `apps/web`          | Desktop-first web app, deployed to GitHub Pages                                   |
-| `apps/mobile`       | Phone and tablet app, shipped to iOS through Capacitor                            |
-| `config/`           | Deck templates, archetypes, roles, land rules: all tunable without code changes   |
-| `data/`             | Pinned manifest of the published data pack; raw downloads are gitignored          |
-| `docs/`             | Design brief, deckbuilding guides, reference notes                                |
-| `eval/`             | Fixture pools, the deck quality rubric, and committed evaluation baselines        |
-| `scripts/`          | Data download and pull scripts, rules download, browser smoke test                |
+| Path                | What lives there                                                                                      |
+| ------------------- | ----------------------------------------------------------------------------------------------------- |
+| `packages/core`     | Platform-free logic: types, parsing, name resolution, pool, scan, builder, export                     |
+| `packages/ui`       | Shared React pieces used by both apps                                                                 |
+| `packages/pipeline` | Developer-side pipeline from Scryfall bulk files to the card data pack                                |
+| `apps/web`          | Desktop-first web app, deployed to GitHub Pages                                                       |
+| `apps/mobile`       | Phone and tablet app; the iOS build is planned, not shipped                                           |
+| `config/`           | Deck templates, theme rules, card needs, roles, land rules, weights: all tunable without code changes |
+| `data/`             | Pinned manifest of the published data pack; raw downloads are gitignored                              |
+| `docs/`             | How the builder works and how to measure it, the design brief, deckbuilding guides, the backlog       |
+| `eval/`             | Fixture pools, the deck quality rubric, and committed evaluation baselines                            |
+| `scripts/`          | Data download and pull scripts, rules download, browser smoke test                                    |
 
 ## License and attribution
 

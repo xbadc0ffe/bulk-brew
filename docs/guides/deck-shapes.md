@@ -38,11 +38,11 @@ Shares of nonland spells. A deck outside these bounds plays badly even with a go
 | 40   | 50% to 70% | at least 10%           | at most 25%            |
 | 20   | 55% to 80% | at least 8%            | at most 25%            |
 
-Preconstructed 60-card decks are about 64% creatures and draft decks about 61%, so the 60-card floor is 55% and the 40-card bounds sit around the middle of the draft decks. Composition archetypes override these: aggro wants 60% to 80% creatures, control 25% to 50% with at least a quarter instants and sorceries. The spells-matter theme sits in between on purpose. The grow builder fills a plain shape with creatures first to the middle of its range (`grow.creatureFill` in builder-weights.json): about 65% for Midrange, 70% for Aggro, and 37.5% for Control, so a bulk Control deck holds the ground with about 14 creatures at 60 (15 in black from the eval pool) as the theme guide's control decks do (9 to 17), not the 10 its minimum alone gave. A theme deck keeps the minimum and fills the rest with its own cards.
+Preconstructed 60-card decks are about 64% creatures and draft decks about 61%, so the 60-card floor is 55% and the 40-card bounds sit around the middle of the draft decks. Composition archetypes override these: aggro wants 60% to 80% creatures, control 25% to 50% with at least a quarter instants and sorceries. The spells-matter theme sits in between on purpose. The grow builder fills a plain shape with creatures first to the middle of its range (`grow.creatureFill` in builder-weights.json): about 65% for Midrange, 70% for Aggro, and 37.5% for Control, so a bulk Control deck holds the ground with about 14 creatures at 60 (15 in black from the eval pool) as real control decks do (9 to 17), not the 10 its minimum alone gives. A theme deck keeps the minimum and fills the rest with its own cards.
 
 ## Role quotas
 
-Jobs a deck must cover regardless of theme. Each has a minimum the builder treats as a hard shortfall and a target it tries to reach. Definitions live in `config/roles.json`; counts for the midrange baseline:
+Jobs a deck must cover regardless of theme. Each has a minimum the builder treats as a hard shortfall and a target the classic builder tries to reach (the grow builder fills to the minimums and leaves the rest to the curve). Definitions live in `config/roles.json`; counts for the midrange baseline:
 
 | Role             | 60 min / target | 40 min / target | 20 min / target | What counts                                                  |
 | ---------------- | --------------- | --------------- | --------------- | ------------------------------------------------------------ |
@@ -56,6 +56,8 @@ Jobs a deck must cover regardless of theme. Each has a minimum the builder treat
 Real 60, 40, and 20-card decks play almost no ramp (a median of none), so the templates ask for at most one and the Ramp style for more. A sweeper role exists but only control asks for it. Evasive threat is defined for the flyers theme and future quotas.
 
 ## How the builder weighs it
+
+This section is the classic builder's (secondary styles). The grow builder fills each role to its minimum, then the curve slot furthest below its target, by the constants in the `grow` block (see `config/README.md`), and breaks ties on card strength, then id.
 
 `builder-weights.json` says what matters when choices conflict: a missing role minimum costs twice what a curve bucket miss costs, synergy density is worth one and a half times a curve miss, and a plain theme hit a third. Each copy also adds 0.3 per point of card strength (see [Card strength](card-strength.md)), so swaps prefer stronger cards when the shape allows. Ties break on theme tag hits, then card strength, then lower mana value, then name, so the same pool always gives the same deck.
 

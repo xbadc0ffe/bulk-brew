@@ -1,7 +1,7 @@
-// Test pools for the builder review (docs/algo-review.md, Phase 3): plain bulk
-// samples, theme-rich and tribe-rich samples, the public eval pools, and the
-// owner's local bulk, each written as JSON under data/review/pools/ with an
-// index the request generator reads. Recipes and seeds: docs/review/pools.md.
+// Test pools for the review panel: plain bulk samples, theme-rich and
+// tribe-rich samples, the public eval pools, and the owner's local bulk, each
+// written as JSON under data/review/pools/ with an index the request generator
+// reads. Recipes, seed prefixes, and the held-out rule: docs/evaluation.md.
 //
 // Usage: npm run review:pools -- [--only plain|theme|tribe|public|owner] [--plain 30]
 //   [--copies 3000] [--extra 120] [--themes 3] [--rotate-themes] [--tribes 0]

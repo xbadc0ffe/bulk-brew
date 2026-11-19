@@ -1,8 +1,8 @@
 /* Bulk Brew theme tokens, shared by the web and mobile apps.
    <html data-mode="light|dark" data-theme="grey|W|U|B|R|G">. Default: grey, light.
-   Values started from docs/design_handoff_bulk_brew_ui/tokens.css. Since then the
-   light themes got darker ink and lighter surfaces, and the dark themes much
-   darker backgrounds and lighter ink. --rail is the sidebar. */
+   This file is the one source of the tokens. Light themes use dark ink on light
+   surfaces, dark themes light ink on very dark backgrounds, for contrast.
+   --rail is the sidebar. */
 
 @custom-variant dark (&:where([data-mode='dark'], [data-mode='dark'] *));
 
