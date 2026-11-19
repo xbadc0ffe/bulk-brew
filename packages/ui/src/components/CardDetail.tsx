@@ -214,7 +214,8 @@ export function CardDetail(props: CardDetailProps) {
           size="normal"
           variant={variant}
           frameClassName={`mx-auto w-full rounded-[12px] ${phone ? 'max-w-xs' : 'max-w-[256px]'}`}
-          className="block w-full rounded-[12px]"
+          // The card's shape is held while the image loads, so nothing under it jumps.
+          className="block aspect-[63/88] w-full rounded-[12px] object-contain"
         />
       )}
 

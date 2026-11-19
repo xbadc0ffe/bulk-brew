@@ -68,15 +68,13 @@ function OpenSheet(props: SheetProps) {
     },
     [],
   );
-  // The content slides off one side, the next one slides in from the other, at its top.
+  // The content slides off one side and the next slides in from the other, scrolled to the
+  // same place, so a look through the cards' text or tags stays on the text or tags.
   const step = useCallback(
     (direction: 1 | -1) => {
       const el = scroller.current;
       if (!latestStep.current || !el || stepping.current !== undefined) return;
-      const change = () => {
-        latestStep.current?.(direction);
-        el.scrollTop = 0;
-      };
+      const change = () => latestStep.current?.(direction);
       if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
         slide('0', 1, 0);
         change();

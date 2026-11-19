@@ -46,6 +46,8 @@ export function CardImage({
   if (!src) return <>{fallback}</>;
   return (
     <img
+      // A new element per image: the last card's picture never lingers while this one loads.
+      key={src}
       src={src}
       alt={(face === 'back' ? card.faces?.[1]?.name : undefined) ?? card.name}
       loading="lazy"
