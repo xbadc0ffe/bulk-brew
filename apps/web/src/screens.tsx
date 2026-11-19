@@ -516,6 +516,23 @@ export function PoolScreen() {
   );
 }
 
+/** Scroll the list just far enough to show the row at `index`. */
+function revealRow(
+  box: HTMLElement | null,
+  body: HTMLElement | null,
+  index: number,
+  rowHeight: number,
+) {
+  if (!box || !body) return;
+  const head = body.offsetTop;
+  // Rows are sized in rem, so measure one; the text size changes their height.
+  const height = body.querySelector<HTMLElement>('[data-row]')?.offsetHeight || rowHeight;
+  const top = head + index * height;
+  if (top - head < box.scrollTop) box.scrollTop = top - head;
+  else if (top + height > box.scrollTop + box.clientHeight)
+    box.scrollTop = top + height - box.clientHeight;
+}
+
 function BulkList() {
   const { index, pool, settings, detail, config, decks, appearance } = useAppState();
   const nav = useNav();
@@ -621,16 +638,7 @@ function BulkList() {
           requestAnimationFrame(() => document.getElementById(id)?.focus({ preventScroll: true })),
         );
       }
-      const box = scroller.current;
-      const body = tbodyRef.current;
-      if (!box || !body) return;
-      const head = body.offsetTop;
-      // Rows are sized in rem, so measure one; the text size changes their height.
-      const height = body.querySelector<HTMLElement>('[data-row]')?.offsetHeight || rowHeight;
-      const top = head + next * height;
-      if (top - head < box.scrollTop) box.scrollTop = top - head;
-      else if (top + height > box.scrollTop + box.clientHeight)
-        box.scrollTop = top + height - box.clientHeight;
+      revealRow(scroller.current, tbodyRef.current, next, rowHeight);
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
@@ -691,6 +699,19 @@ function BulkList() {
     requestAnimationFrame(() => searchRef.current?.focus());
   };
 
+  // A swipe on the open card moves through the list as filtered and sorted, around the ends.
+  const stepCard = (direction: 1 | -1) => {
+    if (rows.length === 0) return;
+    const next = (Math.max(0, selectedIndex) + direction + rows.length) % rows.length;
+    const row = rows[next]!;
+    // Closing returns focus to the row the list ends on, when it is rendered.
+    detail.open(
+      row.card.id,
+      row.entry.printing,
+      document.getElementById(`pool-row-${row.card.id}`),
+    );
+    revealRow(scroller.current, tbodyRef.current, next, rowHeight);
+  };
   const searchBox = (
     <input
       ref={searchRef}
@@ -1184,7 +1205,13 @@ function BulkList() {
       </div>
 
       {/* Below 1024px a card rolls up from the bottom over the list. */}
-      <Sheet open={selected !== undefined && !wide} onClose={detail.close} label="Card detail">
+      <Sheet
+        open={selected !== undefined && !wide}
+        onClose={detail.close}
+        label="Card detail"
+        onStep={rows.length > 1 ? stepCard : undefined}
+        stepName="card"
+      >
         {selected && (
           <CardDetail
             card={selected}

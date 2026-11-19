@@ -26,8 +26,19 @@ const EMAIL = 'info@badc0ffe.net';
 export function AboutScreen() {
   const { pack, config } = useAppState();
   return (
-    <div className="h-full overflow-y-auto px-8 py-[22px] text-[0.8125rem]">
+    <div className="h-full overflow-y-auto px-4 py-[22px] text-[0.8125rem] md:px-8">
       <div className="mx-auto flex max-w-2xl flex-col gap-6">
+        {/* The sidebar shows the app's icon; a phone has no sidebar, so it goes here. It follows light and dark mode. */}
+        <img
+          src={`${import.meta.env.BASE_URL}icon-light.svg`}
+          alt="Bulk Brew icon"
+          className="size-28 self-center rounded-[22%] md:hidden dark:hidden"
+        />
+        <img
+          src={`${import.meta.env.BASE_URL}icon.svg`}
+          alt="Bulk Brew icon"
+          className="hidden size-28 self-center rounded-[22%] max-md:dark:block"
+        />
         <header className="flex items-center gap-5">
           <img src={logo} alt={`${AUTHOR} logo`} className="size-24 shrink-0" />
           <div className="flex flex-col gap-1">

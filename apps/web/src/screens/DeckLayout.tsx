@@ -134,9 +134,18 @@ export function DeckCardPanel({
       variant={sheet ? 'phone' : 'desktop'}
     />
   );
+  // A swipe moves through the deck's cards in the order the list shows them, around the ends.
+  const stepCard = (direction: 1 | -1) => {
+    const rows = [...document.querySelectorAll<HTMLElement>('#root [data-card-id]')];
+    const ids = [...new Set(rows.map((r) => r.dataset.cardId!))];
+    if (ids.length < 2) return;
+    const id = ids[(Math.max(0, ids.indexOf(card.id)) + direction + ids.length) % ids.length]!;
+    const printing = deck?.cards.find((c) => c.cardId === id)?.printing;
+    detail.open(id, printing, rows.find((r) => r.dataset.cardId === id) ?? null);
+  };
   if (!wide)
     return (
-      <Sheet open onClose={detail.close} label="Card detail">
+      <Sheet open onClose={detail.close} label="Card detail" onStep={stepCard} stepName="card">
         {body(true)}
       </Sheet>
     );

@@ -242,7 +242,7 @@ try {
   if (phone) {
     const closeSheet = async (label) => {
       await evaluate(
-        `document.querySelector('[role="dialog"] > button[aria-label="Close ${label}"]').click()`,
+        `document.querySelector('[role="dialog"] button[aria-label="Close ${label}"]').click()`,
       );
       await sleep(400);
       if (await evaluate(`!!document.querySelector('[role="dialog"]')`))
@@ -259,6 +259,36 @@ try {
       throw new Error('a card did not open in a sheet');
     if (name.width < 150) throw new Error(`card names get only ${name.width}px`);
     await shot('2-pool-card');
+    // Next and previous step through the list and go around its ends.
+    const openName = () => evaluate(`document.querySelector('[role="dialog"] h2').textContent`);
+    await evaluate(
+      `document.querySelector('[role="dialog"] button[aria-label="Next card"]').click()`,
+    );
+    await sleep(300);
+    const second = await openName();
+    if (second === name.text) throw new Error('Next card did not move to another card');
+    for (let i = 0; i < 2; i++) {
+      await evaluate(
+        `document.querySelector('[role="dialog"] button[aria-label="Previous card"]').click()`,
+      );
+      await sleep(300);
+    }
+    const last = await openName();
+    if (last === name.text || last === second)
+      throw new Error('Previous card from the first card did not go to the last');
+    // A swipe to the right goes back one, here from the last card to the one before it.
+    const touch = (type, x) =>
+      send('Input.dispatchTouchEvent', {
+        type,
+        touchPoints: type === 'touchEnd' ? [] : [{ x, y: 500 }],
+      });
+    await touch('touchStart', 80);
+    for (const x of [120, 180, 240, 300]) await touch('touchMove', x);
+    await touch('touchEnd');
+    await sleep(300);
+    const swiped = await openName();
+    if (swiped === last) throw new Error('a swipe did not move to another card');
+    log('phone-step', `${name.text}, ${second}, around to ${last}, a swipe back to ${swiped}`);
     await closeSheet('Card detail');
     await evaluate(`document.querySelector('button[aria-label^="Filters"]').click()`);
     await sleep(500);
@@ -468,7 +498,7 @@ try {
   // On a phone the card's sheet covers the actions, so it is closed first.
   if (phone) {
     await evaluate(
-      `document.querySelector('[role="dialog"] > button[aria-label="Close Card detail"]').click()`,
+      `document.querySelector('[role="dialog"] button[aria-label="Close Card detail"]').click()`,
     );
     await sleep(400);
   }

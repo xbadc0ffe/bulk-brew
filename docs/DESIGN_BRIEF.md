@@ -47,11 +47,12 @@ Web screen ids (`apps/web/src/nav.ts`): import, pool, build, decks, settings, ab
 Below 768 px the web app keeps its colors and type and changes shape. Everything here is about that width unless it says otherwise.
 
 - Folder tabs across the top in place of the sidebar: Bulk List, Build, Decks with their counts, then Settings and About as icons. The open tab is the page's color and joins the page.
-- Sheets (`packages/ui/src/components/Sheet.tsx`): a panel rolls up from the bottom over a dimmed page, with a handle. The handle, the dimmed area, a drag down, Escape, and the phone's Back all close it, and its content scrolls inside it. A card (below 1024 px), the Bulk List's filters, its sort and select, and Analyze each open in one.
+- Sheets (`packages/ui/src/components/Sheet.tsx`): a panel rolls up from the bottom over a dimmed page, with a handle. The handle, the dimmed area, a drag down, Escape, and the phone's Back all close it, and its content scrolls inside it. A card (below 1024 px), the Bulk List's filters, its sort and select, and Analyze each open in one. On an open card a swipe left or right, or the arrows beside the handle, moves to the next or previous card of the list or deck and goes around the ends.
 - Bulk List: the totals and Import; a row of color tiles, the symbol over a short count (exact to 999, then 1.2k, 1.2m), where the symbol filters and the count shows the exact number in a bubble; one toolbar row with search, a Filters button that carries the number of filters on, a Sort and select button, and Analyze. Cards take two lines (count and name, then cost and type) while the list is narrower than 640 px at the chosen text size.
 - Deck options: tighter cards with a larger name, a smaller color wheel and curve, and card types and roles as two columns of names and counts.
 - Deck view: one scrolling page. The name and details are centered and scroll away; card types and roles come first, then the cards, then the details. The actions (Accept, Back, Export, and a saved deck's) stay in a bar at the bottom.
 - Buttons and fields are at least 44 px tall on touch screens, fields use 16 px text so iOS does not zoom, and safe-area insets keep the tabs and sheets clear of the notch and home bar.
+- About shows the app's icon at the top, since a phone has no sidebar to carry it.
 - Not done yet: Decks is still the desktop table, and Settings, Import, the Build form, and the dialogs are the desktop layout squeezed.
 
 ### Phone layout (mobile app)

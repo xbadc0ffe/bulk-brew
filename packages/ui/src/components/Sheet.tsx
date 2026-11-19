@@ -21,6 +21,13 @@ export interface SheetProps {
   children: ReactNode | ((close: () => void) => ReactNode);
   /** Stays under the scrolling content, such as the button that applies it. */
   footer?: (close: () => void) => ReactNode;
+  /**
+   * Makes the sheet one of a series: a swipe left or the next button calls it
+   * with 1, a swipe right or the previous button with -1.
+   */
+  onStep?: ((direction: 1 | -1) => void) | undefined;
+  /** What a step moves between, for the button names: "card" gives "Next card". */
+  stepName?: string;
 }
 
 /**
@@ -32,9 +39,20 @@ export function Sheet(props: SheetProps) {
   return props.open ? <OpenSheet {...props} /> : null;
 }
 
-function OpenSheet({ onClose, label, title, full, flush, children, footer }: SheetProps) {
+function OpenSheet(props: SheetProps) {
+  const { onClose, label, title, full, flush, children, footer, onStep, stepName = 'one' } = props;
   const [shown, setShown] = useState(false);
   const [drag, setDrag] = useState<number>();
+  const [swipe, setSwipe] = useState<number>();
+  const latestStep = useRef(onStep);
+  useEffect(() => {
+    latestStep.current = onStep;
+  });
+  // The next one starts at its top.
+  const step = useCallback((direction: 1 | -1) => {
+    latestStep.current?.(direction);
+    if (scroller.current) scroller.current.scrollTop = 0;
+  }, []);
   const panel = useRef<HTMLDivElement>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const handle = useRef<HTMLButtonElement>(null);
@@ -97,14 +115,17 @@ function OpenSheet({ onClose, label, title, full, flush, children, footer }: She
     };
   }, [requestClose]);
 
-  // Drag down to close. Touch events, not pointer events, so the content keeps its own scrolling.
+  // Drag down to close, and swipe sideways to step. Touch events, not pointer events, so
+  // the content keeps its own scrolling.
   useEffect(() => {
     const el = panel.current;
     if (!el) return;
     let startX = 0;
     let startY = 0;
     let startTime = 0;
-    let state: 'idle' | 'maybe' | 'dragging' = 'idle';
+    let state: 'idle' | 'maybe' | 'dragging' | 'swiping' = 'idle';
+    let canDrag = false;
+    let dx = 0;
     let dy = 0;
     const onStart = (e: TouchEvent) => {
       state = 'idle';
@@ -113,10 +134,11 @@ function OpenSheet({ onClose, label, title, full, flush, children, footer }: She
       // Inside the content, only a pull from the very top drags the sheet.
       const box = scroller.current;
       let node = e.target as HTMLElement | null;
+      canDrag = true;
       if (box?.contains(node)) {
         if (node?.closest('input, textarea, select')) return;
         for (; node && node !== box.parentElement; node = node.parentElement)
-          if (node.scrollTop > 0) return;
+          if (node.scrollTop > 0) canDrag = false;
       }
       startX = touch.clientX;
       startY = touch.clientY;
@@ -126,27 +148,28 @@ function OpenSheet({ onClose, label, title, full, flush, children, footer }: She
     const onMove = (e: TouchEvent) => {
       const touch = e.touches[0];
       if (state === 'idle' || !touch) return;
+      dx = touch.clientX - startX;
       dy = touch.clientY - startY;
       if (state === 'maybe') {
-        const dx = touch.clientX - startX;
         if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
-        // Up or sideways is a scroll, not a drag.
-        if (dy <= 0 || Math.abs(dx) > Math.abs(dy)) {
-          state = 'idle';
-          return;
-        }
-        state = 'dragging';
+        if (Math.abs(dx) > Math.abs(dy)) state = latestStep.current ? 'swiping' : 'idle';
+        // Up is a scroll, not a drag.
+        else state = dy > 0 && canDrag ? 'dragging' : 'idle';
+        if (state === 'idle') return;
       }
       if (e.cancelable) e.preventDefault();
-      setDrag(Math.max(0, dy));
+      if (state === 'dragging') setDrag(Math.max(0, dy));
+      else setSwipe(dx);
     };
     const onEnd = (e: TouchEvent) => {
       if (state === 'dragging') {
         const speed = dy / Math.max(1, e.timeStamp - startTime);
         if (dy > 120 || (dy > 40 && speed > 0.5)) requestClose();
       }
+      if (state === 'swiping' && Math.abs(dx) > 60 && e.type === 'touchend') step(dx < 0 ? 1 : -1);
       state = 'idle';
       setDrag(undefined);
+      setSwipe(undefined);
     };
     el.addEventListener('touchstart', onStart, { passive: true });
     el.addEventListener('touchmove', onMove, { passive: false });
@@ -158,7 +181,7 @@ function OpenSheet({ onClose, label, title, full, flush, children, footer }: She
       el.removeEventListener('touchend', onEnd);
       el.removeEventListener('touchcancel', onEnd);
     };
-  }, [requestClose]);
+  }, [requestClose, step]);
 
   return createPortal(
     <div className="fixed inset-0 z-50">
@@ -182,18 +205,49 @@ function OpenSheet({ onClose, label, title, full, flush, children, footer }: She
           full ? 'h-[92dvh]' : 'max-h-[92dvh]'
         } ${drag === undefined ? 'transition-transform duration-200' : ''}`}
       >
-        <button
-          ref={handle}
-          type="button"
-          aria-label={`Close ${label}`}
-          onClick={requestClose}
-          className="flex h-8 shrink-0 touch-none items-center justify-center rounded-t-2xl"
-        >
-          <span aria-hidden className="h-[5px] w-11 rounded-full bg-line-strong" />
-        </button>
+        <div className="flex shrink-0 items-stretch">
+          {onStep && (
+            <button
+              type="button"
+              aria-label={`Previous ${stepName}`}
+              onClick={() => step(-1)}
+              className="flex h-11 w-14 items-center justify-center rounded-tl-2xl text-[1.375rem] leading-none text-fg-1"
+            >
+              ‹
+            </button>
+          )}
+          <button
+            ref={handle}
+            type="button"
+            aria-label={`Close ${label}`}
+            onClick={requestClose}
+            className={`flex flex-1 touch-none items-center justify-center rounded-t-2xl ${onStep ? 'h-11' : 'h-8'}`}
+          >
+            <span aria-hidden className="h-[5px] w-11 rounded-full bg-line-strong" />
+          </button>
+          {onStep && (
+            <button
+              type="button"
+              aria-label={`Next ${stepName}`}
+              onClick={() => step(1)}
+              className="flex h-11 w-14 items-center justify-center rounded-tr-2xl text-[1.375rem] leading-none text-fg-1"
+            >
+              ›
+            </button>
+          )}
+        </div>
         {title && <div className="shrink-0 px-5 pb-3 text-[1.0625rem] font-semibold">{title}</div>}
         <div
           ref={scroller}
+          // The content follows a sideways swipe, fading as it goes.
+          style={
+            swipe
+              ? {
+                  transform: `translateX(${swipe}px)`,
+                  opacity: Math.max(0.3, 1 - Math.abs(swipe) / 300),
+                }
+              : undefined
+          }
           className={`min-h-0 flex-1 overflow-y-auto overscroll-none ${footer ? 'pb-4' : BOTTOM} ${flush ? '' : 'px-5'}`}
         >
           {typeof children === 'function' ? children(requestClose) : children}
