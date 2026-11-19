@@ -270,7 +270,7 @@ function OpenSheet(props: SheetProps) {
             type="button"
             aria-label={`Close ${label}`}
             onClick={requestClose}
-            className={`flex flex-1 touch-none items-center justify-center rounded-t-2xl ${onStep ? 'h-11' : 'h-8'}`}
+            className={`flex flex-1 touch-none items-center justify-center rounded-xl -outline-offset-4 ${onStep ? 'h-11' : 'h-8'}`}
           >
             <span aria-hidden className="h-[5px] w-11 rounded-full bg-line-strong" />
           </button>

@@ -23,8 +23,9 @@ export interface CardImageProps {
 }
 
 /**
- * A Scryfall card image, always shown whole. Sources are tried in order and
- * failures are remembered per URL, so a missing printing degrades quietly.
+ * A Scryfall card image, always shown whole, fading in once it has loaded.
+ * Sources are tried in order and failures are remembered per URL, so a
+ * missing printing degrades quietly.
  */
 export function CardImage({
   card,
@@ -36,6 +37,8 @@ export function CardImage({
   onLoad,
 }: CardImageProps) {
   const [failed, setFailed] = useState<Record<string, true>>({});
+  // The image that has arrived; it fades in, so a card never pops into place.
+  const [shown, setShown] = useState<string>();
   const sources = useMemo(() => {
     const list: string[] = [];
     if (printing) list.push(printingImageUrl(printing, card.name, size, face));
@@ -52,8 +55,11 @@ export function CardImage({
       alt={(face === 'back' ? card.faces?.[1]?.name : undefined) ?? card.name}
       loading="lazy"
       decoding="async"
-      className={className}
-      onLoad={onLoad}
+      className={`${className ?? ''} transition-opacity duration-300 motion-reduce:transition-none ${shown === src ? 'opacity-100' : 'opacity-0'}`}
+      onLoad={() => {
+        setShown(src);
+        onLoad?.();
+      }}
       onError={() => setFailed((f) => ({ ...f, [src]: true }))}
     />
   );
