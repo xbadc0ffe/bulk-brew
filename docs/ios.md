@@ -8,15 +8,17 @@ The web app (`apps/web`) running on the owner's iPhone as an installed app, wrap
 
 `apps/mobile` is an older separate phone app. Do not build on it. Its only useful part is the icons in `apps/mobile/resources/`.
 
-## Decisions the owner must make first
+## Decisions
 
-Ask these before installing anything; CLAUDE.md says to stop and ask before adding a dependency.
+Settled, so the session can start without asking:
 
-1. Dependencies: `@capacitor/core`, `@capacitor/ios`, and `@capacitor/cli` in `apps/web`. Nothing else until a step below shows it is needed.
-2. Bundle identifier, for example `net.badc0ffe.bulkbrew`. It cannot change once the app is in the App Store.
-3. The name under the icon: "Bulk Brew".
-4. Apple account: a free Apple ID runs the app on the owner's own phone for seven days at a time; TestFlight and the App Store need the paid Apple Developer Program. Which one today, and which team to sign with in Xcode.
-5. Lowest iOS version. The dark app icon needs iOS 18; the app itself should run on whatever Capacitor's current floor is.
+- Dependencies: `@capacitor/core`, `@capacitor/ios`, and `@capacitor/cli` in `apps/web` are approved (the owner agreed to Capacitor around the web app on 2026-11-19). Any further plugin, such as Filesystem or Share, is a new dependency: ask first, as CLAUDE.md says.
+- The name under the icon: Bulk Brew.
+- Bundle identifier: `net.badc0ffe.bulkbrew`, after the owner's site. It cannot change once the app is in the App Store, so say it to the owner once, when creating the project, in case they want another.
+- Lowest iOS version: whatever the current Capacitor sets by default. The dark app icon shows on iOS 18 and later; older phones show the light one.
+- First goal: the app on the owner's own iPhone, run from Xcode. TestFlight is later.
+
+Only the owner can do this one, in Xcode: pick the signing team under Signing & Capabilities. A free Apple ID works for their own phone (the app must be re-run from Xcode every seven days); TestFlight and the App Store need the paid Apple Developer Program.
 
 ## State of the repo
 
@@ -29,7 +31,7 @@ Ask these before installing anything; CLAUDE.md says to stop and ask before addi
 ## Steps
 
 1. Clone, `npm install`, `npm run data:pull`, `npm run check`.
-2. With the owner's answers: add Capacitor to `apps/web`, a `capacitor.config.ts` (`webDir: 'dist'`, the bundle identifier, the name), and `npx cap add ios`. Commit the generated `ios/` project without Pods, DerivedData, and user state.
+2. Add Capacitor to `apps/web`, a `capacitor.config.ts` (`webDir: 'dist'`, the bundle identifier, the name), and `npx cap add ios`. Commit the generated `ios/` project without Pods, DerivedData, and user state.
 3. Root scripts, so the owner has one command each: build the web app for iOS and copy it in (`cap sync ios`), and open Xcode (`cap open ios`). Add them to CLAUDE.md's command list.
 4. Icons: put `apps/mobile/resources/app-icon-light.png` and `app-icon-dark.png` in the AppIcon set (Any and Dark), as that folder's README says, then move the folder out of `apps/mobile`.
 5. Run it in the simulator, then on the phone, and go through "Check on the device".
