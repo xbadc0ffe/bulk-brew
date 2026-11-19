@@ -15,6 +15,8 @@
   "scripts": {
     "dev": "npm run dev -w @bulk-brew/web",
     "dev:mobile": "npm run dev -w @bulk-brew/mobile",
+    "ios": "npm run ios:sync -w @bulk-brew/web",
+    "ios:open": "npm run ios:open -w @bulk-brew/web",
     "build": "npm run build --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "eslint .",

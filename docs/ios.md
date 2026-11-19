@@ -25,18 +25,14 @@ Only the owner can do this one, in Xcode: pick the signing team under Signing & 
 - `npm run check` is the gate. The web app is live at https://xbadc0ffe.github.io/bulk-brew/ and every push to main deploys it, so push only green, usable states.
 - The card data is not in git. `npm run data:pull` downloads the pinned pack into `data/packs` and `apps/web/public/data/` (`cards.json`, `learned.json`). The iOS build bundles whatever is in `apps/web/public/data/`, so pull before building.
 - The web build takes its base path from `BASE_PATH` (default `/`). The Pages build uses `/bulk-brew/`; the iOS build must use `/`.
-- `.gitignore` has iOS lines for `apps/mobile/ios/`; change them to wherever the project lands (`apps/web/ios/`).
 - Node 24 or later.
 
 ## Steps
 
-1. Clone, `npm install`, `npm run data:pull`, `npm run check`.
-2. Add Capacitor to `apps/web`, a `capacitor.config.ts` (`webDir: 'dist'`, the bundle identifier, the name), and `npx cap add ios`. Commit the generated `ios/` project without Pods, DerivedData, and user state.
-3. Root scripts, so the owner has one command each: build the web app for iOS and copy it in (`cap sync ios`), and open Xcode (`cap open ios`). Add them to CLAUDE.md's command list.
-4. Icons: put `apps/mobile/resources/app-icon-light.png` and `app-icon-dark.png` in the AppIcon set (Any and Dark), as that folder's README says, then move the folder out of `apps/mobile`.
-5. Run it in the simulator, then on the phone, and go through "Check on the device".
-6. Fix what the checks find. Each new plugin is a new dependency: ask first.
-7. Update `SPEC.md` (Platforms, Runtime, Status), `docs/DESIGN_BRIEF.md`, the README, and `docs/todo.md`; bump the version in its own commit.
+1. Icons: put `apps/mobile/resources/app-icon-light.png` and `app-icon-dark.png` in the AppIcon set (Any and Dark), as that folder's README says, then move the folder out of `apps/mobile`.
+2. Run it in the simulator, then on the phone, and go through "Check on the device".
+3. Fix what the checks find. Each new plugin is a new dependency: ask first.
+4. Update `SPEC.md` (Platforms, Runtime, Status), `docs/DESIGN_BRIEF.md`, the README, and `docs/todo.md`; bump the version in its own commit.
 
 ## Check on the device
 

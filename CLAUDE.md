@@ -59,6 +59,8 @@ npm run check            # the single gate: typecheck, lint, format, test, build
 npm run data:pull        # pinned card data pack into data/packs and each app's public/data
 npm run dev              # web app on 5173
 npm run dev:mobile       # the earlier phone app on 5174, being retired
+npm run ios              # build the web app for iOS (base /) and copy it into apps/web/ios (cap sync)
+npm run ios:open         # open the iOS project in Xcode (needs a GUI session on the Mac)
 npm run data:fetch       # Scryfall bulk files into data/raw/ (at most daily)
 npm run data:build       # rebuild the card data pack from data/raw/
 npm run symbols:fetch    # Scryfall symbol images into packages/ui/src/symbols (only when new symbols appear)
