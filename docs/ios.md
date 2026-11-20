@@ -12,7 +12,7 @@ The web app (`apps/web`) running on the owner's iPhone as an installed app, wrap
 
 Settled, so the session can start without asking:
 
-- Dependencies: `@capacitor/core`, `@capacitor/ios`, and `@capacitor/cli` in `apps/web` are approved (the owner agreed to Capacitor around the web app on 2026-11-19). Any further plugin, such as Filesystem or Share, is a new dependency: ask first, as CLAUDE.md says.
+- Dependencies: `@capacitor/core`, `@capacitor/ios`, and `@capacitor/cli` in `apps/web` are approved (the owner agreed to Capacitor around the web app on 2026-11-19). The owner also approved `@capacitor/filesystem`, `@capacitor/share`, `@capacitor/haptics`, and `@capacitor/app`, now in use. Any further plugin is a new dependency: ask first, as CLAUDE.md says.
 - The name under the icon: Bulk Brew.
 - Bundle identifier: `com.badc0ffe.bulkbrew`, in the same form as Pull State (`com.badc0ffe.pullstate`). The owner confirmed it on 2026-11-19. It cannot change once the app is in the App Store.
 - Lowest iOS version: whatever the current Capacitor sets by default. The dark app icon shows on iOS 18 and later; older phones show the light one.
@@ -37,11 +37,12 @@ Signing uses team ZWS3TP3W3Z, set in the project.
 
 Known risks, most likely first. None has been tried in a WebView yet.
 
-Settled in the simulator: the launch screen, no service worker in the app, the status bar following the Appearance setting, and the system text size. Still to see on the phone: the long-press and bounce behavior (`html.native` in `apps/web/src/index.css`) and the text size following a change made in Control Center while the app is open.
+Settled in the simulator: the launch screen, no service worker in the app, the status bar following the Appearance setting, the system text size, the share sheet for exports (iPhone, and centered on iPad), Bulk Brew offered as a target in the share sheet, and opening a .txt (into Import) or a backup .json (into the Restore question) from a file URL, both on a cold start and while the app is open. Still to see on the phone: the long-press and bounce behavior (`html.native` in `apps/web/src/index.css`) and the text size following a change made in Control Center while the app is open.
 
-- Saving files: Export, Backup, and deck .txt downloads use a blob link (`packages/ui/src/util/files.ts`), which a WKWebView most likely ignores. The fix is the Filesystem and Share plugins. Restore and Import use a file input, which should work.
+- Files: save an export to Files, AirDrop or mail one, and close the share sheet without choosing (no message should appear). Share a .txt, a ManaBox .csv, and a backup from Files or Mail into Bulk Brew. Restore and Import's "choose files" use a file input: check the picker opens and the right files are not greyed out.
+- Haptics: a tap on Accept, on a successful Import, and a lighter one on Replace; nothing on ordinary taps.
 - Storage: the bulk list, decks, and settings are in IndexedDB (`packages/ui/src/storage/kv.ts`). Confirm they survive closing the app, restarting the phone, and installing a new build over the old one.
-- Copy to clipboard in the Export dialog.
+- Copy to clipboard in the Export dialog. The page is a secure context in the app and `navigator.clipboard` exists; a copy outside a tap is refused, as it should be, and the copy from the tap could not be driven headless.
 - Links on About must open in Safari, not inside the app. Capacitor's navigation handler (`WebViewDelegationHandler.swift`) hands every top-level or new-window link outside the app, `mailto:` included, to the system; try one on the phone.
 - Card images come from Scryfall over the network; the no-art setting must still work in airplane mode.
 - Safe areas: the tabs must clear the notch and the sheets and the deck action bar must clear the home bar (`viewport-fit=cover` and the `env(safe-area-inset-*)` padding are already there).
@@ -57,7 +58,7 @@ The owner wants the app to keep its card data current by itself, as the web app 
 
 - The weekly workflow (`.github/workflows/data-refresh.yml`) already publishes a new pack and redeploys the site, which serves the current `data/cards.json` and `data/learned.json`. The app can read them from there; check that the site's responses allow a request from the app's origin, and that there is a small file to compare first (the manifest with the data date and checksum) so the app does not download the whole pack to learn nothing changed. Add one to the deploy if not.
 - On opening, at most once a day: compare, download in the background, verify the checksum, store it on the device, and use it from the next launch. Keep the bundled pack as the fallback, and refuse a pack whose schema the app does not know.
-- The pack is large, so IndexedDB may not be the right place for it; if the Filesystem plugin is needed, that is a new dependency to ask about.
+- The pack is large, so IndexedDB may not be the right place for it; the Filesystem plugin is installed now. Its stat reads file timestamps, which the app's `PrivacyInfo.xcprivacy` already declares (C617.1, files in the app container).
 - About shows the card data date already; it should show the downloaded pack's date once one is in use. In the app its Updates line says card data arrives with app updates (`DATA_UPDATES` in `AboutScreen.tsx`); rewrite it when the app updates by itself.
 - Config ships inside the app's code, so config changes still arrive only with an app update.
 

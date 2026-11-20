@@ -102,7 +102,7 @@ The same view serves a fresh build and a saved deck.
 - Decklist grouped by type with counts; basics by color; mana costs as symbols. Each card can show why it is there.
 - Mana curve bars and the land count with its reasoning in one line.
 - Details: archetype and what it does, role coverage against targets led by the archetype's own cards, key synergies in plain words, notes. On the web the details pane can widen to half the screen and show more.
-- Fresh build: Accept (asks Confirm and remove the cards, Confirm and keep them in the bulk list, or Decline), Back to the options, and Export (Copy as text, Download .txt, Cancel).
+- Fresh build: Accept (asks Confirm and remove the cards, Confirm and keep them in the bulk list, or Decline), Back to the options, and Export (Copy as text, Download .txt, Cancel; in the iOS app, Share .txt opens the share sheet).
 - Replace (web, fresh builds): the card detail's Replace this card opens a picker of bulk list cards that fit the deck, closest matches first, each with the jobs it shares with the card going out. Leaving a deck with replaced cards asks Discard your changes? first.
 - Saved deck: click the name to rename it; Export; a red Remove that asks Delete or Disassemble (cards go back) for an accepted deck, and Delete for a kept one. A kept deck shows a "Cards in bulk list" badge and a green Accept. A packet has Pair with.
 - In a deck view the card detail opens over the deck details, below the header, so the actions stay in view. Below 1024 px it is a bottom sheet.
@@ -137,7 +137,7 @@ Types the interface reads are in `packages/core/src/types.ts`; shared hooks and 
 ## Constraints
 
 - Card art is off by default and everything must work as text. Art loads from Scryfall on demand and is shown whole and unchanged: no cropping, recoloring, or marks drawn into it. The only thing laid over a card is the small turn-over button on a two-sided card's right edge, away from the artist credit and copyright line. Clicking the art opens it full screen with zoom and drag.
-- No user data leaves the device. There is no sign-in and no sync.
+- No user data leaves the device. There is no sign-in and no sync. In the iOS app an export goes to the share sheet, and where it goes from there is the user's own choice.
 - Bulk lists can hold thousands of cards; lists must stay fast.
 - Color is never the only signal; pair it with mana symbols or labels. Meet contrast guidelines in both themes. Touch targets are at least 44 points on phones.
 - The deck view is also the builder's debugging output, so the details must be able to show more without clutter.
