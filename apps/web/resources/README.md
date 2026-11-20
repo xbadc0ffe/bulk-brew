@@ -24,3 +24,15 @@ the SVG at 1024 by 1024 pixels:
   --hide-scrollbars --force-device-scale-factor=1 --window-size=1024,1024 \
   --screenshot=app-icon-light.png page.html
 ```
+
+## Launch screen
+
+`launch-logo-light.svg` and `launch-logo-dark.svg` are the flask alone, on a
+transparent background, for the iOS launch screen. Their PNGs are in
+`apps/web/ios/App/App/Assets.xcassets/LaunchLogo.imageset/` at 256 and 384
+pixels (128 points at 2x and 3x), with transparency. The background behind them
+is the `LaunchBackground` color set, which matches the page background of the
+grey theme (`--bg` in `packages/ui/src/theme.css`) in light and dark; change
+both together. Any renderer that keeps the alpha channel will do, for example a
+few lines of Swift that draw the SVG through `NSImage` into an
+`NSBitmapImageRep`.
