@@ -35,7 +35,7 @@ import {
 import { useAppState } from './app-context.ts';
 import { FilterIcon, SortIcon } from './icons.tsx';
 import { hapticSuccess } from './native.ts';
-import { useNav } from './nav.ts';
+import { useNav, type OpenedFile } from './nav.ts';
 import { ColorTiles, FilterSheet, IconButton, SortSheet } from './screens/PoolPhone.tsx';
 import { AnalysisPanel } from './screens/AnalysisPanel.tsx';
 
@@ -93,13 +93,14 @@ export function ImportScreen() {
   // A card list opened in the iOS app from another app joins the box like a chosen file.
   const { addFiles } = imp;
   const { takeOpened } = nav;
-  const opened = nav.opened?.kind === 'list' ? nav.opened.file : undefined;
-  const taken = useRef<File>(undefined);
+  const { opened } = nav;
+  const taken = useRef(new WeakSet<OpenedFile>());
   useEffect(() => {
-    if (!opened || taken.current === opened) return;
-    taken.current = opened;
-    takeOpened();
-    void addFiles([opened]);
+    const lists = opened.filter((o) => o.kind === 'list' && !taken.current.has(o));
+    if (lists.length === 0) return;
+    for (const o of lists) taken.current.add(o);
+    takeOpened(lists);
+    void addFiles(lists.map((o) => o.file));
   }, [opened, takeOpened, addFiles]);
 
   const importButton = (

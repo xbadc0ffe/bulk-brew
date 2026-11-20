@@ -57,7 +57,7 @@ function Shell() {
   // Two colors by default: the deck score can favor decks of more colors than build well.
   const [analysisColors, setAnalysisColors] = useState(2);
   const [discard, setDiscard] = useState(false);
-  const [opened, setOpened] = useState<OpenedFile>();
+  const [opened, setOpened] = useState<readonly OpenedFile[]>([]);
   const { detail, pool, index, decks, build } = useAppState();
   const closeDetail = detail.close;
   const nav: Nav = useMemo(
@@ -79,7 +79,7 @@ function Shell() {
       analysisColors,
       setAnalysisColors,
       opened,
-      takeOpened: () => setOpened(undefined),
+      takeOpened: (files) => setOpened((q) => q.filter((o) => !files.includes(o))),
     }),
     [screen, poolFilters, poolSort, analyze, analysisColors, closeDetail, opened],
   );
@@ -92,15 +92,22 @@ function Shell() {
         (file) => {
           void file.text().then((text) => {
             const kind = openedFileKind(file.name, text);
-            setOpened({ kind, file });
+            setOpened((q) => [...q, { kind, file }]);
             closeDetail();
-            setScreen(kind === 'backup' ? 'settings' : 'import');
           });
         },
         (message) => window.alert(message),
       ),
     [closeDetail],
   );
+  // The oldest waiting file picks the screen: Import takes every card list at once,
+  // Restore takes one backup at a time, and then the next file's screen opens.
+  const nextOpened = opened[0]?.kind;
+  const [routed, setRouted] = useState(nextOpened);
+  if (routed !== nextOpened) {
+    setRouted(nextOpened);
+    if (nextOpened) setScreen(nextOpened === 'backup' ? 'settings' : 'import');
+  }
   const cards = useMemo(
     () => (index ? poolSummary(pool.pool, index).cards : undefined),
     [index, pool.pool],

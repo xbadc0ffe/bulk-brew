@@ -24,9 +24,10 @@ export interface Nav {
   /** Most colors a deck may have in the analysis's best decks, 1 to 5. */
   analysisColors: number;
   setAnalysisColors(n: number): void;
-  opened: OpenedFile | undefined;
-  /** Called by the screen that took the opened file, so it is used once. */
-  takeOpened(): void;
+  /** Files opened in the iOS app, oldest first; several can arrive at once from a share. */
+  opened: readonly OpenedFile[];
+  /** Called by the screen that took these files, so each is used once. */
+  takeOpened(files: readonly OpenedFile[]): void;
 }
 
 export const NavContext = createContext<Nav | undefined>(undefined);

@@ -87,18 +87,24 @@ export function SettingsScreen() {
   const nav = useNav();
   // A backup opened in the iOS app from another app asks the same question, then skips
   // the file picker. It waits for the stored data, which a restore replaces.
-  const openedBackup = ready && nav.opened?.kind === 'backup' ? nav.opened.file : undefined;
+  // One backup at a time: the next waits until this one's restore has finished.
+  const [restoringOpened, setRestoringOpened] = useState(false);
+  const opened = nav.opened.find((o) => o.kind === 'backup');
+  const openedBackup = ready && !restoringOpened ? opened?.file : undefined;
 
   const cancelRestore = () => {
     setRestoreAsk(false);
-    nav.takeOpened();
+    if (openedBackup && opened) nav.takeOpened([opened]);
   };
 
   const pickRestore = (what: Part) => {
     setRestoreAsk(false);
-    if (openedBackup) {
-      nav.takeOpened();
-      void restore(openedBackup, what);
+    if (openedBackup && opened) {
+      setRestoringOpened(true);
+      void restore(openedBackup, what).finally(() => {
+        setRestoringOpened(false);
+        nav.takeOpened([opened]);
+      });
       return;
     }
     setRestoring(what);
