@@ -5,6 +5,10 @@ const config: CapacitorConfig = {
   appId: 'com.badc0ffe.bulkbrew',
   appName: 'Bulk Brew',
   webDir: 'dist',
+  ios: {
+    // A long press on a link would otherwise open a web page preview.
+    allowsLinkPreview: false,
+  },
 };
 
 export default config;

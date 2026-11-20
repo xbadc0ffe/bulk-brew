@@ -8,7 +8,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = scene as? UIWindowScene else { return }
 
         window = UIWindow(windowScene: windowScene)
-        window?.rootViewController = CAPBridgeViewController()
+        // The appearance chosen in Settings last time, before the page can say it again.
+        window?.overrideUserInterfaceStyle = AppearancePlugin.style(
+            for: UserDefaults.standard.string(forKey: AppearancePlugin.modeKey))
+        window?.backgroundColor = UIColor(named: "LaunchBackground")
+        window?.rootViewController = AppViewController()
         window?.makeKeyAndVisible()
 
         SceneDelegateProxy.shared.scene(scene, willConnectTo: session, options: connectionOptions)

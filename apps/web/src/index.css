@@ -11,3 +11,35 @@
     font-size: max(16px, 0.8125rem);
   }
 }
+
+/* The iOS app (html.native, set by native.ts) should feel like an app, not a page: no
+   bounce of the page itself, no tap flash, no double-tap zoom, and no selection or
+   long-press menu on controls. Text, fields, and lists stay selectable. */
+html.native,
+html.native body {
+  overscroll-behavior: none;
+}
+html.native {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+html.native
+  :is(
+    button,
+    a,
+    label,
+    select,
+    summary,
+    img,
+    [role='button'],
+    [role='tab'],
+    [role='radio'],
+    [role='switch'],
+    [role='menuitemcheckbox'],
+    [role='menuitemradio'],
+    [role='option']
+  ) {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}

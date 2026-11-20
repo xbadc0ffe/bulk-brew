@@ -274,9 +274,11 @@
 
 @layer base {
   /* Sizes are in rem, so this scales the whole app. The Text size setting sets
-     --root-scale; the phone app sets --root-base from the system text size. */
+     --root-scale; the iOS app sets --root-base from the system text size. The
+     product stays in the range the layout is tested at, which the setting alone
+     never leaves. */
   html {
-    font-size: calc(var(--root-base, 100%) * var(--root-scale, 1));
+    font-size: clamp(90%, calc(var(--root-base, 100%) * var(--root-scale, 1)), 140%);
   }
   html,
   body {

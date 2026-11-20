@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   CONFIG,
   useAppearance,
@@ -15,12 +15,15 @@ import {
   type KeyValueStore,
 } from '@bulk-brew/ui';
 import { AppContext, type AppState } from './app-context.ts';
+import { setNativeAppearance } from './native.ts';
 
 const PACK_URL = `${import.meta.env.BASE_URL}data/cards.json`;
 const LEARNED_URL = `${import.meta.env.BASE_URL}data/learned.json`;
 
 export function AppStateProvider({ kv, children }: { kv: KeyValueStore; children: ReactNode }) {
   const appearance = useAppearance();
+  const mode = appearance.appearance.mode;
+  useEffect(() => setNativeAppearance(mode), [mode]);
   const pack = usePack(PACK_URL, LEARNED_URL);
   const index = pack.status === 'ready' ? pack.index : undefined;
   const pool = usePool(kv);
