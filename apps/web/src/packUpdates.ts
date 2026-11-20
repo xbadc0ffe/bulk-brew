@@ -74,9 +74,13 @@ async function removeQuietly(path: string, directory: Directory): Promise<void> 
   await Filesystem.rmdir({ path, directory, recursive: true }).catch(() => undefined);
 }
 
+// The last drop, which the update check waits for so it cannot read a record being deleted.
+let dropping: Promise<void> = Promise.resolve();
+
 /** Forget every downloaded pack, so the bundled one is used. */
-export async function dropDownloadedPacks(): Promise<void> {
-  await removeQuietly(PACKS, STORE);
+export function dropDownloadedPacks(): Promise<void> {
+  dropping = removeQuietly(PACKS, STORE);
+  return dropping;
 }
 
 /**
@@ -197,6 +201,7 @@ async function checkForPack(inUse: string): Promise<void> {
   if (checking) return;
   checking = true;
   try {
+    await dropping;
     const now = Date.now();
     if (!checkDue(lastChecked(), now)) return;
     let res: Response;

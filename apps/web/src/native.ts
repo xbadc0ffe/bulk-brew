@@ -101,7 +101,7 @@ export function hapticLight(): void {
 /**
  * Calls back with each file the user opens in or shares to the app from another app.
  * iOS hands the app its own copy in Documents/Inbox (Info.plist does not ask to open
- * files in place), so it needs no security scope; the copy is deleted once read.
+ * files in place), so it needs no security scope; the copy is deleted once read, or tried.
  * A file opened before the page loaded is kept by the App plugin until this listens.
  */
 export function listenForOpenedFiles(
@@ -117,11 +117,12 @@ export function listenForOpenedFiles(
         // Bytes, decoded by File.text() as a file picked in the page would be.
         const bytes = Uint8Array.from(atob(data as string), (c) => c.charCodeAt(0));
         onFile(new File([bytes], name));
-        return Filesystem.deleteFile({ path: url }).catch(() => undefined);
       })
       .catch((err: unknown) =>
         onError(`Could not open ${name}: ${err instanceof Error ? err.message : String(err)}`),
-      );
+      )
+      // A copy that could not be read is of no use either, so it goes too.
+      .finally(() => Filesystem.deleteFile({ path: url }).catch(() => undefined));
   });
   return () => void handle.then((h) => h.remove());
 }

@@ -51,7 +51,7 @@ Settled in the simulator: the launch screen, no service worker in the app, the s
 - Text fields are 16 px so iOS does not zoom on focus; check the search box, the import box, and the filter search.
 - The keyboard must not cover the field being typed in, on Import and in the Filters sheet.
 - Speed: Analyze and the deck options run in web workers; time them on the phone with a large bulk list.
-- Card data updates (SPEC "Publishing and updates"): settled in the simulator against a local copy of the site (download, checksum refusal, unknown schema, stale and broken downloads, one check a day, superseding). The live site serves a manifest only once this work is pushed. On the phone, after the next weekly data refresh: open the app, then reopen it and see the new date on About; check that a launch with no connection opens normally and that the download leaves the app responsive.
+- Card data updates (SPEC "Publishing and updates"): settled in the simulator against a local copy of the site (download, checksum refusal, unknown schema, stale and broken downloads, one check a day, superseding). The live site serves a manifest only once this work is pushed. On the phone, after the next weekly data refresh: open the app, then close it in the app switcher, start it again, and see the new date on About; check that a launch with no connection opens normally and that the download leaves the app responsive.
 - iPad: the sidebar clears the status bar in portrait (simulator); try landscape and Split View.
 
 ## Later
