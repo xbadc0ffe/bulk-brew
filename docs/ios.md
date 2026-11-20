@@ -4,7 +4,7 @@ The next piece of work, ahead of the rest of `docs/todo.md`. It runs on the owne
 
 ## Goal
 
-The web app (`apps/web`) running on the owner's iPhone as an installed app, wrapped by Capacitor. Same screens, same code: the phone layout below 768 px is the app (SPEC "Decisions"). First on the owner's own phone from Xcode; TestFlight comes after.
+The web app (`apps/web`) running on the owner's iPhone as an installed app, wrapped by Capacitor. Same screens, same code: the phone layout below 768 px is the app (SPEC "Decisions"). It reaches the owner's phone through TestFlight.
 
 `apps/mobile` is an older separate phone app. Do not build on it. The icons it had are now in `apps/web/resources/`.
 
@@ -16,9 +16,9 @@ Settled, so the session can start without asking:
 - The name under the icon: Bulk Brew.
 - Bundle identifier: `com.badc0ffe.bulkbrew`, in the same form as Pull State (`com.badc0ffe.pullstate`). The owner confirmed it on 2026-11-19. It cannot change once the app is in the App Store.
 - Lowest iOS version: whatever the current Capacitor sets by default. The dark app icon shows on iOS 18 and later; older phones show the light one.
-- First goal: the app on the owner's own iPhone, run from Xcode. TestFlight is later.
+- The phone gets the app through TestFlight, not from Xcode: the Mac mini is headless and the owner has no physical access to it. To upload, run `npm run ios`, then `ship "App" <version>` from `apps/web/ios/App` (it pulls, archives, signs with the App Store Connect API key, and uploads). The App Store Connect record (Bulk Brew, SKU `bulkbrew`) and the bundle ID exist since 2026-11-19.
 
-Only the owner can do this one, in Xcode: pick the signing team under Signing & Capabilities. A free Apple ID works for their own phone (the app must be re-run from Xcode every seven days); TestFlight and the App Store need the paid Apple Developer Program.
+Signing uses team ZWS3TP3W3Z, set in the project.
 
 ## State of the repo
 
@@ -29,7 +29,7 @@ Only the owner can do this one, in Xcode: pick the signing team under Signing & 
 
 ## Steps
 
-1. Run it in the simulator, then on the phone, and go through "Check on the device".
+1. Install it on the phone from TestFlight and go through "Check on the device". (It runs in the simulator, checked headless with `simctl`.)
 2. Fix what the checks find. Each new plugin is a new dependency: ask first.
 3. Update `SPEC.md` (Platforms, Runtime, Status), `docs/DESIGN_BRIEF.md`, the README, and `docs/todo.md`; bump the version in its own commit.
 
@@ -61,7 +61,7 @@ The owner wants the app to keep its card data current by itself, as the web app 
 - About shows the card data date already; it should show the downloaded pack's date once one is in use, and its "Reload the page" line needs wording that fits an app.
 - Config ships inside the app's code, so config changes still arrive only with an app update.
 
-Later, not now: TestFlight, App Store listing and privacy answers (no data leaves the device).
+Later, not now: App Store listing and privacy answers (no data leaves the device).
 
 ## How the owner works
 
