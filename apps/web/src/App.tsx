@@ -204,11 +204,12 @@ function Shell() {
 
   return (
     <NavContext.Provider value={nav}>
-      {/* The insets keep the app clear of a notch and the home bar. */}
+      {/* The insets keep the app clear of a notch, the status bar, and the home bar. On an
+          iPad the sidebar's color runs up under the status bar and its buttons start below it. */}
       <div className="flex h-dvh flex-col bg-canvas pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] text-ink md:flex-row">
         <nav
           aria-label="Main"
-          className="hidden w-[max(104px,6.5rem)] shrink-0 flex-col gap-2 overflow-y-auto border-r border-line bg-rail px-2.5 py-3 md:flex"
+          className="hidden w-[max(104px,6.5rem)] shrink-0 flex-col gap-2 overflow-y-auto border-r border-line bg-rail px-2.5 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 md:flex"
         >
           {NAV.map(tile)}
           <div className="mt-auto flex flex-col items-center gap-1 pt-4 text-center">
@@ -235,7 +236,7 @@ function Shell() {
         </nav>
         {/* Positioned so absolute children with no nearer positioned parent, such as
             sr-only labels deep in a scrolling pane, are clipped here and never grow the page. */}
-        <main className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
+        <main className="relative min-h-0 min-w-0 flex-1 overflow-hidden md:pt-[env(safe-area-inset-top)]">
           <Screen key={visit} />
         </main>
       </div>
