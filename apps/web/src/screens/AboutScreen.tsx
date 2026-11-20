@@ -28,7 +28,7 @@ const PRIVACY_URL = isNative
   ? 'https://xbadc0ffe.github.io/bulk-brew/privacy.html'
   : `${import.meta.env.BASE_URL}privacy.html`;
 const DATA_UPDATES = isNative
-  ? 'New card data arrives with app updates.'
+  ? 'Card data updates by itself, about once a week, and new data is used the next time the app opens.'
   : 'New card data arrives with app updates, usually once a week. Reload the page to get the latest.';
 
 export function AboutScreen() {

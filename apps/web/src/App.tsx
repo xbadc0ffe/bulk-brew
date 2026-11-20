@@ -14,6 +14,7 @@ import { useAppState } from './app-context.ts';
 import { FanIcon, GearIcon, InfoIcon, StackIcon, StacksIcon } from './icons.tsx';
 import { NavContext, type Nav, type OpenedFile, type ScreenId } from './nav.ts';
 import { isNative, listenForOpenedFiles } from './native.ts';
+import type { PackSource } from './packUpdates.ts';
 import { ImportScreen, PoolScreen } from './screens.tsx';
 import { AboutScreen } from './screens/AboutScreen.tsx';
 import { BuildScreen } from './screens/BuildScreen.tsx';
@@ -23,11 +24,11 @@ import { SettingsScreen } from './screens/SettingsScreen.tsx';
 
 export type { ScreenId } from './nav.ts';
 
-export function App() {
+export function App({ packSource }: { packSource: PackSource }) {
   const kv = useMemo(() => openKv(), []);
   return (
     <ErrorBoundary kv={kv} app={isNative}>
-      <AppStateProvider kv={kv}>
+      <AppStateProvider kv={kv} packSource={packSource}>
         <Shell />
       </AppStateProvider>
     </ErrorBoundary>

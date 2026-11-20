@@ -23,12 +23,17 @@ async function loadLearned(url: string) {
   }
 }
 
+const LOADING: PackState = { status: 'loading' };
+
 /** Fetch the data pack and the learned card data once and build the card index. */
 export function usePack(url: string, learnedUrl?: string): PackState {
-  const [state, setState] = useState<PackState>({ status: 'loading' });
+  // Tagged with the URLs it came from, so a change of pack reads as loading, never as the old one.
+  const key = `${url} ${learnedUrl ?? ''}`;
+  const [state, setLoaded] = useState<{ key: string; pack: PackState }>();
 
   useEffect(() => {
     let cancelled = false;
+    const setState = (pack: PackState) => setLoaded({ key: `${url} ${learnedUrl ?? ''}`, pack });
     const learned = learnedUrl ? loadLearned(learnedUrl) : Promise.resolve(undefined);
     fetch(url)
       .then(async (res) => {
@@ -50,5 +55,5 @@ export function usePack(url: string, learnedUrl?: string): PackState {
     };
   }, [url, learnedUrl]);
 
-  return state;
+  return state?.key === key ? state.pack : LOADING;
 }

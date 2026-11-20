@@ -15,17 +15,47 @@ import {
   type KeyValueStore,
 } from '@bulk-brew/ui';
 import { AppContext, type AppState } from './app-context.ts';
-import { setNativeAppearance } from './native.ts';
+import { isNative, setNativeAppearance } from './native.ts';
+import {
+  BUNDLED_PACK,
+  dropDownloadedPacks,
+  startPackUpdates,
+  type PackSource,
+} from './packUpdates.ts';
 
-const PACK_URL = `${import.meta.env.BASE_URL}data/cards.json`;
-const LEARNED_URL = `${import.meta.env.BASE_URL}data/learned.json`;
-
-export function AppStateProvider({ kv, children }: { kv: KeyValueStore; children: ReactNode }) {
+export function AppStateProvider({
+  kv,
+  packSource,
+  children,
+}: {
+  kv: KeyValueStore;
+  /** The web app always loads the pack it was deployed with; the iOS app may pick a download. */
+  packSource: PackSource;
+  children: ReactNode;
+}) {
   const appearance = useAppearance();
   const mode = appearance.appearance.mode;
   useEffect(() => setNativeAppearance(mode), [mode]);
-  const pack = usePack(PACK_URL, LEARNED_URL);
-  const index = pack.status === 'ready' ? pack.index : undefined;
+  // A downloaded pack that does not load whole, cards and learned data of its own
+  // version, gives way to the bundled one and is deleted.
+  const [fellBack, setFellBack] = useState(false);
+  const source = fellBack ? BUNDLED_PACK : packSource;
+  const pack = usePack(source.cards, source.learned);
+  const downloadFailed =
+    source.downloaded !== undefined &&
+    (pack.status === 'error' ||
+      (pack.status === 'ready' &&
+        (!pack.index.learned || pack.index.version !== source.downloaded)));
+  if (downloadFailed) setFellBack(true);
+  useEffect(() => {
+    if (!fellBack) return;
+    console.warn('card data: the downloaded pack did not load; using the bundled one');
+    void dropDownloadedPacks();
+  }, [fellBack]);
+  const index = pack.status === 'ready' && !downloadFailed ? pack.index : undefined;
+  useEffect(() => {
+    if (isNative && index) startPackUpdates(index.version);
+  }, [index]);
   const pool = usePool(kv);
   const settings = useSettings(kv);
   const decks = useDecks(kv);

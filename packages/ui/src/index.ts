@@ -84,6 +84,18 @@ export {
 export { openKv, type KeyValueStore } from './storage/kv.ts';
 export { CONFIG, CONFIG_PROBLEMS, DEFAULT_SETTINGS, DISPLAY_TAGS } from './data/config.ts';
 export { usePack, type PackState } from './data/usePack.ts';
+export {
+  checkDue,
+  choosePack,
+  matchesFile,
+  parsePackManifest,
+  toHex,
+  updateVerdict,
+  PACK_FILES,
+  PACK_MANIFEST_FILE,
+  type PackFileName,
+  type PackManifest,
+} from './data/packUpdate.ts';
 export { usePool, type PoolActions, type PoolState } from './data/usePool.ts';
 export {
   useImport,
