@@ -117,7 +117,7 @@ The same view serves a fresh build and a saved deck.
 
 - Include Un-set and acorn cards. Show card art. Appearance (Light, Dark, System; System by default), Theme color, Text size. The phone also has Max copies here.
 - Your data (web): Export asks Bulk list, Decks, or Both, then JSON or TXT; Restore from backup asks the same, then the file; Reset settings; a red Clear all data.
-- About (its own sidebar screen on the web, a page in Settings on the phone): version, repo link, card data version, a short Privacy section linking the privacy policy, and the Fan Content, Scryfall, and learned data notices from `ATTRIBUTION.md`.
+- About (its own sidebar screen on the web, a page in Settings on the phone): version, repo link, card data version (the pack in use; in the iOS app a line says the data updates by itself and is used from the next opening), a short Privacy section linking the privacy policy, and the Fan Content, Scryfall, and learned data notices from `ATTRIBUTION.md`.
 
 ## Flows
 
@@ -146,4 +146,3 @@ Types the interface reads are in `packages/core/src/types.ts`; shared hooks and 
 
 - A grid view with art on the Bulk List (a design grouped by mana value is noted in `docs/todo.md`).
 - An add-or-replace choice on Import.
-- The over-the-air card data update on iOS.

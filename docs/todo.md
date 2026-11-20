@@ -15,7 +15,6 @@ One app: `apps/web` has a phone layout below 768 px and Capacitor will wrap it (
 - Phone: hover-only cues (the rename pencil, the reason Pair with is disabled in `DecksScreen.tsx`) need a touch equivalent.
 - Phone: the sheet's drag and the 16 px fields are checked only in an emulated browser; try them on a real iPhone.
 - Add an apple-touch-icon to the web app, and make the theme-color meta in `apps/web/index.html` follow the theme (it stays `#18181b`).
-- iOS: Capacitor project around `apps/web` with the bundled data pack and config and the over-the-air data update.
 - iOS: pick the bundle identifier with the owner (for example com.<name>.bulkbrew).
 - iOS: confirm IndexedDB persistence in the WebView, or move the key-value store to the Filesystem plugin (a new dependency; ask first).
 - iOS: check on the phone that external links open in Safari (Capacitor hands them to the system, per its source), and that the sheet's Back handling does no harm where there is no Back.
