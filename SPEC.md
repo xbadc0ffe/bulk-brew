@@ -64,7 +64,7 @@ Defaults live in `config/settings.defaults.json`.
 - Infinite basics (on) and rarities the builder may use (all four by default), on the Build form. Basic lands and cards with no known rarity are never filtered out.
 - Include Un-set and acorn cards (off). Show card art (off on first launch, remembered).
 - Export and restore (web) by part: Bulk list, Decks, or Both. JSON is a backup (Both adds the settings); TXT is plain card lists that import back (`collectionText`). Restore replaces only the chosen part and refuses a file without it. The phone app still exports and restores everything.
-- Appearance: light, dark, or system (the default), a theme color (grey or one of the five colors), and a text size (90 to 140%) that scales the layout, since sizes are in rem; on the phone it multiplies the system text size. Kept in `localStorage`, not in `Settings` or backups.
+- Appearance: light, dark, or system (the default), a theme color (grey or one of the five colors), and a text size (90 to 140%) that scales the layout, since sizes are in rem; in the iOS app it multiplies the system text size, and the product stays within 90 to 140%. Kept in `localStorage`, not in `Settings` or backups.
 
 ### Platforms
 
@@ -258,7 +258,7 @@ npm workspaces monorepo, TypeScript throughout. Packages:
 Runtime:
 
 - **Storage**: pool, decks, and settings in IndexedDB behind one key-value interface (`packages/ui/src/storage/kv.ts`). On iOS the same store runs in the WebView unless the iOS work moves it to native storage (see `docs/todo.md`). Backup is a JSON file export and import; restore writes the restored keys in one transaction.
-- **Offline**: the web app is an installable progressive web app. Its service worker precaches the app shell and built assets per deploy and keeps the data pack in a separate cache that survives deploys. The iOS app will bundle everything.
+- **Offline**: the web app is an installable progressive web app. Its service worker precaches the app shell and built assets per deploy and keeps the data pack in a separate cache that survives deploys. The iOS app bundles everything and registers no service worker.
 - **iOS**: Capacitor wraps the web app's static build. Builds run on the user's Mac mini with Xcode and ship through TestFlight and the App Store. The home-screen icon comes in a light and a dark version (`apps/web/resources/`, copied into the AppIcon set as Any and Dark), matching the web app's icon, which follows light and dark mode.
 
 ## Compliance
@@ -267,6 +267,7 @@ Runtime:
 - Wizards' Fan Content Policy governs card names, text, and images. Both apps carry the Fan Content notice on their About screen. See `ATTRIBUTION.md`.
 - Scryfall API requests carry a descriptive User-Agent and Accept header where the platform allows it, and are spaced at least 100 ms apart. Bulk files are fetched at most daily.
 - Image and data requests go from the user's device, never through a developer server.
+- The privacy policy is `apps/web/public/privacy.html` (on the site at `/privacy.html`), linked from About. Keep it true to the code when network use changes.
 - 17Lands public draft data (CC BY 4.0) and MTGJSON's preconstructed deck lists (MIT) tune the builder through developer-side scripts. Both are credited and thanked on the About screen of both apps and in `ATTRIBUTION.md`; no deck data from either ships.
 - EDHREC is read developer-side by `npm run edhrec:fetch`: one request per second with a named User-Agent, every answer cached under `data/edhrec/` (gitignored) and refetched at most weekly. Only derived, rounded numbers reach the apps. Commander Spellbook's bulk file, made for third parties, is downloaded at most weekly; the apps carry each combo's cards, results, bracket tag, legality, and variant id. Both are credited on the About screens and in `ATTRIBUTION.md`.
 
