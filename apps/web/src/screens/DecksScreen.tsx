@@ -17,6 +17,7 @@ import {
   useStatus,
 } from '@bulk-brew/ui';
 import { useAppState } from '../app-context.ts';
+import { hapticSuccess } from '../native.ts';
 import { useNav } from '../nav.ts';
 import { BackButton, PackGate } from '../screens.tsx';
 import { DeckCardPanel, DeckLayout, ExportButton } from './DeckLayout.tsx';
@@ -543,7 +544,9 @@ function SavedDeck({ deck, onBack, onPair }: { deck: Deck; onBack(): void; onPai
             tone: 'go',
             onSelect: () => {
               setConfirm(undefined);
-              setStatus(actions.removeFromPool(deck) ?? 'Accepted. Its cards left your bulk list.');
+              const problem = actions.removeFromPool(deck);
+              if (!problem) hapticSuccess();
+              setStatus(problem ?? 'Accepted. Its cards left your bulk list.');
             },
           },
           { label: 'Decline', tone: 'stop', onSelect: () => setConfirm(undefined) },

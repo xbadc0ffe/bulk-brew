@@ -1,7 +1,8 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   EMPTY_FILTERS,
   ErrorBoundary,
+  openedFileKind,
   openKv,
   poolSummary,
   type PoolFilters,
@@ -11,8 +12,8 @@ import { version } from '../package.json';
 import { AppStateProvider } from './app-state.tsx';
 import { useAppState } from './app-context.ts';
 import { FanIcon, GearIcon, InfoIcon, StackIcon, StacksIcon } from './icons.tsx';
-import { NavContext, type Nav, type ScreenId } from './nav.ts';
-import { isNative } from './native.ts';
+import { NavContext, type Nav, type OpenedFile, type ScreenId } from './nav.ts';
+import { isNative, listenForOpenedFiles } from './native.ts';
 import { ImportScreen, PoolScreen } from './screens.tsx';
 import { AboutScreen } from './screens/AboutScreen.tsx';
 import { BuildScreen } from './screens/BuildScreen.tsx';
@@ -55,6 +56,7 @@ function Shell() {
   // Two colors by default: the deck score can favor decks of more colors than build well.
   const [analysisColors, setAnalysisColors] = useState(2);
   const [discard, setDiscard] = useState(false);
+  const [opened, setOpened] = useState<OpenedFile>();
   const { detail, pool, index, decks, build } = useAppState();
   const closeDetail = detail.close;
   const nav: Nav = useMemo(
@@ -75,8 +77,28 @@ function Shell() {
       setAnalyze,
       analysisColors,
       setAnalysisColors,
+      opened,
+      takeOpened: () => setOpened(undefined),
     }),
-    [screen, poolFilters, poolSort, analyze, analysisColors, closeDetail],
+    [screen, poolFilters, poolSort, analyze, analysisColors, closeDetail, opened],
+  );
+
+  // In the iOS app, a file opened from Files or shared from another app goes to Import,
+  // or to Restore for a backup; each asks before changing anything, as usual.
+  useEffect(
+    () =>
+      listenForOpenedFiles(
+        (file) => {
+          void file.text().then((text) => {
+            const kind = openedFileKind(file.name, text);
+            setOpened({ kind, file });
+            closeDetail();
+            setScreen(kind === 'backup' ? 'settings' : 'import');
+          });
+        },
+        (message) => window.alert(message),
+      ),
+    [closeDetail],
   );
   const cards = useMemo(
     () => (index ? poolSummary(pool.pool, index).cards : undefined),

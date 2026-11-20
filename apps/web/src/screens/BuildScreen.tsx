@@ -30,6 +30,7 @@ import {
   type StyleChoice,
 } from '@bulk-brew/ui';
 import { useAppState } from '../app-context.ts';
+import { hapticLight, hapticSuccess } from '../native.ts';
 import { PackGate } from '../screens.tsx';
 import { OptionsPanel } from './BuildOptions.tsx';
 import { DeckLayout, DiscardSwapsDialog, ExportButton } from './DeckLayout.tsx';
@@ -591,6 +592,7 @@ function BuildResultView() {
             const out = index.get(cardId)?.name ?? 'the card';
             const had = deck.cards.find((c) => c.cardId === cardId)?.qty ?? option.qty;
             flow.replace(cardId, option);
+            hapticLight();
             setStatus(
               `Replaced ${copiesOf(option.qty, out, had)} with ${copiesOf(option.qty, option.card.name)}.`,
             );
@@ -629,7 +631,10 @@ function BuildResultView() {
             tone: 'go',
             onSelect: () => {
               setConfirm(false);
-              if (flow.accept(true)) focusForm();
+              if (flow.accept(true)) {
+                hapticSuccess();
+                focusForm();
+              }
             },
           },
           {
@@ -638,7 +643,10 @@ function BuildResultView() {
             tone: 'go-soft',
             onSelect: () => {
               setConfirm(false);
-              if (flow.accept(false)) focusForm();
+              if (flow.accept(false)) {
+                hapticSuccess();
+                focusForm();
+              }
             },
           },
           { label: 'Decline', tone: 'stop', onSelect: () => setConfirm(false) },

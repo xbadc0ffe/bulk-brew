@@ -5,7 +5,6 @@ import {
   applyBackup,
   ChoiceDialog,
   restoreQuestion,
-  downloadText,
   exportFilename,
   readFileText,
   Segmented,
@@ -16,6 +15,11 @@ import {
   type ThemeColor,
 } from '@bulk-brew/ui';
 import { useAppState } from '../app-context.ts';
+import { isNative, saveText } from '../native.ts';
+import { useNav } from '../nav.ts';
+
+// In the app the file goes through the share sheet, so it may not be saved anywhere.
+const SAVED = isNative ? 'exported' : 'downloaded';
 
 /** Swatch fills from the design; grey follows the theme's secondary text color. */
 const SWATCH: Record<ThemeColor, string> = {
@@ -80,9 +84,23 @@ export function SettingsScreen() {
   const [restoreAsk, setRestoreAsk] = useState(false);
   /** What the file about to be picked should restore. */
   const [restoring, setRestoring] = useState<Part>('both');
+  const nav = useNav();
+  // A backup opened in the iOS app from another app asks the same question, then skips
+  // the file picker. It waits for the stored data, which a restore replaces.
+  const openedBackup = ready && nav.opened?.kind === 'backup' ? nav.opened.file : undefined;
+
+  const cancelRestore = () => {
+    setRestoreAsk(false);
+    nav.takeOpened();
+  };
 
   const pickRestore = (what: Part) => {
     setRestoreAsk(false);
+    if (openedBackup) {
+      nav.takeOpened();
+      void restore(openedBackup, what);
+      return;
+    }
     setRestoring(what);
     // Still inside the click, so the browser lets the file picker open.
     restoreInput.current?.click();
@@ -93,6 +111,7 @@ export function SettingsScreen() {
     const now = new Date();
     const withList = what !== 'decks';
     const withDecks = what !== 'list';
+    let saved: Promise<boolean>;
     if (format === 'json') {
       // Both is a full backup, settings included, as before.
       const json = exportBackup(
@@ -104,7 +123,7 @@ export function SettingsScreen() {
         },
         now.toISOString(),
       );
-      downloadText(exportFilename(now, what, 'json'), json);
+      saved = saveText(exportFilename(now, what, 'json'), json);
     } else {
       if (!index) {
         setMessage('The card data is still loading. Try the text export again in a moment.');
@@ -118,15 +137,18 @@ export function SettingsScreen() {
         index,
         config,
       );
-      downloadText(exportFilename(now, what, 'txt'), text, 'text/plain');
+      saved = saveText(exportFilename(now, what, 'txt'), text, 'text/plain');
     }
-    setMessage(
-      `${what === 'both' ? 'Bulk list and decks' : PART_LABELS[what]} downloaded as ${format.toUpperCase()}.`,
+    const label = what === 'both' ? 'Bulk list and decks' : PART_LABELS[what];
+    saved.then(
+      // Closing the share sheet without a choice is not worth a message.
+      (done) => done && setMessage(`${label} ${SAVED} as ${format.toUpperCase()}.`),
+      (err: unknown) =>
+        setMessage(`Export failed: ${err instanceof Error ? err.message : String(err)}`),
     );
   };
 
-  const restore = async (file: File) => {
-    const what = restoring;
+  const restore = async (file: File, what: Part) => {
     try {
       const backup = parseBackup(await readFileText(file));
       const when = backup.exportedAt.slice(0, 10);
@@ -257,7 +279,7 @@ export function SettingsScreen() {
                 tabIndex={-1}
                 onChange={(e) => {
                   const file = e.target.files?.[0];
-                  if (file) void restore(file);
+                  if (file) void restore(file, restoring);
                   e.target.value = '';
                 }}
               />
@@ -335,9 +357,13 @@ export function SettingsScreen() {
         onCancel={() => setExporting(undefined)}
       />
       <ChoiceDialog
-        open={restoreAsk}
+        open={restoreAsk || openedBackup !== undefined}
         title="Restore from backup"
-        message="What do you want to restore? You pick the backup file next."
+        message={
+          openedBackup
+            ? `What do you want to restore from ${openedBackup.name}?`
+            : 'What do you want to restore? You pick the backup file next.'
+        }
         choices={[
           {
             label: PART_LABELS.list,
@@ -357,10 +383,10 @@ export function SettingsScreen() {
             tone: 'go-soft',
             onSelect: () => pickRestore('both'),
           },
-          { label: 'Cancel', tone: 'stop-soft', onSelect: () => setRestoreAsk(false) },
+          { label: 'Cancel', tone: 'stop-soft', onSelect: cancelRestore },
         ]}
         focus={3}
-        onCancel={() => setRestoreAsk(false)}
+        onCancel={cancelRestore}
       />
     </div>
   );

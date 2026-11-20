@@ -73,7 +73,14 @@ export {
 } from './data/useAppearance.ts';
 export * from './attribution.ts';
 export { compactCount } from './util/format.ts';
-export { downloadText, readFileText, backupFilename, exportFilename } from './util/files.ts';
+export {
+  downloadText,
+  readFileText,
+  backupFilename,
+  exportFilename,
+  openedFileKind,
+  fileNameFromUrl,
+} from './util/files.ts';
 export { openKv, type KeyValueStore } from './storage/kv.ts';
 export { CONFIG, CONFIG_PROBLEMS, DEFAULT_SETTINGS, DISPLAY_TAGS } from './data/config.ts';
 export { usePack, type PackState } from './data/usePack.ts';

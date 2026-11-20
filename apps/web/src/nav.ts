@@ -4,6 +4,12 @@ import type { PoolFilters, PoolSort } from '@bulk-brew/ui';
 /** Screens. Import is a subpage of the Bulk List (screen id `pool`) with no sidebar item. */
 export type ScreenId = 'import' | 'pool' | 'build' | 'decks' | 'settings' | 'about';
 
+/** A file opened in the iOS app from another app, waiting for Import or Restore. */
+export interface OpenedFile {
+  kind: 'backup' | 'list';
+  file: File;
+}
+
 export interface Nav {
   screen: ScreenId;
   go(screen: ScreenId): void;
@@ -18,6 +24,9 @@ export interface Nav {
   /** Most colors a deck may have in the analysis's best decks, 1 to 5. */
   analysisColors: number;
   setAnalysisColors(n: number): void;
+  opened: OpenedFile | undefined;
+  /** Called by the screen that took the opened file, so it is used once. */
+  takeOpened(): void;
 }
 
 export const NavContext = createContext<Nav | undefined>(undefined);

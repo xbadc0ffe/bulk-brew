@@ -34,3 +34,19 @@ export function exportFilename(now: Date, what: 'list' | 'decks' | 'both', ext: 
           : 'bulk-list-and-decks';
   return `bulk-brew-${name}-${now.toISOString().slice(0, 10)}.${ext}`;
 }
+
+/** Where a file opened into the app goes: a backup to Restore, anything else to Import. */
+export function openedFileKind(name: string, text: string): 'backup' | 'list' {
+  // A card list never starts with a brace, and the name can lose its extension on the way in.
+  return /\.json$/i.test(name) || text.trimStart().startsWith('{') ? 'backup' : 'list';
+}
+
+/** The file name at the end of a file URL, for messages and the import's file name. */
+export function fileNameFromUrl(url: string): string {
+  const last = url.split(/[?#]/)[0]!.split('/').filter(Boolean).pop() ?? '';
+  try {
+    return decodeURIComponent(last);
+  } catch {
+    return last;
+  }
+}

@@ -34,6 +34,7 @@ import {
 } from '@bulk-brew/ui';
 import { useAppState } from './app-context.ts';
 import { FilterIcon, SortIcon } from './icons.tsx';
+import { hapticSuccess } from './native.ts';
 import { useNav } from './nav.ts';
 import { ColorTiles, FilterSheet, IconButton, SortSheet } from './screens/PoolPhone.tsx';
 import { AnalysisPanel } from './screens/AnalysisPanel.tsx';
@@ -89,13 +90,27 @@ export function ImportScreen() {
   const fileInput = useRef<HTMLInputElement>(null);
   const preview = imp.preview;
 
+  // A card list opened in the iOS app from another app joins the box like a chosen file.
+  const { addFiles } = imp;
+  const { takeOpened } = nav;
+  const opened = nav.opened?.kind === 'list' ? nav.opened.file : undefined;
+  const taken = useRef<File>(undefined);
+  useEffect(() => {
+    if (!opened || taken.current === opened) return;
+    taken.current = opened;
+    takeOpened();
+    void addFiles([opened]);
+  }, [opened, takeOpened, addFiles]);
+
   const importButton = (
     <button
       type="button"
       // Marked important: which of two text sizes wins otherwise depends on CSS order.
       className={`${ui.primary} px-6 py-2.5 text-[0.875rem]!`}
       disabled={!imp.canImport}
-      onClick={imp.commit}
+      onClick={() => {
+        if (imp.commit() > 0) hapticSuccess();
+      }}
     >
       {preview && preview.cards > 0 ? `Import ${plural(preview.cards, 'card')}` : 'Import'}
     </button>

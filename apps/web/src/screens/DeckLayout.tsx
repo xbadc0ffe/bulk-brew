@@ -15,7 +15,6 @@ import {
   DeckCounts,
   deckFilename,
   DeckList,
-  downloadText,
   Pip,
   ReplaceDialog,
   Sheet,
@@ -23,10 +22,15 @@ import {
   useMediaQuery,
 } from '@bulk-brew/ui';
 import { useAppState } from '../app-context.ts';
+import { isNative, saveText } from '../native.ts';
+
+// The app hands the file to the share sheet, where Save to Files is one choice.
+const SAVE_LABEL = isNative ? 'Share .txt' : 'Download .txt';
+const SAVE_DETAIL = isNative ? 'Save it to Files or send it' : 'Save it as a text file';
 
 /**
- * Export asks in a popup, as Remove does: Copy as text, Download .txt, or
- * Cancel. Reports the copy through onStatus.
+ * Export asks in a popup, as Remove does: Copy as text, Download .txt (Share
+ * .txt in the app), or Cancel. Reports the copy through onStatus.
  */
 export function ExportButton({ deck, onStatus }: { deck: Deck; onStatus(text: string): void }) {
   const { index, config } = useAppState();
@@ -51,17 +55,19 @@ export function ExportButton({ deck, onStatus }: { deck: Deck; onStatus(text: st
               setOpen(false);
               navigator.clipboard.writeText(text()).then(
                 () => onStatus(`Copied "${deck.name}" to the clipboard.`),
-                () => onStatus('Copy failed. Try Download .txt instead.'),
+                () => onStatus(`Copy failed. Try ${SAVE_LABEL} instead.`),
               );
             },
           },
           {
-            label: 'Download .txt',
-            detail: 'Save it as a text file',
+            label: SAVE_LABEL,
+            detail: SAVE_DETAIL,
             tone: 'go-soft',
             onSelect: () => {
               setOpen(false);
-              downloadText(deckFilename(deck.name), text(), 'text/plain');
+              saveText(deckFilename(deck.name), text(), 'text/plain').catch((err: unknown) =>
+                onStatus(`Sharing failed: ${err instanceof Error ? err.message : String(err)}`),
+              );
             },
           },
           { label: 'Cancel', tone: 'stop-soft', onSelect: () => setOpen(false) },
