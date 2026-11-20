@@ -18,10 +18,18 @@ import {
 import { version } from '../../package.json';
 import { useAppState } from '../app-context.ts';
 import logo from '../assets/badc0ffe-logo.png';
+import { isNative } from '../native.ts';
 
 const AUTHOR = 'badc0ffe';
 const WEBSITE = 'https://badc0ffe.net';
 const EMAIL = 'info@badc0ffe.net';
+// The app opens the policy in Safari, so it needs the site's full address.
+const PRIVACY_URL = isNative
+  ? 'https://xbadc0ffe.github.io/bulk-brew/privacy.html'
+  : `${import.meta.env.BASE_URL}privacy.html`;
+const DATA_UPDATES = isNative
+  ? 'New card data arrives with app updates.'
+  : 'New card data arrives with app updates, usually once a week. Reload the page to get the latest.';
 
 export function AboutScreen() {
   const { pack, config } = useAppState();
@@ -93,10 +101,7 @@ export function AboutScreen() {
             </div>
             <div className="flex flex-col gap-0.5 px-4 py-[11px]">
               <span className="font-semibold">Updates</span>
-              <span className="text-[0.71875rem] text-fg-2">
-                New card data arrives with app updates, usually once a week. Reload the page to get
-                the latest.
-              </span>
+              <span className="text-[0.71875rem] text-fg-2">{DATA_UPDATES}</span>
             </div>
             {CONFIG_PROBLEMS.length > 0 && (
               <div className="px-4 py-[11px] text-ink">
@@ -108,6 +113,24 @@ export function AboutScreen() {
                 </ul>
               </div>
             )}
+          </div>
+        </section>
+
+        <section className="flex flex-col gap-2">
+          <h2 className={ui.sectionLabel}>Privacy</h2>
+          <div className={`${ui.box} flex flex-col gap-1 px-4 py-[11px]`}>
+            <p>
+              No accounts, analytics, tracking, or ads. Your bulk list, decks, and settings stay on
+              this device.
+            </p>
+            <a
+              className={`${ui.link} self-start`}
+              href={PRIVACY_URL}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Privacy policy
+            </a>
           </div>
         </section>
 

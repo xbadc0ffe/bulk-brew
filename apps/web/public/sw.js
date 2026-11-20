@@ -112,6 +112,9 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(cacheFirst(request));
   } else if (url.pathname.startsWith(`${BASE}data/`)) {
     event.respondWith(staleWhileRevalidate(event, DATA_CACHE));
+  } else if (url.pathname.endsWith('.html') && url.pathname !== INDEX) {
+    // A page of its own, such as the privacy policy: kept under its own name, never as the app.
+    event.respondWith(networkFirst(request, url.pathname));
   } else if (request.mode === 'navigate' || url.pathname === BASE || url.pathname === INDEX) {
     event.respondWith(networkFirst(request, INDEX));
   } else if (url.pathname.startsWith(BASE)) {

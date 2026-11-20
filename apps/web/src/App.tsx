@@ -12,6 +12,7 @@ import { AppStateProvider } from './app-state.tsx';
 import { useAppState } from './app-context.ts';
 import { FanIcon, GearIcon, InfoIcon, StackIcon, StacksIcon } from './icons.tsx';
 import { NavContext, type Nav, type ScreenId } from './nav.ts';
+import { isNative } from './native.ts';
 import { ImportScreen, PoolScreen } from './screens.tsx';
 import { AboutScreen } from './screens/AboutScreen.tsx';
 import { BuildScreen } from './screens/BuildScreen.tsx';
@@ -24,7 +25,7 @@ export type { ScreenId } from './nav.ts';
 export function App() {
   const kv = useMemo(() => openKv(), []);
   return (
-    <ErrorBoundary kv={kv}>
+    <ErrorBoundary kv={kv} app={isNative}>
       <AppStateProvider kv={kv}>
         <Shell />
       </AppStateProvider>

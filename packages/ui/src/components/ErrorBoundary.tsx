@@ -5,6 +5,8 @@ import type { KeyValueStore } from '../storage/kv.ts';
 interface Props {
   kv: KeyValueStore;
   children: ReactNode;
+  /** Inside an app, where "restart" fits better than reloading a page. */
+  app?: boolean;
 }
 
 interface State {
@@ -30,7 +32,10 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   clearAll = async (): Promise<void> => {
-    if (!window.confirm('Delete your bulk list, every saved deck, and your settings, then reload?'))
+    const then = this.props.app ? 'restart' : 'reload';
+    if (
+      !window.confirm(`Delete your bulk list, every saved deck, and your settings, then ${then}?`)
+    )
       return;
     for (const key of Object.values(STORAGE_KEYS)) {
       try {
@@ -45,6 +50,7 @@ export class ErrorBoundary extends Component<Props, State> {
   override render(): ReactNode {
     const { error } = this.state;
     if (!error) return this.props.children;
+    const app = this.props.app === true;
     return (
       <div className="mx-auto flex max-w-xl flex-col gap-3 p-8 text-sm">
         <h1 className="text-lg font-semibold">Something went wrong</h1>
@@ -53,12 +59,12 @@ export class ErrorBoundary extends Component<Props, State> {
           {error.message}
         </pre>
         <p className="text-zinc-600 dark:text-zinc-400">
-          Reloading usually helps. If it keeps happening, stored data may be damaged; clearing it
-          removes your pool, decks, and settings.
+          {app ? 'Restarting' : 'Reloading'} usually helps. If it keeps happening, stored data may
+          be damaged; clearing it removes your pool, decks, and settings.
         </p>
         <div className="flex gap-2">
           <button type="button" className={button} onClick={() => window.location.reload()}>
-            Reload
+            {app ? 'Restart' : 'Reload'}
           </button>
           <button type="button" className={button} onClick={() => void this.clearAll()}>
             Clear all data
