@@ -64,7 +64,7 @@ Defaults live in `config/settings.defaults.json`.
 - Infinite basics (on) and rarities the builder may use (all four by default), on the Build form. Basic lands and cards with no known rarity are never filtered out.
 - Include Un-set and acorn cards (off). Show card art (off on first launch, remembered).
 - Export and restore (web) by part: Bulk list, Decks, or Both. JSON is a backup (Both adds the settings); TXT is plain card lists that import back (`collectionText`). Restore replaces only the chosen part and refuses a file without it. The phone app still exports and restores everything.
-- Appearance: light, dark, or system, a theme color (grey or one of the five colors), and a text size (90 to 140%) that scales the layout, since sizes are in rem; on the phone it multiplies the system text size. Kept in `localStorage`, not in `Settings` or backups.
+- Appearance: light, dark, or system (the default), a theme color (grey or one of the five colors), and a text size (90 to 140%) that scales the layout, since sizes are in rem; on the phone it multiplies the system text size. Kept in `localStorage`, not in `Settings` or backups.
 
 ### Platforms
 

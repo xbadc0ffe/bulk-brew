@@ -24,7 +24,7 @@ describe('parseAppearance', () => {
   });
 
   it('falls back to the defaults for nothing stored or unreadable text', () => {
-    const defaults = { mode: 'light', theme: 'grey', textSize: 100 };
+    const defaults = { mode: 'system', theme: 'grey', textSize: 100 };
     expect(parseAppearance(null)).toEqual(defaults);
     expect(parseAppearance('not json')).toEqual(defaults);
     expect(parseAppearance('7')).toEqual(defaults);

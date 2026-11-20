@@ -38,7 +38,7 @@ export const TEXT_SIZES: { id: TextSize; label: string }[] = [
 // each index.html must read it synchronously before first paint. The key and
 // shape are duplicated there; keep them in step.
 export const APPEARANCE_KEY = 'bulk-brew.appearance';
-const DEFAULT_APPEARANCE: Appearance = { mode: 'light', theme: 'grey', textSize: 100 };
+const DEFAULT_APPEARANCE: Appearance = { mode: 'system', theme: 'grey', textSize: 100 };
 
 function isMode(v: unknown): v is AppearanceMode {
   return v === 'light' || v === 'dark' || v === 'system';

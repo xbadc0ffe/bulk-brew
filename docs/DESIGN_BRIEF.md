@@ -115,7 +115,7 @@ The same view serves a fresh build and a saved deck.
 
 ### Settings and About
 
-- Include Un-set and acorn cards. Show card art. Appearance (Light, Dark, System), Theme color, Text size. The phone also has Max copies here.
+- Include Un-set and acorn cards. Show card art. Appearance (Light, Dark, System; System by default), Theme color, Text size. The phone also has Max copies here.
 - Your data (web): Export asks Bulk list, Decks, or Both, then JSON or TXT; Restore from backup asks the same, then the file; Reset settings; a red Clear all data.
 - About (its own sidebar screen on the web, a page in Settings on the phone): version, repo link, card data version, and the Fan Content, Scryfall, and learned data notices from `ATTRIBUTION.md`.
 

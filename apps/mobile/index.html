@@ -16,7 +16,7 @@
         try {
           a = JSON.parse(localStorage.getItem('bulk-brew.appearance')) || {};
         } catch (e) {}
-        var mode = a.mode === 'dark' || a.mode === 'system' ? a.mode : 'light';
+        var mode = a.mode === 'light' || a.mode === 'dark' ? a.mode : 'system';
         var theme = ['W', 'U', 'B', 'R', 'G'].indexOf(a.theme) >= 0 ? a.theme : 'grey';
         var textSize = [90, 110, 125, 140].indexOf(a.textSize) >= 0 ? a.textSize : 100;
         var dark =
