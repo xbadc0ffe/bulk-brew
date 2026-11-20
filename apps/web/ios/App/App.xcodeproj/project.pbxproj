@@ -307,7 +307,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 26.0.56;
+				MARKETING_VERSION = 26.0.57;
 				OTHER_SWIFT_FLAGS = "$(inherited) \"-D\" \"COCOAPODS\" \"-DDEBUG\"";
 				PRODUCT_BUNDLE_IDENTIFIER = com.badc0ffe.bulkbrew;
 				DEVELOPMENT_TEAM = ZWS3TP3W3Z;
@@ -330,7 +330,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 26.0.56;
+				MARKETING_VERSION = 26.0.57;
 				PRODUCT_BUNDLE_IDENTIFIER = com.badc0ffe.bulkbrew;
 				DEVELOPMENT_TEAM = ZWS3TP3W3Z;
 				PRODUCT_NAME = "$(TARGET_NAME)";
