@@ -1,8 +1,8 @@
 {
   "schema": 2,
-  "version": "2026-11-16",
-  "url": "https://github.com/xbadc0ffe/bulk-brew/releases/download/data-2026-11-16/cards.v2.json.gz",
-  "sha256": "4b8fbbd645c9619027081c77835728c2138302436a66229da272612642f408f5",
-  "bytes": 5601242,
-  "cardCount": 34177
+  "version": "2026-11-23",
+  "url": "https://github.com/xbadc0ffe/bulk-brew/releases/download/data-2026-11-23/cards.v2.json.gz",
+  "sha256": "4536438329204ba656d24fca8047f9d2b19ae63afa901642d649f09c8fc266c0",
+  "bytes": 5618795,
+  "cardCount": 34236
 }

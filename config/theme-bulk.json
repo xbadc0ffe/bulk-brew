@@ -1,6 +1,6 @@
 {
-  "version": "dvi6v1",
-  "dataVersion": "2026-11-16",
+  "version": "1tgak7u",
+  "dataVersion": "2026-11-23",
   "rulesVersion": "9",
   "styles": {
     "aristocrats": {
@@ -557,9 +557,9 @@
         "payoffWeight": 0.059214
       },
       "C": {
-        "setupUnits": 0.037026,
-        "setupWeight": 0.047933,
-        "repeatable": 0.025832,
+        "setupUnits": 0.036739,
+        "setupWeight": 0.047646,
+        "repeatable": 0.025258,
         "payoffUnits": 0.013203,
         "payoffWeight": 0.013203
       }
